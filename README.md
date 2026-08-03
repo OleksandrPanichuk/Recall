@@ -54,7 +54,8 @@
 - [Bun](https://bun.com) — runtime, package manager, build і test runner;
 - TypeScript;
 - [Telegraf](https://telegraf.js.org) — запланований Telegram Bot framework;
-- `bun:sqlite` — запланована локальна database;
+- `bun:sqlite` + [Drizzle ORM](https://orm.drizzle.team) — локальна database, schema
+  та versioned migrations;
 - Model Context Protocol — запланована інтеграція з Claude Desktop/Claude Code.
 
 ## Поточна локальна foundation
@@ -89,6 +90,30 @@ cp .env.example .env
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
 змінних і причини — значення не логуються, тому токен не потрапляє в logs.
 
+Створити або оновити database за шляхом `DATABASE_PATH`:
+
+```bash
+bun run migrate
+```
+
+Команда друкує шлях перед відкриттям файлу, застосовує pending migrations із
+`drizzle/` і виводить список застосованих версій або `database is up to date`.
+Повторний запуск нічого не змінює. Значення environment variables у вивід не
+потрапляють, тому токен не логується.
+
+Schema описана в `src/adapters/persistence/sqlite/schema.ts`. Після її зміни
+потрібно згенерувати нову migration:
+
+```bash
+bun run db:generate
+```
+
+> **Важливо:** Drizzle schema builder не вміє виражати `STRICT`, тому в
+> згенерованому `.sql` файлі кожен `CREATE TABLE` доводиться вручну завершувати
+> `) STRICT;`. Без цього SQLite приймає BLOB у TEXT column і `1.5` у
+> `telegram_user_id`. Integration test `strict typing` падає, якщо цю правку
+> втратити.
+
 Перевірити clean baseline:
 
 ```bash
@@ -109,6 +134,8 @@ bun run dev
 | Command | Призначення |
 | --- | --- |
 | `bun run dev` | Запустити watch mode для майбутнього Telegram entrypoint |
+| `bun run migrate` | Застосувати pending SQLite migrations до `DATABASE_PATH` |
+| `bun run db:generate` | Згенерувати migration зі змін у Drizzle schema |
 | `bun run lint` | Перевірити код правилами Biome linter |
 | `bun run lint:fix` | Автоматично виправити safe lint findings |
 | `bun run format:check` | Перевірити форматування без зміни файлів |
