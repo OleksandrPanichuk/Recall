@@ -21,7 +21,6 @@ const reviewedAt = new Date("2026-08-02T11:00:00.000Z");
 const nextDueAt = new Date("2026-08-05T11:00:00.000Z");
 const laterReviewedAt = new Date("2026-08-06T11:00:00.000Z");
 const laterDueAt = new Date("2026-08-09T11:00:00.000Z");
-/** After `createdAt` but before `reviewedAt`: a stale second review. */
 const staleAt = new Date("2026-08-01T12:00:00.000Z");
 const earlierAt = new Date("2026-07-31T10:00:00.000Z");
 const invalidDate = new Date("not a date");
@@ -56,10 +55,6 @@ const issuesOf = (draft: ReviewItemDraft): readonly string[] => {
 	throw new Error("expected createReviewItem to throw");
 };
 
-/**
- * The transition counterpart of `issuesOf`: asserting the whole `issues` array
- * catches a missing or extra issue that substring matching would hide.
- */
 const markIssuesOf = (
 	mark: MarkReview,
 	item: ReviewItem,
@@ -79,7 +74,6 @@ const markIssuesOf = (
 
 const pendingItem = (): ReviewItem => createReviewItem(validDraft);
 
-/** Advances an item to the given streak through successful repetitions. */
 const withStreak = (streak: number): ReviewItem => {
 	let item = pendingItem();
 
@@ -173,10 +167,6 @@ describe("ReviewItem", () => {
 		});
 
 		test("rejects a dueAt that precedes createdAt", () => {
-			// Creation is the degenerate first review where `at === createdAt`, and
-			// the mark functions forbid `dueAt < at`, so the factory must not mint a
-			// state no transition can produce: such an item would sort ahead of every
-			// legitimately due item.
 			expect(issuesOf({ ...validDraft, dueAt: earlierAt })).toEqual([
 				"dueAt must not precede createdAt",
 			]);
@@ -398,7 +388,6 @@ describe("ReviewItem", () => {
 		});
 
 		test.each(markFunctions)("%s rejects a dueAt before at", (_name, mark) => {
-			// A repetition cannot be scheduled before the review that produced it.
 			expect(markIssuesOf(mark, pendingItem(), reviewedAt, createdAt)).toEqual([
 				"dueAt must not precede at",
 			]);
@@ -415,13 +404,9 @@ describe("ReviewItem", () => {
 		test.each(
 			markFunctions,
 		)("%s reports a lone order violation once and lets validity suppress it", (_name, mark) => {
-			// `dueAt` equals `at` here, so only the createdAt anchor is violated:
-			// a single order failure must not be padded with a second issue.
 			expect(markIssuesOf(mark, pendingItem(), earlierAt, earlierAt)).toEqual([
 				"at must not precede createdAt",
 			]);
-			// The same backdated `at` alongside an invalid `dueAt` reports only the
-			// validity failure: comparison never runs on an unusable date.
 			expect(markIssuesOf(mark, pendingItem(), earlierAt, invalidDate)).toEqual(
 				["dueAt must be a valid date"],
 			);
@@ -430,8 +415,6 @@ describe("ReviewItem", () => {
 		test.each(
 			markFunctions,
 		)("%s rejects an at before lastReviewedAt", (_name, mark) => {
-			// Phase 5.3 orders repetitions by lastReviewedAt, so a stale second
-			// review must not pull the item's own timeline backwards.
 			expect(markIssuesOf(mark, reviewedOnce(), staleAt, nextDueAt)).toEqual([
 				"at must not precede lastReviewedAt",
 			]);

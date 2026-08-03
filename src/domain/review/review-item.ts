@@ -22,7 +22,6 @@ export function isReviewItemState(value: unknown): value is ReviewItemState {
 	return (Object.values(ReviewItemState) as readonly unknown[]).includes(value);
 }
 
-/** A correct repetition streak of this length retires the item. */
 export const RETIREMENT_STREAK = 4;
 
 export interface ReviewItem {
@@ -46,11 +45,6 @@ interface ReviewItemDraft {
 
 const isValidDate = (value: Date): boolean => !Number.isNaN(value.getTime());
 
-/**
- * `Date` is mutable, so a stored reference would let a caller change a frozen
- * item's timestamps from the outside. Every timestamp is copied on the way in;
- * reference identity is deliberately not part of the contract.
- */
 const copiedDate = (value: Date): Date => new Date(value.getTime());
 
 const copiedOptionalDate = (value: Date | undefined): Date | undefined =>
@@ -85,11 +79,6 @@ const collectDraftIssues = (draft: ReviewItemDraft): readonly string[] => {
 		issues.push("dueAt must be a valid date");
 	}
 
-	// Creation is the degenerate first review, where `at` equals `createdAt`, and
-	// a review can never schedule its repetition into the past. Accepting a
-	// `dueAt` before `createdAt` would mint a state no transition can produce,
-	// and such an item would sort ahead of every legitimately due one. Compared
-	// only once both dates are valid, because an invalid date has no order.
 	if (
 		hasValidCreatedAt &&
 		hasValidDueAt &&
@@ -107,18 +96,6 @@ const assertReviewable = (item: ReviewItem): void => {
 	}
 };
 
-/**
- * An invalid or backdated review timestamp would silently corrupt the review
- * timeline, so both dates are checked before the item is touched. Validity is
- * checked before monotonicity, because comparing an invalid date yields a
- * meaningless verdict.
- *
- * Monotonicity is anchored to `lastReviewedAt` once the item has been reviewed,
- * and to `createdAt` before that: scheduling reads the review history in
- * timestamp order, so a stale repetition must not pull the item's own timeline
- * backwards. A `dueAt` before `at` would schedule a repetition before the review
- * that produced it. Equal timestamps are valid throughout.
- */
 const assertReviewDates = (item: ReviewItem, at: Date, dueAt: Date): void => {
 	const validity: string[] = [];
 
@@ -156,7 +133,6 @@ const assertReviewDates = (item: ReviewItem, at: Date, dueAt: Date): void => {
 	}
 };
 
-/** Validates every invariant and reports all issues at once. */
 export function createReviewItem(draft: ReviewItemDraft): ReviewItem {
 	const issues = collectDraftIssues(draft);
 
@@ -175,7 +151,6 @@ export function createReviewItem(draft: ReviewItemDraft): ReviewItem {
 	});
 }
 
-/** A wrong answer resets progress and makes the item due again. */
 export function markReviewFailed(
 	item: ReviewItem,
 	at: Date,
@@ -193,10 +168,6 @@ export function markReviewFailed(
 	});
 }
 
-/**
- * A correct repetition advances the streak; the interval behind `dueAt` is the
- * caller's decision, because scheduling policy lives outside the domain.
- */
 export function markReviewPassed(
 	item: ReviewItem,
 	at: Date,

@@ -10,10 +10,6 @@ export class ReviewItemValidationError extends Error {
 	}
 }
 
-/**
- * A retired item has been answered correctly often enough to leave the review
- * rotation; reviewing it again would silently resurrect it.
- */
 export class RetiredReviewItemError extends Error {
 	constructor() {
 		super("A retired review item cannot be reviewed again");
