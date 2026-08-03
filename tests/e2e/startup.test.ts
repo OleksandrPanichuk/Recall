@@ -14,7 +14,6 @@ const validEnvironment = {
 };
 
 async function start(environment: Record<string, string>) {
-	// `--env-file` keeps the developer's local `.env` out of the assertions.
 	const child = Bun.spawn(
 		[process.execPath, "--env-file=/dev/null", entrypoint],
 		{

@@ -9,10 +9,6 @@ export interface Environment {
 	readonly appTimezone: string;
 }
 
-/**
- * Startup configuration failure. Carries variable names and reasons only, so a
- * failed startup can be logged without leaking the bot token.
- */
 export class EnvironmentError extends Error {
 	public readonly issues: readonly string[];
 
@@ -49,11 +45,6 @@ const environmentSchema = z.object({
 	APP_TIMEZONE: requiredText.refine(isSupportedTimezone),
 });
 
-/**
- * Human-readable reason per variable. Zod issue messages are deliberately not
- * reused: they can echo the received value, and a bot token must never reach a
- * log line.
- */
 const issueMessages = {
 	TELEGRAM_BOT_KEY: "TELEGRAM_BOT_KEY is required and must not be empty",
 	ALLOWED_TELEGRAM_USER_ID:
@@ -67,11 +58,6 @@ const variableNames = Object.keys(
 	issueMessages,
 ) as (keyof typeof issueMessages)[];
 
-/**
- * Validates the process environment before the application starts. Throws an
- * {@link EnvironmentError} that lists every problem instead of failing on the
- * first one, so a misconfigured setup can be fixed in a single pass.
- */
 export function loadEnvironment(
 	source: EnvironmentSource = Bun.env,
 ): Environment {
