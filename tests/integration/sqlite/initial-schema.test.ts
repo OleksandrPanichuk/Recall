@@ -88,12 +88,23 @@ interface ReviewItemRow {
 	readonly last_reviewed_at: string | null;
 }
 
+/**
+ * Any column of a probe row may be overridden with NULL, including a primary
+ * key: proving the schema rejects a NULL identifier is exactly what the
+ * identifier tests below do, so the helpers must be able to attempt it.
+ */
+type Probe<TRow> = { readonly [TKey in keyof TRow]: TRow[TKey] | null };
+
 // Row-inserting helpers. Every constraint test needs a *valid* row except for
 // the one column under test, so the defaults below are the schema's happy path
-// and each test overrides exactly what it is probing.
+// and each test overrides exactly what it is probing. Each test also gets a
+// fresh database from `beforeEach`, so a single-row probe can never collide with
+// another test's UNIQUE constraints.
 
-const insertQuizSet = (overrides: Partial<QuizSetRow> = {}): QuizSetRow => {
-	const row: QuizSetRow = {
+const insertQuizSet = (
+	overrides: Partial<Probe<QuizSetRow>> = {},
+): Probe<QuizSetRow> => {
+	const row: Probe<QuizSetRow> = {
 		id: "quiz-set-1",
 		title: "Designing Data-Intensive Applications",
 		description: null,
@@ -133,8 +144,10 @@ const insertQuizSet = (overrides: Partial<QuizSetRow> = {}): QuizSetRow => {
 	return row;
 };
 
-const insertQuestion = (overrides: Partial<QuestionRow> = {}): QuestionRow => {
-	const row: QuestionRow = {
+const insertQuestion = (
+	overrides: Partial<Probe<QuestionRow>> = {},
+): Probe<QuestionRow> => {
+	const row: Probe<QuestionRow> = {
 		id: "question-1",
 		quiz_set_id: "quiz-set-1",
 		type: "single_choice",
@@ -173,9 +186,9 @@ const insertQuestion = (overrides: Partial<QuestionRow> = {}): QuestionRow => {
 };
 
 const insertOption = (
-	overrides: Partial<QuestionOptionRow> = {},
-): QuestionOptionRow => {
-	const row: QuestionOptionRow = {
+	overrides: Partial<Probe<QuestionOptionRow>> = {},
+): Probe<QuestionOptionRow> => {
+	const row: Probe<QuestionOptionRow> = {
 		id: "option-1",
 		question_id: "question-1",
 		text: "Availability",
@@ -194,9 +207,9 @@ const insertOption = (
 };
 
 const insertAttempt = (
-	overrides: Partial<QuizAttemptRow> = {},
-): QuizAttemptRow => {
-	const row: QuizAttemptRow = {
+	overrides: Partial<Probe<QuizAttemptRow>> = {},
+): Probe<QuizAttemptRow> => {
+	const row: Probe<QuizAttemptRow> = {
 		id: "attempt-1",
 		quiz_set_id: "quiz-set-1",
 		telegram_user_id: 42,
@@ -231,9 +244,9 @@ const insertAttempt = (
 };
 
 const insertResponse = (
-	overrides: Partial<QuestionResponseRow> = {},
-): QuestionResponseRow => {
-	const row: QuestionResponseRow = {
+	overrides: Partial<Probe<QuestionResponseRow>> = {},
+): Probe<QuestionResponseRow> => {
+	const row: Probe<QuestionResponseRow> = {
 		attempt_id: "attempt-1",
 		question_id: "question-1",
 		selected_option_ids: '["option-1"]',
@@ -259,9 +272,9 @@ const insertResponse = (
 };
 
 const insertReviewItem = (
-	overrides: Partial<ReviewItemRow> = {},
-): ReviewItemRow => {
-	const row: ReviewItemRow = {
+	overrides: Partial<Probe<ReviewItemRow>> = {},
+): Probe<ReviewItemRow> => {
+	const row: Probe<ReviewItemRow> = {
 		id: "review-item-1",
 		question_id: "question-1",
 		telegram_user_id: 42,
@@ -293,6 +306,25 @@ const insertReviewItem = (
 	return row;
 };
 
+type TableName =
+	| "question_options"
+	| "question_responses"
+	| "questions"
+	| "quiz_attempts"
+	| "quiz_sets"
+	| "review_items";
+
+// Mutable on purpose: `test.each` takes a mutable array, and a `readonly` one
+// makes it infer the case parameter as `unknown`.
+const APPLICATION_TABLES: TableName[] = [
+	"question_options",
+	"question_responses",
+	"questions",
+	"quiz_attempts",
+	"quiz_sets",
+	"review_items",
+];
+
 const tableNames = (): readonly string[] =>
 	database
 		.query<{ name: string }, []>(
@@ -314,10 +346,50 @@ const indexNames = (): readonly string[] =>
 		.all()
 		.map((row) => row.name);
 
-const countOf = (table: "questions" | "question_options"): number =>
+const indexColumns = (index: string): readonly string[] =>
+	database
+		.query<{ name: string }, [string]>(
+			`SELECT name FROM pragma_index_info(?) ORDER BY seqno`,
+		)
+		.all(index)
+		.map((row) => row.name);
+
+const tableSql = (table: TableName): string =>
+	database
+		.query<{ sql: string }, [string]>(
+			`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?`,
+		)
+		.get(table)?.sql ?? "";
+
+/**
+ * The planner's own explanation of a read. Values are inlined rather than bound
+ * because `EXPLAIN QUERY PLAN` needs no bindings and none of the plans asserted
+ * here depend on the value.
+ */
+const queryPlan = (sql: string): string =>
+	database
+		.query<{ detail: string }, []>(`EXPLAIN QUERY PLAN ${sql}`)
+		.all()
+		.map((row) => row.detail)
+		.join("\n");
+
+const countOf = (table: TableName): number =>
 	database
 		.query<{ total: number }, []>(`SELECT COUNT(*) AS total FROM ${table}`)
 		.get()?.total ?? -1;
+
+const QUESTION_TYPES = ["single_choice", "multiple_choice", "true_false"];
+const DIFFICULTIES = ["easy", "medium", "hard"];
+const ATTEMPT_MODES = ["full", "mistakes", "weak_topics"];
+const ATTEMPT_STATUSES = ["active", "paused", "completed"];
+
+const product = (
+	left: readonly string[],
+	right: readonly string[],
+): readonly [string, string][] =>
+	left.flatMap((leftValue) =>
+		right.map((rightValue): [string, string] => [leftValue, rightValue]),
+	);
 
 describe("initial schema", () => {
 	describe("structure", () => {
@@ -333,13 +405,282 @@ describe("initial schema", () => {
 			]);
 		});
 
-		test("creates every expected index", () => {
+		test.each(APPLICATION_TABLES)("declares %s as a STRICT table", (table) => {
+			expect(tableSql(table)).toContain("STRICT");
+		});
+	});
+
+	describe("indexes", () => {
+		test("creates exactly the expected explicit indexes", () => {
 			expect(indexNames()).toEqual([
-				"idx_questions_quiz_set",
+				"idx_question_responses_question",
 				"idx_quiz_attempts_user_status",
 				"idx_quiz_sets_status",
 				"idx_review_items_due",
+				"idx_review_items_question",
 			]);
+		});
+
+		// The columns are asserted as well as the name: an index renamed onto the
+		// wrong columns would satisfy a name-only assertion.
+		test.each([
+			["idx_question_responses_question", ["question_id"]],
+			["idx_quiz_attempts_user_status", ["telegram_user_id", "status"]],
+			["idx_quiz_sets_status", ["status", "updated_at"]],
+			["idx_review_items_due", ["telegram_user_id", "due_at"]],
+			["idx_review_items_question", ["question_id"]],
+		])("indexes %s on %p", (index, columns) => {
+			expect(indexColumns(index)).toEqual(columns);
+		});
+
+		test("filters quiz sets by status and orders by recency without a sort", () => {
+			const plan = queryPlan(
+				`SELECT id FROM quiz_sets WHERE status = 'draft'
+				ORDER BY updated_at DESC`,
+			);
+
+			expect(plan).toContain("idx_quiz_sets_status");
+			expect(plan).not.toContain("TEMP B-TREE");
+		});
+
+		test("reads the questions of a set in position order without a sort", () => {
+			// `idx_questions_quiz_set` was deliberately removed: the implicit index
+			// behind UNIQUE (quiz_set_id, position) already serves this read, so this
+			// test pins the guarantee rather than an index name.
+			const plan = queryPlan(
+				`SELECT id FROM questions WHERE quiz_set_id = 'quiz-set-1'
+				ORDER BY position`,
+			);
+
+			expect(plan).not.toContain("SCAN questions");
+			expect(plan).not.toContain("TEMP B-TREE");
+		});
+
+		test.each([
+			[
+				"question_responses",
+				`SELECT attempt_id FROM question_responses
+				WHERE question_id = 'question-1'`,
+			],
+			[
+				"review_items",
+				`SELECT id FROM review_items WHERE question_id = 'question-1'`,
+			],
+		])("searches %s by question id instead of scanning", (table, sql) => {
+			const plan = queryPlan(sql);
+
+			expect(plan).toContain("SEARCH");
+			expect(plan).not.toContain(`SCAN ${table}`);
+		});
+	});
+
+	describe("identifiers", () => {
+		// A TEXT PRIMARY KEY does not imply NOT NULL in SQLite, and NULLs compare
+		// distinct in a unique index, so without an explicit NOT NULL a database
+		// can accumulate unreachable, undeletable rows that no `WHERE id = ?` ever
+		// matches and no cascade ever collects.
+		test.each([
+			["quiz_sets", () => insertQuizSet({ id: null })],
+			[
+				"questions",
+				() => {
+					insertQuizSet();
+					insertQuestion({ id: null });
+				},
+			],
+			[
+				"question_options",
+				() => {
+					insertQuizSet();
+					insertQuestion();
+					insertOption({ id: null });
+				},
+			],
+			[
+				"quiz_attempts",
+				() => {
+					insertQuizSet();
+					insertAttempt({ id: null });
+				},
+			],
+			[
+				"review_items",
+				() => {
+					insertQuizSet();
+					insertQuestion();
+					insertReviewItem({ id: null });
+				},
+			],
+		])("rejects a NULL primary key in %s", (_table, insert) => {
+			expect(insert).toThrow(/NOT NULL constraint failed/);
+		});
+
+		test.each([
+			["attempt_id", { attempt_id: null }],
+			["question_id", { question_id: null }],
+		])("rejects a NULL %s in the question_responses composite key", (_column, overrides) => {
+			insertQuizSet();
+			insertQuestion();
+			insertAttempt();
+
+			expect(() => insertResponse(overrides)).toThrow(
+				/NOT NULL constraint failed/,
+			);
+		});
+
+		test("converts an integer bound to a TEXT identifier into text", () => {
+			// Characterisation of a STRICT limitation, not a desired affordance:
+			// STRICT does not disable affinity conversion, so a TEXT column still
+			// accepts an integer — it just stores it as text. The guarantee that
+			// matters downstream survives, and is what this asserts: a mapper always
+			// reads a string back, never a number, so `brandedId` cannot be handed a
+			// non-string. A BLOB, which has no lossless text form, is refused.
+			database.run(
+				`INSERT INTO quiz_sets (
+					id, title, language, status, created_at, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?)`,
+				[12345, "Numeric id", "en", "draft", NOW, NOW],
+			);
+
+			expect(
+				database
+					.query<{ id: unknown; kind: string }, []>(
+						"SELECT id, typeof(id) AS kind FROM quiz_sets",
+					)
+					.get(),
+			).toEqual({ id: "12345", kind: "text" });
+		});
+
+		test("rejects a BLOB in a TEXT column", () => {
+			expect(() =>
+				database.run(
+					`INSERT INTO quiz_sets (
+						id, title, language, status, created_at, updated_at
+					) VALUES (?, ?, ?, ?, ?, ?)`,
+					[new Uint8Array([1, 2]), "Blob id", "en", "draft", NOW, NOW],
+				),
+			).toThrow(/cannot store BLOB value in TEXT column/);
+		});
+
+		test.each([
+			["a non-numeric text", "forty-two", /cannot store TEXT value/],
+			["a fractional number", 1.5, /cannot store REAL value/],
+		])("rejects %s telegram user id in an INTEGER column", (_label, userId, message) => {
+			insertQuizSet();
+
+			expect(() =>
+				database.run(
+					`INSERT INTO quiz_attempts (
+							id, quiz_set_id, telegram_user_id, mode, status, question_ids,
+							started_at, updated_at
+						) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+					["attempt-1", "quiz-set-1", userId, "full", "active", "[]", NOW, NOW],
+				),
+			).toThrow(message);
+		});
+	});
+
+	describe("column defaults", () => {
+		test("defaults quiz set tags to an empty JSON array", () => {
+			database.run(
+				`INSERT INTO quiz_sets (
+					id, title, language, status, created_at, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?)`,
+				["quiz-set-1", "Untagged", "en", "draft", NOW, NOW],
+			);
+
+			expect(
+				database.query<{ tags: string }, []>("SELECT tags FROM quiz_sets").get()
+					?.tags,
+			).toBe("[]");
+		});
+
+		test("defaults a review item streak to zero", () => {
+			insertQuizSet();
+			insertQuestion();
+			database.run(
+				`INSERT INTO review_items (
+					id, question_id, telegram_user_id, state, due_at, created_at
+				) VALUES (?, ?, ?, ?, ?, ?)`,
+				["review-item-1", "question-1", 42, "pending", NOW, NOW],
+			);
+
+			expect(
+				database
+					.query<{ streak: number }, []>("SELECT streak FROM review_items")
+					.get()?.streak,
+			).toBe(0);
+		});
+	});
+
+	describe("accepted enum values", () => {
+		// The negative CHECK tests below cannot catch a typo in a CHECK list that
+		// rejects a LEGAL value, so every legal value is inserted here too.
+		test.each([
+			"draft",
+			"published",
+			"archived",
+		])("accepts the quiz set status %s", (status) => {
+			insertQuizSet({ status });
+
+			expect(countOf("quiz_sets")).toBe(1);
+		});
+
+		test.each(
+			product(QUESTION_TYPES, DIFFICULTIES),
+		)("accepts a %s question of %s difficulty", (type, difficulty) => {
+			insertQuizSet();
+			insertQuestion({ type, difficulty });
+
+			expect(countOf("questions")).toBe(1);
+		});
+
+		test.each(
+			product(ATTEMPT_MODES, ATTEMPT_STATUSES),
+		)("accepts a %s attempt in state %s", (mode, status) => {
+			insertQuizSet();
+			insertAttempt({ mode, status });
+
+			expect(countOf("quiz_attempts")).toBe(1);
+		});
+
+		test.each([
+			"pending",
+			"learning",
+			"retired",
+		])("accepts the review item state %s", (state) => {
+			insertQuizSet();
+			insertQuestion();
+			insertReviewItem({ state });
+
+			expect(countOf("review_items")).toBe(1);
+		});
+
+		test.each([0, 1])("accepts the option correctness flag %p", (isCorrect) => {
+			insertQuizSet();
+			insertQuestion();
+			insertOption({ is_correct: isCorrect });
+
+			expect(countOf("question_options")).toBe(1);
+		});
+
+		test.each([
+			0, 1,
+		])("accepts the response correctness flag %p", (isCorrect) => {
+			insertQuizSet();
+			insertQuestion();
+			insertAttempt();
+			insertResponse({ is_correct: isCorrect });
+
+			expect(countOf("question_responses")).toBe(1);
+		});
+
+		test.each([0, 4])("accepts the review streak %p", (streak) => {
+			insertQuizSet();
+			insertQuestion();
+			insertReviewItem({ streak });
+
+			expect(countOf("review_items")).toBe(1);
 		});
 	});
 
@@ -476,20 +817,20 @@ describe("initial schema", () => {
 
 			database.run("DELETE FROM quiz_sets WHERE id = ?", ["quiz-set-1"]);
 
-			expect(
-				database
-					.query<{ total: number }, []>(
-						"SELECT COUNT(*) AS total FROM quiz_attempts",
-					)
-					.get()?.total,
-			).toBe(0);
-			expect(
-				database
-					.query<{ total: number }, []>(
-						"SELECT COUNT(*) AS total FROM question_responses",
-					)
-					.get()?.total,
-			).toBe(0);
+			expect(countOf("quiz_attempts")).toBe(0);
+			expect(countOf("question_responses")).toBe(0);
+		});
+
+		test("deletes review items through the questions of a deleted quiz set", () => {
+			// Two cascade hops in one delete: quiz_sets -> questions -> review_items.
+			insertQuizSet();
+			insertQuestion();
+			insertReviewItem();
+
+			database.run("DELETE FROM quiz_sets WHERE id = ?", ["quiz-set-1"]);
+
+			expect(countOf("questions")).toBe(0);
+			expect(countOf("review_items")).toBe(0);
 		});
 
 		test("deletes options, responses and review items when a question is deleted", () => {
@@ -503,20 +844,8 @@ describe("initial schema", () => {
 			database.run("DELETE FROM questions WHERE id = ?", ["question-1"]);
 
 			expect(countOf("question_options")).toBe(0);
-			expect(
-				database
-					.query<{ total: number }, []>(
-						"SELECT COUNT(*) AS total FROM question_responses",
-					)
-					.get()?.total,
-			).toBe(0);
-			expect(
-				database
-					.query<{ total: number }, []>(
-						"SELECT COUNT(*) AS total FROM review_items",
-					)
-					.get()?.total,
-			).toBe(0);
+			expect(countOf("question_responses")).toBe(0);
+			expect(countOf("review_items")).toBe(0);
 		});
 	});
 
