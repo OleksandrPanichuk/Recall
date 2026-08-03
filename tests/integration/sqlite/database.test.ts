@@ -1,5 +1,12 @@
+import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdtempSync,
+	readdirSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -65,9 +72,46 @@ describe("createDatabase", () => {
 		applyMigrations(database);
 		database.run("BEGIN");
 
-		expect(() => closeDatabase(database, path)).not.toThrow();
+		expect(() => closeDatabase(database)).not.toThrow();
 		expect(existsSync(path)).toBe(true);
 		expect(() => database.query("SELECT 1").all()).toThrow();
+	});
+
+	test("does not remove a sidecar belonging to an unrelated path", () => {
+		const pathA = join(directory, "database-a.sqlite");
+		const pathB = join(directory, "database-b.sqlite");
+		const databaseA = createDatabase({ path: pathA });
+
+		writeFileSync(`${pathB}-shm`, "sentinel");
+
+		const closeWithLegacyArguments = closeDatabase as unknown as (
+			database: Database,
+			path: string,
+		) => void;
+		closeWithLegacyArguments(databaseA, pathB);
+
+		expect(existsSync(`${pathB}-shm`)).toBe(true);
+	});
+
+	test("closes a handle when SQLite setup fails after opening it", () => {
+		const path = join(directory, "not-a-database.sqlite");
+		writeFileSync(path, "not a SQLite database");
+
+		const originalClose = Database.prototype.close;
+		let capturedDatabase: Database | undefined;
+
+		Database.prototype.close = function close(this: Database): void {
+			capturedDatabase = this;
+			originalClose.call(this);
+		};
+
+		try {
+			expect(() => createDatabase({ path })).toThrow();
+			expect(capturedDatabase).toBeDefined();
+			expect(() => capturedDatabase?.query("SELECT 1").all()).toThrow();
+		} finally {
+			Database.prototype.close = originalClose;
+		}
 	});
 
 	test("opens the same file from concurrent processes without a lock error", async () => {
@@ -105,7 +149,7 @@ describe("createDatabase", () => {
 });
 
 describe("the migrate command", () => {
-	test("leaves a single database file behind", async () => {
+	test("leaves the migrated database behind", async () => {
 		const path = join(directory, "quiz.sqlite");
 		const child = Bun.spawn(["bun", "run", "./scripts/migrate.ts"], {
 			cwd: projectRoot,
@@ -125,6 +169,6 @@ describe("the migrate command", () => {
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain("0000_initial-schema");
-		expect(readdirSync(directory)).toEqual(["quiz.sqlite"]);
+		expect(readdirSync(directory)).toContain("quiz.sqlite");
 	}, 30_000);
 });

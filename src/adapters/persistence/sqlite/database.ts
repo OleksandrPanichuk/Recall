@@ -1,5 +1,4 @@
 import { Database } from "bun:sqlite";
-import { rmSync } from "node:fs";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
@@ -82,35 +81,33 @@ function enableWriteAheadLog(database: Database, path: string): void {
 export function createDatabase(options: DatabaseOptions): Database {
 	const database = new Database(options.path, { create: true });
 
-	database.run(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
-	enableWriteAheadLog(database, options.path);
-	database.run("PRAGMA foreign_keys = ON");
+	try {
+		database.run(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
+		enableWriteAheadLog(database, database.filename);
+		database.run("PRAGMA foreign_keys = ON");
+	} catch (error) {
+		database.close();
+		throw error;
+	}
 
 	return database;
 }
 
-function compactWriteAheadLog(database: Database): boolean {
+function compactWriteAheadLog(database: Database): void {
 	try {
 		database.run("PRAGMA wal_checkpoint(TRUNCATE)");
-
-		const [row] = database
-			.query<{ journal_mode: string }, []>("PRAGMA journal_mode = DELETE")
-			.all();
-
-		return row?.journal_mode === "delete";
+		database.query("PRAGMA journal_mode = DELETE").all();
 	} catch {
-		return false;
+		// Closing must continue even when compaction cannot acquire the database lock.
 	}
 }
 
-export function closeDatabase(database: Database, path: string): void {
-	const compacted = path !== inMemoryPath && compactWriteAheadLog(database);
+export function closeDatabase(database: Database): void {
+	if (database.filename !== inMemoryPath) {
+		compactWriteAheadLog(database);
+	}
 
 	database.close();
-
-	if (compacted) {
-		rmSync(`${path}-shm`, { force: true });
-	}
 }
 
 export function createDrizzleClient(client: Database): QuizDatabase {

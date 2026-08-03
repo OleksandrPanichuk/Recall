@@ -54,7 +54,7 @@ function migrate(): number {
 
 		return 1;
 	} finally {
-		closeDatabase(database, environment.databasePath);
+		closeDatabase(database);
 	}
 }
 
