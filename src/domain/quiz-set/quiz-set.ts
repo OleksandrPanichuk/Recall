@@ -103,6 +103,10 @@ const assertTransitionDate = (quizSet: QuizSet, at: Date): void => {
 	if (at.getTime() < quizSet.createdAt.getTime()) {
 		throw new QuizSetValidationError(["at must not precede createdAt"]);
 	}
+
+	if (at.getTime() < quizSet.updatedAt.getTime()) {
+		throw new QuizSetValidationError(["at must not precede updatedAt"]);
+	}
 };
 
 const assertStatus = (

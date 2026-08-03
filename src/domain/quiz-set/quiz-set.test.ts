@@ -544,6 +544,20 @@ describe("QuizSet", () => {
 			expect(updated.updatedAt).toEqual(createdAt);
 		});
 
+		test("rejects adding questions before the current updatedAt", () => {
+			const firstUpdateAt = new Date("2026-08-03T10:00:00.000Z");
+			const earlierAt = new Date("2026-08-02T10:00:00.000Z");
+			const updatedDraft = addQuestions(
+				createQuizSet(validDraft),
+				[question("first", 0)],
+				firstUpdateAt,
+			);
+
+			expect(() =>
+				addQuestions(updatedDraft, [question("second", 1)], earlierAt),
+			).toThrow(new QuizSetValidationError(["at must not precede updatedAt"]));
+		});
+
 		test("reports the transition failure before an invalid at date", () => {
 			const archived = archiveQuizSet(createQuizSet(validDraft), laterAt);
 
@@ -642,6 +656,20 @@ describe("QuizSet", () => {
 				"Invalid quiz set:\n- at must not precede createdAt",
 			);
 		});
+
+		test("rejects publishing before the current updatedAt", () => {
+			const firstUpdateAt = new Date("2026-08-03T10:00:00.000Z");
+			const earlierAt = new Date("2026-08-02T10:00:00.000Z");
+			const updatedDraft = addQuestions(
+				createQuizSet(validDraft),
+				[question("first", 0)],
+				firstUpdateAt,
+			);
+
+			expect(() => publishQuizSet(updatedDraft, earlierAt)).toThrow(
+				new QuizSetValidationError(["at must not precede updatedAt"]),
+			);
+		});
 	});
 
 	describe("archiveQuizSet", () => {
@@ -700,6 +728,29 @@ describe("QuizSet", () => {
 			expect(() => archiveQuizSet(draft, earlierAt)).toThrow(
 				"Invalid quiz set:\n- at must not precede createdAt",
 			);
+		});
+
+		test("rejects archiving before the current updatedAt", () => {
+			const publishedAt = new Date("2026-08-03T10:00:00.000Z");
+			const earlierAt = new Date("2026-08-02T10:00:00.000Z");
+			const published = publishQuizSet(
+				draftWith(question("first", 0)),
+				publishedAt,
+			);
+
+			expect(() => archiveQuizSet(published, earlierAt)).toThrow(
+				new QuizSetValidationError(["at must not precede updatedAt"]),
+			);
+		});
+
+		test("accepts a transition at the current updatedAt", () => {
+			const updatedAt = new Date("2026-08-03T10:00:00.000Z");
+			const published = publishQuizSet(
+				draftWith(question("first", 0)),
+				updatedAt,
+			);
+
+			expect(archiveQuizSet(published, updatedAt).updatedAt).toEqual(updatedAt);
 		});
 	});
 });
