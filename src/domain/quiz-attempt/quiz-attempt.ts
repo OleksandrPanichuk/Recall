@@ -123,7 +123,13 @@ const assertStatus = (
 /**
  * An invalid or backdated timestamp would silently corrupt the session
  * timeline, so every mutating function rejects it before touching the attempt.
- * A timestamp equal to `startedAt` is valid.
+ *
+ * Monotonicity is measured against `updatedAt` rather than `startedAt`, which
+ * implies `>= startedAt` because `updatedAt` starts equal to it. A skewed
+ * Telegram callback timestamp must not pull `updatedAt` back behind an earlier
+ * pause or resume: persistence orders resumable attempts by `updatedAt`, so a
+ * backwards step would reorder them and break the response timeline. A
+ * timestamp equal to `updatedAt` is valid.
  */
 const assertMutationDate = (
 	attempt: QuizAttempt,
@@ -134,9 +140,9 @@ const assertMutationDate = (
 		throw new QuizAttemptValidationError([`${label} must be a valid date`]);
 	}
 
-	if (at.getTime() < attempt.startedAt.getTime()) {
+	if (at.getTime() < attempt.updatedAt.getTime()) {
 		throw new QuizAttemptValidationError([
-			`${label} must not precede startedAt`,
+			`${label} must not precede updatedAt`,
 		]);
 	}
 };

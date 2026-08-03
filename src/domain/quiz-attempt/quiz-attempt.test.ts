@@ -94,8 +94,10 @@ describe("QuizAttempt", () => {
 			"Active",
 			undefined,
 			null,
+			0,
 			1,
 			{},
+			[["active"]],
 		])("rejects %p", (value) => {
 			expect(isQuizAttemptStatus(value)).toBe(false);
 		});
@@ -112,8 +114,10 @@ describe("QuizAttempt", () => {
 			"Full",
 			undefined,
 			null,
+			0,
 			1,
 			{},
+			[["full"]],
 		])("rejects %p", (value) => {
 			expect(isQuizAttemptMode(value)).toBe(false);
 		});
@@ -317,6 +321,22 @@ describe("QuizAttempt", () => {
 			).toThrow("An attempt cannot answer the same question twice");
 		});
 
+		test("rejects a replay that carries a different selection", () => {
+			// A mutated retry must not be mistaken for a new answer, otherwise the
+			// same question could be scored twice.
+			const attempt = answeredOnce();
+
+			expect(() =>
+				recordResponse(
+					attempt,
+					answer(firstQuestionId, false, evenLaterAt, [
+						toQuestionOptionId("option-z"),
+						toQuestionOptionId("option-y"),
+					]),
+				),
+			).toThrow(DuplicateResponseError);
+		});
+
 		test("rejects a question outside the plan", () => {
 			expect(() =>
 				recordResponse(
@@ -385,7 +405,7 @@ describe("QuizAttempt", () => {
 					answer(firstQuestionId, true, earlierAt),
 				),
 			).toThrow(
-				"Invalid quiz attempt:\n- answeredAt must not precede startedAt",
+				"Invalid quiz attempt:\n- answeredAt must not precede updatedAt",
 			);
 		});
 
@@ -396,6 +416,51 @@ describe("QuizAttempt", () => {
 			);
 
 			expect(attempt.updatedAt).toEqual(startedAt);
+		});
+
+		test("rejects an answeredAt that precedes the last transition", () => {
+			// The reviewer's skewed-callback sequence: a pause and a resume move the
+			// timeline forward, so a stale callback timestamp must not drag
+			// updatedAt back behind them.
+			const pausedAt = new Date("2026-08-01T20:00:00.000Z");
+			const resumedAt = new Date("2026-08-01T21:00:00.000Z");
+			const staleAt = new Date("2026-08-01T10:00:01.000Z");
+			const resumed = resumeQuizAttempt(
+				pauseQuizAttempt(activeAttempt(), pausedAt),
+				resumedAt,
+			);
+
+			expect(() =>
+				recordResponse(resumed, answer(firstQuestionId, true, staleAt)),
+			).toThrow(QuizAttemptValidationError);
+			expect(() =>
+				recordResponse(resumed, answer(firstQuestionId, true, staleAt)),
+			).toThrow(
+				"Invalid quiz attempt:\n- answeredAt must not precede updatedAt",
+			);
+		});
+
+		test("accepts an answeredAt equal to the previous response", () => {
+			const attempt = recordResponse(
+				answeredOnce(),
+				answer(secondQuestionId, false, laterAt),
+			);
+
+			expect(attempt.responses).toHaveLength(2);
+			expect(attempt.updatedAt).toEqual(laterAt);
+		});
+
+		test("rejects an answeredAt that precedes the previous response", () => {
+			const attempt = recordResponse(
+				activeAttempt(),
+				answer(firstQuestionId, true, evenLaterAt),
+			);
+
+			expect(() =>
+				recordResponse(attempt, answer(secondQuestionId, true, laterAt)),
+			).toThrow(
+				"Invalid quiz attempt:\n- answeredAt must not precede updatedAt",
+			);
 		});
 
 		test("rejects recording on a paused attempt", () => {
@@ -548,8 +613,41 @@ describe("QuizAttempt", () => {
 			["completeQuizAttempt", completeQuizAttempt],
 		] as const)("%s rejects an at date before startedAt", (_name, transition) => {
 			expect(() => transition(activeAttempt(), earlierAt)).toThrow(
-				"Invalid quiz attempt:\n- at must not precede startedAt",
+				"Invalid quiz attempt:\n- at must not precede updatedAt",
 			);
+		});
+
+		test.each([
+			["pauseQuizAttempt", pauseQuizAttempt],
+			["completeQuizAttempt", completeQuizAttempt],
+		] as const)("%s rejects an at date before updatedAt", (_name, transition) => {
+			const answered = answeredOnce();
+
+			expect(answered.updatedAt).toEqual(laterAt);
+			expect(() => transition(answered, startedAt)).toThrow(
+				"Invalid quiz attempt:\n- at must not precede updatedAt",
+			);
+		});
+
+		test.each([
+			["pauseQuizAttempt", pauseQuizAttempt],
+			["completeQuizAttempt", completeQuizAttempt],
+		] as const)("%s accepts an at date equal to updatedAt", (_name, transition) => {
+			expect(transition(answeredOnce(), laterAt).updatedAt).toEqual(laterAt);
+		});
+
+		test("resumeQuizAttempt rejects an at date before updatedAt", () => {
+			const paused = pauseQuizAttempt(activeAttempt(), evenLaterAt);
+
+			expect(() => resumeQuizAttempt(paused, laterAt)).toThrow(
+				"Invalid quiz attempt:\n- at must not precede updatedAt",
+			);
+		});
+
+		test("resumeQuizAttempt accepts an at date equal to updatedAt", () => {
+			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+
+			expect(resumeQuizAttempt(paused, laterAt).updatedAt).toEqual(laterAt);
 		});
 
 		test("resumeQuizAttempt rejects an invalid at date", () => {
@@ -564,7 +662,7 @@ describe("QuizAttempt", () => {
 			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
 
 			expect(() => resumeQuizAttempt(paused, earlierAt)).toThrow(
-				"Invalid quiz attempt:\n- at must not precede startedAt",
+				"Invalid quiz attempt:\n- at must not precede updatedAt",
 			);
 		});
 
