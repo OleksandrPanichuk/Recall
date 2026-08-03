@@ -414,10 +414,14 @@ describe("ReviewItem", () => {
 
 		test.each(
 			markFunctions,
-		)("%s reports both monotonicity issues at once", (_name, mark) => {
+		)("%s reports a lone order violation once and lets validity suppress it", (_name, mark) => {
+			// `dueAt` equals `at` here, so only the createdAt anchor is violated:
+			// a single order failure must not be padded with a second issue.
 			expect(markIssuesOf(mark, pendingItem(), earlierAt, earlierAt)).toEqual([
 				"at must not precede createdAt",
 			]);
+			// The same backdated `at` alongside an invalid `dueAt` reports only the
+			// validity failure: comparison never runs on an unusable date.
 			expect(markIssuesOf(mark, pendingItem(), earlierAt, invalidDate)).toEqual(
 				["dueAt must be a valid date"],
 			);
