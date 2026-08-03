@@ -1,3 +1,6 @@
+import type { QuestionId } from "./question";
+import type { QuizSetStatus } from "./quiz-set";
+
 export class InvalidIdentifierError extends Error {
 	constructor(label: string) {
 		super(`${label} must be a non-empty identifier`);
@@ -34,7 +37,7 @@ export class QuizSetValidationError extends Error {
  * user-supplied value, so naming it in the message is safe.
  */
 export class QuizSetTransitionError extends Error {
-	constructor(from: string, action: string) {
+	constructor(from: QuizSetStatus, action: string) {
 		super(`A ${from} quiz set cannot be ${action}`);
 		this.name = "QuizSetTransitionError";
 	}
@@ -55,6 +58,25 @@ export class DuplicateQuestionError extends Error {
 		);
 		this.name = "DuplicateQuestionError";
 		this.fingerprints = fingerprints;
+	}
+}
+
+/**
+ * A question id becomes the persistence primary key, so the aggregate — not the
+ * database — is where a repeated id must be refused. Ids are generated values,
+ * never user prose, so naming them is safe.
+ */
+export class DuplicateQuestionIdError extends Error {
+	readonly questionIds: readonly QuestionId[];
+
+	constructor(questionIds: readonly QuestionId[]) {
+		super(
+			`A quiz set cannot contain duplicate question ids:\n${questionIds
+				.map((questionId) => `- ${questionId}`)
+				.join("\n")}`,
+		);
+		this.name = "DuplicateQuestionIdError";
+		this.questionIds = questionIds;
 	}
 }
 

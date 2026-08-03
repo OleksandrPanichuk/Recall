@@ -3,6 +3,8 @@ import { createQuestion } from "./create-question";
 import {
 	Difficulty,
 	type Question,
+	type QuestionId,
+	type QuestionOption,
 	QuestionType,
 	toQuestionId,
 	toQuestionOptionId,
@@ -20,6 +22,7 @@ import {
 } from "./quiz-set";
 import {
 	DuplicateQuestionError,
+	DuplicateQuestionIdError,
 	EmptyQuizSetError,
 	QuizSetTransitionError,
 	QuizSetValidationError,
@@ -27,7 +30,19 @@ import {
 
 const createdAt = new Date("2026-08-01T10:00:00.000Z");
 const laterAt = new Date("2026-08-02T10:00:00.000Z");
+const earlierAt = new Date("2026-07-31T10:00:00.000Z");
 const invalidDate = new Date("not a date");
+
+const rawOption = (
+	text: string,
+	isCorrect: boolean,
+	position: number,
+): QuestionOption => ({
+	id: toQuestionOptionId(`${text}-${position}`),
+	text,
+	isCorrect,
+	position,
+});
 
 const question = (prompt: string, position: number): Question =>
 	createQuestion({
@@ -51,6 +66,16 @@ const question = (prompt: string, position: number): Question =>
 			},
 		],
 	});
+
+const withId = (source: Question, id: QuestionId): Question => ({
+	...source,
+	id,
+});
+
+const withPrompt = (source: Question, prompt: string): Question => ({
+	...source,
+	prompt,
+});
 
 const validDraft = {
 	id: toQuizSetId("quiz-set-1"),
@@ -77,13 +102,36 @@ const issuesOf = (draft: QuizSetDraft): readonly string[] => {
 const draftWith = (...questions: readonly Question[]): QuizSet =>
 	addQuestions(createQuizSet(validDraft), questions, createdAt);
 
+const duplicateIdsOf = (
+	quizSet: QuizSet,
+	questions: readonly Question[],
+): readonly QuestionId[] => {
+	try {
+		addQuestions(quizSet, questions, laterAt);
+	} catch (caught) {
+		expect(caught).toBeInstanceOf(DuplicateQuestionIdError);
+
+		return (caught as DuplicateQuestionIdError).questionIds;
+	}
+
+	throw new Error("expected addQuestions to throw");
+};
+
 describe("QuizSet", () => {
 	describe("isQuizSetStatus", () => {
 		test.each(Object.values(QuizSetStatus))("accepts %p", (value) => {
 			expect(isQuizSetStatus(value)).toBe(true);
 		});
 
-		test.each(["deleted", "", undefined, 1])("rejects %p", (value) => {
+		test.each([
+			"deleted",
+			"",
+			"Draft",
+			undefined,
+			null,
+			1,
+			{},
+		])("rejects %p", (value) => {
 			expect(isQuizSetStatus(value)).toBe(false);
 		});
 	});
@@ -94,8 +142,8 @@ describe("QuizSet", () => {
 
 			expect(quizSet.status).toBe(QuizSetStatus.Draft);
 			expect(quizSet.questions).toHaveLength(0);
-			expect(quizSet.updatedAt).toBe(createdAt);
-			expect(quizSet.createdAt).toBe(createdAt);
+			expect(quizSet.updatedAt).toEqual(createdAt);
+			expect(quizSet.createdAt).toEqual(createdAt);
 			expect(quizSet.publishedAt).toBeUndefined();
 			expect(quizSet.archivedAt).toBeUndefined();
 		});
@@ -112,6 +160,12 @@ describe("QuizSet", () => {
 				"replication",
 				"storage",
 			]);
+		});
+
+		test("treats tags differing only in case as distinct", () => {
+			expect(
+				createQuizSet({ ...validDraft, tags: ["Bun", "bun"] }).tags,
+			).toEqual(["Bun", "bun"]);
 		});
 
 		test("defaults tags to an empty list", () => {
@@ -148,6 +202,16 @@ describe("QuizSet", () => {
 			tags.push("storage");
 
 			expect(quizSet.tags).toEqual(["replication"]);
+		});
+
+		test("copies createdAt so later mutation cannot reach the aggregate", () => {
+			const mutable = new Date(createdAt.getTime());
+			const quizSet = createQuizSet({ ...validDraft, createdAt: mutable });
+
+			mutable.setFullYear(1999);
+
+			expect(quizSet.createdAt).toEqual(createdAt);
+			expect(quizSet.updatedAt).toEqual(createdAt);
 		});
 
 		test("rejects a blank title", () => {
@@ -219,7 +283,7 @@ describe("QuizSet", () => {
 			addQuestions(draft, [question("first", 0)], laterAt);
 
 			expect(draft.questions).toHaveLength(0);
-			expect(draft.updatedAt).toBe(createdAt);
+			expect(draft.updatedAt).toEqual(createdAt);
 		});
 
 		test("does not alias the caller's batch", () => {
@@ -239,8 +303,21 @@ describe("QuizSet", () => {
 				laterAt,
 			);
 
-			expect(updated.updatedAt).toBe(laterAt);
+			expect(updated.updatedAt).toEqual(laterAt);
 			expect(updated.status).toBe(QuizSetStatus.Draft);
+		});
+
+		test("copies the transition date", () => {
+			const mutable = new Date(laterAt.getTime());
+			const updated = addQuestions(
+				createQuizSet(validDraft),
+				[question("first", 0)],
+				mutable,
+			);
+
+			mutable.setFullYear(1999);
+
+			expect(updated.updatedAt).toEqual(laterAt);
 		});
 
 		test("returns a frozen quiz set with a frozen question list", () => {
@@ -252,6 +329,89 @@ describe("QuizSet", () => {
 
 			expect(Object.isFrozen(updated)).toBe(true);
 			expect(Object.isFrozen(updated.questions)).toBe(true);
+		});
+
+		test("freezes each stored question down to its options", () => {
+			const options = [rawOption("Yes", true, 0), rawOption("No", false, 1)];
+			const raw: Question = {
+				id: toQuestionId("raw-question"),
+				type: QuestionType.SingleChoice,
+				prompt: "Assembled without createQuestion",
+				difficulty: Difficulty.Medium,
+				position: 0,
+				options,
+			};
+			const updated = addQuestions(createQuizSet(validDraft), [raw], laterAt);
+			const stored = updated.questions[0];
+
+			expect(Object.isFrozen(stored)).toBe(true);
+			expect(Object.isFrozen(stored?.options)).toBe(true);
+			expect(Object.isFrozen(stored?.options[0])).toBe(true);
+			expect(Object.isFrozen(options)).toBe(false);
+
+			options.push(rawOption("Maybe", true, 2));
+
+			expect(stored?.options).toHaveLength(2);
+		});
+
+		test("rejects a question id already in the set", () => {
+			const existing = draftWith(question("first", 0));
+			const reused = withId(
+				question("second", 1),
+				toQuestionId("question-first-0"),
+			);
+
+			expect(duplicateIdsOf(existing, [reused])).toEqual([reused.id]);
+			expect(() => addQuestions(existing, [reused], laterAt)).toThrow(
+				"A quiz set cannot contain duplicate question ids:\n- question-first-0",
+			);
+		});
+
+		test("rejects a question id repeated inside the batch", () => {
+			const first = question("first", 0);
+			const clash = withPrompt(first, "Totally different");
+
+			expect(duplicateIdsOf(createQuizSet(validDraft), [first, clash])).toEqual(
+				[first.id],
+			);
+		});
+
+		test("reports an id repeated three times exactly once", () => {
+			const first = question("first", 0);
+
+			expect(
+				duplicateIdsOf(createQuizSet(validDraft), [
+					first,
+					withPrompt(first, "Second variant"),
+					withPrompt(first, "Third variant"),
+				]),
+			).toEqual([first.id]);
+		});
+
+		test("reports duplicate ids in batch order", () => {
+			const first = question("first", 0);
+			const second = question("second", 1);
+
+			expect(
+				duplicateIdsOf(createQuizSet(validDraft), [
+					first,
+					second,
+					withPrompt(second, "Second variant"),
+					withPrompt(first, "First variant"),
+				]),
+			).toEqual([second.id, first.id]);
+		});
+
+		test("reports a duplicate id before a duplicate fingerprint", () => {
+			const existing = draftWith(question("first", 0));
+			const idClash = withId(
+				question("second", 1),
+				toQuestionId("question-first-0"),
+			);
+
+			expect(() =>
+				addQuestions(existing, [question("first", 2), idClash], laterAt),
+			).toThrow(DuplicateQuestionIdError);
 		});
 
 		test("rejects a question whose fingerprint is already in the set", () => {
@@ -337,7 +497,7 @@ describe("QuizSet", () => {
 			const updated = addQuestions(existing, [], laterAt);
 
 			expect(updated.questions).toEqual(existing.questions);
-			expect(updated.updatedAt).toBe(existing.updatedAt);
+			expect(updated.updatedAt).toEqual(existing.updatedAt);
 			expect(Object.isFrozen(updated)).toBe(true);
 		});
 
@@ -362,6 +522,35 @@ describe("QuizSet", () => {
 				addQuestions(draft, [question("first", 0)], invalidDate),
 			).toThrow("Invalid quiz set:\n- at must be a valid date");
 		});
+
+		test("rejects an at date that precedes createdAt", () => {
+			const draft = createQuizSet(validDraft);
+
+			expect(() =>
+				addQuestions(draft, [question("first", 0)], earlierAt),
+			).toThrow(QuizSetValidationError);
+			expect(() =>
+				addQuestions(draft, [question("first", 0)], earlierAt),
+			).toThrow("Invalid quiz set:\n- at must not precede createdAt");
+		});
+
+		test("accepts an at date equal to createdAt", () => {
+			const updated = addQuestions(
+				createQuizSet(validDraft),
+				[question("first", 0)],
+				createdAt,
+			);
+
+			expect(updated.updatedAt).toEqual(createdAt);
+		});
+
+		test("reports the transition failure before an invalid at date", () => {
+			const archived = archiveQuizSet(createQuizSet(validDraft), laterAt);
+
+			expect(() =>
+				addQuestions(archived, [question("first", 0)], invalidDate),
+			).toThrow(QuizSetTransitionError);
+		});
 	});
 
 	describe("publishQuizSet", () => {
@@ -372,9 +561,22 @@ describe("QuizSet", () => {
 			);
 
 			expect(published.status).toBe(QuizSetStatus.Published);
-			expect(published.publishedAt).toBe(laterAt);
-			expect(published.updatedAt).toBe(laterAt);
+			expect(published.publishedAt).toEqual(laterAt);
+			expect(published.updatedAt).toEqual(laterAt);
 			expect(Object.isFrozen(published)).toBe(true);
+		});
+
+		test("copies the publish date", () => {
+			const mutable = new Date(laterAt.getTime());
+			const published = publishQuizSet(
+				draftWith(question("first", 0)),
+				mutable,
+			);
+
+			mutable.setFullYear(1999);
+
+			expect(published.publishedAt).toEqual(laterAt);
+			expect(published.updatedAt).toEqual(laterAt);
 		});
 
 		test("does not mutate the input set", () => {
@@ -424,6 +626,22 @@ describe("QuizSet", () => {
 				"Invalid quiz set:\n- at must be a valid date",
 			);
 		});
+
+		test("reports an invalid at date before the empty question list", () => {
+			const draft = createQuizSet(validDraft);
+
+			expect(() => publishQuizSet(draft, invalidDate)).toThrow(
+				QuizSetValidationError,
+			);
+		});
+
+		test("rejects an at date that precedes createdAt", () => {
+			const draft = draftWith(question("first", 0));
+
+			expect(() => publishQuizSet(draft, earlierAt)).toThrow(
+				"Invalid quiz set:\n- at must not precede createdAt",
+			);
+		});
 	});
 
 	describe("archiveQuizSet", () => {
@@ -431,8 +649,8 @@ describe("QuizSet", () => {
 			const archived = archiveQuizSet(createQuizSet(validDraft), laterAt);
 
 			expect(archived.status).toBe(QuizSetStatus.Archived);
-			expect(archived.archivedAt).toBe(laterAt);
-			expect(archived.updatedAt).toBe(laterAt);
+			expect(archived.archivedAt).toEqual(laterAt);
+			expect(archived.updatedAt).toEqual(laterAt);
 			expect(Object.isFrozen(archived)).toBe(true);
 		});
 
@@ -444,8 +662,8 @@ describe("QuizSet", () => {
 			const archived = archiveQuizSet(published, laterAt);
 
 			expect(archived.status).toBe(QuizSetStatus.Archived);
-			expect(archived.publishedAt).toBe(laterAt);
-			expect(archived.archivedAt).toBe(laterAt);
+			expect(archived.publishedAt).toEqual(laterAt);
+			expect(archived.archivedAt).toEqual(laterAt);
 		});
 
 		test("does not mutate the input set", () => {
@@ -473,6 +691,14 @@ describe("QuizSet", () => {
 
 			expect(() => archiveQuizSet(draft, invalidDate)).toThrow(
 				"Invalid quiz set:\n- at must be a valid date",
+			);
+		});
+
+		test("rejects an at date that precedes createdAt", () => {
+			const draft = createQuizSet(validDraft);
+
+			expect(() => archiveQuizSet(draft, earlierAt)).toThrow(
+				"Invalid quiz set:\n- at must not precede createdAt",
 			);
 		});
 	});
