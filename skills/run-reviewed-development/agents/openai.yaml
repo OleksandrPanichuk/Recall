@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reviewed Development Loop"
+  short_description: "Implement, review, fix, and re-review tasks"
+  default_prompt: "Use $run-reviewed-development to execute this implementation plan with independent implementation and review loops."
