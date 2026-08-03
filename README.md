@@ -103,10 +103,16 @@ bun run migrate
 `drizzle/` і виводить список застосованих версій або `database is up to date`.
 Повторний запуск нічого не змінює. Секретні environment variables у вивід не
 потрапляють; не-secret database path друкується навмисно. Перед закриттям
-connection команда робить
-`PRAGMA wal_checkpoint(TRUNCATE)` і повертає journal mode у `delete`, тому після
-виходу залишається один файл без `-wal` та `-shm` — backup копіюванням
-`quiz.sqlite` буде повним.
+connection команда **намагається** виконати `PRAGMA wal_checkpoint(TRUNCATE)` і
+повернути journal mode у `delete`, але це best-effort cleanup: за наявності
+іншого connection дані можуть залишитися в `-wal`. Ніколи не вважайте просту
+копію `quiz.sqlite` повним backup. Для консистентного backup використовуйте
+SQLite backup API через CLI:
+
+```bash
+backup_path="${DATABASE_PATH}.backup.sqlite"
+sqlite3 "$DATABASE_PATH" ".backup '$backup_path'"
+```
 
 Schema описана в `src/adapters/persistence/sqlite/schema.ts`. Після її зміни
 потрібно згенерувати нову migration:
@@ -149,9 +155,13 @@ migrations в одній транзакції, а `PRAGMA foreign_keys` всер
 Ручна процедура для такої migration:
 
 1. Переконатися, що всі попередні **безпечні** migrations уже застосовані, а
-   rebuild migration є наступною pending migration. Зробити backup одного
-   database-файлу; після звичайного `bun run migrate` він не має `-wal` і `-shm`
-   companion files, тому копія повна.
+   rebuild migration є наступною pending migration. Створити консистентний
+   backup через SQLite backup API (не копіювати лише database-файл):
+
+   ```bash
+   backup_path="${DATABASE_PATH}.before-rebuild.sqlite"
+   sqlite3 "$DATABASE_PATH" ".backup '$backup_path'"
+   ```
 2. Записати кількість рows у кожній дочірній таблиці **до** зміни.
 3. Дописати `) STRICT;` до кожного `CREATE TABLE` у згенерованому файлі,
    включно з `__new_*`.
