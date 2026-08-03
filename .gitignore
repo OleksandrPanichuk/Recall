@@ -16,6 +16,18 @@ logs
 logs.txt
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
+# local database (bun:sqlite) and its write-ahead log
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-journal
+*-wal
+*-shm
+
+# agent workflow scratch files (briefs, diffs, review packages, ledgers)
+.agent
+tmp
+
 # dotenv environment variable files
 .env
 .env.development.local

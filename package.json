@@ -21,5 +21,8 @@
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"verify": "bun run check && bun run typecheck && bun test && bun run build"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"zod": "^4.4.3"
+	}
 }
