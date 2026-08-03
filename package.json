@@ -16,6 +16,7 @@
 		"format:check": "biome format .",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",
+		"migrate": "bun run ./scripts/migrate.ts",
 		"start": "bun run ./dist/telegram.js",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit -p tsconfig.json",

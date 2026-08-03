@@ -89,6 +89,19 @@ cp .env.example .env
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
 змінних і причини — значення не логуються, тому токен не потрапляє в logs.
 
+Створити або оновити schema локальної database:
+
+```bash
+bun run migrate
+# applied 1 (initial-schema)
+```
+
+Команда читає `DATABASE_PATH`, застосовує лише ще не застосовані migrations і
+друкує `database is up to date`, якщо роботи немає, тому її безпечно запускати
+повторно. Бот міграції не виконує сам — schema змінюється лише цією
+командою. Якщо database вже відкрита іншим процесом, open чекає до 5 секунд,
+тому команда спочатку друкує рядок про те, що саме відкриває.
+
 Перевірити clean baseline:
 
 ```bash
@@ -116,6 +129,7 @@ bun run dev
 | `bun run check` | Одночасно перевірити lint, formatting та imports |
 | `bun run check:fix` | Застосувати safe Biome fixes, formatting та import sorting |
 | `bun run typecheck` | Перевірити TypeScript без генерації output |
+| `bun run migrate` | Застосувати SQLite migrations до `DATABASE_PATH` |
 | `bun run build` | Зібрати `src/entrypoints/telegram.ts` у `dist/` |
 | `bun run start` | Запустити попередньо зібраний `dist/telegram.js` |
 | `bun test` | Запустити Bun unit і contract tests |
