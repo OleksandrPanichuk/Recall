@@ -1,0 +1,25 @@
+{
+	"name": "op-personal-reminder-bot",
+	"module": "src/entrypoints/telegram.ts",
+	"devDependencies": {
+		"@biomejs/biome": "2.4.11",
+		"@types/bun": "latest",
+		"typescript": "^7.0.2"
+	},
+	"private": true,
+	"scripts": {
+		"build": "bun build ./src/entrypoints/telegram.ts --outdir ./dist --target bun",
+		"check": "biome check .",
+		"check:fix": "biome check --write .",
+		"dev": "bun --watch ./src/entrypoints/telegram.ts",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"lint": "biome lint .",
+		"lint:fix": "biome lint --write .",
+		"start": "bun run ./dist/telegram.js",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"verify": "bun run check && bun run typecheck && bun test && bun run build"
+	},
+	"type": "module"
+}
