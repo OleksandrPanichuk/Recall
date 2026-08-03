@@ -11,9 +11,14 @@ import type { Migration } from "./migration";
  * in a unique index, so a plain `id TEXT PRIMARY KEY` accepts any number of
  * NULL-id rows — rows that `WHERE id = ?` can never match, that a retried
  * import keeps duplicating instead of hitting `UNIQUE`, and that no cascade ever
- * collects. `STRICT` additionally stops type affinity from silently coercing an
- * integer `12345` into the string `"12345"`, which would then hydrate as a
- * valid-looking identifier in a mapper.
+ * collects. `STRICT` rejects the coercions that would corrupt a row: a BLOB into
+ * a TEXT column, and a non-numeric or fractional value into an INTEGER one —
+ * pre-`STRICT`, a `telegram_user_id` of `1.5` was stored verbatim. It does NOT
+ * stop numeric-to-TEXT affinity: an integer bound to an id is still accepted and
+ * stored as `"12345"`, which is safe precisely because it always reads back as a
+ * string, so a mapper never hands a number to `brandedId`. That conversion is
+ * lossless only for integers — a float id would store as `"0.3"` — but no mapper
+ * path binds a float to an identifier.
  */
 const statements = [
 	`CREATE TABLE quiz_sets (
