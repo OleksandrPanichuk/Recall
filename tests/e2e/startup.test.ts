@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 const entrypoint = Bun.fileURLToPath(
 	new URL("../../src/entrypoints/telegram.ts", import.meta.url),
@@ -33,32 +33,34 @@ async function start(environment: Record<string, string>) {
 	return { stdout, stderr, exitCode };
 }
 
-test("starts with a valid environment", async () => {
-	const { stdout, exitCode } = await start(validEnvironment);
+describe("telegram entrypoint startup", () => {
+	test("starts with a valid environment", async () => {
+		const { stdout, exitCode } = await start(validEnvironment);
 
-	expect(exitCode).toBe(0);
-	expect(stdout).toContain("Configuration is valid");
-	expect(stdout).not.toContain(botKey);
-});
-
-test("refuses to start on an invalid environment", async () => {
-	const { stderr, exitCode } = await start({
-		...validEnvironment,
-		APP_TIMEZONE: "Europe/Atlantis",
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain("Configuration is valid");
+		expect(stdout).not.toContain(botKey);
 	});
 
-	expect(exitCode).toBe(1);
-	expect(stderr).toContain("Invalid environment configuration");
-	expect(stderr).toContain("APP_TIMEZONE");
-	expect(stderr).not.toContain(botKey);
-});
+	test("refuses to start on an invalid environment", async () => {
+		const { stderr, exitCode } = await start({
+			...validEnvironment,
+			APP_TIMEZONE: "Europe/Atlantis",
+		});
 
-test("reports a completely missing environment without leaking values", async () => {
-	const { stderr, exitCode } = await start({});
+		expect(exitCode).toBe(1);
+		expect(stderr).toContain("Invalid environment configuration");
+		expect(stderr).toContain("APP_TIMEZONE");
+		expect(stderr).not.toContain(botKey);
+	});
 
-	expect(exitCode).toBe(1);
-	expect(stderr).toContain("TELEGRAM_BOT_KEY");
-	expect(stderr).toContain("ALLOWED_TELEGRAM_USER_ID");
-	expect(stderr).toContain("DATABASE_PATH");
-	expect(stderr).toContain("APP_TIMEZONE");
+	test("reports a completely missing environment without leaking values", async () => {
+		const { stderr, exitCode } = await start({});
+
+		expect(exitCode).toBe(1);
+		expect(stderr).toContain("TELEGRAM_BOT_KEY");
+		expect(stderr).toContain("ALLOWED_TELEGRAM_USER_ID");
+		expect(stderr).toContain("DATABASE_PATH");
+		expect(stderr).toContain("APP_TIMEZONE");
+	});
 });
