@@ -45,9 +45,14 @@ Rebase each downstream branch after its base merges. Run `bun run verify` before
 **Files:**
 - Create: `src/domain/branded-id.ts`
 - Create: `src/domain/branded-id.test.ts`
-- Create: `src/domain/quiz-set/question.ts`
-- Create: `src/domain/quiz-set/question.test.ts`
+- Create: `src/domain/quiz-set/question.ts` (types and constants only)
+- Create: `src/domain/quiz-set/create-question.ts`
+- Create: `src/domain/quiz-set/create-question.test.ts`
+- Create: `src/domain/quiz-set/question-fingerprint.ts`
+- Create: `src/domain/quiz-set/question-fingerprint.test.ts`
 - Create: `src/domain/quiz-set/quiz-set.errors.ts`
+
+Each module owns one responsibility: `question.ts` describes the shape, `create-question.ts` enforces invariants, `question-fingerprint.ts` derives the content hash. No barrel `index.ts` and no re-exports — importers reference the owning module.
 
 **Interfaces:**
 - Consumes: nothing.
@@ -75,8 +80,23 @@ Rebase each downstream branch after its base merges. Run `bun run verify` before
   export const toQuestionId: (value: string) => QuestionId;
   export const toQuestionOptionId: (value: string) => QuestionOptionId;
 
-  export type QuestionType = "single_choice" | "multiple_choice" | "true_false";
-  export type Difficulty = "easy" | "medium" | "hard";
+  // Named constants with a derived union: call sites use QuestionType.SingleChoice,
+  // while the type stays a string literal union so SQLite rows and zod output stay
+  // structurally assignable and no runtime enum object is emitted.
+  // Do not use a TypeScript `enum`.
+  export const QuestionType = {
+  	SingleChoice: "single_choice",
+  	MultipleChoice: "multiple_choice",
+  	TrueFalse: "true_false",
+  } as const;
+  export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
+
+  export const Difficulty = {
+  	Easy: "easy",
+  	Medium: "medium",
+  	Hard: "hard",
+  } as const;
+  export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
 
   export interface QuestionOption {
   	readonly id: QuestionOptionId;
@@ -111,6 +131,7 @@ Rebase each downstream branch after its base merges. Run `bun run verify` before
   	| MultipleChoiceQuestion
   	| TrueFalseQuestion;
 
+  // create-question.ts
   /** Validates every invariant and reports all issues at once. */
   export function createQuestion(draft: {
   	readonly id: QuestionId;
@@ -125,6 +146,7 @@ Rebase each downstream branch after its base merges. Run `bun run verify` before
   	readonly hint?: string;
   }): Question;
 
+  // question-fingerprint.ts
   /** Stable content hash used for duplicate detection and idempotent import. */
   export function questionFingerprint(question: Question): string;
   ```
@@ -186,7 +208,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Write the failing tests for `createQuestion`**
 
-Cover, in `describe("createQuestion")` groups:
+Tests for `createQuestion` live in `create-question.test.ts`; the fingerprint group lives in `question-fingerprint.test.ts`. Cover, in `describe("createQuestion")` groups:
 - `"with a valid draft"`: returns a frozen `Question` with trimmed fields; drops whitespace-only optional fields to `undefined`; preserves the discriminant so `question.type === "single_choice"` narrows.
 - `"with an invalid draft"`: one test per invariant 1–8 asserting the exact issue string, plus one test asserting **two** simultaneous problems produce **two** issues in the documented order.
 - `"fingerprint"`: identical content produces an equal fingerprint; reordered options produce an equal fingerprint; a changed `isCorrect` flag or a changed prompt produces a different fingerprint.
@@ -256,12 +278,12 @@ describe("createQuestion", () => {
 
 - [ ] **Step 6: Run the tests and confirm they fail**
 
-Run: `bun test src/domain/quiz-set/question.test.ts`
+Run: `bun test src/domain/quiz-set`
 Expected: FAIL — `createQuestion` is not exported yet.
 
-- [ ] **Step 7: Implement `question.ts`**
+- [ ] **Step 7: Implement `question.ts`, `create-question.ts` and `question-fingerprint.ts`**
 
-Implement the types, `toQuestionId`, `toQuestionOptionId`, `createQuestion` and `questionFingerprint`. Freeze returned objects with `Object.freeze`. No zod, no imports outside `src/domain`.
+Implement the types and constants, `toQuestionId`, `toQuestionOptionId`, `createQuestion` and `questionFingerprint` in their owning modules. Freeze returned objects with `Object.freeze`. No zod, no imports outside `src/domain`.
 
 - [ ] **Step 8: Run the focused tests and the whole suite**
 
