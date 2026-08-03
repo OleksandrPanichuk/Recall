@@ -32,10 +32,6 @@ export class QuizSetValidationError extends Error {
 	}
 }
 
-/**
- * `from` is an already validated lifecycle status, never a rejected
- * user-supplied value, so naming it in the message is safe.
- */
 export class QuizSetTransitionError extends Error {
 	constructor(from: QuizSetStatus, action: string) {
 		super(`A ${from} quiz set cannot be ${action}`);
@@ -43,10 +39,6 @@ export class QuizSetTransitionError extends Error {
 	}
 }
 
-/**
- * Carries the offending content fingerprints — opaque hashes, not the rejected
- * question text — so a retried import batch can be diagnosed.
- */
 export class DuplicateQuestionError extends Error {
 	readonly fingerprints: readonly string[];
 
@@ -61,11 +53,6 @@ export class DuplicateQuestionError extends Error {
 	}
 }
 
-/**
- * A question id becomes the persistence primary key, so the aggregate — not the
- * database — is where a repeated id must be refused. Ids are generated values,
- * never user prose, so naming them is safe.
- */
 export class DuplicateQuestionIdError extends Error {
 	readonly questionIds: readonly QuestionId[];
 

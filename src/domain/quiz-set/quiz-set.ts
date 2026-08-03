@@ -60,18 +60,11 @@ const trimmedOrUndefined = (value: string | undefined): string | undefined => {
 
 const isValidDate = (value: Date): boolean => !Number.isNaN(value.getTime());
 
-/**
- * `Date` is mutable, so a stored reference would let a caller change a frozen
- * aggregate's timestamps from the outside. Every timestamp is copied on the way
- * in; reference identity is deliberately not part of the contract.
- */
 const copiedDate = (value: Date): Date => new Date(value.getTime());
 
 const copiedOptionalDate = (value: Date | undefined): Date | undefined =>
 	value === undefined ? undefined : copiedDate(value);
 
-// Tag dedupe is deliberately case-sensitive and not Unicode-normalised: "Bun"
-// and "bun" are meant to remain distinct tags.
 const normaliseTags = (tags: readonly string[] | undefined): string[] => [
 	...new Set(
 		(tags ?? [])
@@ -102,11 +95,6 @@ const collectDraftIssues = (
 	return issues;
 };
 
-/**
- * An invalid or backdated transition timestamp would silently corrupt the
- * lifecycle audit trail, so every transition rejects it before touching the
- * aggregate. An `at` equal to `createdAt` is valid.
- */
 const assertTransitionDate = (quizSet: QuizSet, at: Date): void => {
 	if (!isValidDate(at)) {
 		throw new QuizSetValidationError(["at must be a valid date"]);
@@ -127,13 +115,6 @@ const assertStatus = (
 	}
 };
 
-/**
- * A `Question` reaching the aggregate may be a plain object literal rather than
- * a `createQuestion` result, so its nested options are frozen too — otherwise a
- * caller could still mutate a stored question into a state `createQuestion`
- * rejects. The options array is copied before freezing so the caller's array is
- * never frozen.
- */
 const frozenQuestion = (question: Question): Question =>
 	Object.freeze({
 		...question,
@@ -153,7 +134,6 @@ const frozenQuizSet = (fields: QuizSet): QuizSet =>
 		archivedAt: copiedOptionalDate(fields.archivedAt),
 	});
 
-/** Validates every invariant and reports all issues at once. */
 export function createQuizSet(draft: QuizSetDraft): QuizSet {
 	const title = draft.title.trim();
 	const language = draft.language.trim();
@@ -178,11 +158,6 @@ export function createQuizSet(draft: QuizSetDraft): QuizSet {
 	});
 }
 
-/**
- * Duplicate ids are refused before duplicate content: an id collision is a
- * broken identity that the caller must fix, while equal content is a benign
- * retry, and reporting the identity failure first keeps the diagnosis honest.
- */
 const collectDuplicateQuestionIds = (
 	quizSet: QuizSet,
 	questions: readonly Question[],
@@ -201,10 +176,6 @@ const collectDuplicateQuestionIds = (
 	return [...duplicates];
 };
 
-/**
- * Duplicates are detected against the existing set *and* inside the incoming
- * batch, so a retried import cannot smuggle the same question in twice.
- */
 const collectDuplicateFingerprints = (
 	quizSet: QuizSet,
 	questions: readonly Question[],
