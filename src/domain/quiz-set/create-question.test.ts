@@ -102,6 +102,45 @@ describe("createQuestion", () => {
 			expect(question.options.filter((each) => each.isCorrect)).toHaveLength(2);
 		});
 
+		test("trims sourceReference and hint and drops them when blank", () => {
+			const question = createQuestion({
+				...validDraft,
+				sourceReference: "  Chapter 5, page 142  ",
+				hint: "   ",
+			});
+
+			expect(question.sourceReference).toBe("Chapter 5, page 142");
+			expect(question.hint).toBeUndefined();
+		});
+
+		test("normalises negative zero positions to positive zero", () => {
+			const question = createQuestion({
+				...validDraft,
+				position: -0,
+				options: [
+					option("Availability", true, -0),
+					option("Index size", false, 1),
+				],
+			});
+
+			expect(Object.is(question.position, 0)).toBe(true);
+			expect(Object.is(question.options[0]?.position, 0)).toBe(true);
+		});
+
+		test("does not alias the caller's options", () => {
+			const options = [
+				option("Availability", true, 0),
+				option("Index size", false, 1),
+			];
+			const question = createQuestion({ ...validDraft, options });
+
+			expect(Object.isFrozen(options)).toBe(false);
+
+			options.push(option("Added later", false, 2));
+
+			expect(question.options).toHaveLength(2);
+		});
+
 		test("accepts a true_false question with exactly two options", () => {
 			const question = createQuestion({
 				...validDraft,
@@ -114,6 +153,50 @@ describe("createQuestion", () => {
 	});
 
 	describe("with an invalid draft", () => {
+		test("rejects an unsupported type without evaluating other invariants", () => {
+			expect(
+				issuesOf({
+					...validDraft,
+					type: "open_text" as QuestionType,
+					prompt: "   ",
+				}),
+			).toEqual(["type must be a supported question type"]);
+		});
+
+		test("rejects an unsupported difficulty", () => {
+			expect(
+				issuesOf({ ...validDraft, difficulty: "impossible" as Difficulty }),
+			).toEqual(["difficulty must be a supported difficulty"]);
+		});
+
+		test("reports an unsupported type and difficulty together", () => {
+			expect(
+				issuesOf({
+					...validDraft,
+					type: "open_text" as QuestionType,
+					difficulty: "impossible" as Difficulty,
+				}),
+			).toEqual([
+				"type must be a supported question type",
+				"difficulty must be a supported difficulty",
+			]);
+		});
+
+		test("rejects duplicate option ids", () => {
+			expect(
+				issuesOf({
+					...validDraft,
+					options: [
+						option("Availability", true, 0),
+						{
+							...option("Index size", false, 1),
+							id: toQuestionOptionId("option-0"),
+						},
+					],
+				}),
+			).toEqual(["option ids must be unique"]);
+		});
+
 		test("rejects a blank prompt", () => {
 			expect(issuesOf({ ...validDraft, prompt: "   " })).toEqual([
 				"prompt must not be empty",

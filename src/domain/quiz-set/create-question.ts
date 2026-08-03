@@ -1,5 +1,7 @@
 import {
 	type Difficulty,
+	isDifficulty,
+	isQuestionType,
 	type Question,
 	type QuestionId,
 	type QuestionOption,
@@ -24,6 +26,33 @@ const trimmedOrUndefined = (value: string | undefined): string | undefined => {
 	const trimmed = value?.trim();
 
 	return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+};
+
+/**
+ * `-0` passes every non-negative integer check but survives into persistence,
+ * serialisation and `Object.is` comparisons as a distinct value, so it is
+ * folded into `0`.
+ */
+const normalisePosition = (value: number): number => (value === 0 ? 0 : value);
+
+/**
+ * Unsupported enumeration values are rejected on their own, before any other
+ * invariant, so that no unvalidated value is interpolated into a later message.
+ */
+const collectUnsupportedValueIssues = (
+	draft: QuestionDraft,
+): readonly string[] => {
+	const issues: string[] = [];
+
+	if (!isQuestionType(draft.type)) {
+		issues.push("type must be a supported question type");
+	}
+
+	if (!isDifficulty(draft.difficulty)) {
+		issues.push("difficulty must be a supported difficulty");
+	}
+
+	return issues;
 };
 
 const collectIssues = (
@@ -53,6 +82,12 @@ const collectIssues = (
 		issues.push("option positions must be unique and start at 0");
 	}
 
+	const ids = options.map((option) => option.id);
+
+	if (new Set(ids).size !== ids.length) {
+		issues.push("option ids must be unique");
+	}
+
 	if (draft.type !== QuestionType.TrueFalse && options.length < 2) {
 		issues.push(`${draft.type} requires at least two options`);
 	}
@@ -76,9 +111,19 @@ const collectIssues = (
 
 /** Validates every invariant and reports all issues at once. */
 export function createQuestion(draft: QuestionDraft): Question {
+	const unsupportedValueIssues = collectUnsupportedValueIssues(draft);
+
+	if (unsupportedValueIssues.length > 0) {
+		throw new QuestionValidationError(unsupportedValueIssues);
+	}
+
 	const prompt = draft.prompt.trim();
 	const options = draft.options.map((option) =>
-		Object.freeze({ ...option, text: option.text.trim() }),
+		Object.freeze({
+			...option,
+			text: option.text.trim(),
+			position: normalisePosition(option.position),
+		}),
 	);
 	const issues = collectIssues(draft, prompt, options);
 
@@ -91,7 +136,7 @@ export function createQuestion(draft: QuestionDraft): Question {
 		prompt,
 		options: Object.freeze(options),
 		difficulty: draft.difficulty,
-		position: draft.position,
+		position: normalisePosition(draft.position),
 		explanation: trimmedOrUndefined(draft.explanation),
 		sourceReference: trimmedOrUndefined(draft.sourceReference),
 		topic: trimmedOrUndefined(draft.topic),
@@ -105,5 +150,9 @@ export function createQuestion(draft: QuestionDraft): Question {
 			return Object.freeze({ ...fields, type: QuestionType.MultipleChoice });
 		case QuestionType.TrueFalse:
 			return Object.freeze({ ...fields, type: QuestionType.TrueFalse });
+		default:
+			throw new QuestionValidationError([
+				"type must be a supported question type",
+			]);
 	}
 }
