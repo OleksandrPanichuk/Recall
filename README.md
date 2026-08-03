@@ -99,7 +99,10 @@ bun run migrate
 Команда друкує шлях перед відкриттям файлу, застосовує pending migrations із
 `drizzle/` і виводить список застосованих версій або `database is up to date`.
 Повторний запуск нічого не змінює. Значення environment variables у вивід не
-потрапляють, тому токен не логується.
+потрапляють, тому токен не логується. Перед закриттям connection команда робить
+`PRAGMA wal_checkpoint(TRUNCATE)` і повертає journal mode у `delete`, тому після
+виходу залишається один файл без `-wal` та `-shm` — backup копіюванням
+`quiz.sqlite` буде повним.
 
 Schema описана в `src/adapters/persistence/sqlite/schema.ts`. Після її зміни
 потрібно згенерувати нову migration:
@@ -108,11 +111,68 @@ Schema описана в `src/adapters/persistence/sqlite/schema.ts`. Після
 bun run db:generate
 ```
 
-> **Важливо:** Drizzle schema builder не вміє виражати `STRICT`, тому в
+> **Важливо:** Drizzle schema builder не вміє виражати `STRICT`, тому в кожному
 > згенерованому `.sql` файлі кожен `CREATE TABLE` доводиться вручну завершувати
-> `) STRICT;`. Без цього SQLite приймає BLOB у TEXT column і `1.5` у
-> `telegram_user_id`. Integration test `strict typing` падає, якщо цю правку
-> втратити.
+> `) STRICT;`. Наслідки втрати цієї правки різні залежно від того, що згенерував
+> `drizzle-kit`:
+>
+> - у новій таблиці SQLite почне приймати BLOB у TEXT column і `1.5` у
+>   `telegram_user_id`;
+> - у table-rebuild migration (див. нижче) перестворена таблиця не лише втрачає
+>   `STRICT`, а й **втрачає всі дочірні рows** через `ON DELETE CASCADE`.
+>
+> Integration test `strict typing` падає, якщо правку втратити.
+
+### Table-rebuild migrations
+
+SQLite не вміє змінювати `CHECK`, тому будь-яка зміна enum-списку — тобто
+звичайний сценарій «додати значення в `QuestionType` / `ReviewItemState`» —
+змушує `drizzle-kit generate` видати 12-step rebuild: `PRAGMA foreign_keys=OFF`,
+`CREATE TABLE __new_<name>`, `INSERT ... SELECT`, `DROP TABLE <name>`,
+`ALTER TABLE __new_<name> RENAME TO <name>`, `PRAGMA foreign_keys=ON`.
+
+Через Drizzle migrator такий файл застосовувати **не можна**. Drizzle виконує всі
+migrations в одній транзакції, а `PRAGMA foreign_keys` всередині транзакції —
+тихий no-op. Foreign keys залишаються включеними на `DROP TABLE`, кожен
+`ON DELETE CASCADE` спрацьовує, і весь дочірній graph зникає: разом із
+`quiz_sets` пішли б `questions`, `question_options`, `quiz_attempts`,
+`question_responses` та `review_items`. Migration завершилась би з кодом `0`.
+
+Тому `applyMigrations` відмовляється застосовувати pending migration, у SQL якої
+є `PRAGMA foreign_keys` або таблиця з префіксом `__new_`, і кидає
+`UnsafeMigrationError` з назвою файлу. Нічого не застосовується.
+
+Ручна процедура для такої migration:
+
+1. Зробити backup: `bun run migrate` (щоб отримати один файл), потім скопіювати
+   `quiz.sqlite`.
+2. Записати кількість рows у кожній дочірній таблиці **до** зміни.
+3. Дописати `) STRICT;` до кожного `CREATE TABLE` у згенерованому файлі,
+   включно з `__new_*`.
+4. Застосувати SQL вручну, **поза** транзакцією Drizzle і з реально вимкненими
+   foreign keys, наприклад:
+
+   ```bash
+   sqlite3 "$DATABASE_PATH" <<'SQL'
+   PRAGMA foreign_keys=OFF;
+   BEGIN;
+   -- statements зі згенерованого файлу, без його PRAGMA рядків
+   COMMIT;
+   PRAGMA foreign_keys=ON;
+   PRAGMA foreign_key_check;
+   SQL
+   ```
+
+   `PRAGMA foreign_keys=OFF` має стояти **до** `BEGIN`, інакше він знову буде
+   no-op.
+5. Порівняти кількість рows у дочірніх таблицях із кроком 2 та переконатися, що
+   `PRAGMA foreign_key_check` нічого не повертає.
+6. Дописати рядок у ledger вручну, щоб `bun run migrate` більше не вважав цю
+   migration pending:
+
+   ```bash
+   sqlite3 "$DATABASE_PATH" "INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('manual', <when з drizzle/meta/_journal.json>);"
+   ```
 
 Перевірити clean baseline:
 

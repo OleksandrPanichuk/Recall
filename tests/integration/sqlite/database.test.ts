@@ -1,15 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 
+const projectRoot = join(import.meta.dir, "..", "..", "..");
+
 const databaseModule = join(
-	import.meta.dir,
-	"..",
-	"..",
-	"..",
+	projectRoot,
 	"src",
 	"adapters",
 	"persistence",
@@ -36,27 +35,26 @@ describe("applyMigrations", () => {
 
 		database.close();
 	});
+});
 
-	test("leaves no database files behind for a file-backed run", () => {
+describe("createDatabase", () => {
+	test("keeps a live write-ahead log while the connection is open", () => {
 		const path = join(directory, "quiz.sqlite");
 		const database = createDatabase({ path });
 
 		applyMigrations(database);
+
+		const [row] = database
+			.query<{ journal_mode: string }, []>("PRAGMA journal_mode")
+			.all();
+
+		expect(row?.journal_mode).toBe("wal");
+		expect(existsSync(`${path}-wal`)).toBe(true);
+		expect(existsSync(`${path}-shm`)).toBe(true);
+
 		database.close();
-
-		expect(existsSync(path)).toBe(true);
-
-		rmSync(path, { force: true });
-		rmSync(`${path}-wal`, { force: true });
-		rmSync(`${path}-shm`, { force: true });
-
-		expect(existsSync(path)).toBe(false);
-		expect(existsSync(`${path}-wal`)).toBe(false);
-		expect(existsSync(`${path}-shm`)).toBe(false);
 	});
-});
 
-describe("createDatabase", () => {
 	test("opens the same file from concurrent processes without a lock error", async () => {
 		const path = join(directory, "concurrent.sqlite");
 		const source = [
@@ -64,6 +62,7 @@ describe("createDatabase", () => {
 			`const database = createDatabase({ path: ${JSON.stringify(path)} });`,
 			`database.run("CREATE TABLE IF NOT EXISTS probe (id TEXT NOT NULL PRIMARY KEY) STRICT");`,
 			`database.run("INSERT OR REPLACE INTO probe (id) VALUES (?)", [String(process.pid)]);`,
+			`console.log(database.query("PRAGMA journal_mode").all()[0].journal_mode);`,
 			`database.close();`,
 		].join("\n");
 
@@ -77,6 +76,7 @@ describe("createDatabase", () => {
 		const results = await Promise.all(
 			processes.map(async (child) => ({
 				exitCode: await child.exited,
+				stdout: await new Response(child.stdout).text(),
 				stderr: await new Response(child.stderr).text(),
 			})),
 		);
@@ -84,6 +84,32 @@ describe("createDatabase", () => {
 		for (const result of results) {
 			expect(result.stderr).not.toContain("database is locked");
 			expect(result.exitCode).toBe(0);
+			expect(result.stdout.trim()).toBe("wal");
 		}
+	}, 30_000);
+});
+
+describe("the migrate command", () => {
+	test("leaves a single database file behind", async () => {
+		const path = join(directory, "quiz.sqlite");
+		const child = Bun.spawn(["bun", "run", "./scripts/migrate.ts"], {
+			cwd: projectRoot,
+			stdout: "pipe",
+			stderr: "pipe",
+			env: {
+				...process.env,
+				TELEGRAM_BOT_KEY: "test-token",
+				ALLOWED_TELEGRAM_USER_ID: "1",
+				APP_TIMEZONE: "Europe/Kyiv",
+				DATABASE_PATH: path,
+			},
+		});
+
+		const exitCode = await child.exited;
+		const stdout = await new Response(child.stdout).text();
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain("0000_initial-schema");
+		expect(readdirSync(directory)).toEqual(["quiz.sqlite"]);
 	}, 30_000);
 });

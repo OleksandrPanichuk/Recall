@@ -1,6 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { createDatabase } from "@/adapters/persistence/sqlite/database";
+import {
+	closeDatabase,
+	createDatabase,
+} from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { loadEnvironment } from "@/infrastructure/config/env";
 
@@ -51,7 +54,7 @@ function migrate(): number {
 
 		return 1;
 	} finally {
-		database.close();
+		closeDatabase(database, environment.databasePath);
 	}
 }
 
