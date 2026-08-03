@@ -15,12 +15,17 @@ const BUSY_TIMEOUT_MS = 5000;
 export function createDatabase(options: { readonly path: string }): Database {
 	const database = new Database(options.path, { create: true });
 
-	// A pragma value cannot be a bound parameter, hence the interpolated
-	// module constant. WAL is silently ignored for `:memory:` (SQLite keeps
-	// reporting `memory`), so this sequence is safe for tests too.
+	// `busy_timeout` must come FIRST. Switching the journal mode takes a lock on
+	// the database itself, so it is the statement most likely to contend with
+	// another process that is already connected; until the busy handler is
+	// installed the timeout is still 0 and that switch fails outright with
+	// SQLITE_BUSY instead of waiting. A pragma value cannot be a bound
+	// parameter, hence the interpolated module constant.
+	database.run(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
+	// WAL is silently ignored for `:memory:` (SQLite keeps reporting `memory`),
+	// so this sequence is safe for tests too.
 	database.run("PRAGMA journal_mode = WAL");
 	database.run("PRAGMA foreign_keys = ON");
-	database.run(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
 
 	return database;
 }

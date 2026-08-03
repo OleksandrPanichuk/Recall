@@ -61,7 +61,9 @@ function assertVersionsAreUsable(migrations: readonly Migration[]): void {
 	for (const migration of migrations) {
 		const { version } = migration;
 
-		if (!Number.isSafeInteger(version) || version < 0) {
+		// Versions start at 1: 0 is reserved as the "nothing applied" sentinel
+		// for any future `MAX(version)` query.
+		if (!Number.isSafeInteger(version) || version < 1) {
 			throw new Error(`Invalid migration version ${version}`);
 		}
 
@@ -70,6 +72,22 @@ function assertVersionsAreUsable(migrations: readonly Migration[]): void {
 		}
 
 		seen.add(version);
+	}
+}
+
+/**
+ * Runs one migration's `up`, naming it if it fails. SQLite reports only the
+ * offending SQL (`near "TABEL": syntax error`), which is useless for locating
+ * the module in a batch of eight.
+ */
+function applyUp(migration: Migration, database: Database): void {
+	try {
+		migration.up(database);
+	} catch (error) {
+		throw new Error(
+			`Migration ${migration.version} (${migration.name}) failed`,
+			{ cause: error },
+		);
 	}
 }
 
@@ -97,7 +115,18 @@ export function appliedMigrations(
  *
  * Each migration runs in its own transaction together with its ledger insert,
  * so a failure can neither leave half a schema behind nor record itself as
- * applied. Migrations already applied by an earlier call stay committed.
+ * applied. Migrations already applied by an earlier call stay committed, and a
+ * failure aborts the batch rather than continuing with later versions.
+ *
+ * `up` may issue DDL and DML only. It must not issue `BEGIN`, `COMMIT`,
+ * `ROLLBACK`, `VACUUM`, or any `PRAGMA` that has to run outside a transaction —
+ * a `PRAGMA foreign_keys` change silently no-ops there, and ending the
+ * transaction itself is worse than loud: the schema change survives while the
+ * ledger stays empty, so the next run re-applies the same version onto objects
+ * that already exist and the database can no longer be migrated without manual
+ * repair. A migration that genuinely needs SQLite's non-transactional
+ * table-rebuild recipe requires an explicitly opted-in non-transactional
+ * variant of this runner, never a workaround inside `up`.
  */
 export function runMigrations(
 	database: Database,
@@ -127,7 +156,7 @@ export function runMigrations(
 		};
 
 		database.transaction(() => {
-			migration.up(database);
+			applyUp(migration, database);
 			insert.run(record.version, record.name, record.appliedAt);
 		})();
 
