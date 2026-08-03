@@ -28,17 +28,8 @@ const trimmedOrUndefined = (value: string | undefined): string | undefined => {
 	return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 };
 
-/**
- * `-0` passes every non-negative integer check but survives into persistence,
- * serialisation and `Object.is` comparisons as a distinct value, so it is
- * folded into `0`.
- */
 const normalisePosition = (value: number): number => (value === 0 ? 0 : value);
 
-/**
- * Unsupported enumeration values are rejected on their own, before any other
- * invariant, so that no unvalidated value is interpolated into a later message.
- */
 const collectUnsupportedValueIssues = (
 	draft: QuestionDraft,
 ): readonly string[] => {
@@ -109,7 +100,6 @@ const collectIssues = (
 	return issues;
 };
 
-/** Validates every invariant and reports all issues at once. */
 export function createQuestion(draft: QuestionDraft): Question {
 	const unsupportedValueIssues = collectUnsupportedValueIssues(draft);
 
