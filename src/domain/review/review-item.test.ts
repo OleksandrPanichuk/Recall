@@ -19,6 +19,10 @@ const createdAt = new Date("2026-08-01T10:00:00.000Z");
 const dueAt = new Date("2026-08-02T10:00:00.000Z");
 const reviewedAt = new Date("2026-08-02T11:00:00.000Z");
 const nextDueAt = new Date("2026-08-05T11:00:00.000Z");
+const laterReviewedAt = new Date("2026-08-06T11:00:00.000Z");
+const laterDueAt = new Date("2026-08-09T11:00:00.000Z");
+/** After `createdAt` but before `reviewedAt`: a stale second review. */
+const staleAt = new Date("2026-08-01T12:00:00.000Z");
 const earlierAt = new Date("2026-07-31T10:00:00.000Z");
 const invalidDate = new Date("not a date");
 
@@ -33,6 +37,12 @@ const validDraft = {
 };
 
 type ReviewItemDraft = Parameters<typeof createReviewItem>[0];
+type MarkReview = (item: ReviewItem, at: Date, dueAt: Date) => ReviewItem;
+
+const markFunctions = [
+	["markReviewFailed", markReviewFailed],
+	["markReviewPassed", markReviewPassed],
+] as const;
 
 const issuesOf = (draft: ReviewItemDraft): readonly string[] => {
 	try {
@@ -44,6 +54,27 @@ const issuesOf = (draft: ReviewItemDraft): readonly string[] => {
 	}
 
 	throw new Error("expected createReviewItem to throw");
+};
+
+/**
+ * The transition counterpart of `issuesOf`: asserting the whole `issues` array
+ * catches a missing or extra issue that substring matching would hide.
+ */
+const markIssuesOf = (
+	mark: MarkReview,
+	item: ReviewItem,
+	at: Date,
+	nextDue: Date,
+): readonly string[] => {
+	try {
+		mark(item, at, nextDue);
+	} catch (caught) {
+		expect(caught).toBeInstanceOf(ReviewItemValidationError);
+
+		return (caught as ReviewItemValidationError).issues;
+	}
+
+	throw new Error("expected the review transition to throw");
 };
 
 const pendingItem = (): ReviewItem => createReviewItem(validDraft);
@@ -58,6 +89,9 @@ const withStreak = (streak: number): ReviewItem => {
 
 	return item;
 };
+
+const reviewedOnce = (): ReviewItem =>
+	markReviewPassed(pendingItem(), reviewedAt, nextDueAt);
 
 describe("ReviewItem", () => {
 	describe("isReviewItemState", () => {
@@ -138,6 +172,22 @@ describe("ReviewItem", () => {
 			]);
 		});
 
+		test("rejects a dueAt that precedes createdAt", () => {
+			// Creation is the degenerate first review where `at === createdAt`, and
+			// the mark functions forbid `dueAt < at`, so the factory must not mint a
+			// state no transition can produce: such an item would sort ahead of every
+			// legitimately due item.
+			expect(issuesOf({ ...validDraft, dueAt: earlierAt })).toEqual([
+				"dueAt must not precede createdAt",
+			]);
+		});
+
+		test("accepts a dueAt equal to createdAt", () => {
+			expect(
+				createReviewItem({ ...validDraft, dueAt: createdAt }).dueAt,
+			).toEqual(createdAt);
+		});
+
 		test("reports every issue at once in the documented order", () => {
 			expect(
 				issuesOf({
@@ -153,6 +203,21 @@ describe("ReviewItem", () => {
 			]);
 		});
 
+		test("reports the user id and the due date order together", () => {
+			expect(
+				issuesOf({ ...validDraft, telegramUserId: 0, dueAt: earlierAt }),
+			).toEqual([
+				"telegramUserId must be a positive integer",
+				"dueAt must not precede createdAt",
+			]);
+		});
+
+		test("does not compare the dates until both are valid", () => {
+			expect(
+				issuesOf({ ...validDraft, createdAt: invalidDate, dueAt: earlierAt }),
+			).toEqual(["createdAt must be a valid date"]);
+		});
+
 		test("names every issue in the error message", () => {
 			expect(() =>
 				createReviewItem({ ...validDraft, telegramUserId: 0 }),
@@ -164,9 +229,10 @@ describe("ReviewItem", () => {
 
 	describe("markReviewFailed", () => {
 		test("resets the streak and makes the item pending again", () => {
-			const learning = withStreak(3);
+			const learning = withStreak(RETIREMENT_STREAK - 1);
 
-			expect(learning.streak).toBe(3);
+			expect(learning.state).toBe(ReviewItemState.Learning);
+			expect(learning.streak).toBe(RETIREMENT_STREAK - 1);
 
 			const failed = markReviewFailed(learning, reviewedAt, nextDueAt);
 
@@ -213,7 +279,7 @@ describe("ReviewItem", () => {
 
 	describe("markReviewPassed", () => {
 		test("advances the streak into learning", () => {
-			const passed = markReviewPassed(pendingItem(), reviewedAt, nextDueAt);
+			const passed = reviewedOnce();
 
 			expect(passed.state).toBe(ReviewItemState.Learning);
 			expect(passed.streak).toBe(1);
@@ -247,9 +313,7 @@ describe("ReviewItem", () => {
 		});
 
 		test("returns a frozen item", () => {
-			expect(
-				Object.isFrozen(markReviewPassed(pendingItem(), reviewedAt, nextDueAt)),
-			).toBe(true);
+			expect(Object.isFrozen(reviewedOnce())).toBe(true);
 		});
 
 		test("copies the dates so later mutation cannot reach the item", () => {
@@ -266,24 +330,20 @@ describe("ReviewItem", () => {
 	});
 
 	describe("retired items", () => {
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s rejects a retired item", (_name, mark) => {
+		test.each(markFunctions)("%s rejects a retired item", (_name, mark) => {
 			const retired = withStreak(RETIREMENT_STREAK);
 
-			expect(() => mark(retired, reviewedAt, nextDueAt)).toThrow(
+			expect(() => mark(retired, laterReviewedAt, laterDueAt)).toThrow(
 				RetiredReviewItemError,
 			);
-			expect(() => mark(retired, reviewedAt, nextDueAt)).toThrow(
+			expect(() => mark(retired, laterReviewedAt, laterDueAt)).toThrow(
 				"A retired review item cannot be reviewed again",
 			);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s reports retirement before an invalid date", (_name, mark) => {
+		test.each(
+			markFunctions,
+		)("%s reports retirement before an invalid date", (_name, mark) => {
 			const retired = withStreak(RETIREMENT_STREAK);
 
 			expect(() => mark(retired, invalidDate, invalidDate)).toThrow(
@@ -293,79 +353,119 @@ describe("ReviewItem", () => {
 	});
 
 	describe("review dates", () => {
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s rejects an invalid at", (_name, mark) => {
-			expect(() => mark(pendingItem(), invalidDate, nextDueAt)).toThrow(
-				"Invalid review item:\n- at must be a valid date",
+		test.each(markFunctions)("%s rejects an invalid at", (_name, mark) => {
+			expect(markIssuesOf(mark, pendingItem(), invalidDate, nextDueAt)).toEqual(
+				["at must be a valid date"],
 			);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s rejects an invalid dueAt", (_name, mark) => {
-			expect(() => mark(pendingItem(), reviewedAt, invalidDate)).toThrow(
-				"Invalid review item:\n- dueAt must be a valid date",
+		test.each(markFunctions)("%s rejects an invalid dueAt", (_name, mark) => {
+			expect(
+				markIssuesOf(mark, pendingItem(), reviewedAt, invalidDate),
+			).toEqual(["dueAt must be a valid date"]);
+		});
+
+		test.each(
+			markFunctions,
+		)("%s reports both invalid dates at once", (_name, mark) => {
+			expect(
+				markIssuesOf(mark, pendingItem(), invalidDate, invalidDate),
+			).toEqual(["at must be a valid date", "dueAt must be a valid date"]);
+		});
+
+		test.each(
+			markFunctions,
+		)("%s does not compare the dates until both are valid", (_name, mark) => {
+			expect(markIssuesOf(mark, pendingItem(), earlierAt, invalidDate)).toEqual(
+				["dueAt must be a valid date"],
 			);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s reports both invalid dates at once", (_name, mark) => {
-			expect(() => mark(pendingItem(), invalidDate, invalidDate)).toThrow(
-				"Invalid review item:\n- at must be a valid date\n- dueAt must be a valid date",
-			);
+		test.each(
+			markFunctions,
+		)("%s rejects an at before createdAt", (_name, mark) => {
+			expect(markIssuesOf(mark, pendingItem(), earlierAt, nextDueAt)).toEqual([
+				"at must not precede createdAt",
+			]);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s rejects an at before createdAt", (_name, mark) => {
-			expect(() => mark(pendingItem(), earlierAt, nextDueAt)).toThrow(
-				"Invalid review item:\n- at must not precede createdAt",
-			);
-		});
-
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s accepts an at equal to createdAt", (_name, mark) => {
+		test.each(
+			markFunctions,
+		)("%s accepts an at equal to createdAt", (_name, mark) => {
 			expect(mark(pendingItem(), createdAt, nextDueAt).lastReviewedAt).toEqual(
 				createdAt,
 			);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s rejects a dueAt before at", (_name, mark) => {
+		test.each(markFunctions)("%s rejects a dueAt before at", (_name, mark) => {
 			// A repetition cannot be scheduled before the review that produced it.
-			expect(() => mark(pendingItem(), reviewedAt, createdAt)).toThrow(
-				"Invalid review item:\n- dueAt must not precede at",
-			);
+			expect(markIssuesOf(mark, pendingItem(), reviewedAt, createdAt)).toEqual([
+				"dueAt must not precede at",
+			]);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s accepts a dueAt equal to at", (_name, mark) => {
+		test.each(
+			markFunctions,
+		)("%s accepts a dueAt equal to at", (_name, mark) => {
 			expect(mark(pendingItem(), reviewedAt, reviewedAt).dueAt).toEqual(
 				reviewedAt,
 			);
 		});
 
-		test.each([
-			["markReviewFailed", markReviewFailed],
-			["markReviewPassed", markReviewPassed],
-		] as const)("%s reports both monotonicity issues at once", (_name, mark) => {
-			expect(() => mark(pendingItem(), earlierAt, invalidDate)).toThrow(
-				"Invalid review item:\n- dueAt must be a valid date",
+		test.each(
+			markFunctions,
+		)("%s reports both monotonicity issues at once", (_name, mark) => {
+			expect(markIssuesOf(mark, pendingItem(), earlierAt, earlierAt)).toEqual([
+				"at must not precede createdAt",
+			]);
+			expect(markIssuesOf(mark, pendingItem(), earlierAt, invalidDate)).toEqual(
+				["dueAt must be a valid date"],
 			);
-			expect(() => mark(pendingItem(), earlierAt, earlierAt)).toThrow(
-				"Invalid review item:\n- at must not precede createdAt",
+		});
+
+		test.each(
+			markFunctions,
+		)("%s rejects an at before lastReviewedAt", (_name, mark) => {
+			// Phase 5.3 orders repetitions by lastReviewedAt, so a stale second
+			// review must not pull the item's own timeline backwards.
+			expect(markIssuesOf(mark, reviewedOnce(), staleAt, nextDueAt)).toEqual([
+				"at must not precede lastReviewedAt",
+			]);
+		});
+
+		test.each(
+			markFunctions,
+		)("%s accepts an at equal to lastReviewedAt", (_name, mark) => {
+			expect(
+				mark(reviewedOnce(), reviewedAt, nextDueAt).lastReviewedAt,
+			).toEqual(reviewedAt);
+		});
+
+		test.each(
+			markFunctions,
+		)("%s accepts a strictly later second review", (_name, mark) => {
+			const again = mark(reviewedOnce(), laterReviewedAt, laterDueAt);
+
+			expect(again.lastReviewedAt).toEqual(laterReviewedAt);
+			expect(again.dueAt).toEqual(laterDueAt);
+		});
+
+		test.each(
+			markFunctions,
+		)("%s reports every monotonicity issue at once", (_name, mark) => {
+			expect(markIssuesOf(mark, reviewedOnce(), earlierAt, earlierAt)).toEqual([
+				"at must not precede createdAt",
+				"at must not precede lastReviewedAt",
+			]);
+			expect(markIssuesOf(mark, reviewedOnce(), staleAt, earlierAt)).toEqual([
+				"at must not precede lastReviewedAt",
+				"dueAt must not precede at",
+			]);
+		});
+
+		test.each(markFunctions)("%s preserves createdAt", (_name, mark) => {
+			expect(mark(pendingItem(), reviewedAt, nextDueAt).createdAt).toEqual(
+				createdAt,
 			);
 		});
 	});

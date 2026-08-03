@@ -74,12 +74,28 @@ const collectDraftIssues = (draft: ReviewItemDraft): readonly string[] => {
 		issues.push("telegramUserId must be a positive integer");
 	}
 
-	if (!isValidDate(draft.createdAt)) {
+	const hasValidCreatedAt = isValidDate(draft.createdAt);
+	const hasValidDueAt = isValidDate(draft.dueAt);
+
+	if (!hasValidCreatedAt) {
 		issues.push("createdAt must be a valid date");
 	}
 
-	if (!isValidDate(draft.dueAt)) {
+	if (!hasValidDueAt) {
 		issues.push("dueAt must be a valid date");
+	}
+
+	// Creation is the degenerate first review, where `at` equals `createdAt`, and
+	// a review can never schedule its repetition into the past. Accepting a
+	// `dueAt` before `createdAt` would mint a state no transition can produce,
+	// and such an item would sort ahead of every legitimately due one. Compared
+	// only once both dates are valid, because an invalid date has no order.
+	if (
+		hasValidCreatedAt &&
+		hasValidDueAt &&
+		draft.dueAt.getTime() < draft.createdAt.getTime()
+	) {
+		issues.push("dueAt must not precede createdAt");
 	}
 
 	return issues;
@@ -95,9 +111,13 @@ const assertReviewable = (item: ReviewItem): void => {
  * An invalid or backdated review timestamp would silently corrupt the review
  * timeline, so both dates are checked before the item is touched. Validity is
  * checked before monotonicity, because comparing an invalid date yields a
- * meaningless verdict. An `at` equal to `createdAt` and a `dueAt` equal to `at`
- * are both valid; a `dueAt` before `at` would schedule a repetition before the
- * review that produced it.
+ * meaningless verdict.
+ *
+ * Monotonicity is anchored to `lastReviewedAt` once the item has been reviewed,
+ * and to `createdAt` before that: scheduling reads the review history in
+ * timestamp order, so a stale repetition must not pull the item's own timeline
+ * backwards. A `dueAt` before `at` would schedule a repetition before the review
+ * that produced it. Equal timestamps are valid throughout.
  */
 const assertReviewDates = (item: ReviewItem, at: Date, dueAt: Date): void => {
 	const validity: string[] = [];
@@ -118,6 +138,13 @@ const assertReviewDates = (item: ReviewItem, at: Date, dueAt: Date): void => {
 
 	if (at.getTime() < item.createdAt.getTime()) {
 		order.push("at must not precede createdAt");
+	}
+
+	if (
+		item.lastReviewedAt !== undefined &&
+		at.getTime() < item.lastReviewedAt.getTime()
+	) {
+		order.push("at must not precede lastReviewedAt");
 	}
 
 	if (dueAt.getTime() < at.getTime()) {
