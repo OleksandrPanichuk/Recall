@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDatabase } from "@/adapters/persistence/sqlite/database";
+import {
+	closeDatabase,
+	createDatabase,
+} from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 
 const projectRoot = join(import.meta.dir, "..", "..", "..");
@@ -53,6 +56,18 @@ describe("createDatabase", () => {
 		expect(existsSync(`${path}-shm`)).toBe(true);
 
 		database.close();
+	});
+
+	test("closes the handle even when compaction cannot run", () => {
+		const path = join(directory, "quiz.sqlite");
+		const database = createDatabase({ path });
+
+		applyMigrations(database);
+		database.run("BEGIN");
+
+		expect(() => closeDatabase(database, path)).not.toThrow();
+		expect(existsSync(path)).toBe(true);
+		expect(() => database.query("SELECT 1").all()).toThrow();
 	});
 
 	test("opens the same file from concurrent processes without a lock error", async () => {

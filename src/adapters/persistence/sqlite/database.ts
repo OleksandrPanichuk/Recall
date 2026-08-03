@@ -98,28 +98,17 @@ function compactWriteAheadLog(database: Database): boolean {
 			.all();
 
 		return row?.journal_mode === "delete";
-	} catch (error) {
-		if (isBusy(error)) {
-			return false;
-		}
-
-		throw error;
+	} catch {
+		return false;
 	}
 }
 
 export function closeDatabase(database: Database, path: string): void {
-	if (path === inMemoryPath) {
-		database.close();
-
-		return;
-	}
-
-	const compacted = compactWriteAheadLog(database);
+	const compacted = path !== inMemoryPath && compactWriteAheadLog(database);
 
 	database.close();
 
 	if (compacted) {
-		rmSync(`${path}-wal`, { force: true });
 		rmSync(`${path}-shm`, { force: true });
 	}
 }
