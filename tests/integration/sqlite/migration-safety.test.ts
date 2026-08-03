@@ -101,6 +101,16 @@ function appliedTags(): readonly string[] {
 		.map((row) => String(row.created_at));
 }
 
+function tableExists(table: string): boolean {
+	return (
+		database
+			.query<{ name: string }, [string]>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+			)
+			.all(table).length > 0
+	);
+}
+
 beforeEach(() => {
 	const directory = mkdtempSync(join(tmpdir(), "quiz-migrations-"));
 
@@ -120,6 +130,35 @@ afterEach(() => {
 });
 
 describe("applyMigrations", () => {
+	test("rolls back every pending migration when one migration in the batch fails", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{
+				tag: "0001_batch_first",
+				sql: "CREATE TABLE batch_first (id text PRIMARY KEY NOT NULL) STRICT;",
+			},
+			{
+				tag: "0002_batch_broken",
+				sql: [
+					"CREATE TABLE batch_partial (id text PRIMARY KEY NOT NULL) STRICT;",
+					"--> statement-breakpoint",
+					"THIS IS NOT VALID SQL;",
+				].join("\n"),
+			},
+			{
+				tag: "0003_batch_last",
+				sql: "CREATE TABLE batch_last (id text PRIMARY KEY NOT NULL) STRICT;",
+			},
+		]);
+
+		expect(() => applyMigrations(database, folder)).toThrow();
+
+		expect(tableExists("batch_first")).toBeFalse();
+		expect(tableExists("batch_partial")).toBeFalse();
+		expect(tableExists("batch_last")).toBeFalse();
+		expect(appliedTags()).toEqual(["1"]);
+	});
+
 	test("refuses a pending migration that toggles PRAGMA foreign_keys", () => {
 		writeMigrations([
 			{ tag: "0000_base", sql: baseMigration },
