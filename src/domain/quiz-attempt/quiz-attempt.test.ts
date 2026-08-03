@@ -322,8 +322,6 @@ describe("QuizAttempt", () => {
 		});
 
 		test("rejects a replay that carries a different selection", () => {
-			// A mutated retry must not be mistaken for a new answer, otherwise the
-			// same question could be scored twice.
 			const attempt = answeredOnce();
 
 			expect(() =>
@@ -419,9 +417,6 @@ describe("QuizAttempt", () => {
 		});
 
 		test("rejects an answeredAt that precedes the last transition", () => {
-			// The reviewer's skewed-callback sequence: a pause and a resume move the
-			// timeline forward, so a stale callback timestamp must not drag
-			// updatedAt back behind them.
 			const pausedAt = new Date("2026-08-01T20:00:00.000Z");
 			const resumedAt = new Date("2026-08-01T21:00:00.000Z");
 			const staleAt = new Date("2026-08-01T10:00:01.000Z");

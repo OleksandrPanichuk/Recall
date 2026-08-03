@@ -56,7 +56,6 @@ export interface QuizAttempt {
 	readonly telegramUserId: number;
 	readonly mode: QuizAttemptMode;
 	readonly status: QuizAttemptStatus;
-	/** The ordered session plan; answers follow it strictly. */
 	readonly questionIds: readonly QuestionId[];
 	readonly responses: readonly QuestionResponse[];
 	readonly startedAt: Date;
@@ -75,11 +74,6 @@ interface QuizAttemptDraft {
 
 const isValidDate = (value: Date): boolean => !Number.isNaN(value.getTime());
 
-/**
- * `Date` is mutable, so a stored reference would let a caller change a frozen
- * attempt's timestamps from the outside. Every timestamp is copied on the way
- * in; reference identity is deliberately not part of the contract.
- */
 const copiedDate = (value: Date): Date => new Date(value.getTime());
 
 const copiedOptionalDate = (value: Date | undefined): Date | undefined =>
@@ -88,11 +82,6 @@ const copiedOptionalDate = (value: Date | undefined): Date | undefined =>
 const hasDuplicates = (values: readonly string[]): boolean =>
 	new Set(values).size !== values.length;
 
-/**
- * A response may reach the aggregate as a plain object literal, so its nested
- * selection is frozen too. The array is copied before freezing so the caller's
- * array is never frozen and never aliased by the stored attempt.
- */
 const frozenResponse = (response: QuestionResponse): QuestionResponse =>
 	Object.freeze({
 		...response,
@@ -120,17 +109,6 @@ const assertStatus = (
 	}
 };
 
-/**
- * An invalid or backdated timestamp would silently corrupt the session
- * timeline, so every mutating function rejects it before touching the attempt.
- *
- * Monotonicity is measured against `updatedAt` rather than `startedAt`, which
- * implies `>= startedAt` because `updatedAt` starts equal to it. A skewed
- * Telegram callback timestamp must not pull `updatedAt` back behind an earlier
- * pause or resume: persistence orders resumable attempts by `updatedAt`, so a
- * backwards step would reorder them and break the response timeline. A
- * timestamp equal to `updatedAt` is valid.
- */
 const assertMutationDate = (
 	attempt: QuizAttempt,
 	at: Date,
@@ -214,11 +192,6 @@ const collectResponseIssues = (
 	return issues;
 };
 
-/**
- * The idempotency guard for duplicated Telegram callbacks. An already answered
- * question is reported as a duplicate rather than as an out-of-order answer,
- * because that is the diagnosis the caller needs: the answer already landed.
- */
 export function recordResponse(
 	attempt: QuizAttempt,
 	response: QuestionResponse,
