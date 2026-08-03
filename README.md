@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** планування та clean foundation. Застарілий publish-bot видалено; quiz domain, SQLite persistence, Telegram adapter, MCP server, статистика та spaced repetition ще не реалізовані.
+> **Статус:** Phase 1.1 і 1.2 виконані: реалізовано quiz domain models, Drizzle SQLite schema та migrator. Repositories, application use cases, Telegram polling і MCP server ще очікують реалізації.
 
 ## Як має працювати продукт
 
@@ -88,7 +88,10 @@ cp .env.example .env
 Усі чотири змінні обов'язкові. `src/infrastructure/config/env.ts` валідує їх на
 старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
-змінних і причини — значення не логуються, тому токен не потрапляє в logs.
+змінних і причини — секретні значення не логуються, тому токен не потрапляє в
+logs. Водночас це не означає, що приховуються всі значення: startup друкує
+нешкідливі `DATABASE_PATH` і `APP_TIMEZONE`, а migration command друкує
+`DATABASE_PATH`, щоб оператор бачив, з яким файлом працює процес.
 
 Створити або оновити database за шляхом `DATABASE_PATH`:
 
@@ -98,8 +101,9 @@ bun run migrate
 
 Команда друкує шлях перед відкриттям файлу, застосовує pending migrations із
 `drizzle/` і виводить список застосованих версій або `database is up to date`.
-Повторний запуск нічого не змінює. Значення environment variables у вивід не
-потрапляють, тому токен не логується. Перед закриттям connection команда робить
+Повторний запуск нічого не змінює. Секретні environment variables у вивід не
+потрапляють; не-secret database path друкується навмисно. Перед закриттям
+connection команда робить
 `PRAGMA wal_checkpoint(TRUNCATE)` і повертає journal mode у `delete`, тому після
 виходу залишається один файл без `-wal` та `-shm` — backup копіюванням
 `quiz.sqlite` буде повним.
@@ -144,35 +148,56 @@ migrations в одній транзакції, а `PRAGMA foreign_keys` всер
 
 Ручна процедура для такої migration:
 
-1. Зробити backup: `bun run migrate` (щоб отримати один файл), потім скопіювати
-   `quiz.sqlite`.
+1. Переконатися, що всі попередні **безпечні** migrations уже застосовані, а
+   rebuild migration є наступною pending migration. Зробити backup одного
+   database-файлу; після звичайного `bun run migrate` він не має `-wal` і `-shm`
+   companion files, тому копія повна.
 2. Записати кількість рows у кожній дочірній таблиці **до** зміни.
 3. Дописати `) STRICT;` до кожного `CREATE TABLE` у згенерованому файлі,
    включно з `__new_*`.
-4. Застосувати SQL вручну, **поза** транзакцією Drizzle і з реально вимкненими
-   foreign keys, наприклад:
+4. Відкрити **інтерактивну** SQLite session (`sqlite3 "$DATABASE_PATH"`) і
+   виконати наведений нижче порядок в одному connection. Не закривайте session
+   після `PRAGMA foreign_key_check`: transaction має залишатися відкритою до
+   рішення `ROLLBACK` або `COMMIT`.
 
-   ```bash
-   sqlite3 "$DATABASE_PATH" <<'SQL'
+   ```sql
    PRAGMA foreign_keys=OFF;
-   BEGIN;
-   -- statements зі згенерованого файлу, без його PRAGMA рядків
-   COMMIT;
-   PRAGMA foreign_keys=ON;
+   BEGIN IMMEDIATE;
+   -- reviewed statements зі згенерованого rebuild .sql file;
+   -- вилучити його PRAGMA foreign_keys=OFF/ON рядки
    PRAGMA foreign_key_check;
-   SQL
    ```
 
-   `PRAGMA foreign_keys=OFF` має стояти **до** `BEGIN`, інакше він знову буде
-   no-op.
-5. Порівняти кількість рows у дочірніх таблицях із кроком 2 та переконатися, що
-   `PRAGMA foreign_key_check` нічого не повертає.
-6. Дописати рядок у ledger вручну, щоб `bun run migrate` більше не вважав цю
-   migration pending:
+   `PRAGMA foreign_keys=OFF` має стояти **до** `BEGIN IMMEDIATE`, інакше він
+   буде no-op. Перевірте результат `PRAGMA foreign_key_check` **до** commit:
 
-   ```bash
-   sqlite3 "$DATABASE_PATH" "INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('manual', <when з drizzle/meta/_journal.json>);"
+   - якщо він повернув хоча б один row, виконайте `ROLLBACK;`, не додавайте
+     migration до ledger і відновіть database з backup перед повторною спробою;
+   - якщо він не повернув rows, не виходячи з тієї самої transaction, вставте
+     ledger record і лише потім commit:
+
+     ```sql
+     -- SHA-256 exact reviewed contents of drizzle/<tag>.sql:
+     -- shasum -a 256 "drizzle/<tag>.sql"
+     INSERT INTO __drizzle_migrations (hash, created_at)
+     VALUES ('<SHA-256 of reviewed drizzle/<tag>.sql>', <when from drizzle/meta/_journal.json>);
+     COMMIT;
+     ```
+
+   **Ніколи не запускайте `bun run migrate` між ручним rebuild і цим ledger
+   insert.** До ledger record migrator вважатиме migration pending і навмисно
+   відмовиться її застосовувати.
+5. Після commit, у тій самій SQLite session, знову увімкніть і перевірте foreign
+   keys:
+
+   ```sql
+   PRAGMA foreign_keys=ON;
+   PRAGMA foreign_keys; -- must return 1
+   PRAGMA foreign_key_check; -- must return no rows
    ```
+
+6. Порівняти кількість rows у дочірніх таблицях із кроком 2. Лише після цього
+   `bun run migrate` має повідомити `database is up to date`.
 
 Перевірити clean baseline:
 
@@ -222,7 +247,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 Реалізація поділена на послідовні фази:
 
 1. **Repository foundation** — Git baseline, `.gitignore`, environment schema та verification scripts.
-2. **Domain and persistence** — quiz models, SQLite migrations і repositories.
+2. **Domain and persistence** — domain models, SQLite schema та migrations (готово); repositories — наступний етап.
 3. **Application services** — authoring, attempts, scoring і statistics.
 4. **Telegram interface** — allowlist, меню, quiz flow і results.
 5. **MCP authoring** — локальний server та tools для Claude.
@@ -264,17 +289,36 @@ Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
 
 ```text
 src/
+  domain/
+    quiz-set/       QuizSet, Question and validation model
+    quiz-attempt/   QuizAttempt and scoring model
+    review/         ReviewItem model
+    branded-id.ts
   application/
     use-case.ts    shared Command and UseCase contracts
     ports/         Clock, IdGenerator and Transaction contracts
+  adapters/
+    persistence/
+      sqlite/
+        database.ts connection lifecycle and SQLite pragmas
+        migrator.ts guarded Drizzle migration runner
+        schema.ts   Drizzle SQLite schema
   infrastructure/
     config/
       env.ts       validated startup configuration
   entrypoints/
     telegram.ts    temporary entrypoint: configuration check only
+drizzle/
+  0000_initial-schema.sql
+  meta/
+    _journal.json
+scripts/
+  migrate.ts       migration command
 tests/
   e2e/
     startup.test.ts
+  integration/
+    sqlite/        schema, migration and database integration tests
 skills/
   run-reviewed-development/
 .env.example
@@ -286,8 +330,8 @@ AGENTS.md
 CLAUDE.md
 ```
 
-Target structure не створюється наперед порожніми directories. Domain,
-application і adapter files додаватимуться поступово за правилами
+Target structure не створюється наперед порожніми directories. Repositories,
+application use cases і transport adapters додаватимуться поступово за правилами
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Безпека та приватність
