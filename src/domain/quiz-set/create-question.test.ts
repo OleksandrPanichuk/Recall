@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { createQuestion } from "./create-question";
 import {
-	createQuestion,
-	questionFingerprint,
+	Difficulty,
+	QuestionType,
 	type SingleChoiceQuestion,
 	toQuestionId,
 	toQuestionOptionId,
@@ -17,9 +18,9 @@ const option = (text: string, isCorrect: boolean, position: number) => ({
 
 const validDraft = {
 	id: toQuestionId("question-1"),
-	type: "single_choice" as const,
+	type: QuestionType.SingleChoice,
 	prompt: "  What does replication improve?  ",
-	difficulty: "medium" as const,
+	difficulty: Difficulty.Medium,
 	position: 0,
 	options: [option("Availability", true, 0), option("Index size", false, 1)],
 	explanation: "  Replication keeps copies on several nodes.  ",
@@ -76,20 +77,20 @@ describe("createQuestion", () => {
 		test("preserves the discriminant so the type narrows", () => {
 			const question = createQuestion(validDraft);
 
-			if (question.type !== "single_choice") {
+			if (question.type !== QuestionType.SingleChoice) {
 				throw new Error("expected a single choice question");
 			}
 
 			const narrowed: SingleChoiceQuestion = question;
 
-			expect(narrowed.type).toBe("single_choice");
+			expect(narrowed.type).toBe(QuestionType.SingleChoice);
 			expect(narrowed.options).toHaveLength(2);
 		});
 
 		test("accepts a multiple choice question with several correct options", () => {
 			const question = createQuestion({
 				...validDraft,
-				type: "multiple_choice",
+				type: QuestionType.MultipleChoice,
 				options: [
 					option("Availability", true, 0),
 					option("Read throughput", true, 1),
@@ -97,18 +98,18 @@ describe("createQuestion", () => {
 				],
 			});
 
-			expect(question.type).toBe("multiple_choice");
+			expect(question.type).toBe(QuestionType.MultipleChoice);
 			expect(question.options.filter((each) => each.isCorrect)).toHaveLength(2);
 		});
 
 		test("accepts a true_false question with exactly two options", () => {
 			const question = createQuestion({
 				...validDraft,
-				type: "true_false",
+				type: QuestionType.TrueFalse,
 				options: [option("True", true, 0), option("False", false, 1)],
 			});
 
-			expect(question.type).toBe("true_false");
+			expect(question.type).toBe(QuestionType.TrueFalse);
 		});
 	});
 
@@ -177,7 +178,7 @@ describe("createQuestion", () => {
 			expect(
 				issuesOf({
 					...validDraft,
-					type: "multiple_choice",
+					type: QuestionType.MultipleChoice,
 					options: [option("Availability", true, 0)],
 				}),
 			).toEqual(["multiple_choice requires at least two options"]);
@@ -187,7 +188,7 @@ describe("createQuestion", () => {
 			expect(
 				issuesOf({
 					...validDraft,
-					type: "true_false",
+					type: QuestionType.TrueFalse,
 					options: [
 						option("True", true, 0),
 						option("False", false, 1),
@@ -213,7 +214,7 @@ describe("createQuestion", () => {
 			expect(
 				issuesOf({
 					...validDraft,
-					type: "true_false",
+					type: QuestionType.TrueFalse,
 					options: [option("True", false, 0), option("False", false, 1)],
 				}),
 			).toEqual(["true_false requires exactly one correct option"]);
@@ -223,7 +224,7 @@ describe("createQuestion", () => {
 			expect(
 				issuesOf({
 					...validDraft,
-					type: "multiple_choice",
+					type: QuestionType.MultipleChoice,
 					options: [
 						option("Availability", false, 0),
 						option("Index size", false, 1),
@@ -257,59 +258,6 @@ describe("createQuestion", () => {
 			);
 			expect(() => createQuestion({ ...validDraft, prompt: " " })).toThrow(
 				"Invalid question:\n- prompt must not be empty",
-			);
-		});
-	});
-
-	describe("fingerprint", () => {
-		test("is equal for identical content", () => {
-			expect(questionFingerprint(createQuestion(validDraft))).toBe(
-				questionFingerprint(
-					createQuestion({
-						...validDraft,
-						id: toQuestionId("question-2"),
-						position: 3,
-					}),
-				),
-			);
-		});
-
-		test("is equal for reordered options", () => {
-			const reordered = createQuestion({
-				...validDraft,
-				options: [
-					option("Index size", false, 0),
-					option("Availability", true, 1),
-				],
-			});
-
-			expect(questionFingerprint(reordered)).toBe(
-				questionFingerprint(createQuestion(validDraft)),
-			);
-		});
-
-		test("differs when a correct flag changes", () => {
-			const flipped = createQuestion({
-				...validDraft,
-				options: [
-					option("Availability", false, 0),
-					option("Index size", true, 1),
-				],
-			});
-
-			expect(questionFingerprint(flipped)).not.toBe(
-				questionFingerprint(createQuestion(validDraft)),
-			);
-		});
-
-		test("differs when the prompt changes", () => {
-			const other = createQuestion({
-				...validDraft,
-				prompt: "What does sharding improve?",
-			});
-
-			expect(questionFingerprint(other)).not.toBe(
-				questionFingerprint(createQuestion(validDraft)),
 			);
 		});
 	});
