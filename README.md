@@ -71,15 +71,38 @@
 bun install
 ```
 
+Створити локальний `.env` із шаблону та заповнити значення:
+
+```bash
+cp .env.example .env
+```
+
+| Змінна | Призначення |
+| --- | --- |
+| `TELEGRAM_BOT_KEY` | Токен бота з @BotFather |
+| `ALLOWED_TELEGRAM_USER_ID` | Єдиний Telegram user id, якому дозволено доступ |
+| `DATABASE_PATH` | Шлях до локального `bun:sqlite` файлу |
+| `APP_TIMEZONE` | IANA time zone для streaks і spaced repetition |
+
+Усі чотири змінні обов'язкові. `src/infrastructure/config/env.ts` валідує їх на
+старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
+одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
+змінних і причини — значення не логуються, тому токен не потрапляє в logs.
+
 Перевірити clean baseline:
 
 ```bash
 bun run verify
 ```
 
-Runtime behavior ще не реалізовано. `src/entrypoints/telegram.ts` тимчасово
-залишається мінімальним entrypoint, щоб quality, typecheck і build scripts
-працювали до першого quiz-bot vertical slice.
+Quiz runtime behavior ще не реалізовано. `src/entrypoints/telegram.ts`
+тимчасово лише валідує конфігурацію, щоб quality, typecheck, test і build
+scripts працювали до першого quiz-bot vertical slice:
+
+```bash
+bun run dev
+# Configuration is valid. database=./data/quiz.sqlite timezone=Europe/Kyiv
+```
 
 ## Команди
 
@@ -101,11 +124,11 @@ Runtime behavior ще не реалізовано. `src/entrypoints/telegram.ts`
 Biome зафіксований як local dev dependency, тому локальна розробка та CI
 використовують однакову версію ruleset. VS Code/Cursor автоматично форматує
 TypeScript і JSON при збереженні; для інших editor-ів source of truth —
-`biome.json` та команди вище. Automated tests будуть додані разом із першою
-новою domain behavior під час repository foundation phase.
+`biome.json` та команди вище.
 
 Legacy publish-bot code і його runtime dependencies видалені. Нові dependencies
-потрібно додавати лише разом із behavior, яке їх використовує.
+потрібно додавати лише разом із behavior, яке їх використовує: `zod` доданий для
+валідації конфігурації і буде повторно використаний для MCP schema validation.
 
 ## Development roadmap
 
@@ -157,10 +180,17 @@ src/
   application/
     use-case.ts    shared Command and UseCase contracts
     ports/         Clock, IdGenerator and Transaction contracts
+  infrastructure/
+    config/
+      env.ts       validated startup configuration
   entrypoints/
-    telegram.ts   temporary toolchain entrypoint
+    telegram.ts    temporary entrypoint: configuration check only
+tests/
+  e2e/
+    startup.test.ts
 skills/
   run-reviewed-development/
+.env.example
 DESCRIPTION.md
 ARCHITECTURE.md
 DEVELOPMENT_PLAN.md
