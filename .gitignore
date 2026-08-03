@@ -45,3 +45,6 @@ tmp
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# implementation plans stay local: working artefacts, not product
+docs
