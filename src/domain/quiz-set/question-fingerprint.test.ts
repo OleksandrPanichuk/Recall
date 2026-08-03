@@ -67,6 +67,41 @@ describe("questionFingerprint", () => {
 		);
 	});
 
+	test("differs when option text contains the canonical delimiters", () => {
+		const separateOptions = createQuestion({
+			...validDraft,
+			type: QuestionType.MultipleChoice,
+			prompt: "q",
+			options: [
+				option("b", false, 0),
+				option("c", true, 1),
+				option("d", false, 2),
+			],
+		});
+		const injectedDelimiters = createQuestion({
+			...validDraft,
+			type: QuestionType.MultipleChoice,
+			prompt: "q",
+			options: [option("b:0\nc", true, 0), option("d", false, 1)],
+		});
+
+		expect(questionFingerprint(injectedDelimiters)).not.toBe(
+			questionFingerprint(separateOptions),
+		);
+	});
+
+	test("differs when only the type changes", () => {
+		const singleChoice = createQuestion(validDraft);
+		const multipleChoice = createQuestion({
+			...validDraft,
+			type: QuestionType.MultipleChoice,
+		});
+
+		expect(questionFingerprint(multipleChoice)).not.toBe(
+			questionFingerprint(singleChoice),
+		);
+	});
+
 	test("differs when the prompt changes", () => {
 		const other = createQuestion({
 			...validDraft,

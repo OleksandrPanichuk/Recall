@@ -16,12 +16,20 @@ export const QuestionType = {
 } as const;
 export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
 
+export function isQuestionType(value: unknown): value is QuestionType {
+	return (Object.values(QuestionType) as readonly unknown[]).includes(value);
+}
+
 export const Difficulty = {
 	Easy: "easy",
 	Medium: "medium",
 	Hard: "hard",
 } as const;
 export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
+
+export function isDifficulty(value: unknown): value is Difficulty {
+	return (Object.values(Difficulty) as readonly unknown[]).includes(value);
+}
 
 export interface QuestionOption {
 	readonly id: QuestionOptionId;
