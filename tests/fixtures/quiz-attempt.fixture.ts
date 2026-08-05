@@ -50,9 +50,6 @@ export function anAnswer(
 	};
 }
 
-export const questionIdsOf = (attempt: QuizAttempt): readonly string[] =>
-	attempt.questionIds.map((id): string => id);
-
 export const answeredQuestionIdsOf = (
 	attempt: QuizAttempt,
 ): readonly string[] =>

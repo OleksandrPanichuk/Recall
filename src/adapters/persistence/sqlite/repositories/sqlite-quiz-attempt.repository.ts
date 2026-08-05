@@ -47,6 +47,15 @@ const insertResponseSql = `
 	) VALUES (?, ?, ?, ?, ?)
 	ON CONFLICT (attempt_id, question_id) DO NOTHING`;
 
+// Responses are append-only, so a plan that no longer contains a question would
+// otherwise leave its answer behind: it inflates the score, and it makes the
+// attempt unreadable because the restore factory rejects responses outside the
+// plan.
+const deleteUnplannedResponsesSql = `
+	DELETE FROM question_responses
+	WHERE attempt_id = ?
+		AND question_id NOT IN (SELECT value FROM json_each(?))`;
+
 const unfinishedStatuses = [QuizAttemptStatus.Active, QuizAttemptStatus.Paused];
 
 export function createSqliteQuizAttemptRepository(
@@ -55,6 +64,10 @@ export function createSqliteQuizAttemptRepository(
 ): QuizAttemptRepository {
 	const upsertAttempt = database.query(upsertAttemptSql);
 	const insertResponse = database.query(insertResponseSql);
+	const deleteUnplannedResponses = database.query(deleteUnplannedResponsesSql);
+	const selectUpdatedAt = database.query<{ updated_at: string }, [string]>(
+		"SELECT updated_at FROM quiz_attempts WHERE id = ?",
+	);
 	const selectAttempt = database.query<QuizAttemptRow, [string]>(
 		"SELECT * FROM quiz_attempts WHERE id = ?",
 	);
@@ -66,9 +79,8 @@ export function createSqliteQuizAttemptRepository(
 		LIMIT 1`,
 	);
 	const selectResponses = database.query<QuestionResponseRow, [string]>(
-		`SELECT * FROM question_responses
-		WHERE attempt_id = ?
-		ORDER BY answered_at ASC`,
+		// Unordered on purpose: the mapper rebuilds the list in plan order.
+		"SELECT * FROM question_responses WHERE attempt_id = ?",
 	);
 	const selectCompleted = database.query<
 		AttemptStatisticsRow,
@@ -81,6 +93,9 @@ export function createSqliteQuizAttemptRepository(
 				SELECT count(*) FROM question_responses
 				WHERE question_responses.attempt_id = attempts.id
 					AND question_responses.is_correct = 1
+					AND question_responses.question_id IN (
+						SELECT value FROM json_each(attempts.question_ids)
+					)
 			) AS correct,
 			json_array_length(attempts.question_ids) AS total,
 			attempts.completed_at AS completed_at
@@ -155,7 +170,19 @@ export function createSqliteQuizAttemptRepository(
 	return {
 		save(attempt: QuizAttempt): void {
 			transaction.run(() => {
-				writeAttempt(toQuizAttemptRow(attempt));
+				const row = toQuizAttemptRow(attempt);
+				const stored = selectUpdatedAt.get(row.id);
+
+				// A writer holding an older copy of the attempt loses the race. Applying
+				// it would rewind updated_at past answers the database already holds —
+				// which are append-only and therefore stay — leaving a row the restore
+				// factory rejects, so the attempt could never be read again.
+				if (stored && stored.updated_at > row.updated_at) {
+					return;
+				}
+
+				writeAttempt(row);
+				deleteUnplannedResponses.run(row.id, row.question_ids);
 
 				for (const response of toQuestionResponseRows(attempt)) {
 					writeResponse(response);

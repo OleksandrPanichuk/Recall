@@ -23,7 +23,11 @@ export interface QuizAttemptRepository {
 	/** Upserts the attempt; recorded responses are never overwritten or doubled. */
 	save(attempt: QuizAttempt): void;
 	findById(id: QuizAttemptId): QuizAttempt | undefined;
-	/** The user's single unfinished attempt — active or paused — if one exists. */
+	/**
+	 * The user's unfinished attempt — active or paused. The MVP expects at most
+	 * one, but nothing in the schema enforces that, so the most recently updated
+	 * wins when several exist.
+	 */
 	findActiveByUser(telegramUserId: number): QuizAttempt | undefined;
 	/** Completed attempts only, oldest first, so improvement can be measured. */
 	listCompletedBySet(

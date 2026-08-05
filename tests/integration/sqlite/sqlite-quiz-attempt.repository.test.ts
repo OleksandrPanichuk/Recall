@@ -19,7 +19,11 @@ import {
 	answeredQuestionIdsOf,
 } from "../../fixtures/quiz-attempt.fixture";
 import { aQuestion, aQuizSet } from "../../fixtures/quiz-set.fixture";
-import { countRows, openMigratedDatabase } from "./migrated-database";
+import {
+	countRows,
+	insertQuestionResponse,
+	openMigratedDatabase,
+} from "./migrated-database";
 
 const at = (iso: string): Date => new Date(iso);
 
@@ -117,6 +121,36 @@ describe("SqliteQuizAttemptRepository", () => {
 			expect(countRows(database, "question_responses")).toBe(2);
 		});
 
+		test("drops responses for questions the plan no longer contains", () => {
+			repository.save(answeredTwice());
+
+			const narrowed = recordResponse(
+				anAttempt({ questionIds: ["question-3"] }),
+				anAnswer("question-3", true, thirdAnswerAt),
+			);
+			repository.save(narrowed);
+
+			expect(repository.findById(narrowed.id)).toEqual(narrowed);
+			expect(countRows(database, "question_responses")).toBe(1);
+		});
+
+		test("ignores a stale write that would move the attempt backwards", () => {
+			const attempt = answeredTwice();
+			repository.save(attempt);
+
+			repository.save(
+				pauseQuizAttempt(
+					recordResponse(
+						threeQuestionAttempt(),
+						anAnswer("question-1", true, firstAnswerAt),
+					),
+					at("2026-08-01T10:05:30.000Z"),
+				),
+			);
+
+			expect(repository.findById(attempt.id)).toEqual(attempt);
+		});
+
 		test("saving an attempt again records the answer it gained", () => {
 			const attempt = answeredTwice();
 			repository.save(attempt);
@@ -212,14 +246,43 @@ describe("SqliteQuizAttemptRepository", () => {
 				[],
 			);
 		});
+
+		test("ignores another user's completed attempts", () => {
+			repository.save(completeQuizAttempt(answeredTwice(), thirdAnswerAt));
+
+			expect(repository.listCompletedBySet(7, toQuizSetId("set-1"))).toEqual(
+				[],
+			);
+		});
+
+		test("scores only the questions the plan contains", () => {
+			repository.save(
+				completeQuizAttempt(
+					recordResponse(
+						anAttempt({ questionIds: ["question-1"] }),
+						anAnswer("question-1", true, firstAnswerAt),
+					),
+					secondAnswerAt,
+				),
+			);
+			insertQuestionResponse(database, {
+				attemptId: "attempt-1",
+				questionId: "question-2",
+				isCorrect: 1,
+			});
+
+			const [statistics] = repository.listCompletedBySet(
+				42,
+				toQuizSetId("set-1"),
+			);
+
+			expect([statistics?.correct, statistics?.total]).toEqual([1, 1]);
+		});
 	});
 
 	describe("topicAccuracy", () => {
 		test("groups by topic and reports an absent topic once", () => {
-			database.close();
-			database = openMigratedDatabase();
 			seedQuizSet({ "question-1": "Alpha", "question-2": "Alpha" });
-			repository = newRepository();
 
 			repository.save(
 				recordResponse(

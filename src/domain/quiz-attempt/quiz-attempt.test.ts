@@ -886,6 +886,13 @@ describe("QuizAttempt", () => {
 			expect(restoreIssues(snapshot({ updatedAt: invalidDate }))).toContain(
 				"updatedAt must be a valid date",
 			);
+			expect(
+				restoreIssues(
+					snapshot({
+						responses: [answer(firstQuestionId, true, invalidDate)],
+					}),
+				),
+			).toContain("answeredAt must be a valid date");
 		});
 
 		test("rejects a completed attempt without a completion timestamp", () => {
