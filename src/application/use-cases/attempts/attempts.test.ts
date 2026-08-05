@@ -195,6 +195,22 @@ describe("StartQuizAttempt", () => {
 		).rejects.toThrow(QuizSetNotFoundError);
 	});
 
+	// Being blocked must never be a dead end: an attempt on a set that was
+	// archived mid-session can still be finished, which frees the user up.
+	test("finishing releases the block, even when its set was archived", async () => {
+		const first = await seedPublishedSet();
+		const second = await seedPublishedSet(["Three"]);
+		await start.execute({ quizSetId: first, telegramUserId: USER });
+		await archive.execute({ quizSetId: first });
+		context.clock.advance(60_000);
+
+		await finish.execute({ telegramUserId: USER });
+
+		await expect(
+			start.execute({ quizSetId: second, telegramUserId: USER }),
+		).resolves.toMatchObject({ resumed: false });
+	});
+
 	test("keeps attempts separate per user", async () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });
@@ -324,6 +340,9 @@ describe("AnswerQuestion", () => {
 
 		expect(replay.alreadyAnswered).toBe(true);
 		expect(replay.score).toEqual({ correct: 1, total: 2, percentage: 50 });
+		expect(String(replay.nextQuestionId)).toBe(
+			String(questionIdOf(quizSetId, 1)),
+		);
 		expect(countRows(context.database, "question_responses")).toBe(1);
 	});
 
