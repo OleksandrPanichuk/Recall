@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** Phases 1-3 виконані: domain models, SQLite persistence, application use cases і робочий Telegram-бот. MCP server (створення наборів через Claude) ще очікує реалізації, тому набори поки додаються програмно.
+> **Статус:** MVP Alpha готовий. Phases 1-4 виконані: domain models, SQLite persistence, application use cases, робочий Telegram-бот і локальний MCP server, через який Claude створює та публікує набори.
 
 ## Як має працювати продукт
 
@@ -260,7 +260,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 2. **Domain and persistence** — domain models, SQLite schema, migrations та repositories (готово).
 3. **Application services** — authoring, attempts, scoring і statistics (готово).
 4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
-5. **MCP authoring** — локальний server та tools для Claude.
+5. **MCP authoring** — локальний server та tools для Claude (готово).
 6. **Adaptive practice** — mistakes queue, weak topics і spaced repetition.
 7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment.
 
@@ -330,10 +330,15 @@ src/
       handlers/    thin handlers, one use case each
       presenters/  screen text and inline keyboards
       callbacks/   callback payload encoding
+    mcp/
+      server.ts    MCP tool registration
+      schemas/     zod input schemas
+      presenters/  tool result and error text
   composition/
     create-application.ts  manual dependency injection root
   entrypoints/
     telegram.ts    starts the bot; --check validates configuration and exits
+    mcp.ts         stdio MCP server for Claude
 drizzle/
   0000_initial-schema.sql
   meta/
@@ -360,6 +365,50 @@ CLAUDE.md
 Target structure не створюється наперед порожніми directories. Application use
 cases і transport adapters додаватимуться поступово за правилами
 [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Створення наборів через Claude (MCP)
+
+MCP server працює локально через stdio і використовує ті самі application
+services, що й бот, тому Claude ніколи не торкається SQL напряму.
+
+Запуск вручну:
+
+```bash
+bun run mcp
+```
+
+Підключення до Claude Code:
+
+```bash
+claude mcp add recall-quiz --scope user \
+  --env TELEGRAM_BOT_KEY=... \
+  --env ALLOWED_TELEGRAM_USER_ID=... \
+  --env DATABASE_PATH=/absolute/path/to/quiz.sqlite \
+  --env APP_TIMEZONE=Europe/Kyiv \
+  -- bun run /absolute/path/to/repo/src/entrypoints/mcp.ts
+```
+
+Для Claude Desktop додайте той самий command у `claude_desktop_config.json`
+(`mcpServers.recall-quiz`) з абсолютними шляхами та тими ж чотирма змінними.
+
+Доступні tools:
+
+| Tool | Призначення |
+| --- | --- |
+| `quiz_create_set` | створити draft і отримати його id |
+| `quiz_add_questions` | додати batch питань атомарно; повторний ідентичний batch — no-op |
+| `quiz_update_set` | змінити metadata draft-набору |
+| `quiz_get_set` | перечитати набір із позначеними правильними варіантами |
+| `quiz_list_sets` | список наборів (`includeUnpublished` показує drafts) |
+| `quiz_publish_set` | опублікувати набір для проходження в Telegram |
+| `quiz_archive_set` | архівувати набір, зберігши історію спроб |
+
+Типовий сценарій: `quiz_create_set` → кілька `quiz_add_questions` → `quiz_get_set`
+для перевірки → `quiz_publish_set`. Після цього набір з'являється в Telegram-меню.
+
+> Назви tools використовують `_`, а не `.` як у `DEVELOPMENT_PLAN.md`: MCP-клієнти
+> дозволяють у назві лише `[A-Za-z0-9_-]`.
+
 
 ## Безпека та приватність
 

@@ -18,6 +18,7 @@ import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-at
 import { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
 import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
+import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
@@ -50,6 +51,7 @@ export interface Application {
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly listQuizSets: ListQuizSets;
+	readonly getQuizSet: GetQuizSet;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly pauseQuizAttempt: PauseQuizAttempt;
 	readonly resumeQuizAttempt: ResumeQuizAttempt;
@@ -89,6 +91,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		publishQuizSet: new PublishQuizSet(dependencies),
 		archiveQuizSet: new ArchiveQuizSet(dependencies),
 		listQuizSets: new ListQuizSets(dependencies),
+		getQuizSet: new GetQuizSet(dependencies),
 		startQuizAttempt: new StartQuizAttempt(dependencies),
 		pauseQuizAttempt: new PauseQuizAttempt(dependencies),
 		resumeQuizAttempt: new ResumeQuizAttempt(dependencies),
