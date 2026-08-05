@@ -9,9 +9,11 @@ import {
 	toReviewItemRow,
 } from "./review-item.mapper";
 
-// The unique index on (telegram_user_id, question_id) is the aggregate's real
-// identity: answering the same question wrong again updates the queued item
-// instead of adding another one. The row keeps the id it was first stored with.
+// The unique index on (telegram_user_id, question_id) is the queue entry's real
+// identity: answering the same question wrong again updates the entry instead of
+// adding another one. Only the review state is updated — id and created_at
+// belong to the entry, not to the snapshot being written, so they keep recording
+// which entry this is and when the question first entered the queue.
 const upsertReviewItemSql = `
 	INSERT INTO review_items (
 		id, question_id, telegram_user_id, state, streak,
@@ -21,7 +23,6 @@ const upsertReviewItemSql = `
 		state = excluded.state,
 		streak = excluded.streak,
 		due_at = excluded.due_at,
-		created_at = excluded.created_at,
 		last_reviewed_at = excluded.last_reviewed_at`;
 
 export function createSqliteReviewRepository(
@@ -29,6 +30,13 @@ export function createSqliteReviewRepository(
 	transaction: Transaction,
 ): ReviewRepository {
 	const upsertReviewItem = database.query(upsertReviewItemSql);
+	const selectLastReviewedAt = database.query<
+		{ last_reviewed_at: string | null },
+		[number, string]
+	>(
+		`SELECT last_reviewed_at FROM review_items
+		WHERE telegram_user_id = ? AND question_id = ?`,
+	);
 	const selectByQuestion = database.query<ReviewItemRow, [number, string]>(
 		"SELECT * FROM review_items WHERE telegram_user_id = ? AND question_id = ?",
 	);
@@ -53,6 +61,23 @@ export function createSqliteReviewRepository(
 			const row = toReviewItemRow(item);
 
 			transaction.run(() => {
+				const stored = selectLastReviewedAt.get(
+					row.telegram_user_id,
+					row.question_id,
+				);
+
+				// lastReviewedAt is the entry's clock: the transitions refuse to review
+				// an item before it. A writer holding an older snapshot would otherwise
+				// silently erase a streak the user earned, or put a retired question
+				// back into rotation.
+				if (
+					stored?.last_reviewed_at != null &&
+					(row.last_reviewed_at === null ||
+						row.last_reviewed_at < stored.last_reviewed_at)
+				) {
+					return;
+				}
+
 				upsertReviewItem.run(
 					row.id,
 					row.question_id,

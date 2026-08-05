@@ -105,12 +105,47 @@ describe("SqliteReviewRepository", () => {
 			expect(stored?.streak).toBe(1);
 		});
 
-		test("a second item for the same question never creates a duplicate", () => {
+		test("a fresh item for a queued question keeps the stored identity", () => {
 			repository.save(aReviewItem());
 
-			repository.save(aReviewItem({ id: "review-duplicate" }));
+			repository.save(
+				aReviewItem({
+					id: "review-duplicate",
+					createdAt: at("2026-08-09T00:00:00.000Z"),
+					dueAt: at("2026-08-09T00:00:00.000Z"),
+				}),
+			);
+
+			const stored = repository.findByQuestion(42, toQuestionId("question-1"));
 
 			expect(countRows(database, "review_items")).toBe(1);
+			expect(String(stored?.id)).toBe("review-question-1");
+			expect(stored?.createdAt).toEqual(at("2026-08-01T00:00:00.000Z"));
+			expect(stored?.dueAt).toEqual(at("2026-08-09T00:00:00.000Z"));
+		});
+
+		test("ignores a stale write that would undo recorded progress", () => {
+			const item = aReviewItem();
+			repository.save(item);
+			const advanced = markReviewPassed(
+				item,
+				reviewedAt,
+				at("2026-09-01T00:00:00.000Z"),
+			);
+			repository.save(advanced);
+
+			repository.save(item);
+
+			expect(repository.findByQuestion(42, toQuestionId("question-1"))).toEqual(
+				advanced,
+			);
+		});
+
+		test("rejects an item for a question that does not exist", () => {
+			expect(() => {
+				repository.save(aReviewItem({ questionId: "question-99" }));
+			}).toThrow();
+			expect(countRows(database, "review_items")).toBe(0);
 		});
 
 		test("returns undefined for a question with no review item", () => {
@@ -158,10 +193,31 @@ describe("SqliteReviewRepository", () => {
 			).toEqual(["question-1", "question-2"]);
 		});
 
-		test("honours the limit", () => {
+		test("honours the limit by taking the soonest due", () => {
 			seedThree();
 
-			expect(repository.listDue(42, now, 1)).toHaveLength(1);
+			expect(
+				repository.listDue(42, now, 1).map((item) => String(item.questionId)),
+			).toEqual(["question-1"]);
+		});
+
+		test("includes an item due exactly now", () => {
+			repository.save(aReviewItem({ dueAt: now }));
+
+			expect(repository.listDue(42, now, 10)).toHaveLength(1);
+		});
+
+		test("breaks ties on due date by id", () => {
+			repository.save(
+				aReviewItem({ id: "review-b", questionId: "question-2", dueAt: now }),
+			);
+			repository.save(
+				aReviewItem({ id: "review-a", questionId: "question-1", dueAt: now }),
+			);
+
+			expect(
+				repository.listDue(42, now, 10).map((item) => String(item.id)),
+			).toEqual(["review-a", "review-b"]);
 		});
 
 		test("excludes retired items", () => {

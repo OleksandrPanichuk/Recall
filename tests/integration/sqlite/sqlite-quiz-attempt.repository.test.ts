@@ -163,6 +163,35 @@ describe("SqliteQuizAttemptRepository", () => {
 		});
 	});
 
+	describe("constraints", () => {
+		test("rejects an attempt for a quiz set that does not exist", () => {
+			expect(() => {
+				repository.save(anAttempt({ quizSetId: "set-99" }));
+			}).toThrow();
+			expect(countRows(database, "quiz_attempts")).toBe(0);
+		});
+
+		test("a failed response write rolls the whole save back", () => {
+			const attempt = answeredTwice();
+			repository.save(attempt);
+
+			const unknownQuestion = recordResponse(
+				anAttempt({ questionIds: ["question-1", "question-99"] }),
+				anAnswer("question-1", true, firstAnswerAt),
+			);
+
+			expect(() => {
+				repository.save(
+					recordResponse(
+						unknownQuestion,
+						anAnswer("question-99", true, secondAnswerAt),
+					),
+				);
+			}).toThrow();
+			expect(repository.findById(attempt.id)).toEqual(attempt);
+		});
+	});
+
 	describe("findActiveByUser", () => {
 		test("finds an active attempt", () => {
 			const attempt = answeredTwice();
