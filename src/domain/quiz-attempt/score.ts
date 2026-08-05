@@ -7,6 +7,11 @@ export interface Score {
 	readonly percentage: number;
 }
 
+/** The single rounding rule for every percentage the app reports. */
+export function percentageOf(correct: number, total: number): number {
+	return total === 0 ? 0 : Math.round((correct / total) * 1000) / 10;
+}
+
 export function calculateScore(
 	responses: readonly QuestionResponse[],
 	total: number,
@@ -25,13 +30,9 @@ export function calculateScore(
 
 	const correct = responses.filter((response) => response.isCorrect).length;
 
-	if (total === 0) {
-		return Object.freeze({ correct: 0, total: 0, percentage: 0 });
-	}
-
 	return Object.freeze({
-		correct,
+		correct: total === 0 ? 0 : correct,
 		total,
-		percentage: Math.round((correct / total) * 1000) / 10,
+		percentage: percentageOf(correct, total),
 	});
 }
