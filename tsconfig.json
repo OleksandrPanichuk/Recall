@@ -21,7 +21,8 @@
 		"noImplicitOverride": true,
 
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@tests/*": ["./tests/*"]
 		}
 	}
 }
