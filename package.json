@@ -9,7 +9,7 @@
 	},
 	"private": true,
 	"scripts": {
-		"build": "bun build ./src/entrypoints/telegram.ts --outdir ./dist --target bun",
+		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts --outdir ./dist --target bun",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"db:generate": "drizzle-kit generate",
@@ -22,10 +22,12 @@
 		"start": "bun run ./dist/telegram.js",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
-		"verify": "bun run check && bun run typecheck && bun test && bun run build"
+		"verify": "bun run check && bun run typecheck && bun test && bun run build",
+		"mcp": "bun run ./src/entrypoints/mcp.ts"
 	},
 	"type": "module",
 	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.30.0",
 		"drizzle-orm": "^0.45.2",
 		"telegraf": "^4.16.3",
 		"zod": "^4.4.3"
