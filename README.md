@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** MVP Beta. Phases 1-5 виконані: domain models, SQLite persistence, application use cases, Telegram-бот, MCP server і adaptive practice (повторення помилок, слабкі теми, spaced repetition).
+> **Статус:** Stable Personal Release. Phases 1-6 виконані: domain models, SQLite persistence, application use cases, Telegram-бот, MCP server, adaptive practice і operations (graceful shutdown, privacy-safe logs, backup/restore, health command).
 
 ## Як має працювати продукт
 
@@ -262,7 +262,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
 5. **MCP authoring** — локальний server та tools для Claude (готово).
 6. **Adaptive practice** — mistakes queue, weak topics і spaced repetition (готово).
-7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment.
+7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment (готово).
 
 Детальні work packages та gates описані в [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
 
@@ -323,6 +323,12 @@ src/
   infrastructure/
     config/
       env.ts       validated startup configuration
+    logging/
+      logger.ts    structured, privacy-safe JSON logs on stderr
+    lifecycle/
+      shutdown.ts  ordered teardown on SIGINT/SIGTERM
+      backup.ts    consistent backup and restore validation
+      status.ts    health report
   adapters/
     telegram/
       bot.ts       Telegraf wiring and callback routing
@@ -425,6 +431,46 @@ due на **початку дня** у вашому `APP_TIMEZONE`, а не че�
 
 `Слабкі теми` формує сесію з теми з найнижчою точністю (мінімум 3 відповіді).
 Сесія прив'язана до одного набору — того, який дає найбільше кандидатів.
+
+## Експлуатація
+
+| Команда | Призначення |
+| --- | --- |
+| `bun run dev` | запустити бота локально з hot reload |
+| `bun run start` | запустити зібраного бота |
+| `bun run status` | health-звіт: скільки наборів, спроб, питань у черзі |
+| `bun run <entrypoint> --check` | перевірити конфігурацію і вийти (не відкриває database) |
+| `bun run backup [файл]` | консистентний backup через `VACUUM INTO` |
+| `bun run restore <файл>` | відновити з backup |
+
+### Backup
+
+`bun run backup` використовує `VACUUM INTO` — власний механізм SQLite для
+консистентної копії працюючої database. Результат — один файл без `-wal`
+сайдкара. **Не копіюйте `quiz.sqlite` вручну:** найновіші writes можуть ще
+лежати у WAL.
+
+```bash
+bun run backup                       # quiz.sqlite.2026-08-05T....backup.sqlite
+bun run backup ~/backups/quiz.sqlite # або явний шлях
+```
+
+`bun run restore <файл>` спершу перевіряє, що файл — справжній Recall backup
+(усі таблиці + migration ledger), і лише потім замінює database. Поточний файл
+не перезаписується, а відсувається вбік із timestamp.
+
+### Graceful shutdown
+
+На `SIGINT`/`SIGTERM` бот спершу зупиняє polling і лише потім закриває database
+— інакше сигнал під час відповіді закрив би handle посеред транзакції. Повторний
+сигнал не запускає другий teardown, а помилка в одному кроці не блокує решту.
+
+### Logs
+
+Structured JSON, один рядок на запис, у **stderr** (stdout зайнятий MCP
+протоколом). Поля з іменами, схожими на credentials, редагуються; довгі рядки
+обрізаються, тому тексти книг і питань не потрапляють у logs; raw Telegram
+updates не логуються взагалі. `--debug` вмикає debug-рівень.
 
 ## Безпека та приватність
 

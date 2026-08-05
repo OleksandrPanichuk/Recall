@@ -6,6 +6,8 @@ import {
 	EnvironmentError,
 	loadEnvironment,
 } from "@/infrastructure/config/env";
+import { createShutdown } from "@/infrastructure/lifecycle/shutdown";
+import { createLogger } from "@/infrastructure/logging/logger";
 
 async function main(): Promise<void> {
 	let environment: Environment;
@@ -27,14 +29,17 @@ async function main(): Promise<void> {
 		timezone: environment.appTimezone,
 	});
 	const server = createMcpServer(application);
+	// stdout carries the protocol, so every log line goes to stderr.
+	const shutdown = createShutdown({ logger: createLogger() });
 
-	const stop = (): void => {
-		void server.close();
-		application.close();
-	};
-
-	process.once("SIGINT", stop);
-	process.once("SIGTERM", stop);
+	shutdown.register({
+		name: "database",
+		run: () => {
+			application.close();
+		},
+	});
+	shutdown.register({ name: "mcp", run: () => server.close() });
+	shutdown.listen();
 
 	await server.connect(new StdioServerTransport());
 }
