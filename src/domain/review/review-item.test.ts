@@ -12,6 +12,7 @@ import {
 	RETIREMENT_STREAK,
 	type ReviewItem,
 	ReviewItemState,
+	restoreReviewItem,
 	toReviewItemId,
 } from "./review-item";
 
@@ -454,6 +455,178 @@ describe("ReviewItem", () => {
 			expect(mark(pendingItem(), reviewedAt, nextDueAt).createdAt).toEqual(
 				createdAt,
 			);
+		});
+	});
+
+	describe("restoreReviewItem", () => {
+		type ReviewItemSnapshot = Parameters<typeof restoreReviewItem>[0];
+
+		const snapshotOf = (item: ReviewItem): ReviewItemSnapshot => ({
+			id: item.id,
+			questionId: item.questionId,
+			telegramUserId: item.telegramUserId,
+			state: item.state,
+			streak: item.streak,
+			dueAt: item.dueAt,
+			createdAt: item.createdAt,
+			lastReviewedAt: item.lastReviewedAt,
+		});
+
+		const snapshot = (
+			overrides: Partial<ReviewItemSnapshot> = {},
+		): ReviewItemSnapshot => ({
+			...snapshotOf(pendingItem()),
+			...overrides,
+		});
+
+		const restoreIssues = (
+			candidate: ReviewItemSnapshot,
+		): readonly string[] => {
+			try {
+				restoreReviewItem(candidate);
+			} catch (caught) {
+				expect(caught).toBeInstanceOf(ReviewItemValidationError);
+
+				return (caught as ReviewItemValidationError).issues;
+			}
+
+			throw new Error("expected restoreReviewItem to throw");
+		};
+
+		const learningItem = (): ReviewItem =>
+			markReviewPassed(pendingItem(), reviewedAt, nextDueAt);
+
+		const retiredItem = (): ReviewItem => {
+			let item = pendingItem();
+
+			for (let pass = 0; pass < RETIREMENT_STREAK; pass += 1) {
+				item = markReviewPassed(item, reviewedAt, nextDueAt);
+			}
+
+			return item;
+		};
+
+		test.each([
+			["pending", pendingItem],
+			["learning", learningItem],
+			["retired", retiredItem],
+		])("restores a %s item the transitions produce", (_name, build) => {
+			const expected = build();
+
+			expect(restoreReviewItem(snapshotOf(expected))).toEqual(expected);
+		});
+
+		test("copies dates and freezes the restored item", () => {
+			const source = snapshot();
+			const restored = restoreReviewItem(source);
+
+			source.createdAt.setFullYear(1999);
+
+			expect(restored.createdAt).toEqual(createdAt);
+			expect(Object.isFrozen(restored)).toBe(true);
+		});
+
+		test("rejects an unsupported state", () => {
+			expect(
+				restoreIssues(snapshot({ state: "archived" as ReviewItemState })),
+			).toContain("state must be a supported review item state");
+		});
+
+		test.each([-1, 1.5, Number.NaN])("rejects the streak %p", (streak) => {
+			expect(restoreIssues(snapshot({ streak }))).toContain(
+				"streak must be a non-negative integer",
+			);
+		});
+
+		test("rejects a streak above the retirement threshold", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						state: ReviewItemState.Retired,
+						streak: RETIREMENT_STREAK + 1,
+						lastReviewedAt: reviewedAt,
+					}),
+				),
+			).toContain(`streak must not exceed ${RETIREMENT_STREAK}`);
+		});
+
+		test("rejects a retired item that never earned retirement", () => {
+			expect(
+				restoreIssues(snapshot({ state: ReviewItemState.Retired, streak: 0 })),
+			).toContain(`a retired item must have a streak of ${RETIREMENT_STREAK}`);
+		});
+
+		test("rejects a non-retired item that reached the threshold", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						state: ReviewItemState.Learning,
+						streak: RETIREMENT_STREAK,
+						lastReviewedAt: reviewedAt,
+					}),
+				),
+			).toContain(
+				`only a retired item may have a streak of ${RETIREMENT_STREAK}`,
+			);
+		});
+
+		test("rejects a pending item with a streak", () => {
+			expect(
+				restoreIssues(snapshot({ streak: 1, lastReviewedAt: reviewedAt })),
+			).toContain("a pending item must have a streak of 0");
+		});
+
+		test("rejects a learning item without a streak", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						state: ReviewItemState.Learning,
+						streak: 0,
+						lastReviewedAt: reviewedAt,
+					}),
+				),
+			).toContain("a learning item must have a streak of at least 1");
+		});
+
+		test("rejects a non-positive telegram user id", () => {
+			expect(restoreIssues(snapshot({ telegramUserId: 0 }))).toContain(
+				"telegramUserId must be a positive integer",
+			);
+		});
+
+		test("rejects invalid dates", () => {
+			expect(restoreIssues(snapshot({ createdAt: invalidDate }))).toContain(
+				"createdAt must be a valid date",
+			);
+			expect(restoreIssues(snapshot({ dueAt: invalidDate }))).toContain(
+				"dueAt must be a valid date",
+			);
+			expect(
+				restoreIssues(snapshot({ lastReviewedAt: invalidDate })),
+			).toContain("lastReviewedAt must be a valid date");
+		});
+
+		test("rejects a dueAt that precedes createdAt", () => {
+			expect(restoreIssues(snapshot({ dueAt: earlierAt }))).toContain(
+				"dueAt must not precede createdAt",
+			);
+		});
+
+		// A lastReviewedAt before createdAt makes the two monotonicity checks in
+		// assertReviewDates contradict each other, so the item would reject every
+		// later review.
+		test("rejects a lastReviewedAt that precedes createdAt", () => {
+			expect(restoreIssues(snapshot({ lastReviewedAt: earlierAt }))).toContain(
+				"lastReviewedAt must not precede createdAt",
+			);
+		});
+
+		test("accepts a reviewable restored item", () => {
+			const restored = restoreReviewItem(snapshotOf(learningItem()));
+
+			expect(
+				markReviewPassed(restored, laterReviewedAt, laterDueAt).streak,
+			).toBe(2);
 		});
 	});
 });
