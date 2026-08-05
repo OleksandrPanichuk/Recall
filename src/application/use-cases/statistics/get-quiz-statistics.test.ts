@@ -84,7 +84,7 @@ async function playAttempt(
 		await answer.execute({
 			telegramUserId,
 			questionId: question.id,
-			selectedOptionIds: [option?.id as never],
+			selectedOptionPositions: [option?.position ?? 0],
 		});
 	}
 

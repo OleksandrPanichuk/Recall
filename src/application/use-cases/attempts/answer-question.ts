@@ -12,7 +12,10 @@ import {
 	recordResponse,
 	QuizAttemptStatus as Status,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { QuestionNotInAttemptError } from "@/domain/quiz-attempt/quiz-attempt.errors";
+import {
+	QuestionNotInAttemptError,
+	QuizAttemptValidationError,
+} from "@/domain/quiz-attempt/quiz-attempt.errors";
 import type { Score } from "@/domain/quiz-attempt/score";
 import type {
 	Question,
@@ -31,7 +34,13 @@ export class AttemptNotActiveError extends Error {
 export interface AnswerQuestionCommand {
 	readonly telegramUserId: number;
 	readonly questionId: QuestionId;
-	readonly selectedOptionIds: readonly QuestionOptionId[];
+	/**
+	 * Option positions rather than ids. The adapter renders positions into its
+	 * callback payloads, and resolving them here — against the question this use
+	 * case already loads — means a stale payload can never be mapped against the
+	 * wrong question's options.
+	 */
+	readonly selectedOptionPositions: readonly number[];
 }
 
 export interface AnswerQuestionResult {
@@ -41,6 +50,8 @@ export interface AnswerQuestionResult {
 	readonly correctOptionIds: readonly QuestionOptionId[];
 	readonly nextQuestionId?: QuestionId;
 	readonly score: Score;
+	/** The question just answered, so a presenter can name the options. */
+	readonly question: Question;
 }
 
 export interface AnswerQuestionDependencies {
@@ -101,10 +112,14 @@ export class AnswerQuestion
 				return this.resultOf(attempt, recorded.isCorrect, true, question);
 			}
 
-			const isCorrect = evaluateAnswer(question, request.selectedOptionIds);
+			const selectedOptionIds = selectedIdsOf(
+				question,
+				request.selectedOptionPositions,
+			);
+			const isCorrect = evaluateAnswer(question, selectedOptionIds);
 			const answered = recordResponse(attempt, {
 				questionId: request.questionId,
-				selectedOptionIds: request.selectedOptionIds,
+				selectedOptionIds,
 				isCorrect,
 				answeredAt: at,
 			});
@@ -126,8 +141,28 @@ export class AnswerQuestion
 			alreadyAnswered,
 			explanation: question.explanation,
 			correctOptionIds: correctOptionIds(question),
+			question,
 			nextQuestionId: currentQuestionId(attempt),
 			score: attemptScore(attempt),
 		};
 	}
+}
+
+function selectedIdsOf(
+	question: Question,
+	positions: readonly number[],
+): readonly QuestionOptionId[] {
+	return positions.map((position) => {
+		const option = question.options.find(
+			(candidate) => candidate.position === position,
+		);
+
+		if (option === undefined) {
+			throw new QuizAttemptValidationError([
+				"selectedOptionIds must belong to the question",
+			]);
+		}
+
+		return option.id;
+	});
 }

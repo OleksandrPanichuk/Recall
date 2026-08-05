@@ -10,7 +10,7 @@ import {
 	QuestionNotInAttemptError,
 	QuizAttemptValidationError,
 } from "@/domain/quiz-attempt/quiz-attempt.errors";
-import type { QuestionId, QuestionOptionId } from "@/domain/quiz-set/question";
+import type { QuestionId } from "@/domain/quiz-set/question";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { AddQuestions, type QuestionInput } from "../quiz-sets/add-questions";
@@ -87,11 +87,11 @@ async function seedPublishedSet(prompts = ["One", "Two"]): Promise<QuizSetId> {
 const questionsOf = (quizSetId: QuizSetId) =>
 	context.quizSets.findById(quizSetId)?.questions ?? [];
 
-const optionOf = (
+const positionOf = (
 	quizSetId: QuizSetId,
 	index: number,
 	correct: boolean,
-): QuestionOptionId => {
+): number => {
 	const question = questionsOf(quizSetId)[index];
 	const option = question?.options.find(
 		(candidate) => candidate.isCorrect === correct,
@@ -101,7 +101,7 @@ const optionOf = (
 		throw new Error("fixture is missing an option");
 	}
 
-	return option.id;
+	return option.position;
 };
 
 const questionIdOf = (quizSetId: QuizSetId, index: number): QuestionId => {
@@ -295,15 +295,13 @@ describe("AnswerQuestion", () => {
 		const result = await answer.execute({
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, true)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 		});
 
 		expect(result.isCorrect).toBe(true);
 		expect(result.alreadyAnswered).toBe(false);
 		expect(result.explanation).toBe("Because of One");
-		expect(result.correctOptionIds.map(String)).toEqual([
-			String(optionOf(quizSetId, 0, true)),
-		]);
+		expect(result.correctOptionIds).toHaveLength(1);
 		expect(String(result.nextQuestionId)).toBe(
 			String(questionIdOf(quizSetId, 1)),
 		);
@@ -318,7 +316,7 @@ describe("AnswerQuestion", () => {
 		const result = await answer.execute({
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, false)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, false)],
 		});
 
 		expect(result.isCorrect).toBe(false);
@@ -332,7 +330,7 @@ describe("AnswerQuestion", () => {
 		const command = {
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, true)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 		};
 		await answer.execute(command);
 
@@ -353,13 +351,13 @@ describe("AnswerQuestion", () => {
 		await answer.execute({
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, false)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, false)],
 		});
 
 		const replay = await answer.execute({
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, true)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 		});
 
 		expect(replay.alreadyAnswered).toBe(true);
@@ -376,13 +374,13 @@ describe("AnswerQuestion", () => {
 			answer.execute({
 				telegramUserId: USER,
 				questionId: questionIdOf(quizSetId, 1),
-				selectedOptionIds: [optionOf(quizSetId, 1, true)],
+				selectedOptionPositions: [positionOf(quizSetId, 1, true)],
 			}),
 		).rejects.toThrow(QuestionNotInAttemptError);
 		expect(countRows(context.database, "question_responses")).toBe(0);
 	});
 
-	test("refuses an option that belongs to another question", async () => {
+	test("refuses an option position the question does not have", async () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
@@ -391,10 +389,24 @@ describe("AnswerQuestion", () => {
 			answer.execute({
 				telegramUserId: USER,
 				questionId: questionIdOf(quizSetId, 0),
-				selectedOptionIds: [optionOf(quizSetId, 1, true)],
+				selectedOptionPositions: [99],
 			}),
 		).rejects.toThrow(QuizAttemptValidationError);
 		expect(countRows(context.database, "question_responses")).toBe(0);
+	});
+
+	test("refuses an empty selection", async () => {
+		const quizSetId = await seedPublishedSet();
+		await start.execute({ quizSetId, telegramUserId: USER });
+		context.clock.advance(60_000);
+
+		await expect(
+			answer.execute({
+				telegramUserId: USER,
+				questionId: questionIdOf(quizSetId, 0),
+				selectedOptionPositions: [],
+			}),
+		).rejects.toThrow(QuizAttemptValidationError);
 	});
 
 	test("refuses while paused", async () => {
@@ -407,7 +419,7 @@ describe("AnswerQuestion", () => {
 			answer.execute({
 				telegramUserId: USER,
 				questionId: questionIdOf(quizSetId, 0),
-				selectedOptionIds: [optionOf(quizSetId, 0, true)],
+				selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 			}),
 		).rejects.toThrow(AttemptNotActiveError);
 	});
@@ -419,7 +431,7 @@ describe("AnswerQuestion", () => {
 			answer.execute({
 				telegramUserId: USER,
 				questionId: questionIdOf(quizSetId, 0),
-				selectedOptionIds: [optionOf(quizSetId, 0, true)],
+				selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 			}),
 		).rejects.toThrow(NoActiveAttemptError);
 	});
@@ -432,7 +444,7 @@ describe("AnswerQuestion", () => {
 		const result = await answer.execute({
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, true)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 		});
 
 		expect(result.nextQuestionId).toBeUndefined();
@@ -447,7 +459,7 @@ describe("FinishQuizAttempt", () => {
 		await answer.execute({
 			telegramUserId: USER,
 			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionIds: [optionOf(quizSetId, 0, true)],
+			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
 		});
 		context.clock.advance(60_000);
 

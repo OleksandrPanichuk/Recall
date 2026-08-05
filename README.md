@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** Phases 1 і 2 виконані: quiz domain models, Drizzle SQLite schema, migrator, repositories та application use cases. Telegram polling і MCP server ще очікують реалізації.
+> **Статус:** Phases 1-3 виконані: domain models, SQLite persistence, application use cases і робочий Telegram-бот. MCP server (створення наборів через Claude) ще очікує реалізації, тому набори поки додаються програмно.
 
 ## Як має працювати продукт
 
@@ -259,7 +259,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 1. **Repository foundation** — Git baseline, `.gitignore`, environment schema та verification scripts.
 2. **Domain and persistence** — domain models, SQLite schema, migrations та repositories (готово).
 3. **Application services** — authoring, attempts, scoring і statistics (готово).
-4. **Telegram interface** — allowlist, меню, quiz flow і results.
+4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
 5. **MCP authoring** — локальний server та tools для Claude.
 6. **Adaptive practice** — mistakes queue, weak topics і spaced repetition.
 7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment.
@@ -323,8 +323,17 @@ src/
   infrastructure/
     config/
       env.ts       validated startup configuration
+  adapters/
+    telegram/
+      bot.ts       Telegraf wiring and callback routing
+      middleware/  allowlist and error mapping
+      handlers/    thin handlers, one use case each
+      presenters/  screen text and inline keyboards
+      callbacks/   callback payload encoding
+  composition/
+    create-application.ts  manual dependency injection root
   entrypoints/
-    telegram.ts    temporary entrypoint: configuration check only
+    telegram.ts    starts the bot; --check validates configuration and exits
 drizzle/
   0000_initial-schema.sql
   meta/
