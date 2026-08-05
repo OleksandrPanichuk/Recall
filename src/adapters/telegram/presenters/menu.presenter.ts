@@ -32,18 +32,8 @@ export function mainMenu(hasUnfinishedAttempt: boolean): Screen {
 		keyboard: [
 			[button("📚 Мої набори", { action: CallbackAction.Sets })],
 			[button("▶️ Продовжити навчання", { action: CallbackAction.Resume })],
-			[
-				button("🔁 Повторити помилки", {
-					action: CallbackAction.Unavailable,
-					feature: "mistakes",
-				}),
-			],
-			[
-				button("📉 Слабкі теми", {
-					action: CallbackAction.Unavailable,
-					feature: "weak-topics",
-				}),
-			],
+			[button("🔁 Повторити помилки", { action: CallbackAction.Mistakes })],
+			[button("📉 Слабкі теми", { action: CallbackAction.WeakTopics })],
 			[button("📊 Статистика", { action: CallbackAction.Statistics })],
 			[
 				button("⚙️ Налаштування", {
@@ -85,7 +75,5 @@ export function notice(text: string): Screen {
 }
 
 export const UNAVAILABLE_FEATURES: Readonly<Record<string, string>> = {
-	mistakes: "Повторення помилок з'явиться у Phase 5.",
-	"weak-topics": "Слабкі теми з'являться у Phase 5.",
 	settings: "Налаштування з'являться у Phase 6.",
 };

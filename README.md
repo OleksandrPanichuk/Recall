@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** MVP Alpha готовий. Phases 1-4 виконані: domain models, SQLite persistence, application use cases, робочий Telegram-бот і локальний MCP server, через який Claude створює та публікує набори.
+> **Статус:** MVP Beta. Phases 1-5 виконані: domain models, SQLite persistence, application use cases, Telegram-бот, MCP server і adaptive practice (повторення помилок, слабкі теми, spaced repetition).
 
 ## Як має працювати продукт
 
@@ -261,7 +261,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 3. **Application services** — authoring, attempts, scoring і statistics (готово).
 4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
 5. **MCP authoring** — локальний server та tools для Claude (готово).
-6. **Adaptive practice** — mistakes queue, weak topics і spaced repetition.
+6. **Adaptive practice** — mistakes queue, weak topics і spaced repetition (готово).
 7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment.
 
 Детальні work packages та gates описані в [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
@@ -302,7 +302,7 @@ src/
   domain/
     quiz-set/       QuizSet, Question and validation model
     quiz-attempt/   QuizAttempt, answer evaluation and scoring model
-    review/         ReviewItem model
+    review/         ReviewItem model і spaced-repetition schedule
     branded-id.ts
   application/
     use-case.ts    shared Command and UseCase contracts
@@ -409,6 +409,22 @@ claude mcp add recall-quiz --scope user \
 > Назви tools використовують `_`, а не `.` як у `DEVELOPMENT_PLAN.md`: MCP-клієнти
 > дозволяють у назві лише `[A-Za-z0-9_-]`.
 
+
+## Повторення та spaced repetition
+
+Неправильна відповідь автоматично додає питання в чергу повторень; правильна —
+просуває streak. Одне питання ніколи не створює більше одного запису в черзі.
+
+Інтервали rule-based: `1`, `3`, `7`, `21` днів. Оцінка після відповіді (`Важко`,
+`Нормально`, `Легко`) зсуває наступну дату, не змінюючи streak. Питання стає
+due на **початку дня** у вашому `APP_TIMEZONE`, а не через 24 години — тому
+повторення, зроблене об 23:30, не повертається о 23:30 наступного дня.
+
+Після `RETIREMENT_STREAK` правильних повторень питання виходить із черги, але
+повертається, якщо ви знову відповісте на нього неправильно.
+
+`Слабкі теми` формує сесію з теми з найнижчою точністю (мінімум 3 відповіді).
+Сесія прив'язана до одного набору — того, який дає найбільше кандидатів.
 
 ## Безпека та приватність
 

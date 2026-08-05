@@ -12,6 +12,8 @@ import {
 	RETIREMENT_STREAK,
 	type ReviewItem,
 	ReviewItemState,
+	reopenReviewItem,
+	rescheduleReview,
 	restoreReviewItem,
 	toReviewItemId,
 } from "./review-item";
@@ -628,5 +630,57 @@ describe("ReviewItem", () => {
 				markReviewPassed(restored, laterReviewedAt, laterDueAt).streak,
 			).toBe(2);
 		});
+	});
+});
+
+describe("rescheduleReview", () => {
+	test("moves the due date and keeps the streak", () => {
+		const learning = markReviewPassed(pendingItem(), reviewedAt, nextDueAt);
+
+		const moved = rescheduleReview(learning, laterDueAt);
+
+		expect(moved.dueAt).toEqual(laterDueAt);
+		expect(moved.streak).toBe(learning.streak);
+		expect(moved.state).toBe(learning.state);
+		expect(moved.lastReviewedAt).toEqual(reviewedAt);
+	});
+
+	test("rejects a due date before the last review", () => {
+		const learning = markReviewPassed(pendingItem(), reviewedAt, nextDueAt);
+
+		expect(() => rescheduleReview(learning, earlierAt)).toThrow(
+			ReviewItemValidationError,
+		);
+	});
+
+	test("rejects an invalid due date", () => {
+		expect(() => rescheduleReview(pendingItem(), invalidDate)).toThrow(
+			ReviewItemValidationError,
+		);
+	});
+});
+
+describe("reopenReviewItem", () => {
+	test("returns a retired item to pending with a cleared streak", () => {
+		let retired = pendingItem();
+
+		for (let pass = 0; pass < RETIREMENT_STREAK; pass += 1) {
+			retired = markReviewPassed(retired, reviewedAt, nextDueAt);
+		}
+
+		expect(retired.state).toBe(ReviewItemState.Retired);
+
+		const reopened = reopenReviewItem(retired, laterReviewedAt, laterDueAt);
+
+		expect(reopened.state).toBe(ReviewItemState.Pending);
+		expect(reopened.streak).toBe(0);
+		expect(reopened.dueAt).toEqual(laterDueAt);
+		expect(reopened.lastReviewedAt).toEqual(laterReviewedAt);
+	});
+
+	test("still enforces the date ordering rules", () => {
+		expect(() =>
+			reopenReviewItem(pendingItem(), earlierAt, laterDueAt),
+		).toThrow(ReviewItemValidationError);
 	});
 });

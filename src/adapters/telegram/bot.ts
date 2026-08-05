@@ -4,7 +4,10 @@ import type { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-
 import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import type { RateReview } from "@/application/use-cases/review/rate-review";
+import type { StartReviewSession } from "@/application/use-cases/review/start-review-session";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
+import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { CallbackAction, decodeCallback } from "./callbacks/callback-data";
 import {
@@ -13,6 +16,10 @@ import {
 } from "./handlers/answer-question.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
 import { quizSetListHandler } from "./handlers/quiz-set-list.handler";
+import {
+	rateHandler,
+	reviewSessionHandler,
+} from "./handlers/review-session.handler";
 import { menuHandler, resumeHandler } from "./handlers/start.handler";
 import { startAttemptHandler } from "./handlers/start-attempt.handler";
 import { statisticsHandler } from "./handlers/statistics.handler";
@@ -28,6 +35,8 @@ export interface TelegramUseCases {
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
 	readonly getQuizStatistics: GetQuizStatistics;
+	readonly startReviewSession: StartReviewSession;
+	readonly rateReview: RateReview;
 }
 
 export interface TelegramBotOptions {
@@ -104,6 +113,18 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.Finish:
 				await finishHandler(useCases)(ctx);
+
+				return;
+			case CallbackAction.Mistakes:
+				await reviewSessionHandler(useCases, QuizAttemptMode.Mistakes)(ctx);
+
+				return;
+			case CallbackAction.WeakTopics:
+				await reviewSessionHandler(useCases, QuizAttemptMode.WeakTopics)(ctx);
+
+				return;
+			case CallbackAction.Rate:
+				await rateHandler(useCases)(ctx, callback);
 
 				return;
 			case CallbackAction.Unavailable:

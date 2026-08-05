@@ -22,9 +22,25 @@ export function answerFeedback(
 		`\nРахунок: ${result.score.correct}/${result.score.total} (${result.score.percentage}%)`,
 	];
 
+	// Rating only appears for a question that is actually in the review queue —
+	// it adjusts when that question returns, so it is meaningless otherwise.
+	const rating =
+		result.reviewDueAt === undefined
+			? []
+			: [
+					(["hard", "good", "easy"] as const).map((value, index) =>
+						button(["😖 Важко", "🙂 Нормально", "😎 Легко"][index] as string, {
+							action: CallbackAction.Rate,
+							questionId: question.id,
+							rating: value,
+						}),
+					),
+				];
+
 	return {
 		text: lines.filter((line) => line !== undefined).join("\n"),
 		keyboard: [
+			...rating,
 			[
 				result.nextQuestionId === undefined
 					? button("🏁 Завершити", { action: CallbackAction.Finish })

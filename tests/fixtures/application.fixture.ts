@@ -12,6 +12,7 @@ import type { Transaction } from "@/application/ports/transaction";
 import { openMigratedDatabase } from "../integration/sqlite/migrated-database";
 
 export const DEFAULT_START_AT = new Date("2026-08-01T10:00:00.000Z");
+export const DEFAULT_TIMEZONE = "Europe/Kyiv";
 
 export interface MutableClock extends Clock {
 	set(at: Date): void;
@@ -52,6 +53,7 @@ export interface TestContext {
 	readonly quizSets: QuizSetRepository;
 	readonly attempts: QuizAttemptRepository;
 	readonly reviews: ReviewRepository;
+	readonly timezone: string;
 	close(): void;
 }
 
@@ -67,6 +69,7 @@ export function createTestContext(startAt = DEFAULT_START_AT): TestContext {
 		quizSets: createSqliteQuizSetRepository(database, transaction),
 		attempts: createSqliteQuizAttemptRepository(database, transaction),
 		reviews: createSqliteReviewRepository(database, transaction),
+		timezone: DEFAULT_TIMEZONE,
 		close: () => {
 			database.close();
 		},
