@@ -55,11 +55,24 @@ const upsertQuestionSql = `
 
 // Questions are upserted rather than deleted and reinserted so that saving a set
 // again never cascades away the attempt responses and review items that point at
-// the surviving questions.
+// the surviving questions. The trade-off is that editing a stored question keeps
+// the responses recorded against its previous wording; losing them to a cascade
+// is the worse of the two, and published questions are immutable anyway.
 const deleteRemovedQuestionsSql = `
 	DELETE FROM questions
 	WHERE quiz_set_id = ?
 		AND id NOT IN (SELECT value FROM json_each(?))`;
+
+// Position and fingerprint are unique per set and SQLite checks both per
+// statement, so upserting in aggregate order would collide whenever a question
+// takes a value another surviving question still holds — inserting into the
+// middle of a set, or reordering two questions. Parking every survivor outside
+// the unique space first keeps any permutation writable. Positions carry no sign
+// check, and the prefixed fingerprint cannot collide with a real hash.
+const parkQuestionsSql = `
+	UPDATE questions
+	SET position = -1 - position, fingerprint = 'parked:' || id
+	WHERE quiz_set_id = ?`;
 
 const deleteOptionsSql = `
 	DELETE FROM question_options
@@ -91,6 +104,7 @@ export function createSqliteQuizSetRepository(
 	const upsertQuizSet = database.query(upsertQuizSetSql);
 	const upsertQuestion = database.query(upsertQuestionSql);
 	const deleteRemovedQuestions = database.query(deleteRemovedQuestionsSql);
+	const parkQuestions = database.query(parkQuestionsSql);
 	const deleteOptions = database.query(deleteOptionsSql);
 	const insertOption = database.query(insertOptionSql);
 	const selectQuizSet = database.query<QuizSetRow, [string]>(
@@ -164,6 +178,7 @@ export function createSqliteQuizSetRepository(
 					quizSet.id,
 					JSON.stringify(quizSet.questions.map((question) => question.id)),
 				);
+				parkQuestions.run(quizSet.id);
 
 				for (const question of quizSet.questions) {
 					writeQuestion(toQuestionRow(quizSet.id, question));
@@ -178,7 +193,7 @@ export function createSqliteQuizSetRepository(
 		findById(id: QuizSetId): QuizSet | undefined {
 			const row = selectQuizSet.get(id);
 
-			if (row === null) {
+			if (!row) {
 				return undefined;
 			}
 

@@ -13,6 +13,10 @@ export interface QuizSetSummary {
 }
 
 export interface QuizSetListFilter {
+	/**
+	 * Omit to list every set, archived ones included. An empty array is a filter
+	 * that matches nothing, not an absent filter.
+	 */
 	readonly statuses?: readonly QuizSetStatus[];
 }
 

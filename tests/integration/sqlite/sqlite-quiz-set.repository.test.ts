@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { CorruptedQuizSetRowError } from "@/adapters/persistence/sqlite/repositories/quiz-set.mapper";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
@@ -206,6 +207,50 @@ describe("SqliteQuizSetRepository", () => {
 			expect(repository.findById(quizSet.id)).toEqual(quizSet);
 		});
 
+		test("persists a question inserted in the middle of the set", () => {
+			const first = aQuestion({ id: "question-a" });
+			const last = aQuestion({ id: "question-b", position: 1 });
+			const quizSet = aQuizSet({ questions: [first, last] });
+			repository.save(quizSet);
+
+			repository.save({
+				...quizSet,
+				questions: [
+					first,
+					aQuestion({ id: "question-c", position: 1 }),
+					{ ...last, position: 2 },
+				],
+				updatedAt: new Date("2026-08-02T00:00:00.000Z"),
+			});
+
+			expect(idsOf(repository.findById(quizSet.id)?.questions)).toEqual([
+				"question-a",
+				"question-c",
+				"question-b",
+			]);
+		});
+
+		test("persists a reordering of the existing questions", () => {
+			const first = aQuestion({ id: "question-a" });
+			const second = aQuestion({ id: "question-b", position: 1 });
+			const quizSet = aQuizSet({ questions: [first, second] });
+			repository.save(quizSet);
+
+			repository.save({
+				...quizSet,
+				questions: [
+					{ ...second, position: 0 },
+					{ ...first, position: 1 },
+				],
+				updatedAt: new Date("2026-08-02T00:00:00.000Z"),
+			});
+
+			expect(idsOf(repository.findById(quizSet.id)?.questions)).toEqual([
+				"question-b",
+				"question-a",
+			]);
+		});
+
 		test("keeps recorded attempt responses when the set is saved again", () => {
 			const quizSet = publishedSet();
 			repository.save(quizSet);
@@ -254,6 +299,84 @@ describe("SqliteQuizSetRepository", () => {
 					.list({ statuses: [QuizSetStatus.Published] })
 					.map((summary) => summary.id as string),
 			).toEqual(["set-published"]);
+		});
+
+		test("an empty status filter matches nothing", () => {
+			seedThreeSets();
+
+			expect(repository.list({ statuses: [] })).toEqual([]);
+		});
+	});
+
+	describe("corrupted rows", () => {
+		const corrupt = (column: string, value: string | null): void => {
+			database.run(`UPDATE quiz_sets SET ${column} = ? WHERE id = 'set-1'`, [
+				value,
+			]);
+		};
+
+		beforeEach(() => {
+			repository.save(publishedSet());
+		});
+
+		test("rejects a published set whose publishedAt was lost", () => {
+			corrupt("published_at", null);
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+		});
+
+		test("rejects an archived set whose archivedAt was lost", () => {
+			corrupt("status", QuizSetStatus.Archived);
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+		});
+
+		test("rejects a blank title", () => {
+			corrupt("title", "   ");
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+		});
+
+		test("rejects a blank language", () => {
+			corrupt("language", "");
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+		});
+
+		test("rejects tags that are not a JSON array of strings", () => {
+			corrupt("tags", "not json");
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+
+			corrupt("tags", '["ok", 7]');
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+		});
+
+		test("rejects an unparsable timestamp", () => {
+			corrupt("created_at", "nonsense");
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow(
+				CorruptedQuizSetRowError,
+			);
+		});
+
+		test("rejects a question whose options vanished", () => {
+			database.run("DELETE FROM question_options");
+
+			expect(() => repository.findById(toQuizSetId("set-1"))).toThrow();
 		});
 	});
 });

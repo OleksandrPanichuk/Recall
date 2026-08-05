@@ -12,6 +12,7 @@ import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
 import {
 	isQuizSetStatus,
 	type QuizSet,
+	QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
 
@@ -194,17 +195,52 @@ const groupOptionsByQuestion = (
 	return grouped;
 };
 
+// The aggregate is assembled from validated parts rather than replayed through
+// createQuizSet, which would renumber positions and overwrite updatedAt. These
+// checks stand in for the invariants those constructors would otherwise enforce,
+// so a hand-edited row fails here instead of surfacing as an impossible
+// aggregate inside a presenter.
+const assertAggregateInvariants = (
+	row: QuizSetRow,
+	status: QuizSetStatus,
+): void => {
+	const issues: string[] = [];
+
+	if (row.title.trim().length === 0) {
+		issues.push("title must not be empty");
+	}
+
+	if (row.language.trim().length === 0) {
+		issues.push("language must not be empty");
+	}
+
+	if (status === QuizSetStatus.Published && row.published_at === null) {
+		issues.push("a published quiz set must have published_at");
+	}
+
+	if (status === QuizSetStatus.Archived && row.archived_at === null) {
+		issues.push("an archived quiz set must have archived_at");
+	}
+
+	if (issues.length > 0) {
+		throw new CorruptedQuizSetRowError(row.id, issues);
+	}
+};
+
 export function toQuizSet(
 	row: QuizSetRow,
 	questionRows: readonly QuestionRow[],
 	optionRows: readonly QuestionOptionRow[],
 ): QuizSet {
+	const status = toStatus(row.status, row.id);
 	const optionsByQuestion = groupOptionsByQuestion(optionRows);
+
+	assertAggregateInvariants(row, status);
 
 	return Object.freeze({
 		id: toQuizSetId(row.id),
 		title: row.title,
-		status: toStatus(row.status, row.id),
+		status,
 		language: row.language,
 		questions: Object.freeze(
 			questionRows.map((question) =>
