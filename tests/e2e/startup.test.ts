@@ -13,12 +13,9 @@ const validEnvironment = {
 	APP_TIMEZONE: "Europe/Kyiv",
 };
 
-async function start(
-	environment: Record<string, string>,
-	args: readonly string[] = ["--check"],
-) {
+async function start(environment: Record<string, string>) {
 	const child = Bun.spawn(
-		[process.execPath, "--env-file=/dev/null", entrypoint, ...args],
+		[process.execPath, "--env-file=/dev/null", entrypoint],
 		{
 			env: environment,
 			stdout: "pipe",
@@ -36,7 +33,7 @@ async function start(
 }
 
 describe("telegram entrypoint startup", () => {
-	test("validates a good environment and exits cleanly", async () => {
+	test("starts with a valid environment", async () => {
 		const { stdout, exitCode } = await start(validEnvironment);
 
 		expect(exitCode).toBe(0);
