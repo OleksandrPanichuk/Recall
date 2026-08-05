@@ -18,6 +18,7 @@ import {
 	QuizAttemptMode,
 	QuizAttemptStatus,
 	recordResponse,
+	restoreQuizAttempt,
 	resumeQuizAttempt,
 	startQuizAttempt,
 	toQuizAttemptId,
@@ -691,6 +692,242 @@ describe("QuizAttempt", () => {
 				total: 2,
 				percentage: 0,
 			});
+		});
+	});
+
+	describe("restoreQuizAttempt", () => {
+		type QuizAttemptSnapshot = Parameters<typeof restoreQuizAttempt>[0];
+
+		const snapshotOf = (attempt: QuizAttempt): QuizAttemptSnapshot => ({
+			id: attempt.id,
+			quizSetId: attempt.quizSetId,
+			telegramUserId: attempt.telegramUserId,
+			mode: attempt.mode,
+			status: attempt.status,
+			questionIds: attempt.questionIds,
+			responses: attempt.responses,
+			startedAt: attempt.startedAt,
+			updatedAt: attempt.updatedAt,
+			completedAt: attempt.completedAt,
+		});
+
+		const snapshot = (
+			overrides: Partial<QuizAttemptSnapshot> = {},
+		): QuizAttemptSnapshot => ({
+			...snapshotOf(answeredOnce()),
+			...overrides,
+		});
+
+		const restoreIssues = (
+			candidate: QuizAttemptSnapshot,
+		): readonly string[] => {
+			try {
+				restoreQuizAttempt(candidate);
+			} catch (caught) {
+				expect(caught).toBeInstanceOf(QuizAttemptValidationError);
+
+				return (caught as QuizAttemptValidationError).issues;
+			}
+
+			throw new Error("expected restoreQuizAttempt to throw");
+		};
+
+		test("restores the attempt the transitions produce", () => {
+			const expected = answeredOnce();
+
+			expect(restoreQuizAttempt(snapshotOf(expected))).toEqual(expected);
+		});
+
+		test("restores a completed attempt", () => {
+			const expected = completeQuizAttempt(answeredOnce(), evenLaterAt);
+
+			expect(restoreQuizAttempt(snapshotOf(expected))).toEqual(expected);
+		});
+
+		test("restores an active attempt whose updatedAt advanced past its last answer", () => {
+			const restored = restoreQuizAttempt(snapshot({ updatedAt: evenLaterAt }));
+
+			expect(restored.status).toBe(QuizAttemptStatus.Active);
+			expect(restored.updatedAt).toEqual(evenLaterAt);
+		});
+
+		test("restores an attempt that has not been answered yet", () => {
+			const expected = activeAttempt();
+
+			expect(restoreQuizAttempt(snapshotOf(expected))).toEqual(expected);
+		});
+
+		test("copies dates and freezes the restored attempt", () => {
+			const source = snapshot();
+			const restored = restoreQuizAttempt(source);
+
+			source.startedAt.setFullYear(1999);
+
+			expect(restored.startedAt).toEqual(startedAt);
+			expect(Object.isFrozen(restored)).toBe(true);
+			expect(Object.isFrozen(restored.responses)).toBe(true);
+			expect(Object.isFrozen(restored.responses[0])).toBe(true);
+		});
+
+		test("rejects an empty plan", () => {
+			expect(() =>
+				restoreQuizAttempt(snapshot({ questionIds: [], responses: [] })),
+			).toThrow(EmptyQuizAttemptError);
+		});
+
+		test("rejects duplicate planned questions", () => {
+			expect(
+				restoreIssues(
+					snapshot({ questionIds: [firstQuestionId, firstQuestionId] }),
+				),
+			).toContain("questionIds must not contain duplicates");
+		});
+
+		test("rejects a non-positive telegram user id", () => {
+			expect(restoreIssues(snapshot({ telegramUserId: 0 }))).toContain(
+				"telegramUserId must be a positive integer",
+			);
+		});
+
+		test("rejects more responses than planned questions", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						questionIds: [firstQuestionId],
+						responses: [
+							answer(firstQuestionId, true, laterAt),
+							answer(secondQuestionId, true, evenLaterAt),
+						],
+						updatedAt: evenLaterAt,
+					}),
+				),
+			).toContain("responses must not outnumber the planned questions");
+		});
+
+		test("rejects responses that depart from plan order", () => {
+			expect(
+				restoreIssues(
+					snapshot({ responses: [answer(secondQuestionId, true, laterAt)] }),
+				),
+			).toContain("responses must follow the planned question order");
+		});
+
+		test("rejects a response for a question outside the plan", () => {
+			expect(
+				restoreIssues(
+					snapshot({ responses: [answer(unplannedQuestionId, true, laterAt)] }),
+				),
+			).toContain("responses must follow the planned question order");
+		});
+
+		test("rejects answers that move backwards in time", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						responses: [
+							answer(firstQuestionId, true, laterAt),
+							answer(secondQuestionId, true, startedAt),
+						],
+					}),
+				),
+			).toContain("answeredAt must not precede the previous response");
+		});
+
+		test("rejects a first answer that precedes the start", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						responses: [answer(firstQuestionId, true, earlierAt)],
+					}),
+				),
+			).toContain("answeredAt must not precede startedAt");
+		});
+
+		test("rejects empty selected options", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						responses: [answer(firstQuestionId, true, laterAt, [])],
+					}),
+				),
+			).toContain("selectedOptionIds must not be empty");
+		});
+
+		test("rejects duplicate selected options", () => {
+			const optionId = toQuestionOptionId("option-1");
+
+			expect(
+				restoreIssues(
+					snapshot({
+						responses: [
+							answer(firstQuestionId, true, laterAt, [optionId, optionId]),
+						],
+					}),
+				),
+			).toContain("selectedOptionIds must not contain duplicates");
+		});
+
+		test("rejects an updatedAt that precedes the last answer", () => {
+			expect(restoreIssues(snapshot({ updatedAt: startedAt }))).toContain(
+				"updatedAt must not precede the last response",
+			);
+		});
+
+		test("rejects an updatedAt that precedes the start", () => {
+			expect(
+				restoreIssues(snapshot({ responses: [], updatedAt: earlierAt })),
+			).toContain("updatedAt must not precede startedAt");
+		});
+
+		test("rejects invalid dates", () => {
+			expect(restoreIssues(snapshot({ startedAt: invalidDate }))).toContain(
+				"startedAt must be a valid date",
+			);
+			expect(restoreIssues(snapshot({ updatedAt: invalidDate }))).toContain(
+				"updatedAt must be a valid date",
+			);
+			expect(
+				restoreIssues(
+					snapshot({
+						responses: [answer(firstQuestionId, true, invalidDate)],
+					}),
+				),
+			).toContain("answeredAt must be a valid date");
+		});
+
+		test("rejects a completed attempt without a completion timestamp", () => {
+			expect(
+				restoreIssues(snapshot({ status: QuizAttemptStatus.Completed })),
+			).toContain("a completed attempt must have completedAt");
+		});
+
+		test("rejects an unfinished attempt that carries a completion timestamp", () => {
+			expect(restoreIssues(snapshot({ completedAt: laterAt }))).toContain(
+				"only a completed attempt may have completedAt",
+			);
+		});
+
+		test("rejects a completedAt that disagrees with updatedAt", () => {
+			expect(
+				restoreIssues(
+					snapshot({
+						status: QuizAttemptStatus.Completed,
+						completedAt: evenLaterAt,
+					}),
+				),
+			).toContain("completedAt must equal updatedAt");
+		});
+
+		test("rejects an unsupported status", () => {
+			expect(
+				restoreIssues(snapshot({ status: "retired" as QuizAttemptStatus })),
+			).toContain("status must be a supported quiz attempt status");
+		});
+
+		test("rejects an unsupported mode", () => {
+			expect(
+				restoreIssues(snapshot({ mode: "cram" as QuizAttemptMode })),
+			).toContain("mode must be a supported quiz attempt mode");
 		});
 	});
 });

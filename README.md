@@ -257,7 +257,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 Реалізація поділена на послідовні фази:
 
 1. **Repository foundation** — Git baseline, `.gitignore`, environment schema та verification scripts.
-2. **Domain and persistence** — domain models, SQLite schema та migrations (готово); repositories — наступний етап.
+2. **Domain and persistence** — domain models, SQLite schema, migrations та repositories (готово).
 3. **Application services** — authoring, attempts, scoring і statistics.
 4. **Telegram interface** — allowlist, меню, quiz flow і results.
 5. **MCP authoring** — локальний server та tools для Claude.
@@ -307,12 +307,15 @@ src/
   application/
     use-case.ts    shared Command and UseCase contracts
     ports/         Clock, IdGenerator and Transaction contracts
+      repositories/ quiz set, quiz attempt and review repository contracts
   adapters/
     persistence/
       sqlite/
         database.ts connection lifecycle and SQLite pragmas
         migrator.ts guarded Drizzle migration runner
         schema.ts   Drizzle SQLite schema
+        sqlite-transaction.ts Transaction port over bun:sqlite
+        repositories/ repository implementations and row mappers
   infrastructure/
     config/
       env.ts       validated startup configuration
@@ -327,8 +330,9 @@ scripts/
 tests/
   e2e/
     startup.test.ts
+  fixtures/        aggregate builders shared by the integration tests
   integration/
-    sqlite/        schema, migration and database integration tests
+    sqlite/        schema, migration and repository integration tests
 skills/
   run-reviewed-development/
 .env.example
@@ -340,8 +344,8 @@ AGENTS.md
 CLAUDE.md
 ```
 
-Target structure не створюється наперед порожніми directories. Repositories,
-application use cases і transport adapters додаватимуться поступово за правилами
+Target structure не створюється наперед порожніми directories. Application use
+cases і transport adapters додаватимуться поступово за правилами
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Безпека та приватність

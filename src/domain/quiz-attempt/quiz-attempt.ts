@@ -224,6 +224,168 @@ export function recordResponse(
 	});
 }
 
+interface QuizAttemptSnapshot {
+	readonly id: QuizAttemptId;
+	readonly quizSetId: QuizSetId;
+	readonly telegramUserId: number;
+	readonly mode: QuizAttemptMode;
+	readonly status: QuizAttemptStatus;
+	readonly questionIds: readonly QuestionId[];
+	readonly responses: readonly QuestionResponse[];
+	readonly startedAt: Date;
+	readonly updatedAt: Date;
+	readonly completedAt?: Date;
+}
+
+const collectTimelineIssues = (
+	snapshot: QuizAttemptSnapshot,
+): readonly string[] => {
+	const issues: string[] = [];
+	let previous = snapshot.startedAt;
+
+	for (const [index, response] of snapshot.responses.entries()) {
+		if (!isValidDate(response.answeredAt)) {
+			issues.push("answeredAt must be a valid date");
+			continue;
+		}
+
+		if (response.answeredAt.getTime() < previous.getTime()) {
+			issues.push(
+				index === 0
+					? "answeredAt must not precede startedAt"
+					: "answeredAt must not precede the previous response",
+			);
+		}
+
+		previous = response.answeredAt;
+	}
+
+	if (snapshot.updatedAt.getTime() < snapshot.startedAt.getTime()) {
+		issues.push("updatedAt must not precede startedAt");
+	}
+
+	const lastAnsweredAt = snapshot.responses.at(-1)?.answeredAt;
+
+	if (
+		lastAnsweredAt !== undefined &&
+		isValidDate(lastAnsweredAt) &&
+		snapshot.updatedAt.getTime() < lastAnsweredAt.getTime()
+	) {
+		issues.push("updatedAt must not precede the last response");
+	}
+
+	return issues;
+};
+
+const collectCompletionIssues = (
+	snapshot: QuizAttemptSnapshot,
+): readonly string[] => {
+	if (snapshot.status !== QuizAttemptStatus.Completed) {
+		return snapshot.completedAt === undefined
+			? []
+			: ["only a completed attempt may have completedAt"];
+	}
+
+	if (snapshot.completedAt === undefined) {
+		return ["a completed attempt must have completedAt"];
+	}
+
+	if (!isValidDate(snapshot.completedAt)) {
+		return ["completedAt must be a valid date"];
+	}
+
+	return snapshot.completedAt.getTime() === snapshot.updatedAt.getTime()
+		? []
+		: ["completedAt must equal updatedAt"];
+};
+
+const collectSnapshotIssues = (
+	snapshot: QuizAttemptSnapshot,
+): readonly string[] => {
+	const issues: string[] = [];
+
+	if (!isQuizAttemptStatus(snapshot.status)) {
+		issues.push("status must be a supported quiz attempt status");
+	}
+
+	if (!isQuizAttemptMode(snapshot.mode)) {
+		issues.push("mode must be a supported quiz attempt mode");
+	}
+
+	if (
+		!Number.isSafeInteger(snapshot.telegramUserId) ||
+		snapshot.telegramUserId <= 0
+	) {
+		issues.push("telegramUserId must be a positive integer");
+	}
+
+	if (hasDuplicates(snapshot.questionIds)) {
+		issues.push("questionIds must not contain duplicates");
+	}
+
+	if (!isValidDate(snapshot.startedAt)) {
+		issues.push("startedAt must be a valid date");
+	}
+
+	if (!isValidDate(snapshot.updatedAt)) {
+		issues.push("updatedAt must be a valid date");
+	}
+
+	if (snapshot.responses.length > snapshot.questionIds.length) {
+		issues.push("responses must not outnumber the planned questions");
+	}
+
+	if (
+		snapshot.responses.some(
+			(response, index) => response.questionId !== snapshot.questionIds[index],
+		)
+	) {
+		issues.push("responses must follow the planned question order");
+	}
+
+	for (const response of snapshot.responses) {
+		issues.push(...collectResponseIssues(response));
+	}
+
+	issues.push(...collectTimelineIssues(snapshot));
+	issues.push(...collectCompletionIssues(snapshot));
+
+	return issues;
+};
+
+/**
+ * Rebuilds a persisted attempt without replaying the transitions. A paused and
+ * resumed attempt has an `updatedAt` past its last answer, and the pause and
+ * resume timestamps are not stored, so a replay would have to invent a
+ * zero-length pause/resume pair to land on it — fabricating history to satisfy
+ * the constructors. Validating the snapshot directly is the honest contract, so
+ * the invariants the transitions enforce are checked here instead.
+ */
+export function restoreQuizAttempt(snapshot: QuizAttemptSnapshot): QuizAttempt {
+	if (snapshot.questionIds.length === 0) {
+		throw new EmptyQuizAttemptError();
+	}
+
+	const issues = collectSnapshotIssues(snapshot);
+
+	if (issues.length > 0) {
+		throw new QuizAttemptValidationError(issues);
+	}
+
+	return frozenAttempt({
+		id: snapshot.id,
+		quizSetId: snapshot.quizSetId,
+		telegramUserId: snapshot.telegramUserId,
+		mode: snapshot.mode,
+		status: snapshot.status,
+		questionIds: snapshot.questionIds,
+		responses: snapshot.responses,
+		startedAt: snapshot.startedAt,
+		updatedAt: snapshot.updatedAt,
+		completedAt: snapshot.completedAt,
+	});
+}
+
 export function pauseQuizAttempt(attempt: QuizAttempt, at: Date): QuizAttempt {
 	assertStatus(attempt, [QuizAttemptStatus.Active], "paused");
 	assertMutationDate(attempt, at, "at");
