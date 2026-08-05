@@ -1,4 +1,6 @@
 import type { Database } from "bun:sqlite";
+import type { QuizDatabase } from "@/adapters/persistence/sqlite/database";
+import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteReviewRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-review.repository";
@@ -47,6 +49,7 @@ export function createSequentialIdGenerator(prefix = "id"): IdGenerator {
 
 export interface TestContext {
 	readonly database: Database;
+	readonly client: QuizDatabase;
 	readonly clock: MutableClock;
 	readonly idGenerator: IdGenerator;
 	readonly transaction: Transaction;
@@ -59,16 +62,18 @@ export interface TestContext {
 
 export function createTestContext(startAt = DEFAULT_START_AT): TestContext {
 	const database = openMigratedDatabase();
-	const transaction = createSqliteTransaction(database);
+	const client = createDrizzleClient(database);
+	const transaction = createSqliteTransaction(client);
 
 	return {
 		database,
+		client,
 		clock: createMutableClock(startAt),
 		idGenerator: createSequentialIdGenerator(),
 		transaction,
-		quizSets: createSqliteQuizSetRepository(database, transaction),
-		attempts: createSqliteQuizAttemptRepository(database, transaction),
-		reviews: createSqliteReviewRepository(database, transaction),
+		quizSets: createSqliteQuizSetRepository(client, transaction),
+		attempts: createSqliteQuizAttemptRepository(client, transaction),
+		reviews: createSqliteReviewRepository(client, transaction),
 		timezone: DEFAULT_TIMEZONE,
 		close: () => {
 			database.close();

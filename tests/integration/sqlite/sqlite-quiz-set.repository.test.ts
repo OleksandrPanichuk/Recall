@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { CorruptedQuizSetRowError } from "@/adapters/persistence/sqlite/repositories/quiz-set.mapper";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
@@ -27,8 +28,8 @@ let repository: QuizSetRepository;
 beforeEach(() => {
 	database = openMigratedDatabase();
 	repository = createSqliteQuizSetRepository(
-		database,
-		createSqliteTransaction(database),
+		createDrizzleClient(database),
+		createSqliteTransaction(createDrizzleClient(database)),
 	);
 });
 

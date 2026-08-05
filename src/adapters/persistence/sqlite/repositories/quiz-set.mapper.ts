@@ -15,50 +15,23 @@ import {
 	QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import type { questionOptions, questions, quizSets } from "../schema";
 
-export interface QuizSetRow {
-	readonly id: string;
-	readonly title: string;
-	readonly description: string | null;
-	readonly language: string;
-	readonly source: string | null;
-	readonly source_chapters: string | null;
-	readonly tags: string;
-	readonly status: string;
-	readonly created_at: string;
-	readonly updated_at: string;
-	readonly published_at: string | null;
-	readonly archived_at: string | null;
-}
-
-export interface QuestionRow {
-	readonly id: string;
-	readonly quiz_set_id: string;
-	readonly type: string;
-	readonly prompt: string;
-	readonly explanation: string | null;
-	readonly source_reference: string | null;
-	readonly topic: string | null;
-	readonly difficulty: string;
-	readonly hint: string | null;
-	readonly position: number;
-	readonly fingerprint: string;
-}
-
-export interface QuestionOptionRow {
-	readonly id: string;
-	readonly question_id: string;
-	readonly text: string;
-	readonly is_correct: number;
-	readonly position: number;
-}
+// Row shapes come from the Drizzle schema, so a column rename or a type change
+// breaks compilation here instead of at runtime.
+export type QuizSetRow = typeof quizSets.$inferSelect;
+export type QuestionRow = typeof questions.$inferSelect;
+export type QuestionOptionRow = typeof questionOptions.$inferSelect;
+export type QuizSetInsert = typeof quizSets.$inferInsert;
+export type QuestionInsert = typeof questions.$inferInsert;
+export type QuestionOptionInsert = typeof questionOptions.$inferInsert;
 
 export interface QuizSetSummaryRow {
 	readonly id: string;
 	readonly title: string;
 	readonly status: string;
-	readonly question_count: number;
-	readonly updated_at: string;
+	readonly questionCount: number;
+	readonly updatedAt: string;
 }
 
 export class CorruptedQuizSetRowError extends Error {
@@ -115,16 +88,6 @@ const parseTags = (row: QuizSetRow): string[] => {
 	return parsed;
 };
 
-const toIsCorrect = (value: number, questionId: string): boolean => {
-	if (value !== 0 && value !== 1) {
-		throw new CorruptedQuizSetRowError(questionId, [
-			`is_correct must be 0 or 1, received ${value}`,
-		]);
-	}
-
-	return value === 1;
-};
-
 const toStatus = (value: string, id: string) => {
 	if (!isQuizSetStatus(value)) {
 		throw new CorruptedQuizSetRowError(id, [
@@ -143,13 +106,13 @@ function toQuestion(
 	const difficulty = row.difficulty;
 
 	if (!isQuestionType(type)) {
-		throw new CorruptedQuizSetRowError(row.quiz_set_id, [
+		throw new CorruptedQuizSetRowError(row.quizSetId, [
 			`question ${row.id} has unsupported type "${type}"`,
 		]);
 	}
 
 	if (!isDifficulty(difficulty)) {
-		throw new CorruptedQuizSetRowError(row.quiz_set_id, [
+		throw new CorruptedQuizSetRowError(row.quizSetId, [
 			`question ${row.id} has unsupported difficulty "${difficulty}"`,
 		]);
 	}
@@ -158,7 +121,7 @@ function toQuestion(
 		(option): QuestionOption => ({
 			id: toQuestionOptionId(option.id),
 			text: option.text,
-			isCorrect: toIsCorrect(option.is_correct, row.id),
+			isCorrect: option.isCorrect,
 			position: option.position,
 		}),
 	);
@@ -171,7 +134,7 @@ function toQuestion(
 		position: row.position,
 		options,
 		explanation: row.explanation ?? undefined,
-		sourceReference: row.source_reference ?? undefined,
+		sourceReference: row.sourceReference ?? undefined,
 		topic: row.topic ?? undefined,
 		hint: row.hint ?? undefined,
 	});
@@ -183,10 +146,10 @@ const groupOptionsByQuestion = (
 	const grouped = new Map<string, QuestionOptionRow[]>();
 
 	for (const option of optionRows) {
-		const bucket = grouped.get(option.question_id);
+		const bucket = grouped.get(option.questionId);
 
 		if (bucket === undefined) {
-			grouped.set(option.question_id, [option]);
+			grouped.set(option.questionId, [option]);
 		} else {
 			bucket.push(option);
 		}
@@ -214,11 +177,11 @@ const assertAggregateInvariants = (
 		issues.push("language must not be empty");
 	}
 
-	if (status === QuizSetStatus.Published && row.published_at === null) {
+	if (status === QuizSetStatus.Published && row.publishedAt === null) {
 		issues.push("a published quiz set must have published_at");
 	}
 
-	if (status === QuizSetStatus.Archived && row.archived_at === null) {
+	if (status === QuizSetStatus.Archived && row.archivedAt === null) {
 		issues.push("an archived quiz set must have archived_at");
 	}
 
@@ -248,13 +211,13 @@ export function toQuizSet(
 			),
 		),
 		tags: Object.freeze(parseTags(row)),
-		createdAt: requiredDate(row.created_at, "created_at", row.id),
-		updatedAt: requiredDate(row.updated_at, "updated_at", row.id),
+		createdAt: requiredDate(row.createdAt, "created_at", row.id),
+		updatedAt: requiredDate(row.updatedAt, "updated_at", row.id),
 		description: row.description ?? undefined,
 		source: row.source ?? undefined,
-		sourceChapters: row.source_chapters ?? undefined,
-		publishedAt: optionalDate(row.published_at, "published_at", row.id),
-		archivedAt: optionalDate(row.archived_at, "archived_at", row.id),
+		sourceChapters: row.sourceChapters ?? undefined,
+		publishedAt: optionalDate(row.publishedAt, "published_at", row.id),
+		archivedAt: optionalDate(row.archivedAt, "archived_at", row.id),
 	});
 }
 
@@ -263,39 +226,39 @@ export function toQuizSetSummary(row: QuizSetSummaryRow): QuizSetSummary {
 		id: toQuizSetId(row.id),
 		title: row.title,
 		status: toStatus(row.status, row.id),
-		questionCount: row.question_count,
-		updatedAt: requiredDate(row.updated_at, "updated_at", row.id),
+		questionCount: row.questionCount,
+		updatedAt: requiredDate(row.updatedAt, "updated_at", row.id),
 	};
 }
 
-export function toQuizSetRow(quizSet: QuizSet): QuizSetRow {
+export function toQuizSetRow(quizSet: QuizSet): QuizSetInsert {
 	return {
 		id: quizSet.id,
 		title: quizSet.title,
 		description: quizSet.description ?? null,
 		language: quizSet.language,
 		source: quizSet.source ?? null,
-		source_chapters: quizSet.sourceChapters ?? null,
+		sourceChapters: quizSet.sourceChapters ?? null,
 		tags: JSON.stringify(quizSet.tags),
 		status: quizSet.status,
-		created_at: quizSet.createdAt.toISOString(),
-		updated_at: quizSet.updatedAt.toISOString(),
-		published_at: quizSet.publishedAt?.toISOString() ?? null,
-		archived_at: quizSet.archivedAt?.toISOString() ?? null,
+		createdAt: quizSet.createdAt.toISOString(),
+		updatedAt: quizSet.updatedAt.toISOString(),
+		publishedAt: quizSet.publishedAt?.toISOString() ?? null,
+		archivedAt: quizSet.archivedAt?.toISOString() ?? null,
 	};
 }
 
 export function toQuestionRow(
 	quizSetId: string,
 	question: Question,
-): QuestionRow {
+): QuestionInsert {
 	return {
 		id: question.id,
-		quiz_set_id: quizSetId,
+		quizSetId,
 		type: question.type,
 		prompt: question.prompt,
 		explanation: question.explanation ?? null,
-		source_reference: question.sourceReference ?? null,
+		sourceReference: question.sourceReference ?? null,
 		topic: question.topic ?? null,
 		difficulty: question.difficulty,
 		hint: question.hint ?? null,
@@ -306,12 +269,12 @@ export function toQuestionRow(
 
 export function toQuestionOptionRows(
 	question: Question,
-): readonly QuestionOptionRow[] {
+): readonly QuestionOptionInsert[] {
 	return question.options.map((option) => ({
 		id: option.id,
-		question_id: question.id,
+		questionId: question.id,
 		text: option.text,
-		is_correct: option.isCorrect ? 1 : 0,
+		isCorrect: option.isCorrect,
 		position: option.position,
 	}));
 }

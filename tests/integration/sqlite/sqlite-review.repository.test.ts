@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteReviewRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-review.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
@@ -26,8 +27,8 @@ let repository: ReviewRepository;
 
 function seedQuizSet(): void {
 	createSqliteQuizSetRepository(
-		database,
-		createSqliteTransaction(database),
+		createDrizzleClient(database),
+		createSqliteTransaction(createDrizzleClient(database)),
 	).save(
 		aQuizSet({
 			questions: ["question-1", "question-2", "question-3"].map(
@@ -41,8 +42,8 @@ beforeEach(() => {
 	database = openMigratedDatabase();
 	seedQuizSet();
 	repository = createSqliteReviewRepository(
-		database,
-		createSqliteTransaction(database),
+		createDrizzleClient(database),
+		createSqliteTransaction(createDrizzleClient(database)),
 	);
 });
 

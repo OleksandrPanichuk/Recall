@@ -1,4 +1,13 @@
-import type { Database } from "bun:sqlite";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	inArray,
+	notInArray,
+	sql,
+} from "drizzle-orm";
 import type {
 	QuizSetListFilter,
 	QuizSetRepository,
@@ -6,11 +15,9 @@ import type {
 } from "@/application/ports/repositories/quiz-set.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import type { QuizSet, QuizSetId } from "@/domain/quiz-set/quiz-set";
+import type { QuizDatabase } from "../database";
+import { questionOptions, questions, quizSets } from "../schema";
 import {
-	type QuestionOptionRow,
-	type QuestionRow,
-	type QuizSetRow,
-	type QuizSetSummaryRow,
 	toQuestionOptionRows,
 	toQuestionRow,
 	toQuizSet,
@@ -18,195 +25,150 @@ import {
 	toQuizSetSummary,
 } from "./quiz-set.mapper";
 
-const upsertQuizSetSql = `
-	INSERT INTO quiz_sets (
-		id, title, description, language, source, source_chapters,
-		tags, status, created_at, updated_at, published_at, archived_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	ON CONFLICT(id) DO UPDATE SET
-		title = excluded.title,
-		description = excluded.description,
-		language = excluded.language,
-		source = excluded.source,
-		source_chapters = excluded.source_chapters,
-		tags = excluded.tags,
-		status = excluded.status,
-		created_at = excluded.created_at,
-		updated_at = excluded.updated_at,
-		published_at = excluded.published_at,
-		archived_at = excluded.archived_at`;
-
-const upsertQuestionSql = `
-	INSERT INTO questions (
-		id, quiz_set_id, type, prompt, explanation, source_reference,
-		topic, difficulty, hint, position, fingerprint
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	ON CONFLICT(id) DO UPDATE SET
-		quiz_set_id = excluded.quiz_set_id,
-		type = excluded.type,
-		prompt = excluded.prompt,
-		explanation = excluded.explanation,
-		source_reference = excluded.source_reference,
-		topic = excluded.topic,
-		difficulty = excluded.difficulty,
-		hint = excluded.hint,
-		position = excluded.position,
-		fingerprint = excluded.fingerprint`;
-
-// Questions are upserted rather than deleted and reinserted so that saving a set
-// again never cascades away the attempt responses and review items that point at
-// the surviving questions. The trade-off is that editing a stored question keeps
-// the responses recorded against its previous wording; losing them to a cascade
-// is the worse of the two, and published questions are immutable anyway.
-const deleteRemovedQuestionsSql = `
-	DELETE FROM questions
-	WHERE quiz_set_id = ?
-		AND id NOT IN (SELECT value FROM json_each(?))`;
-
-// Position and fingerprint are unique per set and SQLite checks both per
-// statement, so upserting in aggregate order would collide whenever a question
-// takes a value another surviving question still holds — inserting into the
-// middle of a set, or reordering two questions. Parking every survivor outside
-// the unique space first keeps any permutation writable. Positions carry no sign
-// check, and the prefixed fingerprint cannot collide with a real hash.
-const parkQuestionsSql = `
-	UPDATE questions
-	SET position = -1 - position, fingerprint = 'parked:' || id
-	WHERE quiz_set_id = ?`;
-
-const deleteOptionsSql = `
-	DELETE FROM question_options
-	WHERE question_id IN (SELECT id FROM questions WHERE quiz_set_id = ?)`;
-
-const insertOptionSql = `
-	INSERT INTO question_options (id, question_id, text, is_correct, position)
-	VALUES (?, ?, ?, ?, ?)`;
-
-const summaryColumnsSql = `
-	SELECT
-		quiz_sets.id AS id,
-		quiz_sets.title AS title,
-		quiz_sets.status AS status,
-		quiz_sets.updated_at AS updated_at,
-		(
-			SELECT count(*) FROM questions
-			WHERE questions.quiz_set_id = quiz_sets.id
-		) AS question_count
-	FROM quiz_sets`;
-
-const orderSummariesSql =
-	" ORDER BY quiz_sets.updated_at DESC, quiz_sets.id ASC";
-
 export function createSqliteQuizSetRepository(
-	database: Database,
+	database: QuizDatabase,
 	transaction: Transaction,
 ): QuizSetRepository {
-	const upsertQuizSet = database.query(upsertQuizSetSql);
-	const upsertQuestion = database.query(upsertQuestionSql);
-	const deleteRemovedQuestions = database.query(deleteRemovedQuestionsSql);
-	const parkQuestions = database.query(parkQuestionsSql);
-	const deleteOptions = database.query(deleteOptionsSql);
-	const insertOption = database.query(insertOptionSql);
-	const selectQuizSet = database.query<QuizSetRow, [string]>(
-		"SELECT * FROM quiz_sets WHERE id = ?",
-	);
-	const selectQuestions = database.query<QuestionRow, [string]>(
-		"SELECT * FROM questions WHERE quiz_set_id = ? ORDER BY position ASC",
-	);
-	const selectOptions = database.query<QuestionOptionRow, [string]>(
-		`SELECT question_options.* FROM question_options
-		JOIN questions ON questions.id = question_options.question_id
-		WHERE questions.quiz_set_id = ?
-		ORDER BY question_options.position ASC`,
-	);
-	const selectSummaries = database.query<QuizSetSummaryRow, []>(
-		summaryColumnsSql + orderSummariesSql,
-	);
-	const selectSummariesByStatus = database.query<QuizSetSummaryRow, [string]>(
-		`${summaryColumnsSql} WHERE quiz_sets.status IN (SELECT value FROM json_each(?))${orderSummariesSql}`,
-	);
-
-	const writeQuizSet = (row: QuizSetRow): void => {
-		upsertQuizSet.run(
-			row.id,
-			row.title,
-			row.description,
-			row.language,
-			row.source,
-			row.source_chapters,
-			row.tags,
-			row.status,
-			row.created_at,
-			row.updated_at,
-			row.published_at,
-			row.archived_at,
-		);
-	};
-
-	const writeQuestion = (row: QuestionRow): void => {
-		upsertQuestion.run(
-			row.id,
-			row.quiz_set_id,
-			row.type,
-			row.prompt,
-			row.explanation,
-			row.source_reference,
-			row.topic,
-			row.difficulty,
-			row.hint,
-			row.position,
-			row.fingerprint,
-		);
-	};
-
-	const writeOption = (row: QuestionOptionRow): void => {
-		insertOption.run(
-			row.id,
-			row.question_id,
-			row.text,
-			row.is_correct,
-			row.position,
-		);
-	};
+	const questionIdsOf = (quizSetId: string): string[] =>
+		database
+			.select({ id: questions.id })
+			.from(questions)
+			.where(eq(questions.quizSetId, quizSetId))
+			.all()
+			.map((row) => row.id);
 
 	return {
 		save(quizSet: QuizSet): void {
+			const row = toQuizSetRow(quizSet);
+			const keptIds = quizSet.questions.map((question) => String(question.id));
+
 			transaction.run(() => {
-				writeQuizSet(toQuizSetRow(quizSet));
-				deleteOptions.run(quizSet.id);
-				deleteRemovedQuestions.run(
-					quizSet.id,
-					JSON.stringify(quizSet.questions.map((question) => question.id)),
-				);
-				parkQuestions.run(quizSet.id);
+				database
+					.insert(quizSets)
+					.values(row)
+					.onConflictDoUpdate({ target: quizSets.id, set: row })
+					.run();
+
+				// Options are rewritten wholesale: nothing references them, so there is
+				// no cascade to lose.
+				const storedQuestionIds = questionIdsOf(row.id);
+
+				if (storedQuestionIds.length > 0) {
+					database
+						.delete(questionOptions)
+						.where(inArray(questionOptions.questionId, storedQuestionIds))
+						.run();
+				}
+
+				// Questions are upserted rather than deleted and reinserted so that
+				// saving a set again never cascades away the attempt responses and
+				// review items pointing at the surviving questions. The trade-off is
+				// that editing a stored question keeps the responses recorded against
+				// its previous wording; losing them to a cascade is the worse of the
+				// two, and published questions are immutable anyway.
+				database
+					.delete(questions)
+					.where(
+						keptIds.length === 0
+							? eq(questions.quizSetId, row.id)
+							: and(
+									eq(questions.quizSetId, row.id),
+									notInArray(questions.id, keptIds),
+								),
+					)
+					.run();
+
+				// Position and fingerprint are unique per set and SQLite checks both per
+				// statement, so upserting in aggregate order would collide whenever a
+				// question takes a value another surviving question still holds —
+				// inserting into the middle of a set, or reordering two questions.
+				// Parking every survivor outside the unique space first keeps any
+				// permutation writable.
+				database
+					.update(questions)
+					.set({
+						position: sql`-1 - ${questions.position}`,
+						fingerprint: sql`'parked:' || ${questions.id}`,
+					})
+					.where(eq(questions.quizSetId, row.id))
+					.run();
 
 				for (const question of quizSet.questions) {
-					writeQuestion(toQuestionRow(quizSet.id, question));
+					const questionRow = toQuestionRow(row.id, question);
 
-					for (const option of toQuestionOptionRows(question)) {
-						writeOption(option);
+					database
+						.insert(questions)
+						.values(questionRow)
+						.onConflictDoUpdate({ target: questions.id, set: questionRow })
+						.run();
+
+					const optionRows = toQuestionOptionRows(question);
+
+					if (optionRows.length > 0) {
+						database
+							.insert(questionOptions)
+							.values([...optionRows])
+							.run();
 					}
 				}
 			});
 		},
 
 		findById(id: QuizSetId): QuizSet | undefined {
-			const row = selectQuizSet.get(id);
+			const row = database
+				.select()
+				.from(quizSets)
+				.where(eq(quizSets.id, id))
+				.get();
 
 			if (!row) {
 				return undefined;
 			}
 
-			return toQuizSet(row, selectQuestions.all(id), selectOptions.all(id));
+			const questionRows = database
+				.select()
+				.from(questions)
+				.where(eq(questions.quizSetId, id))
+				.orderBy(asc(questions.position))
+				.all();
+			const optionRows = database
+				.select({
+					id: questionOptions.id,
+					questionId: questionOptions.questionId,
+					text: questionOptions.text,
+					isCorrect: questionOptions.isCorrect,
+					position: questionOptions.position,
+				})
+				.from(questionOptions)
+				.innerJoin(questions, eq(questions.id, questionOptions.questionId))
+				.where(eq(questions.quizSetId, id))
+				.orderBy(asc(questionOptions.position))
+				.all();
+
+			return toQuizSet(row, questionRows, optionRows);
 		},
 
 		list(filter?: QuizSetListFilter): readonly QuizSetSummary[] {
-			const rows =
-				filter?.statuses === undefined
-					? selectSummaries.all()
-					: selectSummariesByStatus.all(JSON.stringify(filter.statuses));
+			const summaries = database
+				.select({
+					id: quizSets.id,
+					title: quizSets.title,
+					status: quizSets.status,
+					updatedAt: quizSets.updatedAt,
+					questionCount: count(questions.id),
+				})
+				.from(quizSets)
+				.leftJoin(questions, eq(questions.quizSetId, quizSets.id))
+				.where(
+					filter?.statuses === undefined
+						? undefined
+						: inArray(quizSets.status, [...filter.statuses]),
+				)
+				.groupBy(quizSets.id)
+				.orderBy(desc(quizSets.updatedAt), asc(quizSets.id))
+				.all();
 
-			return rows.map(toQuizSetSummary);
+			return summaries.map(toQuizSetSummary);
 		},
 	};
 }

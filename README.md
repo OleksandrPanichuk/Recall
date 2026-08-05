@@ -54,8 +54,8 @@
 - [Bun](https://bun.com) — runtime, package manager, build і test runner;
 - TypeScript;
 - [Telegraf](https://telegraf.js.org) — запланований Telegram Bot framework;
-- `bun:sqlite` + [Drizzle ORM](https://orm.drizzle.team) — локальна database, schema
-  та versioned migrations;
+- `bun:sqlite` + [Drizzle ORM](https://orm.drizzle.team) — локальна database, schema,
+  versioned migrations і всі repository-запити;
 - Model Context Protocol — запланована інтеграція з Claude Desktop/Claude Code.
 
 ## Поточна локальна foundation
@@ -319,7 +319,7 @@ src/
         migrator.ts guarded Drizzle migration runner
         schema.ts   Drizzle SQLite schema
         sqlite-transaction.ts Transaction port over bun:sqlite
-        repositories/ repository implementations and row mappers
+        repositories/ Drizzle query builders and row mappers
   infrastructure/
     config/
       env.ts       validated startup configuration

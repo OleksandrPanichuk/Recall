@@ -16,23 +16,23 @@ const aQuizSetRow = (overrides: Partial<QuizSetRow> = {}): QuizSetRow => ({
 	description: null,
 	language: "uk",
 	source: null,
-	source_chapters: null,
+	sourceChapters: null,
 	tags: "[]",
 	status: QuizSetStatus.Draft,
-	created_at: "2026-08-01T00:00:00.000Z",
-	updated_at: "2026-08-01T00:00:00.000Z",
-	published_at: null,
-	archived_at: null,
+	createdAt: "2026-08-01T00:00:00.000Z",
+	updatedAt: "2026-08-01T00:00:00.000Z",
+	publishedAt: null,
+	archivedAt: null,
 	...overrides,
 });
 
 const aQuestionRow = (overrides: Partial<QuestionRow> = {}): QuestionRow => ({
 	id: "question-1",
-	quiz_set_id: "set-1",
+	quizSetId: "set-1",
 	type: QuestionType.SingleChoice,
 	prompt: "Prompt",
 	explanation: null,
-	source_reference: null,
+	sourceReference: null,
 	topic: null,
 	difficulty: Difficulty.Medium,
 	hint: null,
@@ -46,17 +46,17 @@ const optionRows = (
 ): readonly QuestionOptionRow[] => [
 	{
 		id: "option-1",
-		question_id: "question-1",
+		questionId: "question-1",
 		text: "Right",
-		is_correct: 1,
+		isCorrect: true,
 		position: 0,
 		...overrides,
 	},
 	{
 		id: "option-2",
-		question_id: "question-1",
+		questionId: "question-1",
 		text: "Wrong",
-		is_correct: 0,
+		isCorrect: false,
 		position: 1,
 	},
 ];
@@ -95,20 +95,14 @@ describe("quiz set mapper", () => {
 		).toThrow(CorruptedQuizSetRowError);
 	});
 
-	test("rejects an is_correct value outside 0 and 1", () => {
-		expect(() =>
-			toQuizSet(aQuizSetRow(), [aQuestionRow()], optionRows({ is_correct: 2 })),
-		).toThrow(CorruptedQuizSetRowError);
-	});
-
 	test("rejects an unsupported status in a summary row", () => {
 		expect(() =>
 			toQuizSetSummary({
 				id: "set-1",
 				title: "Quiz set",
 				status: "retired",
-				question_count: 0,
-				updated_at: "2026-08-01T00:00:00.000Z",
+				questionCount: 0,
+				updatedAt: "2026-08-01T00:00:00.000Z",
 			}),
 		).toThrow(CorruptedQuizSetRowError);
 	});

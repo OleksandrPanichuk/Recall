@@ -1,5 +1,8 @@
 import type { Database } from "bun:sqlite";
-import { createDatabase } from "@/adapters/persistence/sqlite/database";
+import {
+	createDatabase,
+	createDrizzleClient,
+} from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
@@ -78,11 +81,12 @@ export function createApplication(options: ApplicationOptions): Application {
 
 	applyMigrations(database);
 
-	const transaction = createSqliteTransaction(database);
+	const client = createDrizzleClient(database);
+	const transaction = createSqliteTransaction(client);
 	const dependencies = {
-		quizSets: createSqliteQuizSetRepository(database, transaction),
-		attempts: createSqliteQuizAttemptRepository(database, transaction),
-		reviews: createSqliteReviewRepository(database, transaction),
+		quizSets: createSqliteQuizSetRepository(client, transaction),
+		attempts: createSqliteQuizAttemptRepository(client, transaction),
+		reviews: createSqliteReviewRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
 		transaction,

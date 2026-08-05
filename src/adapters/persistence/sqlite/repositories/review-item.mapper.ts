@@ -5,17 +5,10 @@ import {
 	restoreReviewItem,
 	toReviewItemId,
 } from "@/domain/review/review-item";
+import type { reviewItems } from "../schema";
 
-export interface ReviewItemRow {
-	readonly id: string;
-	readonly question_id: string;
-	readonly telegram_user_id: number;
-	readonly state: string;
-	readonly streak: number;
-	readonly due_at: string;
-	readonly created_at: string;
-	readonly last_reviewed_at: string | null;
-}
+export type ReviewItemRow = typeof reviewItems.$inferSelect;
+export type ReviewItemInsert = typeof reviewItems.$inferInsert;
 
 export class CorruptedReviewItemRowError extends Error {
 	readonly issues: readonly string[];
@@ -61,29 +54,29 @@ export function toReviewItem(row: ReviewItemRow): ReviewItem {
 
 	return restoreReviewItem({
 		id: toReviewItemId(row.id),
-		questionId: toQuestionId(row.question_id),
-		telegramUserId: row.telegram_user_id,
+		questionId: toQuestionId(row.questionId),
+		telegramUserId: row.telegramUserId,
 		state,
 		streak: row.streak,
-		dueAt: requiredDate(row.due_at, "due_at", row.id),
-		createdAt: requiredDate(row.created_at, "created_at", row.id),
+		dueAt: requiredDate(row.dueAt, "due_at", row.id),
+		createdAt: requiredDate(row.createdAt, "created_at", row.id),
 		lastReviewedAt: optionalDate(
-			row.last_reviewed_at,
+			row.lastReviewedAt,
 			"last_reviewed_at",
 			row.id,
 		),
 	});
 }
 
-export function toReviewItemRow(item: ReviewItem): ReviewItemRow {
+export function toReviewItemRow(item: ReviewItem): ReviewItemInsert {
 	return {
 		id: item.id,
-		question_id: item.questionId,
-		telegram_user_id: item.telegramUserId,
+		questionId: item.questionId,
+		telegramUserId: item.telegramUserId,
 		state: item.state,
 		streak: item.streak,
-		due_at: item.dueAt.toISOString(),
-		created_at: item.createdAt.toISOString(),
-		last_reviewed_at: item.lastReviewedAt?.toISOString() ?? null,
+		dueAt: item.dueAt.toISOString(),
+		createdAt: item.createdAt.toISOString(),
+		lastReviewedAt: item.lastReviewedAt?.toISOString() ?? null,
 	};
 }
