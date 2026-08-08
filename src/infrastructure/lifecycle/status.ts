@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { count, eq, inArray } from "drizzle-orm";
 import type { QuizDatabase } from "@/adapters/persistence/sqlite/database";
 import {
@@ -89,7 +90,7 @@ export function readStatus(
 
 export function formatStatus(report: StatusReport): string {
 	return [
-		`database:            ${report.databasePath}`,
+		`database:            ${resolve(report.databasePath)}`,
 		`timezone:            ${report.timezone}`,
 		`published sets:      ${report.publishedSets}`,
 		`draft sets:          ${report.draftSets}`,

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createMcpServer } from "@/adapters/mcp/server";
 import { createApplication } from "@/composition/create-application";
@@ -30,7 +31,13 @@ async function main(): Promise<void> {
 	});
 	const server = createMcpServer(application);
 	// stdout carries the protocol, so every log line goes to stderr.
-	const shutdown = createShutdown({ logger: createLogger() });
+	const logger = createLogger();
+	const shutdown = createShutdown({ logger });
+
+	logger.info("mcp server ready", {
+		databasePath: resolve(environment.databasePath),
+		timezone: environment.appTimezone,
+	});
 
 	shutdown.register({
 		name: "database",

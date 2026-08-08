@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createBot } from "@/adapters/telegram/bot";
 import { createApplication } from "@/composition/create-application";
@@ -30,7 +31,7 @@ function main(): void {
 	// contacting Telegram, so it is safe to run against a live deployment.
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${environment.databasePath} timezone=${environment.appTimezone}`,
+			`Configuration is valid. database=${resolve(environment.databasePath)} timezone=${environment.appTimezone}`,
 		);
 
 		return;
@@ -86,7 +87,7 @@ function main(): void {
 	shutdown.listen();
 
 	logger.info("starting bot", {
-		databasePath: environment.databasePath,
+		databasePath: resolve(environment.databasePath),
 		timezone: environment.appTimezone,
 	});
 
