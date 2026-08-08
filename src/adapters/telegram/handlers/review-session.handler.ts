@@ -23,7 +23,7 @@ export function reviewSessionHandler(
 			telegramUserId,
 		});
 
-		if (current === undefined) {
+		if (current?.question === undefined) {
 			await render(ctx, notice("Не вдалося відкрити сесію. Спробуйте ще раз."));
 
 			return;
@@ -34,10 +34,9 @@ export function reviewSessionHandler(
 				? `📉 Слабка тема: ${started.topic}`
 				: "🔁 Повторення помилок";
 
-		await render(ctx, {
-			...questionScreen(current),
-			text: `${heading}\n\n${questionScreen(current).text}`,
-		});
+		const screen = questionScreen(current, current.question);
+
+		await render(ctx, { ...screen, text: `${heading}\n\n${screen.text}` });
 	};
 }
 

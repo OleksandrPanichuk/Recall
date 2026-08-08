@@ -204,9 +204,12 @@ export class StartReviewSession
 		matches: (question: Question) => boolean,
 		limit: number,
 	): Selection | undefined {
+		// Rank on how many questions each set actually offers, then trim. Slicing
+		// first made a set with 15 matches tie with one holding 12 and lose on id.
 		const candidates = sets
 			.map((quizSet) => ({
 				quizSet,
+				matched: quizSet.questions.filter(matches).length,
 				questionIds: quizSet.questions
 					.filter(matches)
 					.slice(0, limit)
@@ -214,9 +217,9 @@ export class StartReviewSession
 			}))
 			.filter((candidate) => candidate.questionIds.length > 0)
 			.toSorted((left, right) =>
-				left.questionIds.length === right.questionIds.length
+				left.matched === right.matched
 					? String(left.quizSet.id).localeCompare(String(right.quizSet.id))
-					: right.questionIds.length - left.questionIds.length,
+					: right.matched - left.matched,
 			);
 
 		return candidates.at(0);

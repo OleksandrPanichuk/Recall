@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import {
+	closeDatabase,
 	createDatabase,
 	createDrizzleClient,
 } from "@/adapters/persistence/sqlite/database";
@@ -111,8 +112,11 @@ export function createApplication(options: ApplicationOptions): Application {
 		getQuizStatistics: new GetQuizStatistics(dependencies),
 		startReviewSession: new StartReviewSession(dependencies),
 		rateReview: new RateReview(dependencies),
+		// closeDatabase, not database.close: it checkpoints the write-ahead log first,
+		// so the newest writes end up in the file itself rather than a -wal sidecar
+		// that a backup or a restore can leave behind.
 		close: () => {
-			database.close();
+			closeDatabase(database);
 		},
 	};
 }

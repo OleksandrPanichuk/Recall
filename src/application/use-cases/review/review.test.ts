@@ -98,6 +98,11 @@ async function play(
 	await finish.execute({ telegramUserId: USER });
 }
 
+/** Long enough that anything queued yesterday is due. */
+const untilDue = (): void => {
+	context.clock.advance(2 * 24 * 60 * 60 * 1000);
+};
+
 describe("mistake queueing (§5.1)", () => {
 	test("a wrong answer queues the question", async () => {
 		const quizSetId = await seedSet("Bun", [aQuestionInput("One")]);
@@ -132,9 +137,10 @@ describe("mistake queueing (§5.1)", () => {
 		expect(context.reviews.countPending(USER)).toBe(1);
 	});
 
-	test("answering it right advances the streak", async () => {
+	test("answering it right once it is due advances the streak", async () => {
 		const quizSetId = await seedSet("Bun", [aQuestionInput("One")]);
 		await play(quizSetId, [false]);
+		untilDue();
 
 		await play(quizSetId, [true]);
 
@@ -150,6 +156,7 @@ describe("mistake queueing (§5.1)", () => {
 	test("getting it wrong again resets the streak", async () => {
 		const quizSetId = await seedSet("Bun", [aQuestionInput("One")]);
 		await play(quizSetId, [false]);
+		untilDue();
 		await play(quizSetId, [true]);
 
 		await play(quizSetId, [false]);
@@ -167,6 +174,8 @@ describe("mistake queueing (§5.1)", () => {
 		await play(quizSetId, [false]);
 
 		for (let pass = 0; pass < 4; pass += 1) {
+			// Each pass has to wait for the card to fall due, or it does not count.
+			context.clock.advance(30 * 24 * 60 * 60 * 1000);
 			await play(quizSetId, [true]);
 		}
 
@@ -181,6 +190,25 @@ describe("mistake queueing (§5.1)", () => {
 		expect(context.reviews.findByQuestion(USER, questionId)?.state).toBe(
 			ReviewItemState.Pending,
 		);
+	});
+
+	// Spacing is the point of the feature: without this a mistake made in the
+	// morning retires by the afternoon, having never been spaced at all.
+	test("answering it right before it is due does not advance the streak", async () => {
+		const quizSetId = await seedSet("Bun", [aQuestionInput("One")]);
+		await play(quizSetId, [false]);
+		const questionId = questionsOf(quizSetId)[0]?.id as never;
+
+		// Four correct answers in a row, all on the same day.
+		for (let pass = 0; pass < 4; pass += 1) {
+			await play(quizSetId, [true]);
+		}
+
+		const item = context.reviews.findByQuestion(USER, questionId);
+
+		expect(item?.streak).toBe(0);
+		expect(item?.state).toBe(ReviewItemState.Pending);
+		expect(context.reviews.countPending(USER)).toBe(1);
 	});
 
 	test("another user's queue is untouched", async () => {

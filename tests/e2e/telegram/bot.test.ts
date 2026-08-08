@@ -518,3 +518,61 @@ describe("real API limits and failures", () => {
 		expect(buttonFor("Bun")).toContain("s:");
 	});
 });
+
+// Answering the last question and then tapping "« Меню" instead of "🏁 Завершити"
+// used to leave an attempt that blocked every other action, on a screen that no
+// longer offered any way to finish it. It needed a hand-written UPDATE to escape.
+describe("finishing an answered-out attempt", () => {
+	const answerEverything = async (): Promise<void> => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Right for One"));
+	};
+
+	test("the menu offers a way to finish, and says the attempt is done", async () => {
+		await answerEverything();
+
+		await harness.tap(buttonFor("Меню"));
+
+		expect(harness.lastText()).toContain("залишилось її завершити");
+		expect(buttonFor("Завершити спробу")).toBe("f");
+	});
+
+	test("the owner can still start another set afterwards", async () => {
+		await answerEverything();
+		await harness.tap(buttonFor("Меню"));
+		harness.clock.advance(60_000);
+
+		await harness.tap(buttonFor("Завершити спробу"));
+
+		expect(harness.lastText()).toContain("Спробу завершено");
+
+		await seedPublishedSet(harness, "Second", [aQuestionInput("Two")]);
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Second"));
+
+		expect(harness.lastText()).toContain("питання 1/1");
+	});
+
+	test("continuing offers finishing rather than claiming nothing is open", async () => {
+		await answerEverything();
+		await harness.tap(buttonFor("Меню"));
+
+		await harness.tap(buttonFor("Продовжити навчання"));
+
+		expect(harness.lastText()).toContain("Усі питання пройдено");
+		expect(buttonFor("Завершити")).toBe("f");
+	});
+
+	test("reopening the same set offers finishing too", async () => {
+		await answerEverything();
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Мої набори"));
+
+		await harness.tap(buttonFor("Bun"));
+
+		expect(buttonFor("Завершити")).toBe("f");
+	});
+});

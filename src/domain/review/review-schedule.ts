@@ -96,9 +96,23 @@ function localMidnight(
 ): Date {
 	const wallClock = Date.UTC(year, month - 1, day);
 	const firstGuess = wallClock - offsetMs(new Date(wallClock), timezone);
+	const resolved = new Date(
+		wallClock - offsetMs(new Date(firstGuess), timezone),
+	);
+	const landed = zonedParts(resolved, timezone);
 
-	return new Date(wallClock - offsetMs(new Date(firstGuess), timezone));
+	// Some zones spring forward at 00:00, so local midnight does not exist that
+	// day and the resolver lands on 23:00 the day before — which would schedule a
+	// review into the past and make the question unanswerable. Step forward to the
+	// first instant of the requested day that does exist.
+	if (landed.year !== year || landed.month !== month || landed.day !== day) {
+		return new Date(resolved.getTime() + HOUR_MS);
+	}
+
+	return resolved;
 }
+
+const HOUR_MS = 60 * 60 * 1000;
 
 export function startOfDayInTimezone(at: Date, timezone: string): Date {
 	const parts = zonedParts(at, timezone);

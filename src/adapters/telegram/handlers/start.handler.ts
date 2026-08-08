@@ -1,6 +1,6 @@
 import type { Context } from "telegraf";
 import type { TelegramUseCases } from "../bot";
-import { mainMenu, notice } from "../presenters/menu.presenter";
+import { finishPrompt, mainMenu, notice } from "../presenters/menu.presenter";
 import { questionScreen } from "../presenters/question.presenter";
 import { render } from "../screen";
 
@@ -10,7 +10,13 @@ export function menuHandler(useCases: TelegramUseCases) {
 			telegramUserId: ctx.from?.id ?? 0,
 		});
 
-		await render(ctx, mainMenu(current !== undefined));
+		await render(
+			ctx,
+			mainMenu({
+				hasUnfinishedAttempt: current !== undefined,
+				awaitingFinish: current?.awaitingFinish === true,
+			}),
+		);
 	};
 }
 
@@ -30,6 +36,12 @@ export function resumeHandler(useCases: TelegramUseCases) {
 			return;
 		}
 
-		await render(ctx, questionScreen(current));
+		if (current.question === undefined) {
+			await render(ctx, finishPrompt());
+
+			return;
+		}
+
+		await render(ctx, questionScreen(current, current.question));
 	};
 }

@@ -19,13 +19,19 @@ export function toggleHandler(useCases: TelegramUseCases) {
 			telegramUserId: ctx.from?.id ?? 0,
 		});
 
-		if (current === undefined || current.question.id !== callback.questionId) {
+		if (
+			current?.question === undefined ||
+			current.question.id !== callback.questionId
+		) {
 			await render(ctx, notice(STALE));
 
 			return;
 		}
 
-		await render(ctx, questionScreen(current, callback.optionPositions));
+		await render(
+			ctx,
+			questionScreen(current, current.question, callback.optionPositions),
+		);
 	};
 }
 
