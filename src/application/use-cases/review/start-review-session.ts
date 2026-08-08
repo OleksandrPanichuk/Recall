@@ -20,12 +20,15 @@ export const DEFAULT_SESSION_SIZE = 10;
 export const MIN_ANSWERS_FOR_WEAK_TOPIC = 3;
 
 export class NothingToReviewError extends Error {
+	readonly mode: SessionMode;
+
 	constructor(mode: SessionMode) {
 		super(
 			mode === QuizAttemptMode.Mistakes
-				? "Nothing is due for review right now."
-				: "Not enough answered questions yet to find a weak topic.",
+				? "Nothing is due for review right now"
+				: "Not enough answered questions yet to find a weak topic",
 		);
+		this.mode = mode;
 		this.name = "NothingToReviewError";
 	}
 }
@@ -201,9 +204,12 @@ export class StartReviewSession
 		matches: (question: Question) => boolean,
 		limit: number,
 	): Selection | undefined {
+		// Rank on how many questions each set actually offers, then trim. Slicing
+		// first made a set with 15 matches tie with one holding 12 and lose on id.
 		const candidates = sets
 			.map((quizSet) => ({
 				quizSet,
+				matched: quizSet.questions.filter(matches).length,
 				questionIds: quizSet.questions
 					.filter(matches)
 					.slice(0, limit)
@@ -211,9 +217,9 @@ export class StartReviewSession
 			}))
 			.filter((candidate) => candidate.questionIds.length > 0)
 			.toSorted((left, right) =>
-				left.questionIds.length === right.questionIds.length
+				left.matched === right.matched
 					? String(left.quizSet.id).localeCompare(String(right.quizSet.id))
-					: right.questionIds.length - left.questionIds.length,
+					: right.matched - left.matched,
 			);
 
 		return candidates.at(0);

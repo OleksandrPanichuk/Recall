@@ -5,6 +5,9 @@ import type { Question } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data";
 import { button, type Screen } from "./menu.presenter";
 
+/** Keeps the statistics screen inside Telegram's message length limit. */
+export const MAX_ROWS = 15;
+
 export function answerFeedback(
 	result: AnswerQuestionResult,
 	question: Question,
@@ -80,18 +83,29 @@ export function statisticsScreen(
 		};
 	}
 
-	const attempts = statistics.attempts
-		.map(
+	// Neither list is bounded by its query, and both grow for as long as the app
+	// is used — at ~50 attempts and ~40 topics the screen passes Telegram's 4096
+	// character limit and statistics stop opening at all. The recent end of each
+	// is the useful end.
+	const shownAttempts = statistics.attempts.slice(-MAX_ROWS);
+	const skippedAttempts = statistics.attempts.length - shownAttempts.length;
+	const shownTopics = statistics.topics.slice(0, MAX_ROWS);
+	const skippedTopics = statistics.topics.length - shownTopics.length;
+
+	const attempts = [
+		...shownAttempts.map(
 			(attempt, index) =>
-				`${index + 1}. ${attempt.score.correct}/${attempt.score.total} (${attempt.score.percentage}%)`,
-		)
-		.join("\n");
-	const topics = statistics.topics
-		.map(
+				`${skippedAttempts + index + 1}. ${attempt.score.correct}/${attempt.score.total} (${attempt.score.percentage}%)`,
+		),
+		...(skippedAttempts > 0 ? [`…і ще ${skippedAttempts} раніше`] : []),
+	].join("\n");
+	const topics = [
+		...shownTopics.map(
 			(topic) =>
 				`• ${topic.topic ?? "Без теми"}: ${topic.correct}/${topic.answered}`,
-		)
-		.join("\n");
+		),
+		...(skippedTopics > 0 ? [`…і ще ${skippedTopics} тем`] : []),
+	].join("\n");
 	const improvement =
 		statistics.improvement === undefined
 			? undefined

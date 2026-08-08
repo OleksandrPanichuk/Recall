@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { TelegramUseCases } from "../bot";
-import { notice } from "../presenters/menu.presenter";
+import { finishPrompt } from "../presenters/menu.presenter";
 import { questionScreen } from "../presenters/question.presenter";
 import { render } from "../screen";
 
@@ -18,15 +18,12 @@ export function startAttemptHandler(useCases: TelegramUseCases) {
 			telegramUserId: request.telegramUserId,
 		});
 
-		if (current === undefined) {
-			await render(
-				ctx,
-				notice("Усі питання вже пройдено. Завершіть спробу в меню."),
-			);
+		if (current === undefined || current.question === undefined) {
+			await render(ctx, finishPrompt());
 
 			return;
 		}
 
-		await render(ctx, questionScreen(current));
+		await render(ctx, questionScreen(current, current.question));
 	};
 }

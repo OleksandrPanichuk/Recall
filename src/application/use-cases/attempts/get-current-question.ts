@@ -15,10 +15,16 @@ export interface CurrentQuestionView {
 	readonly quizSetId: QuizSetId;
 	readonly quizSetTitle: string;
 	readonly status: QuizAttemptStatus;
-	readonly question: Question;
+	/**
+	 * Absent once every planned question has been answered, or if the question
+	 * itself has since been removed from the set.
+	 */
+	readonly question?: Question;
 	/** Zero-based position in the attempt's plan. */
 	readonly index: number;
 	readonly total: number;
+	/** True when the only thing left to do with this attempt is finish it. */
+	readonly awaitingFinish: boolean;
 }
 
 export interface GetCurrentQuestionDependencies {
@@ -27,9 +33,13 @@ export interface GetCurrentQuestionDependencies {
 }
 
 /**
- * The screen the Telegram adapter renders while an attempt is running. Resolves
- * to undefined when the user has no unfinished attempt, or has answered every
- * planned question and only has finishing left.
+ * The state of the user's unfinished attempt, if they have one.
+ *
+ * Resolving to `undefined` means "no unfinished attempt" and nothing else. An
+ * attempt whose questions are all answered still resolves — it is exactly the
+ * state that needs a Finish button, and reporting it as absent is how a user
+ * ends up blocked from starting anything while being told to finish something
+ * the interface no longer offers.
  */
 export class GetCurrentQuestion
 	implements
@@ -52,29 +62,22 @@ export class GetCurrentQuestion
 			return undefined;
 		}
 
-		const questionId = currentQuestionId(attempt);
-
-		if (questionId === undefined) {
-			return undefined;
-		}
-
 		const quizSet = this.quizSets.findById(attempt.quizSetId);
-		const question = quizSet?.questions.find(
-			(candidate) => candidate.id === questionId,
-		);
-
-		if (quizSet === undefined || question === undefined) {
-			return undefined;
-		}
+		const questionId = currentQuestionId(attempt);
+		const question =
+			questionId === undefined
+				? undefined
+				: quizSet?.questions.find((candidate) => candidate.id === questionId);
 
 		return {
 			attemptId: attempt.id,
-			quizSetId: quizSet.id,
-			quizSetTitle: quizSet.title,
+			quizSetId: attempt.quizSetId,
+			quizSetTitle: quizSet?.title ?? "",
 			status: attempt.status,
 			question,
 			index: attempt.responses.length,
 			total: attempt.questionIds.length,
+			awaitingFinish: question === undefined,
 		};
 	}
 }

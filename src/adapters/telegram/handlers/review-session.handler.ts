@@ -23,7 +23,7 @@ export function reviewSessionHandler(
 			telegramUserId,
 		});
 
-		if (current === undefined) {
+		if (current?.question === undefined) {
 			await render(ctx, notice("Не вдалося відкрити сесію. Спробуйте ще раз."));
 
 			return;
@@ -34,17 +34,16 @@ export function reviewSessionHandler(
 				? `📉 Слабка тема: ${started.topic}`
 				: "🔁 Повторення помилок";
 
-		await render(ctx, {
-			...questionScreen(current),
-			text: `${heading}\n\n${questionScreen(current).text}`,
-		});
+		const screen = questionScreen(current, current.question);
+
+		await render(ctx, { ...screen, text: `${heading}\n\n${screen.text}` });
 	};
 }
 
 export function rateHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: RateCallback): Promise<void> => {
 		if (!isReviewRating(callback.rating)) {
-			await ctx.answerCbQuery("Невідома оцінка");
+			await render(ctx, notice("Невідома оцінка."));
 
 			return;
 		}
@@ -55,8 +54,10 @@ export function rateHandler(useCases: TelegramUseCases) {
 			rating: callback.rating,
 		});
 
-		await ctx.answerCbQuery(
-			`Наступне повторення: ${dueAt.toISOString().slice(0, 10)}`,
+		// The query was already answered by the router, so confirm on the screen.
+		await render(
+			ctx,
+			notice(`Заплановано повторення на ${dueAt.toISOString().slice(0, 10)}.`),
 		);
 	};
 }

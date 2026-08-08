@@ -152,7 +152,7 @@ describe("quiz flow (§3.3)", () => {
 
 		expect(options).toHaveLength(2);
 		for (const option of options) {
-			expect(option.callback_data).toMatch(/^a:q-\d+:\d+$/);
+			expect(option.callback_data).toMatch(/^a:q\d{17}:\d+$/);
 		}
 		// Both payloads differ only by option position — nothing marks correctness.
 		expect(
@@ -369,7 +369,9 @@ describe("adaptive practice (§5)", () => {
 		).toBe(false);
 	});
 
-	test("rating a question confirms its next review date", async () => {
+	// The router already answered this callback query, so the confirmation has to
+	// be a screen: Telegram rejects a second answer for the same query.
+	test("rating a question confirms its next review date on screen", async () => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
 		await openSet("Bun");
 		harness.clock.advance(60_000);
@@ -377,7 +379,25 @@ describe("adaptive practice (§5)", () => {
 
 		await harness.tap(buttonFor("Легко"));
 
-		expect(harness.answeredQueries().at(-1)).toContain("Наступне повторення");
+		expect(harness.lastText()).toContain("Заплановано повторення на");
+	});
+
+	test("answers each callback query exactly once", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Wrong for One"));
+		const before = harness.calls.filter(
+			(call) => call.method === "answerCallbackQuery",
+		).length;
+
+		await harness.tap(buttonFor("Важко"));
+
+		const after = harness.calls.filter(
+			(call) => call.method === "answerCallbackQuery",
+		).length;
+
+		expect(after - before).toBe(1);
 	});
 
 	test("the mistakes menu opens a session once questions are due", async () => {
@@ -396,7 +416,7 @@ describe("adaptive practice (§5)", () => {
 
 		await harness.tap(buttonFor("Повторити помилки"));
 
-		expect(harness.lastText()).toContain("Nothing is due");
+		expect(harness.lastText()).toContain("немає питань для повторення");
 	});
 
 	test("the weak-topics menu opens a session for the weakest topic", async () => {
@@ -414,6 +434,145 @@ describe("adaptive practice (§5)", () => {
 
 		await harness.tap(buttonFor("Слабкі теми"));
 
-		expect(harness.lastText()).toContain("Not enough answered questions");
+		expect(harness.lastText()).toContain("Замало відповідей");
+	});
+});
+
+// The harness now enforces Telegram's real limits and can reject a call the way
+// the API does, so these are the failures that used to be invisible.
+describe("real API limits and failures", () => {
+	test("statistics stay inside the message limit after many attempts", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", { topic: "A".repeat(100) }),
+		]);
+
+		for (let round = 0; round < 40; round += 1) {
+			await openSet("Bun");
+			harness.clock.advance(60_000);
+			await harness.tap(buttonFor("Right for One"));
+			harness.clock.advance(60_000);
+			await harness.tap(buttonFor("Завершити"));
+		}
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("Bun"));
+
+		expect(harness.lastText().length).toBeLessThanOrEqual(4096);
+		expect(harness.lastText()).toContain("і ще");
+	});
+
+	test("a long question and explanation stay inside the message limit", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", {
+				prompt: "П".repeat(1000),
+				explanation: "Я".repeat(1000),
+				options: [
+					{ text: "Т".repeat(300), isCorrect: true },
+					{ text: "Н".repeat(300), isCorrect: false },
+				],
+			}),
+		]);
+
+		await openSet("Bun");
+
+		expect(harness.lastText().length).toBeLessThanOrEqual(4096);
+
+		harness.clock.advance(60_000);
+		await harness.tap(harness.lastButtons()[0]?.callback_data as string);
+
+		expect(harness.lastText().length).toBeLessThanOrEqual(4096);
+	});
+
+	// Telegraf's default error handler rethrows, which aborts polling and exits
+	// the process. A transient API failure must not end the session.
+	test("an API failure mid-render does not escape the middleware", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await harness.send("/start");
+		harness.failNext({
+			method: "editMessageText",
+			message: "429: Too Many Requests: retry after 1",
+		});
+
+		await harness.tap(buttonFor("Мої набори"));
+
+		// The tap failed, but the bot is still answering.
+		await harness.tap(buttonFor("« Меню"));
+
+		expect(harness.lastText()).toContain("Головне меню");
+	});
+
+	test("an uneditable message falls back to a fresh one", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await harness.send("/start");
+		harness.failNext({
+			method: "editMessageText",
+			message: "400: Bad Request: message to edit not found",
+		});
+
+		await harness.tap(buttonFor("Мої набори"));
+
+		// A fresh message was sent rather than the edit failing the session.
+		expect(harness.calls.at(-1)?.method).toBe("sendMessage");
+		expect(harness.lastText()).toContain("Оберіть набір");
+		expect(buttonFor("Bun")).toContain("s:");
+	});
+});
+
+// Answering the last question and then tapping "« Меню" instead of "🏁 Завершити"
+// used to leave an attempt that blocked every other action, on a screen that no
+// longer offered any way to finish it. It needed a hand-written UPDATE to escape.
+describe("finishing an answered-out attempt", () => {
+	const answerEverything = async (): Promise<void> => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Right for One"));
+	};
+
+	test("the menu offers a way to finish, and says the attempt is done", async () => {
+		await answerEverything();
+
+		await harness.tap(buttonFor("Меню"));
+
+		expect(harness.lastText()).toContain("залишилось її завершити");
+		expect(buttonFor("Завершити спробу")).toBe("f");
+	});
+
+	test("the owner can still start another set afterwards", async () => {
+		await answerEverything();
+		await harness.tap(buttonFor("Меню"));
+		harness.clock.advance(60_000);
+
+		await harness.tap(buttonFor("Завершити спробу"));
+
+		expect(harness.lastText()).toContain("Спробу завершено");
+
+		await seedPublishedSet(harness, "Second", [aQuestionInput("Two")]);
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Second"));
+
+		expect(harness.lastText()).toContain("питання 1/1");
+	});
+
+	test("continuing offers finishing rather than claiming nothing is open", async () => {
+		await answerEverything();
+		await harness.tap(buttonFor("Меню"));
+
+		await harness.tap(buttonFor("Продовжити навчання"));
+
+		expect(harness.lastText()).toContain("Усі питання пройдено");
+		expect(buttonFor("Завершити")).toBe("f");
+	});
+
+	test("reopening the same set offers finishing too", async () => {
+		await answerEverything();
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Мої набори"));
+
+		await harness.tap(buttonFor("Bun"));
+
+		expect(buttonFor("Завершити")).toBe("f");
 	});
 });

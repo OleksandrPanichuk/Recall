@@ -9,7 +9,7 @@ import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	createMutableClock,
-	createSequentialIdGenerator,
+	createRealisticIdGenerator,
 	type MutableClock,
 } from "../../fixtures/application.fixture";
 
@@ -38,6 +38,8 @@ export interface BotHarness {
 	/** Inline keyboard of the most recent screen, flattened. */
 	lastButtons(): readonly InlineButton[];
 	answeredQueries(): readonly string[];
+	/** Makes the next call to `method` reject, as the real API would. */
+	failNext(failure: TelegramFailure): void;
 	close(): void;
 }
 
@@ -48,7 +50,47 @@ let updateId = 0;
 // prototype is the only shared seam; calls are routed to whichever harness is
 // currently live, and each test builds its own.
 let activeCalls: ApiCall[] | undefined;
+let activeFailures: TelegramFailure[] | undefined;
 let prototypePatched = false;
+
+export interface TelegramFailure {
+	/** Matches the API method, e.g. "editMessageText". */
+	readonly method: string;
+	readonly message: string;
+}
+
+/** Telegram's own hard limits, enforced on every outbound call. */
+const TEXT_LIMIT = 4096;
+const CALLBACK_DATA_LIMIT = 64;
+
+function assertWithinTelegramLimits(
+	method: string,
+	payload: Record<string, unknown>,
+): void {
+	const text = payload.text;
+
+	if (typeof text === "string" && text.length > TEXT_LIMIT) {
+		throw new Error(
+			`400: Bad Request: message is too long (${text.length} > ${TEXT_LIMIT}) in ${method}`,
+		);
+	}
+
+	const markup = payload.reply_markup as
+		| { inline_keyboard?: { callback_data?: string }[][] }
+		| undefined;
+
+	for (const row of markup?.inline_keyboard ?? []) {
+		for (const button of row) {
+			const data = button.callback_data ?? "";
+
+			if (data.length > CALLBACK_DATA_LIMIT) {
+				throw new Error(
+					`400: Bad Request: BUTTON_DATA_INVALID (${data.length} > ${CALLBACK_DATA_LIMIT}) in ${method}`,
+				);
+			}
+		}
+	}
+}
 
 function patchTelegramTransport(): void {
 	if (prototypePatched) {
@@ -62,6 +104,19 @@ function patchTelegramTransport(): void {
 	) => {
 		activeCalls?.push({ method, payload });
 
+		const failureIndex =
+			activeFailures?.findIndex((entry) => entry.method === method) ?? -1;
+
+		if (activeFailures !== undefined && failureIndex >= 0) {
+			const [failure] = activeFailures.splice(failureIndex, 1);
+
+			throw new Error(failure?.message ?? "telegram failed");
+		}
+
+		// The real API rejects these outright, and a stub that always succeeds is
+		// how a length overflow reaches production unnoticed.
+		assertWithinTelegramLimits(method, payload);
+
 		return true;
 	}) as typeof Telegram.prototype.callApi;
 }
@@ -71,7 +126,7 @@ export function createBotHarness(): BotHarness {
 	const application = createApplication({
 		databasePath: ":memory:",
 		clock,
-		idGenerator: createSequentialIdGenerator("q"),
+		idGenerator: createRealisticIdGenerator("q"),
 	});
 	const bot = createBot({
 		token: "test-token",
@@ -81,8 +136,11 @@ export function createBotHarness(): BotHarness {
 	});
 	const calls: ApiCall[] = [];
 
+	const failures: TelegramFailure[] = [];
+
 	patchTelegramTransport();
 	activeCalls = calls;
+	activeFailures = failures;
 
 	// Supplying botInfo stops Telegraf calling getMe on the first update.
 	bot.botInfo = {
@@ -158,6 +216,9 @@ export function createBotHarness(): BotHarness {
 				| undefined;
 
 			return (markup?.inline_keyboard ?? []).flat();
+		},
+		failNext: (failure) => {
+			failures.push(failure);
 		},
 		answeredQueries: () =>
 			calls

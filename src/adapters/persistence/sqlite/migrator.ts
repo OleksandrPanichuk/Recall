@@ -93,6 +93,31 @@ function rebuildMarker(statements: string): string | undefined {
 	return undefined;
 }
 
+/**
+ * The bot and the MCP server both open the database on start, so two processes
+ * can reach an unmigrated file at the same moment. Drizzle's migrator is not
+ * itself serialised: the loser of that race fails with `table already exists`
+ * having done nothing wrong. Losing to a peer that finished the same migrations
+ * is success, so it is only an error if the work is still outstanding afterwards.
+ */
+function runMigrations(
+	database: Database,
+	folder: string,
+	before: ReadonlySet<number>,
+): void {
+	try {
+		migrate(createDrizzleClient(database), { migrationsFolder: folder });
+	} catch (error) {
+		const pending = journalEntries(folder).filter(
+			(entry) => !appliedTimestamps(database).includes(entry.when),
+		);
+
+		if (pending.length > 0 || before.size > 0) {
+			throw error;
+		}
+	}
+}
+
 function assertNoRebuild(
 	folder: string,
 	entries: readonly JournalEntry[],
@@ -122,7 +147,7 @@ export function applyMigrations(
 		entries.filter((entry) => latest === undefined || latest < entry.when),
 	);
 
-	migrate(createDrizzleClient(database), { migrationsFolder: folder });
+	runMigrations(database, folder, before);
 
 	const tags = new Map(entries.map((entry) => [entry.when, entry.tag]));
 

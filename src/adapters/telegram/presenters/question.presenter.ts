@@ -1,5 +1,5 @@
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
-import { QuestionType } from "@/domain/quiz-set/question";
+import { type Question, QuestionType } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data";
 import { button, type Screen } from "./menu.presenter";
 
@@ -18,9 +18,9 @@ const toggled = (
  */
 export function questionScreen(
 	view: CurrentQuestionView,
+	question: Question,
 	selected: readonly number[] = [],
 ): Screen {
-	const { question } = view;
 	const header = `${view.quizSetTitle} — питання ${view.index + 1}/${view.total}`;
 	const isMultiple = question.type === QuestionType.MultipleChoice;
 

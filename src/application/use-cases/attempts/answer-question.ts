@@ -76,6 +76,8 @@ export interface AnswerQuestionDependencies {
 	readonly reviews: ReviewRepository;
 	readonly idGenerator: IdGenerator;
 	readonly timezone: string;
+	/** Called when the review queue could not be updated for a recorded answer. */
+	readonly onReviewQueueError?: (error: unknown) => void;
 }
 
 export class AnswerQuestion
@@ -88,6 +90,7 @@ export class AnswerQuestion
 	private readonly reviews: ReviewRepository;
 	private readonly idGenerator: IdGenerator;
 	private readonly timezone: string;
+	private readonly onReviewQueueError: (error: unknown) => void;
 
 	constructor(dependencies: AnswerQuestionDependencies) {
 		this.quizSets = dependencies.quizSets;
@@ -97,6 +100,11 @@ export class AnswerQuestion
 		this.reviews = dependencies.reviews;
 		this.idGenerator = dependencies.idGenerator;
 		this.timezone = dependencies.timezone;
+		this.onReviewQueueError =
+			dependencies.onReviewQueueError ??
+			((error) => {
+				console.error("review queue update failed", error);
+			});
 	}
 
 	async execute(
@@ -154,12 +162,21 @@ export class AnswerQuestion
 			});
 
 			this.attempts.save(answered);
-			this.updateReviewQueue(
-				request.telegramUserId,
-				request.questionId,
-				isCorrect,
-				at,
-			);
+
+			// Recording the answer is the user's action; queueing it for review is a
+			// convenience layered on top. Letting the second fail the first would mean
+			// a scheduling bug makes a question permanently unanswerable, so the
+			// review half is contained.
+			try {
+				this.updateReviewQueue(
+					request.telegramUserId,
+					request.questionId,
+					isCorrect,
+					at,
+				);
+			} catch (error) {
+				this.onReviewQueueError(error);
+			}
 
 			return this.resultOf(
 				answered,
@@ -195,6 +212,14 @@ export class AnswerQuestion
 		}
 
 		if (existing === undefined || existing.state === ReviewItemState.Retired) {
+			return;
+		}
+
+		// Spacing is the whole point: a question answered again before it is due has
+		// not been remembered over an interval, it has been remembered over minutes.
+		// Without this a mistake made at 11:00 retires by 15:00 the same day and
+		// quietly leaves the queue having never been spaced at all.
+		if (existing.dueAt.getTime() > at.getTime()) {
 			return;
 		}
 
@@ -264,7 +289,13 @@ export class AnswerQuestion
 		telegramUserId: number,
 		questionId: QuestionId,
 	): Date | undefined {
-		return this.reviews.findByQuestion(telegramUserId, questionId)?.dueAt;
+		const item = this.reviews.findByQuestion(telegramUserId, questionId);
+
+		// A retired card is out of rotation, so rescheduling it would promise a
+		// review that listDue can never deliver.
+		return item === undefined || item.state === ReviewItemState.Retired
+			? undefined
+			: item.dueAt;
 	}
 }
 

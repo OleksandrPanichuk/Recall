@@ -24,12 +24,26 @@ const backToMenu = (): readonly InlineButton[] => [
 	button("« Меню", { action: CallbackAction.Menu }),
 ];
 
-export function mainMenu(hasUnfinishedAttempt: boolean): Screen {
+export interface MenuState {
+	readonly hasUnfinishedAttempt: boolean;
+	readonly awaitingFinish: boolean;
+}
+
+export function mainMenu(state: MenuState): Screen {
 	return {
-		text: hasUnfinishedAttempt
-			? "Головне меню. У вас є незавершена спроба."
-			: "Головне меню.",
+		text: state.awaitingFinish
+			? "Головне меню. Спроба пройдена — залишилось її завершити."
+			: state.hasUnfinishedAttempt
+				? "Головне меню. У вас є незавершена спроба."
+				: "Головне меню.",
 		keyboard: [
+			// Without this the only Finish button lives on the feedback screen, which
+			// is edited away the moment the user opens anything else — leaving an
+			// answered-out attempt that blocks every other action with no way to
+			// close it.
+			...(state.hasUnfinishedAttempt
+				? [[button("🏁 Завершити спробу", { action: CallbackAction.Finish })]]
+				: []),
 			[button("📚 Мої набори", { action: CallbackAction.Sets })],
 			[button("▶️ Продовжити навчання", { action: CallbackAction.Resume })],
 			[button("🔁 Повторити помилки", { action: CallbackAction.Mistakes })],
@@ -65,6 +79,17 @@ export function quizSetList(
 					quizSetId: set.id,
 				}),
 			]),
+			backToMenu(),
+		],
+	};
+}
+
+/** Offered whenever an attempt has no question left but is still open. */
+export function finishPrompt(): Screen {
+	return {
+		text: "Усі питання пройдено. Завершіть спробу, щоб побачити результат.",
+		keyboard: [
+			[button("🏁 Завершити", { action: CallbackAction.Finish })],
 			backToMenu(),
 		],
 	};
