@@ -19,6 +19,9 @@ export const CallbackAction = {
 	Finish: "f",
 	Statistics: "x",
 	StatisticsFor: "y",
+	Mistakes: "k",
+	WeakTopics: "w",
+	Rate: "v",
 	Unavailable: "u",
 } as const;
 export type CallbackAction =
@@ -57,6 +60,17 @@ export interface ToggleCallback {
 	readonly questionId: string;
 	readonly optionPositions: readonly number[];
 }
+export interface MistakesCallback {
+	readonly action: typeof CallbackAction.Mistakes;
+}
+export interface WeakTopicsCallback {
+	readonly action: typeof CallbackAction.WeakTopics;
+}
+export interface RateCallback {
+	readonly action: typeof CallbackAction.Rate;
+	readonly questionId: string;
+	readonly rating: string;
+}
 export interface UnavailableCallback {
 	readonly action: typeof CallbackAction.Unavailable;
 	readonly feature: string;
@@ -72,6 +86,9 @@ export type Callback =
 	| StatisticsForCallback
 	| AnswerCallback
 	| ToggleCallback
+	| MistakesCallback
+	| WeakTopicsCallback
+	| RateCallback
 	| UnavailableCallback;
 
 export class CallbackTooLongError extends Error {
@@ -104,7 +121,13 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
+		case CallbackAction.Mistakes:
+		case CallbackAction.WeakTopics:
 			return callback.action;
+		case CallbackAction.Rate:
+			return [callback.action, callback.questionId, callback.rating].join(
+				SEPARATOR,
+			);
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
@@ -148,7 +171,16 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
+		case CallbackAction.Mistakes:
+		case CallbackAction.WeakTopics:
 			return { action };
+		case CallbackAction.Rate:
+			return first === undefined ||
+				first.length === 0 ||
+				second === undefined ||
+				second.length === 0
+				? undefined
+				: { action, questionId: first, rating: second };
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 			return first === undefined || first.length === 0

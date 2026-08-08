@@ -1,5 +1,8 @@
 import type { Database } from "bun:sqlite";
-import { createDatabase } from "@/adapters/persistence/sqlite/database";
+import {
+	createDatabase,
+	createDrizzleClient,
+} from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
@@ -22,6 +25,8 @@ import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
+import { RateReview } from "@/application/use-cases/review/rate-review";
+import { StartReviewSession } from "@/application/use-cases/review/start-review-session";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 
 export const systemClock: Clock = { now: () => new Date() };
@@ -59,11 +64,14 @@ export interface Application {
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
 	readonly getQuizStatistics: GetQuizStatistics;
+	readonly startReviewSession: StartReviewSession;
+	readonly rateReview: RateReview;
 	close(): void;
 }
 
 export interface ApplicationOptions {
 	readonly databasePath: string;
+	readonly timezone?: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
 }
@@ -73,14 +81,16 @@ export function createApplication(options: ApplicationOptions): Application {
 
 	applyMigrations(database);
 
-	const transaction = createSqliteTransaction(database);
+	const client = createDrizzleClient(database);
+	const transaction = createSqliteTransaction(client);
 	const dependencies = {
-		quizSets: createSqliteQuizSetRepository(database, transaction),
-		attempts: createSqliteQuizAttemptRepository(database, transaction),
-		reviews: createSqliteReviewRepository(database, transaction),
+		quizSets: createSqliteQuizSetRepository(client, transaction),
+		attempts: createSqliteQuizAttemptRepository(client, transaction),
+		reviews: createSqliteReviewRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
 		transaction,
+		timezone: options.timezone ?? "UTC",
 	};
 
 	return {
@@ -99,6 +109,8 @@ export function createApplication(options: ApplicationOptions): Application {
 		answerQuestion: new AnswerQuestion(dependencies),
 		finishQuizAttempt: new FinishQuizAttempt(dependencies),
 		getQuizStatistics: new GetQuizStatistics(dependencies),
+		startReviewSession: new StartReviewSession(dependencies),
+		rateReview: new RateReview(dependencies),
 		close: () => {
 			database.close();
 		},

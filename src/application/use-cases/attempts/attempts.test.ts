@@ -267,7 +267,7 @@ describe("PauseQuizAttempt and ResumeQuizAttempt", () => {
 		await pause.execute({ telegramUserId: USER });
 
 		const restarted = createSqliteQuizAttemptRepository(
-			context.database,
+			context.client,
 			context.transaction,
 		);
 

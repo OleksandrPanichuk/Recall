@@ -1,6 +1,8 @@
 import type { Clock } from "@/application/ports/clock";
+import type { IdGenerator } from "@/application/ports/id-generator";
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
+import type { ReviewRepository } from "@/application/ports/repositories/review.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import type { Command, UseCase } from "@/application/use-case";
 import { correctOptionIds, evaluateAnswer } from "@/domain/quiz-attempt/answer";
@@ -22,6 +24,16 @@ import type {
 	QuestionId,
 	QuestionOptionId,
 } from "@/domain/quiz-set/question";
+import {
+	createReviewItem,
+	markReviewFailed,
+	markReviewPassed,
+	type ReviewItem,
+	ReviewItemState,
+	reopenReviewItem,
+	toReviewItemId,
+} from "@/domain/review/review-item";
+import { nextReviewDueAt, ReviewRating } from "@/domain/review/review-schedule";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {
@@ -52,6 +64,8 @@ export interface AnswerQuestionResult {
 	readonly score: Score;
 	/** The question just answered, so a presenter can name the options. */
 	readonly question: Question;
+	/** Set when the question sits in the review queue and can be rated. */
+	readonly reviewDueAt?: Date;
 }
 
 export interface AnswerQuestionDependencies {
@@ -59,6 +73,9 @@ export interface AnswerQuestionDependencies {
 	readonly attempts: QuizAttemptRepository;
 	readonly clock: Clock;
 	readonly transaction: Transaction;
+	readonly reviews: ReviewRepository;
+	readonly idGenerator: IdGenerator;
+	readonly timezone: string;
 }
 
 export class AnswerQuestion
@@ -68,12 +85,18 @@ export class AnswerQuestion
 	private readonly attempts: QuizAttemptRepository;
 	private readonly clock: Clock;
 	private readonly transaction: Transaction;
+	private readonly reviews: ReviewRepository;
+	private readonly idGenerator: IdGenerator;
+	private readonly timezone: string;
 
 	constructor(dependencies: AnswerQuestionDependencies) {
 		this.quizSets = dependencies.quizSets;
 		this.attempts = dependencies.attempts;
 		this.clock = dependencies.clock;
 		this.transaction = dependencies.transaction;
+		this.reviews = dependencies.reviews;
+		this.idGenerator = dependencies.idGenerator;
+		this.timezone = dependencies.timezone;
 	}
 
 	async execute(
@@ -109,7 +132,13 @@ export class AnswerQuestion
 			);
 
 			if (recorded !== undefined) {
-				return this.resultOf(attempt, recorded.isCorrect, true, question);
+				return this.resultOf(
+					attempt,
+					recorded.isCorrect,
+					true,
+					question,
+					this.reviewDueAt(request.telegramUserId, request.questionId),
+				);
 			}
 
 			const selectedOptionIds = selectedIdsOf(
@@ -125,9 +154,91 @@ export class AnswerQuestion
 			});
 
 			this.attempts.save(answered);
+			this.updateReviewQueue(
+				request.telegramUserId,
+				request.questionId,
+				isCorrect,
+				at,
+			);
 
-			return this.resultOf(answered, isCorrect, false, question);
+			return this.resultOf(
+				answered,
+				isCorrect,
+				false,
+				question,
+				this.reviewDueAt(request.telegramUserId, request.questionId),
+			);
 		});
+	}
+
+	/**
+	 * A wrong answer queues the question for review; a right one advances its
+	 * streak. Both go through the repository's upsert on (user, question), so one
+	 * question can never accumulate more than a single queue entry — the §5.1
+	 * gate. Runs inside the same transaction as the answer, so an attempt and its
+	 * review queue can never disagree.
+	 */
+	private updateReviewQueue(
+		telegramUserId: number,
+		questionId: QuestionId,
+		isCorrect: boolean,
+		at: Date,
+	): void {
+		const existing = this.reviews.findByQuestion(telegramUserId, questionId);
+
+		if (!isCorrect) {
+			this.reviews.save(
+				this.queueMistake(existing, telegramUserId, questionId, at),
+			);
+
+			return;
+		}
+
+		if (existing === undefined || existing.state === ReviewItemState.Retired) {
+			return;
+		}
+
+		this.reviews.save(
+			markReviewPassed(
+				existing,
+				at,
+				nextReviewDueAt({
+					streak: existing.streak + 1,
+					rating: ReviewRating.Good,
+					at,
+					timezone: this.timezone,
+				}),
+			),
+		);
+	}
+
+	private queueMistake(
+		existing: ReviewItem | undefined,
+		telegramUserId: number,
+		questionId: QuestionId,
+		at: Date,
+	): ReviewItem {
+		const dueAt = nextReviewDueAt({
+			streak: 0,
+			rating: ReviewRating.Hard,
+			at,
+			timezone: this.timezone,
+		});
+
+		if (existing === undefined) {
+			return createReviewItem({
+				id: toReviewItemId(this.idGenerator.generate()),
+				questionId,
+				telegramUserId,
+				createdAt: at,
+				dueAt,
+			});
+		}
+
+		// Retirement means "learned", not "never ask again".
+		return existing.state === ReviewItemState.Retired
+			? reopenReviewItem(existing, at, dueAt)
+			: markReviewFailed(existing, at, dueAt);
 	}
 
 	private resultOf(
@@ -135,6 +246,7 @@ export class AnswerQuestion
 		isCorrect: boolean,
 		alreadyAnswered: boolean,
 		question: Question,
+		reviewDueAt: Date | undefined,
 	): AnswerQuestionResult {
 		return {
 			isCorrect,
@@ -144,7 +256,15 @@ export class AnswerQuestion
 			question,
 			nextQuestionId: currentQuestionId(attempt),
 			score: attemptScore(attempt),
+			reviewDueAt,
 		};
+	}
+
+	private reviewDueAt(
+		telegramUserId: number,
+		questionId: QuestionId,
+	): Date | undefined {
+		return this.reviews.findByQuestion(telegramUserId, questionId)?.dueAt;
 	}
 }
 

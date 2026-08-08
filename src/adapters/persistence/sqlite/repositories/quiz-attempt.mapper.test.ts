@@ -15,25 +15,25 @@ const aQuizAttemptRow = (
 	overrides: Partial<QuizAttemptRow> = {},
 ): QuizAttemptRow => ({
 	id: "attempt-1",
-	quiz_set_id: "set-1",
-	telegram_user_id: 42,
+	quizSetId: "set-1",
+	telegramUserId: 42,
 	mode: QuizAttemptMode.Full,
 	status: QuizAttemptStatus.Active,
-	question_ids: '["question-1","question-2"]',
-	started_at: "2026-08-01T10:00:00.000Z",
-	updated_at: "2026-08-01T10:05:00.000Z",
-	completed_at: null,
+	questionIds: '["question-1","question-2"]',
+	startedAt: "2026-08-01T10:00:00.000Z",
+	updatedAt: "2026-08-01T10:05:00.000Z",
+	completedAt: null,
 	...overrides,
 });
 
 const aResponseRow = (
 	overrides: Partial<QuestionResponseRow> = {},
 ): QuestionResponseRow => ({
-	attempt_id: "attempt-1",
-	question_id: "question-1",
-	selected_option_ids: '["option-1"]',
-	is_correct: 1,
-	answered_at: "2026-08-01T10:05:00.000Z",
+	attemptId: "attempt-1",
+	questionId: "question-1",
+	selectedOptionIds: '["option-1"]',
+	isCorrect: true,
+	answeredAt: "2026-08-01T10:05:00.000Z",
 	...overrides,
 });
 
@@ -67,51 +67,45 @@ describe("quiz attempt mapper", () => {
 	});
 
 	test("rejects question_ids that are not a JSON array of strings", () => {
-		expect(() => restore({ question_ids: "not json" })).toThrow(
+		expect(() => restore({ questionIds: "not json" })).toThrow(
 			CorruptedQuizAttemptRowError,
 		);
-		expect(() => restore({ question_ids: '["question-1", 7]' })).toThrow(
+		expect(() => restore({ questionIds: '["question-1", 7]' })).toThrow(
 			CorruptedQuizAttemptRowError,
 		);
 	});
 
 	test("rejects selected_option_ids that are not a JSON array of strings", () => {
 		expect(() =>
-			restore({}, [aResponseRow({ selected_option_ids: "not json" })]),
+			restore({}, [aResponseRow({ selectedOptionIds: "not json" })]),
 		).toThrow(CorruptedQuizAttemptRowError);
 	});
 
-	test("rejects an is_correct value outside 0 and 1", () => {
-		expect(() => restore({}, [aResponseRow({ is_correct: 2 })])).toThrow(
-			CorruptedQuizAttemptRowError,
-		);
-	});
-
 	test("rejects unparsable timestamps", () => {
-		expect(() => restore({ started_at: "nonsense" })).toThrow(
+		expect(() => restore({ startedAt: "nonsense" })).toThrow(
 			CorruptedQuizAttemptRowError,
 		);
-		expect(() => restore({ updated_at: "nonsense" })).toThrow(
+		expect(() => restore({ updatedAt: "nonsense" })).toThrow(
 			CorruptedQuizAttemptRowError,
 		);
 		expect(() =>
-			restore({}, [aResponseRow({ answered_at: "nonsense" })]),
+			restore({}, [aResponseRow({ answeredAt: "nonsense" })]),
 		).toThrow(CorruptedQuizAttemptRowError);
 	});
 
 	test("rejects a response for a question outside the plan", () => {
 		expect(() =>
-			restore({}, [aResponseRow({ question_id: "question-99" })]),
+			restore({}, [aResponseRow({ questionId: "question-99" })]),
 		).toThrow(CorruptedQuizAttemptRowError);
 	});
 
 	test("rejects a gap in the answered plan", () => {
 		expect(() =>
-			restore({ question_ids: '["question-1","question-2","question-3"]' }, [
+			restore({ questionIds: '["question-1","question-2","question-3"]' }, [
 				aResponseRow(),
 				aResponseRow({
-					question_id: "question-3",
-					answered_at: "2026-08-01T10:06:00.000Z",
+					questionId: "question-3",
+					answeredAt: "2026-08-01T10:06:00.000Z",
 				}),
 			]),
 		).toThrow(CorruptedQuizAttemptRowError);
@@ -121,11 +115,11 @@ describe("quiz attempt mapper", () => {
 	// set whose timestamps contradict it.
 	test("rejects timestamps that disagree with plan order", () => {
 		expect(() =>
-			restore({ updated_at: "2026-08-01T10:06:00.000Z" }, [
-				aResponseRow({ answered_at: "2026-08-01T10:06:00.000Z" }),
+			restore({ updatedAt: "2026-08-01T10:06:00.000Z" }, [
+				aResponseRow({ answeredAt: "2026-08-01T10:06:00.000Z" }),
 				aResponseRow({
-					question_id: "question-2",
-					answered_at: "2026-08-01T10:05:00.000Z",
+					questionId: "question-2",
+					answeredAt: "2026-08-01T10:05:00.000Z",
 				}),
 			]),
 		).toThrow(QuizAttemptValidationError);

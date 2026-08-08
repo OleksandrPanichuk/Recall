@@ -32,6 +32,7 @@ function main(): void {
 
 	const application = createApplication({
 		databasePath: environment.databasePath,
+		timezone: environment.appTimezone,
 	});
 	const bot = createBot({
 		token: environment.telegramBotKey,

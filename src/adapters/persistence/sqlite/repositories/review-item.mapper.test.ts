@@ -16,13 +16,13 @@ const aReviewItemRow = (
 	overrides: Partial<ReviewItemRow> = {},
 ): ReviewItemRow => ({
 	id: "review-1",
-	question_id: "question-1",
-	telegram_user_id: 42,
+	questionId: "question-1",
+	telegramUserId: 42,
 	state: ReviewItemState.Pending,
 	streak: 0,
-	due_at: "2026-08-02T00:00:00.000Z",
-	created_at: "2026-08-01T00:00:00.000Z",
-	last_reviewed_at: null,
+	dueAt: "2026-08-02T00:00:00.000Z",
+	createdAt: "2026-08-01T00:00:00.000Z",
+	lastReviewedAt: null,
 	...overrides,
 });
 
@@ -42,13 +42,13 @@ describe("review item mapper", () => {
 
 	test("rejects unparsable timestamps", () => {
 		expect(() =>
-			toReviewItem(aReviewItemRow({ created_at: "nonsense" })),
+			toReviewItem(aReviewItemRow({ createdAt: "nonsense" })),
 		).toThrow(CorruptedReviewItemRowError);
-		expect(() => toReviewItem(aReviewItemRow({ due_at: "nonsense" }))).toThrow(
+		expect(() => toReviewItem(aReviewItemRow({ dueAt: "nonsense" }))).toThrow(
 			CorruptedReviewItemRowError,
 		);
 		expect(() =>
-			toReviewItem(aReviewItemRow({ last_reviewed_at: "nonsense" })),
+			toReviewItem(aReviewItemRow({ lastReviewedAt: "nonsense" })),
 		).toThrow(CorruptedReviewItemRowError);
 	});
 
@@ -77,7 +77,7 @@ describe("review item mapper", () => {
 				aReviewItemRow({
 					state: ReviewItemState.Learning,
 					streak: 1,
-					last_reviewed_at: "2026-07-01T00:00:00.000Z",
+					lastReviewedAt: "2026-07-01T00:00:00.000Z",
 				}),
 			),
 		).toThrow(ReviewItemValidationError);

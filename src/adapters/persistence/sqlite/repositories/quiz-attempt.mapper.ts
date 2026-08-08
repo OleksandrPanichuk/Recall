@@ -1,7 +1,4 @@
-import type {
-	AttemptStatistics,
-	TopicAccuracy,
-} from "@/application/ports/repositories/quiz-attempt.repository";
+import type { TopicAccuracy } from "@/application/ports/repositories/quiz-attempt.repository";
 import {
 	isQuizAttemptMode,
 	isQuizAttemptStatus,
@@ -16,34 +13,12 @@ import {
 	toQuestionOptionId,
 } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import type { questionResponses, quizAttempts } from "../schema";
 
-export interface QuizAttemptRow {
-	readonly id: string;
-	readonly quiz_set_id: string;
-	readonly telegram_user_id: number;
-	readonly mode: string;
-	readonly status: string;
-	readonly question_ids: string;
-	readonly started_at: string;
-	readonly updated_at: string;
-	readonly completed_at: string | null;
-}
-
-export interface QuestionResponseRow {
-	readonly attempt_id: string;
-	readonly question_id: string;
-	readonly selected_option_ids: string;
-	readonly is_correct: number;
-	readonly answered_at: string;
-}
-
-export interface AttemptStatisticsRow {
-	readonly attempt_id: string;
-	readonly quiz_set_id: string;
-	readonly correct: number;
-	readonly total: number;
-	readonly completed_at: string | null;
-}
+export type QuizAttemptRow = typeof quizAttempts.$inferSelect;
+export type QuestionResponseRow = typeof questionResponses.$inferSelect;
+export type QuizAttemptInsert = typeof quizAttempts.$inferInsert;
+export type QuestionResponseInsert = typeof questionResponses.$inferInsert;
 
 export interface TopicAccuracyRow {
 	readonly topic: string | null;
@@ -107,28 +82,18 @@ const parseStringArray = (value: string, column: string, id: string) => {
 	return parsed;
 };
 
-const toIsCorrect = (value: number, id: string): boolean => {
-	if (value !== 0 && value !== 1) {
-		throw new CorruptedQuizAttemptRowError(id, [
-			`is_correct must be 0 or 1, received ${value}`,
-		]);
-	}
-
-	return value === 1;
-};
-
 const toResponse = (
 	row: QuestionResponseRow,
 	attemptId: string,
 ): QuestionResponse => ({
-	questionId: toQuestionId(row.question_id),
+	questionId: toQuestionId(row.questionId),
 	selectedOptionIds: parseStringArray(
-		row.selected_option_ids,
+		row.selectedOptionIds,
 		"selected_option_ids",
 		attemptId,
 	).map(toQuestionOptionId),
-	isCorrect: toIsCorrect(row.is_correct, attemptId),
-	answeredAt: requiredDate(row.answered_at, "answered_at", attemptId),
+	isCorrect: row.isCorrect,
+	answeredAt: requiredDate(row.answeredAt, "answered_at", attemptId),
 });
 
 /**
@@ -142,7 +107,7 @@ const orderedResponses = (
 	responseRows: readonly QuestionResponseRow[],
 ): readonly QuestionResponse[] => {
 	const remaining = new Map(
-		responseRows.map((response) => [response.question_id, response]),
+		responseRows.map((response) => [response.questionId, response]),
 	);
 	const responses: QuestionResponse[] = [];
 
@@ -166,6 +131,12 @@ const orderedResponses = (
 	return responses;
 };
 
+export function plannedQuestionIds(row: QuizAttemptRow): readonly QuestionId[] {
+	return parseStringArray(row.questionIds, "question_ids", row.id).map(
+		toQuestionId,
+	);
+}
+
 export function toQuizAttempt(
 	row: QuizAttemptRow,
 	responseRows: readonly QuestionResponseRow[],
@@ -185,36 +156,20 @@ export function toQuizAttempt(
 		]);
 	}
 
-	const questionIds = parseStringArray(
-		row.question_ids,
-		"question_ids",
-		row.id,
-	).map(toQuestionId);
+	const questionIds = plannedQuestionIds(row);
 
 	return restoreQuizAttempt({
 		id: toQuizAttemptId(row.id),
-		quizSetId: toQuizSetId(row.quiz_set_id),
-		telegramUserId: row.telegram_user_id,
+		quizSetId: toQuizSetId(row.quizSetId),
+		telegramUserId: row.telegramUserId,
 		mode,
 		status,
 		questionIds,
 		responses: orderedResponses(row, questionIds, responseRows),
-		startedAt: requiredDate(row.started_at, "started_at", row.id),
-		updatedAt: requiredDate(row.updated_at, "updated_at", row.id),
-		completedAt: optionalDate(row.completed_at, "completed_at", row.id),
+		startedAt: requiredDate(row.startedAt, "started_at", row.id),
+		updatedAt: requiredDate(row.updatedAt, "updated_at", row.id),
+		completedAt: optionalDate(row.completedAt, "completed_at", row.id),
 	});
-}
-
-export function toAttemptStatistics(
-	row: AttemptStatisticsRow,
-): AttemptStatistics {
-	return {
-		attemptId: toQuizAttemptId(row.attempt_id),
-		quizSetId: toQuizSetId(row.quiz_set_id),
-		correct: row.correct,
-		total: row.total,
-		completedAt: optionalDate(row.completed_at, "completed_at", row.attempt_id),
-	};
 }
 
 export function toTopicAccuracy(row: TopicAccuracyRow): TopicAccuracy {
@@ -225,28 +180,28 @@ export function toTopicAccuracy(row: TopicAccuracyRow): TopicAccuracy {
 	};
 }
 
-export function toQuizAttemptRow(attempt: QuizAttempt): QuizAttemptRow {
+export function toQuizAttemptRow(attempt: QuizAttempt): QuizAttemptInsert {
 	return {
 		id: attempt.id,
-		quiz_set_id: attempt.quizSetId,
-		telegram_user_id: attempt.telegramUserId,
+		quizSetId: attempt.quizSetId,
+		telegramUserId: attempt.telegramUserId,
 		mode: attempt.mode,
 		status: attempt.status,
-		question_ids: JSON.stringify(attempt.questionIds),
-		started_at: attempt.startedAt.toISOString(),
-		updated_at: attempt.updatedAt.toISOString(),
-		completed_at: attempt.completedAt?.toISOString() ?? null,
+		questionIds: JSON.stringify(attempt.questionIds),
+		startedAt: attempt.startedAt.toISOString(),
+		updatedAt: attempt.updatedAt.toISOString(),
+		completedAt: attempt.completedAt?.toISOString() ?? null,
 	};
 }
 
 export function toQuestionResponseRows(
 	attempt: QuizAttempt,
-): readonly QuestionResponseRow[] {
+): readonly QuestionResponseInsert[] {
 	return attempt.responses.map((response) => ({
-		attempt_id: attempt.id,
-		question_id: response.questionId,
-		selected_option_ids: JSON.stringify(response.selectedOptionIds),
-		is_correct: response.isCorrect ? 1 : 0,
-		answered_at: response.answeredAt.toISOString(),
+		attemptId: attempt.id,
+		questionId: response.questionId,
+		selectedOptionIds: JSON.stringify(response.selectedOptionIds),
+		isCorrect: response.isCorrect,
+		answeredAt: response.answeredAt.toISOString(),
 	}));
 }

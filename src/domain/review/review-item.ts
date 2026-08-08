@@ -310,3 +310,46 @@ export function markReviewPassed(
 		lastReviewedAt: at,
 	});
 }
+
+/**
+ * Moves an item's next due date without touching its streak. Used when the user
+ * rates a review they have already answered, so the rating adjusts the schedule
+ * rather than re-scoring the answer.
+ */
+export function rescheduleReview(item: ReviewItem, dueAt: Date): ReviewItem {
+	const anchor = item.lastReviewedAt ?? item.createdAt;
+	const issues: string[] = [];
+
+	if (!isValidDate(dueAt)) {
+		issues.push("dueAt must be a valid date");
+	} else if (dueAt.getTime() < anchor.getTime()) {
+		issues.push("dueAt must not precede the last review");
+	}
+
+	if (issues.length > 0) {
+		throw new ReviewItemValidationError(issues);
+	}
+
+	return frozenReviewItem({ ...item, dueAt });
+}
+
+/**
+ * Puts a retired question back into rotation after it is answered wrong again.
+ * Retirement means "learned", not "never ask again" — without this the item
+ * would be stuck and the mistake silently dropped.
+ */
+export function reopenReviewItem(
+	item: ReviewItem,
+	at: Date,
+	dueAt: Date,
+): ReviewItem {
+	assertReviewDates(item, at, dueAt);
+
+	return frozenReviewItem({
+		...item,
+		state: ReviewItemState.Pending,
+		streak: 0,
+		dueAt,
+		lastReviewedAt: at,
+	});
+}

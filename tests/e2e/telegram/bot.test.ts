@@ -103,16 +103,12 @@ describe("navigation shell (§3.2)", () => {
 		expect(harness.lastButtons()[0]?.text).toBe("Bun (2)");
 	});
 
-	test.each([
-		["Повторити помилки", "Phase 5"],
-		["Слабкі теми", "Phase 5"],
-		["Налаштування", "Phase 6"],
-	])("%s routes to a placeholder", async (label, phase) => {
+	test("Налаштування routes to a placeholder", async () => {
 		await harness.send("/start");
 
-		await harness.tap(buttonFor(label));
+		await harness.tap(buttonFor("Налаштування"));
 
-		expect(harness.lastText()).toContain(phase);
+		expect(harness.lastText()).toContain("Phase 6");
 	});
 
 	test("resume without an attempt explains rather than failing", async () => {
@@ -328,5 +324,96 @@ describe("results and statistics (§3.4)", () => {
 
 		expect(harness.lastText()).toContain("Прогрес: 0% → 100% (+100)");
 		expect(harness.lastText()).toContain("• Alpha: 1/2");
+	});
+});
+
+describe("adaptive practice (§5)", () => {
+	const missOneQuestion = async (topic?: string): Promise<void> => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", topic === undefined ? {} : { topic }),
+			aQuestionInput("Two", topic === undefined ? {} : { topic }),
+			aQuestionInput("Three", topic === undefined ? {} : { topic }),
+		]);
+		await openSet("Bun");
+
+		for (const prompt of ["One", "Two", "Three"]) {
+			harness.clock.advance(60_000);
+			await harness.tap(buttonFor(`Wrong for ${prompt}`));
+			harness.clock.advance(60_000);
+			await harness.tap(buttonFor(prompt === "Three" ? "Завершити" : "Далі"));
+		}
+	};
+
+	test("a wrong answer offers a rating", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+
+		await harness.tap(buttonFor("Wrong for One"));
+
+		expect(buttonFor("Важко")).toContain("v:");
+		expect(harness.lastButtons().map((entry) => entry.text)).toEqual(
+			expect.arrayContaining(["😖 Важко", "🙂 Нормально", "😎 Легко"]),
+		);
+	});
+
+	test("a correct answer offers no rating", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+
+		await harness.tap(buttonFor("Right for One"));
+
+		expect(
+			harness.lastButtons().some((entry) => entry.text.includes("Важко")),
+		).toBe(false);
+	});
+
+	test("rating a question confirms its next review date", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Wrong for One"));
+
+		await harness.tap(buttonFor("Легко"));
+
+		expect(harness.answeredQueries().at(-1)).toContain("Наступне повторення");
+	});
+
+	test("the mistakes menu opens a session once questions are due", async () => {
+		await missOneQuestion();
+		harness.clock.advance(2 * 24 * 60 * 60 * 1000);
+		await harness.send("/start");
+
+		await harness.tap(buttonFor("Повторити помилки"));
+
+		expect(harness.lastText()).toContain("Повторення помилок");
+		expect(harness.lastText()).toContain("питання 1/3");
+	});
+
+	test("the mistakes menu says so when nothing is due", async () => {
+		await harness.send("/start");
+
+		await harness.tap(buttonFor("Повторити помилки"));
+
+		expect(harness.lastText()).toContain("Nothing is due");
+	});
+
+	test("the weak-topics menu opens a session for the weakest topic", async () => {
+		await missOneQuestion("Alpha");
+		await harness.send("/start");
+
+		await harness.tap(buttonFor("Слабкі теми"));
+
+		expect(harness.lastText()).toContain("Слабка тема: Alpha");
+	});
+
+	test("the weak-topics menu says so without enough history", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await harness.send("/start");
+
+		await harness.tap(buttonFor("Слабкі теми"));
+
+		expect(harness.lastText()).toContain("Not enough answered questions");
 	});
 });

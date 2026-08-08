@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
@@ -36,15 +37,15 @@ let repository: QuizAttemptRepository;
 
 const newRepository = (): QuizAttemptRepository =>
 	createSqliteQuizAttemptRepository(
-		database,
-		createSqliteTransaction(database),
+		createDrizzleClient(database),
+		createSqliteTransaction(createDrizzleClient(database)),
 	);
 
 function seedQuizSet(topics: Record<string, string | undefined> = {}): void {
 	const questionIds = ["question-1", "question-2", "question-3"];
 	createSqliteQuizSetRepository(
-		database,
-		createSqliteTransaction(database),
+		createDrizzleClient(database),
+		createSqliteTransaction(createDrizzleClient(database)),
 	).save(
 		aQuizSet({
 			questions: questionIds.map((id, position) =>

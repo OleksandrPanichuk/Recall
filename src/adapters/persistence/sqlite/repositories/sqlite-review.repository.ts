@@ -1,93 +1,65 @@
-import type { Database } from "bun:sqlite";
+import { and, asc, count, eq, lte, ne } from "drizzle-orm";
 import type { ReviewRepository } from "@/application/ports/repositories/review.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { type ReviewItem, ReviewItemState } from "@/domain/review/review-item";
-import {
-	type ReviewItemRow,
-	toReviewItem,
-	toReviewItemRow,
-} from "./review-item.mapper";
-
-// The unique index on (telegram_user_id, question_id) is the queue entry's real
-// identity: answering the same question wrong again updates the entry instead of
-// adding another one. Only the review state is updated — id and created_at
-// belong to the entry, not to the snapshot being written, so they keep recording
-// which entry this is and when the question first entered the queue.
-const upsertReviewItemSql = `
-	INSERT INTO review_items (
-		id, question_id, telegram_user_id, state, streak,
-		due_at, created_at, last_reviewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	ON CONFLICT (telegram_user_id, question_id) DO UPDATE SET
-		state = excluded.state,
-		streak = excluded.streak,
-		due_at = excluded.due_at,
-		last_reviewed_at = excluded.last_reviewed_at`;
+import type { QuizDatabase } from "../database";
+import { reviewItems } from "../schema";
+import { toReviewItem, toReviewItemRow } from "./review-item.mapper";
 
 export function createSqliteReviewRepository(
-	database: Database,
+	database: QuizDatabase,
 	transaction: Transaction,
 ): ReviewRepository {
-	const upsertReviewItem = database.query(upsertReviewItemSql);
-	const selectLastReviewedAt = database.query<
-		{ last_reviewed_at: string | null },
-		[number, string]
-	>(
-		`SELECT last_reviewed_at FROM review_items
-		WHERE telegram_user_id = ? AND question_id = ?`,
-	);
-	const selectByQuestion = database.query<ReviewItemRow, [number, string]>(
-		"SELECT * FROM review_items WHERE telegram_user_id = ? AND question_id = ?",
-	);
-	const selectDue = database.query<
-		ReviewItemRow,
-		[number, string, string, number]
-	>(
-		`SELECT * FROM review_items
-		WHERE telegram_user_id = ?
-			AND due_at <= ?
-			AND state <> ?
-		ORDER BY due_at ASC, id ASC
-		LIMIT ?`,
-	);
-	const countNotRetired = database.query<{ total: number }, [number, string]>(
-		`SELECT count(*) AS total FROM review_items
-		WHERE telegram_user_id = ? AND state <> ?`,
-	);
+	const notRetired = ne(reviewItems.state, ReviewItemState.Retired);
 
 	return {
 		save(item: ReviewItem): void {
 			const row = toReviewItemRow(item);
 
 			transaction.run(() => {
-				const stored = selectLastReviewedAt.get(
-					row.telegram_user_id,
-					row.question_id,
-				);
+				const stored = database
+					.select({ lastReviewedAt: reviewItems.lastReviewedAt })
+					.from(reviewItems)
+					.where(
+						and(
+							eq(reviewItems.telegramUserId, row.telegramUserId),
+							eq(reviewItems.questionId, row.questionId),
+						),
+					)
+					.get();
 
 				// lastReviewedAt is the entry's clock: the transitions refuse to review
 				// an item before it. A writer holding an older snapshot would otherwise
 				// silently erase a streak the user earned, or put a retired question
 				// back into rotation.
 				if (
-					stored?.last_reviewed_at != null &&
-					(row.last_reviewed_at === null ||
-						row.last_reviewed_at < stored.last_reviewed_at)
+					stored?.lastReviewedAt != null &&
+					(row.lastReviewedAt == null ||
+						row.lastReviewedAt < stored.lastReviewedAt)
 				) {
 					return;
 				}
 
-				upsertReviewItem.run(
-					row.id,
-					row.question_id,
-					row.telegram_user_id,
-					row.state,
-					row.streak,
-					row.due_at,
-					row.created_at,
-					row.last_reviewed_at,
-				);
+				// The unique index on (telegram_user_id, question_id) is the queue
+				// entry's real identity: answering the same question wrong again updates
+				// the entry instead of adding another one. Only the review state is
+				// updated — id and createdAt belong to the entry, not to the snapshot
+				// being written, so they keep recording which entry this is and when the
+				// question first entered the queue.
+				database
+					.insert(reviewItems)
+					.values(row)
+					.onConflictDoUpdate({
+						target: [reviewItems.telegramUserId, reviewItems.questionId],
+						set: {
+							state: row.state,
+							streak: row.streak,
+							dueAt: row.dueAt,
+							lastReviewedAt: row.lastReviewedAt ?? null,
+						},
+					})
+					.run();
 			});
 		},
 
@@ -95,7 +67,16 @@ export function createSqliteReviewRepository(
 			telegramUserId: number,
 			questionId: QuestionId,
 		): ReviewItem | undefined {
-			const row = selectByQuestion.get(telegramUserId, questionId);
+			const row = database
+				.select()
+				.from(reviewItems)
+				.where(
+					and(
+						eq(reviewItems.telegramUserId, telegramUserId),
+						eq(reviewItems.questionId, questionId),
+					),
+				)
+				.get();
 
 			return row ? toReviewItem(row) : undefined;
 		},
@@ -109,14 +90,31 @@ export function createSqliteReviewRepository(
 				throw new RangeError("limit must be a positive integer");
 			}
 
-			return selectDue
-				.all(telegramUserId, now.toISOString(), ReviewItemState.Retired, limit)
+			return database
+				.select()
+				.from(reviewItems)
+				.where(
+					and(
+						eq(reviewItems.telegramUserId, telegramUserId),
+						lte(reviewItems.dueAt, now.toISOString()),
+						notRetired,
+					),
+				)
+				.orderBy(asc(reviewItems.dueAt), asc(reviewItems.id))
+				.limit(limit)
+				.all()
 				.map(toReviewItem);
 		},
 
 		countPending(telegramUserId: number): number {
 			return (
-				countNotRetired.get(telegramUserId, ReviewItemState.Retired)?.total ?? 0
+				database
+					.select({ total: count() })
+					.from(reviewItems)
+					.where(
+						and(eq(reviewItems.telegramUserId, telegramUserId), notRetired),
+					)
+					.get()?.total ?? 0
 			);
 		},
 	};

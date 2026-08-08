@@ -24,6 +24,7 @@ async function main(): Promise<void> {
 
 	const application = createApplication({
 		databasePath: environment.databasePath,
+		timezone: environment.appTimezone,
 	});
 	const server = createMcpServer(application);
 
