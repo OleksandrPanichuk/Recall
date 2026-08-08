@@ -1,6 +1,5 @@
 import type { Context } from "telegraf";
 import type { SessionMode } from "@/application/use-cases/review/start-review-session";
-import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { isReviewRating } from "@/domain/review/review-schedule";
 import type { TelegramUseCases } from "../bot";
@@ -15,10 +14,7 @@ export function reviewSessionHandler(
 ) {
 	return async (ctx: Context): Promise<void> => {
 		const telegramUserId = ctx.from?.id ?? 0;
-		const started = await useCases.startReviewSession.execute({
-			telegramUserId,
-			mode,
-		});
+		await useCases.startReviewSession.execute({ telegramUserId, mode });
 		const current = await useCases.getCurrentQuestion.execute({
 			telegramUserId,
 		});
