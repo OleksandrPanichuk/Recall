@@ -8,6 +8,7 @@ import {
 import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { NoReviewItemError } from "@/application/use-cases/review/rate-review";
 import { NothingToReviewError } from "@/application/use-cases/review/start-review-session";
+import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuestionNotInAttemptError } from "@/domain/quiz-attempt/quiz-attempt.errors";
 import { notice } from "../presenters/menu.presenter";
 import { render } from "../screen";
@@ -26,8 +27,12 @@ export function userMessageFor(error: unknown): string {
 		return "У вас є незавершена спроба. Завершіть її, перш ніж почати іншу.";
 	}
 
+	// The adapter owns user-facing wording; an application error message is for
+	// the log, and this UI is Ukrainian throughout.
 	if (error instanceof NothingToReviewError) {
-		return error.message;
+		return error.mode === QuizAttemptMode.Mistakes
+			? "Зараз немає питань для повторення. Поверніться пізніше."
+			: "Замало відповідей, щоб визначити слабку тему. Пройдіть ще один набір.";
 	}
 
 	if (error instanceof NoReviewItemError) {
@@ -63,9 +68,18 @@ export function errorMiddleware(
 			log(error);
 
 			// The router answers the callback query before dispatching, and Telegram
-			// accepts only one answer per query — a second would be dropped and the
-			// user would see nothing. Render the message as a screen instead.
-			await render(ctx, notice(userMessageFor(error)));
+			// rejects a second answer for the same query with a 400. Render the
+			// message as a screen instead.
+			//
+			// This render is the last line of defence, so it cannot be allowed to
+			// throw: Telegraf's default error handler rethrows, which aborts the
+			// polling loop and ends the process. A screen the user never sees is
+			// vastly better than a bot that silently stops answering.
+			try {
+				await render(ctx, notice(userMessageFor(error)));
+			} catch (renderError) {
+				log(renderError);
+			}
 		}
 	};
 }

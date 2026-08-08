@@ -20,12 +20,15 @@ export const DEFAULT_SESSION_SIZE = 10;
 export const MIN_ANSWERS_FOR_WEAK_TOPIC = 3;
 
 export class NothingToReviewError extends Error {
+	readonly mode: SessionMode;
+
 	constructor(mode: SessionMode) {
 		super(
 			mode === QuizAttemptMode.Mistakes
-				? "Nothing is due for review right now."
-				: "Not enough answered questions yet to find a weak topic.",
+				? "Nothing is due for review right now"
+				: "Not enough answered questions yet to find a weak topic",
 		);
+		this.mode = mode;
 		this.name = "NothingToReviewError";
 	}
 }

@@ -32,7 +32,7 @@ export function toggleHandler(useCases: TelegramUseCases) {
 export function answerHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: AnswerCallback): Promise<void> => {
 		if (callback.optionPositions.length === 0) {
-			await ctx.answerCbQuery("Оберіть хоча б один варіант");
+			await render(ctx, notice("Оберіть хоча б один варіант."));
 
 			return;
 		}

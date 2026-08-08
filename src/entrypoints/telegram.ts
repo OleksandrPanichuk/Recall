@@ -93,7 +93,10 @@ function main(): void {
 	// launch() only settles when polling stops, so a rejection here means Telegram
 	// refused us outright — a bad token, or no network. Report it and tear down
 	// rather than leaving an unhandled rejection and a half-open database.
-	bot.launch().catch((error: unknown) => {
+	// Updates queued while the bot was down are replayed by Telegram for up to 24
+	// hours. Every one of those callback queries is past its answer window and
+	// would act on a screen the user has long since moved past.
+	bot.launch({ dropPendingUpdates: true }).catch((error: unknown) => {
 		logger.error("bot stopped", { error });
 		void shutdown.trigger("launch-failed").then(() => {
 			process.exitCode = 1;

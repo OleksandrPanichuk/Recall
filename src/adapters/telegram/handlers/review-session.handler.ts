@@ -44,7 +44,7 @@ export function reviewSessionHandler(
 export function rateHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: RateCallback): Promise<void> => {
 		if (!isReviewRating(callback.rating)) {
-			await ctx.answerCbQuery("Невідома оцінка");
+			await render(ctx, notice("Невідома оцінка."));
 
 			return;
 		}
@@ -55,8 +55,10 @@ export function rateHandler(useCases: TelegramUseCases) {
 			rating: callback.rating,
 		});
 
-		await ctx.answerCbQuery(
-			`Наступне повторення: ${dueAt.toISOString().slice(0, 10)}`,
+		// The query was already answered by the router, so confirm on the screen.
+		await render(
+			ctx,
+			notice(`Заплановано повторення на ${dueAt.toISOString().slice(0, 10)}.`),
 		);
 	};
 }
