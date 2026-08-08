@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
@@ -79,6 +81,13 @@ function enableWriteAheadLog(database: Database, path: string): void {
 }
 
 export function createDatabase(options: DatabaseOptions): Database {
+	// SQLite will create the file but not the directory holding it, and the
+	// shipped DATABASE_PATH points at ./data — so a fresh checkout would fail on
+	// its very first run with a bare SQLITE_CANTOPEN.
+	if (options.path !== inMemoryPath) {
+		mkdirSync(dirname(options.path), { recursive: true });
+	}
+
 	const database = new Database(options.path, { create: true });
 
 	try {

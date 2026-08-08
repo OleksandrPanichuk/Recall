@@ -172,3 +172,16 @@ describe("the migrate command", () => {
 		expect(readdirSync(directory)).toContain("quiz.sqlite");
 	}, 30_000);
 });
+
+describe("createDatabase directory handling", () => {
+	test("creates the directory the database lives in", () => {
+		const directory = mkdtempSync(join(tmpdir(), "recall-nested-"));
+		const path = join(directory, "deeply", "nested", "quiz.sqlite");
+
+		const database = createDatabase({ path });
+
+		expect(existsSync(path)).toBe(true);
+		closeDatabase(database);
+		rmSync(directory, { recursive: true, force: true });
+	});
+});
