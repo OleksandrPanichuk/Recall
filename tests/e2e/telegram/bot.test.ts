@@ -619,3 +619,73 @@ describe("finishing an answered-out attempt", () => {
 		expect(buttonFor("Завершити")).toBe("f");
 	});
 });
+
+// "Продовжити навчання" resumes whatever attempt is open, and a mistakes drill
+// is an attempt — so both buttons land on the same question by design. What was
+// missing is any sign of which kind of session you are in once past the first
+// screen.
+describe("session context is visible throughout", () => {
+	const missOne = async (): Promise<void> => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One"),
+			aQuestionInput("Two"),
+		]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Wrong for One"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Далі"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Right for Two"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Завершити"));
+	};
+
+	test("a mistakes drill says so on every question, not just the first", async () => {
+		await missOne();
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторити помилки"));
+
+		expect(harness.lastText()).toContain("Повторення помилок");
+
+		// Resuming the same drill must keep the heading.
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Продовжити навчання"));
+
+		expect(harness.lastText()).toContain("Повторення помилок");
+	});
+
+	test("an ordinary run carries no drill heading", async () => {
+		await seedPublishedSet(harness, "Plain", [aQuestionInput("One")]);
+		await openSet("Plain");
+
+		expect(harness.lastText()).not.toContain("Повторення помилок");
+		expect(harness.lastText()).not.toContain("Слабка тема");
+	});
+
+	test("a weak-topic drill names the topic on every question", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("A1", { topic: "Alpha" }),
+			aQuestionInput("A2", { topic: "Alpha" }),
+			aQuestionInput("A3", { topic: "Alpha" }),
+		]);
+		await openSet("Bun");
+
+		for (const prompt of ["A1", "A2", "A3"]) {
+			harness.clock.advance(60_000);
+			await harness.tap(buttonFor(`Wrong for ${prompt}`));
+			harness.clock.advance(60_000);
+			await harness.tap(buttonFor(prompt === "A3" ? "Завершити" : "Далі"));
+		}
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Слабкі теми"));
+
+		expect(harness.lastText()).toContain("Слабка тема: Alpha");
+
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Продовжити навчання"));
+
+		expect(harness.lastText()).toContain("Слабка тема: Alpha");
+	});
+});

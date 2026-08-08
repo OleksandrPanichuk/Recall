@@ -29,14 +29,9 @@ export function reviewSessionHandler(
 			return;
 		}
 
-		const heading =
-			mode === QuizAttemptMode.WeakTopics && started.topic !== undefined
-				? `📉 Слабка тема: ${started.topic}`
-				: "🔁 Повторення помилок";
-
-		const screen = questionScreen(current, current.question);
-
-		await render(ctx, { ...screen, text: `${heading}\n\n${screen.text}` });
+		// The heading comes from the attempt's own mode now, so it survives every
+		// later screen instead of only this one.
+		await render(ctx, questionScreen(current, current.question));
 	};
 }
 
