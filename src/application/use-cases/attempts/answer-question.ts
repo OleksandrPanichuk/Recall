@@ -145,7 +145,11 @@ export class AnswerQuestion
 					recorded.isCorrect,
 					true,
 					question,
-					this.reviewDueAt(request.telegramUserId, request.questionId),
+					this.rateableDueAt(
+						request.telegramUserId,
+						request.questionId,
+						recorded.isCorrect,
+					),
 				);
 			}
 
@@ -167,8 +171,10 @@ export class AnswerQuestion
 			// convenience layered on top. Letting the second fail the first would mean
 			// a scheduling bug makes a question permanently unanswerable, so the
 			// review half is contained.
+			let reviewDueAt: Date | undefined;
+
 			try {
-				this.updateReviewQueue(
+				reviewDueAt = this.updateReviewQueue(
 					request.telegramUserId,
 					request.questionId,
 					isCorrect,
@@ -178,13 +184,7 @@ export class AnswerQuestion
 				this.onReviewQueueError(error);
 			}
 
-			return this.resultOf(
-				answered,
-				isCorrect,
-				false,
-				question,
-				this.reviewDueAt(request.telegramUserId, request.questionId),
-			);
+			return this.resultOf(answered, isCorrect, false, question, reviewDueAt);
 		});
 	}
 
@@ -200,7 +200,7 @@ export class AnswerQuestion
 		questionId: QuestionId,
 		isCorrect: boolean,
 		at: Date,
-	): void {
+	): Date | undefined {
 		const existing = this.reviews.findByQuestion(telegramUserId, questionId);
 
 		if (!isCorrect) {
@@ -208,11 +208,13 @@ export class AnswerQuestion
 				this.queueMistake(existing, telegramUserId, questionId, at),
 			);
 
-			return;
+			// A failed question is not rateable: "how easily did you recall it?" has
+			// only one answer when you did not recall it at all.
+			return undefined;
 		}
 
 		if (existing === undefined || existing.state === ReviewItemState.Retired) {
-			return;
+			return undefined;
 		}
 
 		// Spacing is the whole point: a question answered again before it is due has
@@ -220,21 +222,21 @@ export class AnswerQuestion
 		// Without this a mistake made at 11:00 retires by 15:00 the same day and
 		// quietly leaves the queue having never been spaced at all.
 		if (existing.dueAt.getTime() > at.getTime()) {
-			return;
+			// Practising ahead of schedule is welcome, but it is not a review, so it
+			// neither advances the streak nor asks how hard it felt.
+			return undefined;
 		}
 
-		this.reviews.save(
-			markReviewPassed(
-				existing,
-				at,
-				nextReviewDueAt({
-					streak: existing.streak + 1,
-					rating: ReviewRating.Good,
-					at,
-					timezone: this.timezone,
-				}),
-			),
-		);
+		const dueAt = nextReviewDueAt({
+			streak: existing.streak + 1,
+			rating: ReviewRating.Good,
+			at,
+			timezone: this.timezone,
+		});
+
+		this.reviews.save(markReviewPassed(existing, at, dueAt));
+
+		return dueAt;
 	}
 
 	private queueMistake(
@@ -285,14 +287,18 @@ export class AnswerQuestion
 		};
 	}
 
-	private reviewDueAt(
+	/** Only a recalled question can be rated, and only while still in rotation. */
+	private rateableDueAt(
 		telegramUserId: number,
 		questionId: QuestionId,
+		isCorrect: boolean,
 	): Date | undefined {
+		if (!isCorrect) {
+			return undefined;
+		}
+
 		const item = this.reviews.findByQuestion(telegramUserId, questionId);
 
-		// A retired card is out of rotation, so rescheduling it would promise a
-		// review that listDue can never deliver.
 		return item === undefined || item.state === ReviewItemState.Retired
 			? undefined
 			: item.dueAt;

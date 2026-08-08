@@ -344,20 +344,41 @@ describe("adaptive practice (§5)", () => {
 		}
 	};
 
-	test("a wrong answer offers a rating", async () => {
+	// Hard/Normal/Easy answers "how easily did you recall it?", so it belongs on a
+	// success. A failed question has only one possible rating.
+	test("a wrong answer offers no rating", async () => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
 		await openSet("Bun");
 		harness.clock.advance(60_000);
 
 		await harness.tap(buttonFor("Wrong for One"));
 
-		expect(buttonFor("Важко")).toContain("v:");
+		expect(
+			harness.lastButtons().some((entry) => entry.text.includes("Важко")),
+		).toBe(false);
+	});
+
+	test("recalling a due question offers a rating", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Wrong for One"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Завершити"));
+
+		// Come back once the card has fallen due and get it right.
+		harness.clock.advance(2 * 24 * 60 * 60 * 1000);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторити помилки"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Right for One"));
+
 		expect(harness.lastButtons().map((entry) => entry.text)).toEqual(
 			expect.arrayContaining(["😖 Важко", "🙂 Нормально", "😎 Легко"]),
 		);
 	});
 
-	test("a correct answer offers no rating", async () => {
+	test("a correct answer to an unqueued question offers no rating", async () => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
 		await openSet("Bun");
 		harness.clock.advance(60_000);
@@ -376,6 +397,13 @@ describe("adaptive practice (§5)", () => {
 		await openSet("Bun");
 		harness.clock.advance(60_000);
 		await harness.tap(buttonFor("Wrong for One"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Завершити"));
+		harness.clock.advance(2 * 24 * 60 * 60 * 1000);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторити помилки"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Right for One"));
 
 		await harness.tap(buttonFor("Легко"));
 
@@ -391,7 +419,7 @@ describe("adaptive practice (§5)", () => {
 			(call) => call.method === "answerCallbackQuery",
 		).length;
 
-		await harness.tap(buttonFor("Важко"));
+		await harness.tap(buttonFor("Завершити"));
 
 		const after = harness.calls.filter(
 			(call) => call.method === "answerCallbackQuery",
@@ -411,12 +439,27 @@ describe("adaptive practice (§5)", () => {
 		expect(harness.lastText()).toContain("питання 1/3");
 	});
 
-	test("the mistakes menu says so when nothing is due", async () => {
+	test("the mistakes menu says so when there are no mistakes at all", async () => {
 		await harness.send("/start");
 
 		await harness.tap(buttonFor("Повторити помилки"));
 
-		expect(harness.lastText()).toContain("немає питань для повторення");
+		expect(harness.lastText()).toContain("Немає помилок для повторення");
+	});
+
+	test("a mistake can be practised immediately, without waiting a day", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Wrong for One"));
+		harness.clock.advance(60_000);
+		await harness.tap(buttonFor("Завершити"));
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторити помилки"));
+
+		expect(harness.lastText()).toContain("Повторення помилок");
+		expect(harness.lastText()).toContain("питання 1/1");
 	});
 
 	test("the weak-topics menu opens a session for the weakest topic", async () => {

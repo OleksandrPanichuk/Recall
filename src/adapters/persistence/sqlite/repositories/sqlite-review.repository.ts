@@ -106,6 +106,24 @@ export function createSqliteReviewRepository(
 				.map(toReviewItem);
 		},
 
+		listOutstanding(
+			telegramUserId: number,
+			limit: number,
+		): readonly ReviewItem[] {
+			if (!Number.isSafeInteger(limit) || limit <= 0) {
+				throw new RangeError("limit must be a positive integer");
+			}
+
+			return database
+				.select()
+				.from(reviewItems)
+				.where(and(eq(reviewItems.telegramUserId, telegramUserId), notRetired))
+				.orderBy(asc(reviewItems.dueAt), asc(reviewItems.id))
+				.limit(limit)
+				.all()
+				.map(toReviewItem);
+		},
+
 		countPending(telegramUserId: number): number {
 			return (
 				database

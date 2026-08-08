@@ -241,16 +241,54 @@ describe("mistakes session (§5.1)", () => {
 		);
 	});
 
-	test("refuses when nothing is due yet", async () => {
+	// "Repeat mistakes" means the question you just missed, not the one the
+	// schedule happens to have released. Practising early costs nothing because
+	// it cannot advance the streak.
+	test("practises a mistake immediately, before it is due", async () => {
 		const quizSetId = await seedSet("Bun", [aQuestionInput("One")]);
 		await play(quizSetId, [false]);
 
-		await expect(
-			session.execute({
-				telegramUserId: USER,
-				mode: QuizAttemptMode.Mistakes,
-			}),
-		).rejects.toThrow(NothingToReviewError);
+		const result = await session.execute({
+			telegramUserId: USER,
+			mode: QuizAttemptMode.Mistakes,
+		});
+
+		expect(result.questionCount).toBe(1);
+	});
+
+	test("practising early still does not advance the streak", async () => {
+		const quizSetId = await seedSet("Bun", [aQuestionInput("One")]);
+		await play(quizSetId, [false]);
+
+		await play(quizSetId, [true]);
+
+		expect(
+			context.reviews.findByQuestion(
+				USER,
+				questionsOf(quizSetId)[0]?.id as never,
+			)?.streak,
+		).toBe(0);
+	});
+
+	// Two sets, so the two mistakes can be queued at different times: only then is
+	// one genuinely due while the other is not.
+	test("prefers questions that are actually due over merely outstanding ones", async () => {
+		const older = await seedSet("Older", [aQuestionInput("Old")]);
+		const newer = await seedSet("Newer", [aQuestionInput("New")]);
+
+		await play(older, [false]);
+		untilDue();
+		await play(newer, [false]);
+
+		const result = await session.execute({
+			telegramUserId: USER,
+			mode: QuizAttemptMode.Mistakes,
+		});
+
+		// "Old" fell due a day ago; "New" was missed just now and is not due yet.
+		expect(
+			context.attempts.findById(result.attemptId)?.questionIds.map(String),
+		).toEqual([String(questionsOf(older)[0]?.id)]);
 	});
 
 	test("refuses when there are no mistakes at all", async () => {

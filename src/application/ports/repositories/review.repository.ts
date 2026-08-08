@@ -24,6 +24,11 @@ export interface ReviewRepository {
 		now: Date,
 		limit: number,
 	): readonly ReviewItem[];
+	/**
+	 * Every item still in rotation, due or not, soonest first. Backs practising
+	 * mistakes on demand rather than only when the schedule says so.
+	 */
+	listOutstanding(telegramUserId: number, limit: number): readonly ReviewItem[];
 	/** Every item still in rotation, due or not. */
 	countPending(telegramUserId: number): number;
 }

@@ -31,7 +31,7 @@ export function userMessageFor(error: unknown): string {
 	// the log, and this UI is Ukrainian throughout.
 	if (error instanceof NothingToReviewError) {
 		return error.mode === QuizAttemptMode.Mistakes
-			? "Зараз немає питань для повторення. Поверніться пізніше."
+			? "Немає помилок для повторення — ви ще нічого не пропустили."
 			: "Замало відповідей, щоб визначити слабку тему. Пройдіть ще один набір.";
 	}
 

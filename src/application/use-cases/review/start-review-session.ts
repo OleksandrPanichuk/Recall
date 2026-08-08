@@ -141,15 +141,29 @@ export class StartReviewSession
 			.filter((quizSet): quizSet is QuizSet => quizSet !== undefined);
 	}
 
+	/**
+	 * Due items first, then anything else still outstanding.
+	 *
+	 * The menu entry is "repeat mistakes", not "review what the schedule says is
+	 * ready": a question missed minutes ago is the one the user most wants to
+	 * redo, and it is not due until tomorrow. Practising early is free — answering
+	 * ahead of schedule does not advance the streak — so the only thing this
+	 * changes is that the button does something useful.
+	 */
 	private selectMistakes(
 		telegramUserId: number,
 		limit: number,
 	): Selection | undefined {
-		const dueIds = new Set(
-			this.reviews
-				.listDue(telegramUserId, this.clock.now(), limit * 10)
-				.map((item) => String(item.questionId)),
+		const due = this.reviews.listDue(
+			telegramUserId,
+			this.clock.now(),
+			limit * 10,
 		);
+		const candidates =
+			due.length > 0
+				? due
+				: this.reviews.listOutstanding(telegramUserId, limit * 10);
+		const dueIds = new Set(candidates.map((item) => String(item.questionId)));
 
 		if (dueIds.size === 0) {
 			return undefined;
