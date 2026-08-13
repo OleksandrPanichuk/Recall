@@ -689,3 +689,92 @@ describe("session context is visible throughout", () => {
 		expect(harness.lastText()).toContain("Слабка тема: Alpha");
 	});
 });
+
+// Telegram truncates inline-button labels on one line with no way to see the
+// rest. Real authored options run well past 100 characters, so their text has to
+// live in the message body, which wraps.
+describe("long option text stays readable", () => {
+	const longOption =
+		"Це був просто вдалий хештег у Twitter для мітапу про open source distributed non-relational бази даних у 2009 році";
+
+	test("long options move into the body and buttons become numbers", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", {
+				options: [
+					{ text: longOption, isCorrect: true },
+					{ text: `${longOption} (варіант два)`, isCorrect: false },
+				],
+			}),
+		]);
+
+		await openSet("Bun");
+
+		// The whole text is present in the message, not clipped onto a button.
+		expect(harness.lastText()).toContain(longOption);
+		expect(harness.lastText()).toContain("1. ");
+		expect(harness.lastText()).toContain("2. ");
+
+		const optionButtons = harness
+			.lastButtons()
+			.filter((entry) => entry.callback_data.startsWith("a:"));
+
+		expect(optionButtons.map((entry) => entry.text)).toEqual(["1", "2"]);
+		for (const entry of optionButtons) {
+			expect(entry.text.length).toBeLessThanOrEqual(4);
+		}
+	});
+
+	test("answering by number still records the right option", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", {
+				options: [
+					{ text: `${longOption} — правильна`, isCorrect: true },
+					{ text: `${longOption} — хибна`, isCorrect: false },
+				],
+			}),
+		]);
+		await openSet("Bun");
+		harness.clock.advance(60_000);
+
+		await harness.tap(buttonFor("1"));
+
+		expect(harness.lastText()).toContain("✅ Правильно");
+	});
+
+	test("short options keep their text on the button", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", {
+				type: QuestionType.TrueFalse,
+				options: [
+					{ text: "Так", isCorrect: true },
+					{ text: "Ні", isCorrect: false },
+				],
+			}),
+		]);
+
+		await openSet("Bun");
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toEqual(
+			expect.arrayContaining(["Так", "Ні"]),
+		);
+	});
+
+	test("a long multiple choice shows its selection in the body", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			aQuestionInput("Multi", {
+				type: QuestionType.MultipleChoice,
+				options: [
+					{ text: `${longOption} A`, isCorrect: true },
+					{ text: `${longOption} B`, isCorrect: true },
+					{ text: `${longOption} C`, isCorrect: false },
+				],
+			}),
+		]);
+		await openSet("Bun");
+
+		await harness.tap(buttonFor("1"));
+
+		expect(harness.lastText()).toContain("☑️ 1.");
+		expect(harness.lastText()).toContain("⬜️ 2.");
+	});
+});
