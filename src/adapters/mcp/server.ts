@@ -94,11 +94,16 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 					);
 				}
 
+				// Leaving a finished set as a draft is the easy mistake: the tool call
+				// succeeded, so nothing looks wrong, and the bot lists published sets
+				// only — so the questions simply never appear.
 				return ok(
-					`Added ${result.addedQuestionIds.length} questions to ${args.quizSetId}.`,
+					`Added ${result.addedQuestionIds.length} questions to ${args.quizSetId}. The set is still a DRAFT and will not appear in Telegram until you call quiz_publish_set.`,
 					{
 						quizSetId: args.quizSetId,
 						addedQuestionIds: [...result.addedQuestionIds],
+						status: "draft",
+						nextStep: "quiz_publish_set",
 					},
 				);
 			}),
@@ -199,7 +204,23 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			guard(async () => {
 				const sets = await useCases.listQuizSets.execute(args);
 
-				return ok(describeSummaries(sets), { count: sets.length });
+				if (args.includeUnpublished === true) {
+					return ok(describeSummaries(sets), { count: sets.length });
+				}
+
+				// A draft is invisible here by design, but silently invisible is how a
+				// finished set gets forgotten. Say it exists without listing it.
+				const all = await useCases.listQuizSets.execute({
+					includeUnpublished: true,
+				});
+				const unpublished = all.length - sets.length;
+
+				return ok(
+					unpublished === 0
+						? describeSummaries(sets)
+						: `${describeSummaries(sets)}\n\n(${unpublished} unpublished set(s) not shown — call quiz_list_sets with includeUnpublished to see them.)`,
+					{ count: sets.length, unpublishedCount: unpublished },
+				);
 			}),
 	);
 

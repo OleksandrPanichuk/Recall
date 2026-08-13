@@ -147,6 +147,21 @@ describe("write tools (§4.2)", () => {
 		expect(result.structured.addedQuestionIds).toHaveLength(2);
 	});
 
+	// Adding questions and stopping there is the easy mistake: the call succeeds,
+	// and the set never reaches Telegram because it is still a draft.
+	test("adding questions says the set is not published yet", async () => {
+		const quizSetId = await newDraft();
+
+		const result = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [aQuestion("One")],
+		});
+
+		expect(result.text).toContain("still a DRAFT");
+		expect(result.text).toContain("quiz_publish_set");
+		expect(result.structured.nextStep).toBe("quiz_publish_set");
+	});
+
 	// §4.2 gate: an invalid batch rolls back entirely.
 	test("an invalid question rolls the whole batch back", async () => {
 		const quizSetId = await newDraft();
@@ -246,10 +261,13 @@ describe("read tools (§4.3)", () => {
 		expect(result.structured.questionCount).toBe(1);
 	});
 
-	test("list_sets hides drafts unless asked", async () => {
+	test("list_sets hides drafts unless asked, but says they exist", async () => {
 		const quizSetId = await newDraft("Draft only");
 
-		expect((await call("quiz_list_sets")).text).toBe("No quiz sets yet.");
+		const published = await call("quiz_list_sets");
+
+		expect(published.text).toContain("1 unpublished set(s) not shown");
+		expect(published.structured.unpublishedCount).toBe(1);
 
 		const all = await call("quiz_list_sets", { includeUnpublished: true });
 
