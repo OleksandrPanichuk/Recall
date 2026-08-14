@@ -3,7 +3,7 @@ import type { AnswerQuestion } from "@/application/use-cases/attempts/answer-que
 import type { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
-import type { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { CallbackAction, decodeCallback } from "./callbacks/callback-data";
@@ -11,8 +11,8 @@ import {
 	answerHandler,
 	toggleHandler,
 } from "./handlers/answer-question.handler";
+import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
-import { quizSetListHandler } from "./handlers/quiz-set-list.handler";
 import { menuHandler, resumeHandler } from "./handlers/start.handler";
 import { startAttemptHandler } from "./handlers/start-attempt.handler";
 import { statisticsHandler } from "./handlers/statistics.handler";
@@ -22,7 +22,7 @@ import { notice, UNAVAILABLE_FEATURES } from "./presenters/menu.presenter";
 import { render } from "./screen";
 
 export interface TelegramUseCases {
-	readonly listQuizSets: ListQuizSets;
+	readonly browseFolder: BrowseFolder;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly getCurrentQuestion: GetCurrentQuestion;
 	readonly answerQuestion: AnswerQuestion;
@@ -69,11 +69,21 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 
 				return;
 			case CallbackAction.Sets:
-				await quizSetListHandler(useCases, CallbackAction.StartSet)(ctx);
+				await browseHandler(useCases)(ctx, {
+					action: CallbackAction.Browse,
+					leaf: CallbackAction.StartSet,
+				});
 
 				return;
 			case CallbackAction.Statistics:
-				await quizSetListHandler(useCases, CallbackAction.StatisticsFor)(ctx);
+				await browseHandler(useCases)(ctx, {
+					action: CallbackAction.Browse,
+					leaf: CallbackAction.StatisticsFor,
+				});
+
+				return;
+			case CallbackAction.Browse:
+				await browseHandler(useCases)(ctx, callback);
 
 				return;
 			case CallbackAction.StartSet:

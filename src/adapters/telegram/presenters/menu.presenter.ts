@@ -1,4 +1,3 @@
-import type { QuizSetSummary } from "@/application/ports/repositories/quiz-set.repository";
 import {
 	type Callback,
 	CallbackAction,
@@ -49,31 +48,6 @@ export function mainMenu(state: MenuState): Screen {
 					feature: "settings",
 				}),
 			],
-		],
-	};
-}
-
-export function quizSetList(
-	sets: readonly QuizSetSummary[],
-	action: typeof CallbackAction.StartSet | typeof CallbackAction.StatisticsFor,
-): Screen {
-	if (sets.length === 0) {
-		return {
-			text: "Опублікованих наборів ще немає. Створіть набір через Claude (MCP).",
-			keyboard: [backToMenu()],
-		};
-	}
-
-	return {
-		text: "Оберіть набір:",
-		keyboard: [
-			...sets.map((set) => [
-				button(`${set.title} (${set.questionCount})`, {
-					action,
-					quizSetId: set.id,
-				}),
-			]),
-			backToMenu(),
 		],
 	};
 }
