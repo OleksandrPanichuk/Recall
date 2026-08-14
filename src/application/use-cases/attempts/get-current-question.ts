@@ -4,7 +4,6 @@ import type { Command, UseCase } from "@/application/use-case";
 import {
 	currentQuestionId,
 	type QuizAttemptId,
-	type QuizAttemptMode,
 	type QuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Question } from "@/domain/quiz-set/question";
@@ -16,8 +15,6 @@ export interface CurrentQuestionView {
 	readonly quizSetId: QuizSetId;
 	readonly quizSetTitle: string;
 	readonly status: QuizAttemptStatus;
-	/** Full run, mistakes practice, or a weak-topic drill. */
-	readonly mode: QuizAttemptMode;
 	/**
 	 * Absent once every planned question has been answered, or if the question
 	 * itself has since been removed from the set.
@@ -77,7 +74,6 @@ export class GetCurrentQuestion
 			quizSetId: attempt.quizSetId,
 			quizSetTitle: quizSet?.title ?? "",
 			status: attempt.status,
-			mode: attempt.mode,
 			question,
 			index: attempt.responses.length,
 			total: attempt.questionIds.length,

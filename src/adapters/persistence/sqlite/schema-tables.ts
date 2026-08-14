@@ -9,5 +9,4 @@ export const applicationTables = [
 	"questions",
 	"quiz_attempts",
 	"quiz_sets",
-	"review_items",
 ] as const;

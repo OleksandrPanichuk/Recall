@@ -51,7 +51,6 @@ try {
 	const environment = loadEnvironment();
 	const application = createApplication({
 		databasePath: environment.databasePath,
-		timezone: environment.appTimezone,
 	});
 
 	const { quizSetId } = await application.createQuizSet.execute({

@@ -34,8 +34,7 @@ afterEach(() => {
 
 const clock = createMutableClock();
 
-const open = (): Application =>
-	createApplication({ databasePath, timezone: "Europe/Kyiv", clock });
+const open = (): Application => createApplication({ databasePath, clock });
 
 const aQuestion = (prompt: string) => ({
 	type: QuestionType.SingleChoice,
@@ -195,34 +194,6 @@ describe("restart continuity (§6.4)", () => {
 		expect(finished.score.correct).toBe(1);
 		second.close();
 	});
-
-	test("the review queue survives a restart", async () => {
-		const first = open();
-		const quizSetId = await seed(first);
-		await first.startQuizAttempt.execute({
-			quizSetId,
-			telegramUserId: USER,
-		});
-
-		const questions = (await first.getQuizSet.execute({ quizSetId })).questions;
-		clock.advance(60_000);
-		await first.answerQuestion.execute({
-			telegramUserId: USER,
-			questionId: questions[0]?.id as never,
-			selectedOptionPositions: [1],
-		});
-		clock.advance(60_000);
-		await first.finishQuizAttempt.execute({ telegramUserId: USER });
-		first.close();
-
-		const second = open();
-		const client = createDrizzleClient(second.database);
-
-		expect(
-			readStatus(client, { databasePath, timezone: "Europe/Kyiv" }).reviewQueue,
-		).toBe(1);
-		second.close();
-	});
 });
 
 describe("status command (§6.4)", () => {
@@ -245,7 +216,6 @@ describe("status command (§6.4)", () => {
 			completedAttempts: 0,
 			unfinishedAttempts: 1,
 			answeredQuestions: 1,
-			reviewQueue: 0,
 		});
 		application.close();
 	});

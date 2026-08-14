@@ -61,11 +61,11 @@ export function createSqliteQuizSetRepository(
 				}
 
 				// Questions are upserted rather than deleted and reinserted so that
-				// saving a set again never cascades away the attempt responses and
-				// review items pointing at the surviving questions. The trade-off is
-				// that editing a stored question keeps the responses recorded against
-				// its previous wording; losing them to a cascade is the worse of the
-				// two, and published questions are immutable anyway.
+				// saving a set again never cascades away the attempt responses
+				// pointing at the surviving questions. The trade-off is that editing a
+				// stored question keeps the responses recorded against its previous
+				// wording; losing them to a cascade is the worse of the two, and
+				// published questions are immutable anyway.
 				database
 					.delete(questions)
 					.where(

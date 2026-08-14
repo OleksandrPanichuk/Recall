@@ -1,5 +1,4 @@
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
-import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { type Question, QuestionType } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data";
 import { button, type InlineButton, type Screen } from "./menu.presenter";
@@ -38,22 +37,6 @@ const chunk = (
 	}
 
 	return rows;
-};
-
-const sessionHeading = (
-	mode: QuizAttemptMode,
-	topic: string | undefined,
-): string | undefined => {
-	switch (mode) {
-		case QuizAttemptMode.Mistakes:
-			return "🔁 Повторення помилок";
-		case QuizAttemptMode.WeakTopics:
-			return topic === undefined
-				? "📉 Слабкі теми"
-				: `📉 Слабка тема: ${topic}`;
-		case QuizAttemptMode.Full:
-			return undefined;
-	}
 };
 
 const hintLine = (hint: string | undefined): string | undefined =>
@@ -113,7 +96,6 @@ export function questionScreen(
 
 	return {
 		text: [
-			sessionHeading(view.mode, question.topic),
 			`${view.quizSetTitle} — питання ${view.index + 1}/${view.total}`,
 			"",
 			question.prompt,

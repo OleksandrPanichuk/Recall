@@ -6,11 +6,9 @@ import {
 	questions,
 	quizAttempts,
 	quizSets,
-	reviewItems,
 } from "@/adapters/persistence/sqlite/schema";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { ReviewItemState } from "@/domain/review/review-item";
 
 export interface StatusReport {
 	readonly databasePath: string;
@@ -21,7 +19,6 @@ export interface StatusReport {
 	readonly completedAttempts: number;
 	readonly unfinishedAttempts: number;
 	readonly answeredQuestions: number;
-	readonly reviewQueue: number;
 }
 
 export interface StatusOptions {
@@ -74,17 +71,6 @@ export function readStatus(
 				)
 				.get()?.value ?? 0,
 		answeredQuestions: total(database, questionResponses),
-		reviewQueue:
-			database
-				.select({ value: count() })
-				.from(reviewItems)
-				.where(
-					inArray(reviewItems.state, [
-						ReviewItemState.Pending,
-						ReviewItemState.Learning,
-					]),
-				)
-				.get()?.value ?? 0,
 	};
 }
 
@@ -98,6 +84,5 @@ export function formatStatus(report: StatusReport): string {
 		`completed attempts:  ${report.completedAttempts}`,
 		`unfinished attempts: ${report.unfinishedAttempts}`,
 		`answered questions:  ${report.answeredQuestions}`,
-		`review queue:        ${report.reviewQueue}`,
 	].join("\n");
 }

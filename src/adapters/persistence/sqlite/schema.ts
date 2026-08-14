@@ -15,7 +15,6 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { ReviewItemState } from "@/domain/review/review-item";
 
 function quoteText(value: string): string {
 	return `'${value.replaceAll("'", "''")}'`;
@@ -143,28 +142,5 @@ export const questionResponses = sqliteTable(
 		primaryKey({ columns: [table.attemptId, table.questionId] }),
 		check("question_responses_is_correct_check", isBoolean(table.isCorrect)),
 		index("idx_question_responses_question").on(table.questionId),
-	],
-);
-
-export const reviewItems = sqliteTable(
-	"review_items",
-	{
-		id: text("id").notNull().primaryKey(),
-		questionId: text("question_id")
-			.notNull()
-			.references(() => questions.id, { onDelete: "cascade" }),
-		telegramUserId: integer("telegram_user_id").notNull(),
-		state: text("state").notNull(),
-		streak: integer("streak").notNull().default(0),
-		dueAt: text("due_at").notNull(),
-		createdAt: text("created_at").notNull(),
-		lastReviewedAt: text("last_reviewed_at"),
-	},
-	(table) => [
-		check("review_items_state_check", isOneOf(table.state, ReviewItemState)),
-		check("review_items_streak_check", sql.raw(`${table.streak.name} >= 0`)),
-		unique().on(table.telegramUserId, table.questionId),
-		index("idx_review_items_due").on(table.telegramUserId, table.dueAt),
-		index("idx_review_items_question").on(table.questionId),
 	],
 );

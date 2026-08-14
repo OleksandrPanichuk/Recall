@@ -27,7 +27,6 @@ async function main(): Promise<void> {
 
 	const application = createApplication({
 		databasePath: environment.databasePath,
-		timezone: environment.appTimezone,
 	});
 	const server = createMcpServer(application);
 	// stdout carries the protocol, so every log line goes to stderr.

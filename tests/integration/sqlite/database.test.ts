@@ -37,10 +37,13 @@ afterEach(() => {
 });
 
 describe("applyMigrations", () => {
-	test("applies the initial migration once and is then idempotent", () => {
+	test("applies every migration once and is then idempotent", () => {
 		const database = createDatabase({ path: ":memory:" });
 
-		expect(applyMigrations(database)).toEqual(["0000_initial-schema"]);
+		expect(applyMigrations(database)).toEqual([
+			"0000_initial-schema",
+			"0001_drop-review-items",
+		]);
 		expect(applyMigrations(database)).toEqual([]);
 
 		database.close();

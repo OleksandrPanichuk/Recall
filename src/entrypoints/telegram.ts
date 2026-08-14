@@ -42,7 +42,6 @@ function main(): void {
 	});
 	const application = createApplication({
 		databasePath: environment.databasePath,
-		timezone: environment.appTimezone,
 	});
 
 	if (process.argv.includes("--status")) {

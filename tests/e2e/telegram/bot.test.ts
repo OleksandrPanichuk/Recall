@@ -76,8 +76,6 @@ describe("navigation shell (§3.2)", () => {
 		expect(labels).toEqual([
 			expect.stringContaining("Мої набори"),
 			expect.stringContaining("Продовжити навчання"),
-			expect.stringContaining("Повторити помилки"),
-			expect.stringContaining("Слабкі теми"),
 			expect.stringContaining("Статистика"),
 			expect.stringContaining("Налаштування"),
 		]);
@@ -327,89 +325,7 @@ describe("results and statistics (§3.4)", () => {
 	});
 });
 
-describe("adaptive practice (§5)", () => {
-	const missOneQuestion = async (topic?: string): Promise<void> => {
-		await seedPublishedSet(harness, "Bun", [
-			aQuestionInput("One", topic === undefined ? {} : { topic }),
-			aQuestionInput("Two", topic === undefined ? {} : { topic }),
-			aQuestionInput("Three", topic === undefined ? {} : { topic }),
-		]);
-		await openSet("Bun");
-
-		for (const prompt of ["One", "Two", "Three"]) {
-			harness.clock.advance(60_000);
-			await harness.tap(buttonFor(`Wrong for ${prompt}`));
-			harness.clock.advance(60_000);
-			await harness.tap(buttonFor(prompt === "Three" ? "Завершити" : "Далі"));
-		}
-	};
-
-	// Hard/Normal/Easy answers "how easily did you recall it?", so it belongs on a
-	// success. A failed question has only one possible rating.
-	test("a wrong answer offers no rating", async () => {
-		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
-		await openSet("Bun");
-		harness.clock.advance(60_000);
-
-		await harness.tap(buttonFor("Wrong for One"));
-
-		expect(
-			harness.lastButtons().some((entry) => entry.text.includes("Важко")),
-		).toBe(false);
-	});
-
-	test("recalling a due question offers a rating", async () => {
-		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
-		await openSet("Bun");
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Wrong for One"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Завершити"));
-
-		// Come back once the card has fallen due and get it right.
-		harness.clock.advance(2 * 24 * 60 * 60 * 1000);
-		await harness.send("/start");
-		await harness.tap(buttonFor("Повторити помилки"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Right for One"));
-
-		expect(harness.lastButtons().map((entry) => entry.text)).toEqual(
-			expect.arrayContaining(["😖 Важко", "🙂 Нормально", "😎 Легко"]),
-		);
-	});
-
-	test("a correct answer to an unqueued question offers no rating", async () => {
-		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
-		await openSet("Bun");
-		harness.clock.advance(60_000);
-
-		await harness.tap(buttonFor("Right for One"));
-
-		expect(
-			harness.lastButtons().some((entry) => entry.text.includes("Важко")),
-		).toBe(false);
-	});
-
-	// The router already answered this callback query, so the confirmation has to
-	// be a screen: Telegram rejects a second answer for the same query.
-	test("rating a question confirms its next review date on screen", async () => {
-		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
-		await openSet("Bun");
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Wrong for One"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Завершити"));
-		harness.clock.advance(2 * 24 * 60 * 60 * 1000);
-		await harness.send("/start");
-		await harness.tap(buttonFor("Повторити помилки"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Right for One"));
-
-		await harness.tap(buttonFor("Легко"));
-
-		expect(harness.lastText()).toContain("Заплановано повторення на");
-	});
-
+describe("callback acknowledgement", () => {
 	test("answers each callback query exactly once", async () => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
 		await openSet("Bun");
@@ -426,58 +342,6 @@ describe("adaptive practice (§5)", () => {
 		).length;
 
 		expect(after - before).toBe(1);
-	});
-
-	test("the mistakes menu opens a session once questions are due", async () => {
-		await missOneQuestion();
-		harness.clock.advance(2 * 24 * 60 * 60 * 1000);
-		await harness.send("/start");
-
-		await harness.tap(buttonFor("Повторити помилки"));
-
-		expect(harness.lastText()).toContain("Повторення помилок");
-		expect(harness.lastText()).toContain("питання 1/3");
-	});
-
-	test("the mistakes menu says so when there are no mistakes at all", async () => {
-		await harness.send("/start");
-
-		await harness.tap(buttonFor("Повторити помилки"));
-
-		expect(harness.lastText()).toContain("Немає помилок для повторення");
-	});
-
-	test("a mistake can be practised immediately, without waiting a day", async () => {
-		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
-		await openSet("Bun");
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Wrong for One"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Завершити"));
-
-		await harness.send("/start");
-		await harness.tap(buttonFor("Повторити помилки"));
-
-		expect(harness.lastText()).toContain("Повторення помилок");
-		expect(harness.lastText()).toContain("питання 1/1");
-	});
-
-	test("the weak-topics menu opens a session for the weakest topic", async () => {
-		await missOneQuestion("Alpha");
-		await harness.send("/start");
-
-		await harness.tap(buttonFor("Слабкі теми"));
-
-		expect(harness.lastText()).toContain("Слабка тема: Alpha");
-	});
-
-	test("the weak-topics menu says so without enough history", async () => {
-		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
-		await harness.send("/start");
-
-		await harness.tap(buttonFor("Слабкі теми"));
-
-		expect(harness.lastText()).toContain("Замало відповідей");
 	});
 });
 
@@ -617,76 +481,6 @@ describe("finishing an answered-out attempt", () => {
 		await harness.tap(buttonFor("Bun"));
 
 		expect(buttonFor("Завершити")).toBe("f");
-	});
-});
-
-// "Продовжити навчання" resumes whatever attempt is open, and a mistakes drill
-// is an attempt — so both buttons land on the same question by design. What was
-// missing is any sign of which kind of session you are in once past the first
-// screen.
-describe("session context is visible throughout", () => {
-	const missOne = async (): Promise<void> => {
-		await seedPublishedSet(harness, "Bun", [
-			aQuestionInput("One"),
-			aQuestionInput("Two"),
-		]);
-		await openSet("Bun");
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Wrong for One"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Далі"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Right for Two"));
-		harness.clock.advance(60_000);
-		await harness.tap(buttonFor("Завершити"));
-	};
-
-	test("a mistakes drill says so on every question, not just the first", async () => {
-		await missOne();
-		await harness.send("/start");
-		await harness.tap(buttonFor("Повторити помилки"));
-
-		expect(harness.lastText()).toContain("Повторення помилок");
-
-		// Resuming the same drill must keep the heading.
-		await harness.tap(buttonFor("Меню"));
-		await harness.tap(buttonFor("Продовжити навчання"));
-
-		expect(harness.lastText()).toContain("Повторення помилок");
-	});
-
-	test("an ordinary run carries no drill heading", async () => {
-		await seedPublishedSet(harness, "Plain", [aQuestionInput("One")]);
-		await openSet("Plain");
-
-		expect(harness.lastText()).not.toContain("Повторення помилок");
-		expect(harness.lastText()).not.toContain("Слабка тема");
-	});
-
-	test("a weak-topic drill names the topic on every question", async () => {
-		await seedPublishedSet(harness, "Bun", [
-			aQuestionInput("A1", { topic: "Alpha" }),
-			aQuestionInput("A2", { topic: "Alpha" }),
-			aQuestionInput("A3", { topic: "Alpha" }),
-		]);
-		await openSet("Bun");
-
-		for (const prompt of ["A1", "A2", "A3"]) {
-			harness.clock.advance(60_000);
-			await harness.tap(buttonFor(`Wrong for ${prompt}`));
-			harness.clock.advance(60_000);
-			await harness.tap(buttonFor(prompt === "A3" ? "Завершити" : "Далі"));
-		}
-
-		await harness.send("/start");
-		await harness.tap(buttonFor("Слабкі теми"));
-
-		expect(harness.lastText()).toContain("Слабка тема: Alpha");
-
-		await harness.tap(buttonFor("Меню"));
-		await harness.tap(buttonFor("Продовжити навчання"));
-
-		expect(harness.lastText()).toContain("Слабка тема: Alpha");
 	});
 });
 

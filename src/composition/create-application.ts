@@ -7,7 +7,6 @@ import {
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
-import { createSqliteReviewRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-review.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
@@ -26,8 +25,6 @@ import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
-import { RateReview } from "@/application/use-cases/review/rate-review";
-import { StartReviewSession } from "@/application/use-cases/review/start-review-session";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 
 export const systemClock: Clock = { now: () => new Date() };
@@ -65,14 +62,11 @@ export interface Application {
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
 	readonly getQuizStatistics: GetQuizStatistics;
-	readonly startReviewSession: StartReviewSession;
-	readonly rateReview: RateReview;
 	close(): void;
 }
 
 export interface ApplicationOptions {
 	readonly databasePath: string;
-	readonly timezone?: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
 }
@@ -87,11 +81,9 @@ export function createApplication(options: ApplicationOptions): Application {
 	const dependencies = {
 		quizSets: createSqliteQuizSetRepository(client, transaction),
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
-		reviews: createSqliteReviewRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
 		transaction,
-		timezone: options.timezone ?? "UTC",
 	};
 
 	return {
@@ -110,8 +102,6 @@ export function createApplication(options: ApplicationOptions): Application {
 		answerQuestion: new AnswerQuestion(dependencies),
 		finishQuizAttempt: new FinishQuizAttempt(dependencies),
 		getQuizStatistics: new GetQuizStatistics(dependencies),
-		startReviewSession: new StartReviewSession(dependencies),
-		rateReview: new RateReview(dependencies),
 		// closeDatabase, not database.close: it checkpoints the write-ahead log first,
 		// so the newest writes end up in the file itself rather than a -wal sidecar
 		// that a backup or a restore can leave behind.

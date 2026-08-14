@@ -35,8 +35,6 @@
 - пояснення та посилання на розділ джерела;
 - збереження й продовження незавершеної спроби;
 - результати за наборами й темами;
-- повторення неправильних відповідей;
-- adaptive practice та spaced repetition;
 - персональний доступ через Telegram user allowlist.
 
 ## Документація
@@ -83,7 +81,7 @@ cp .env.example .env
 | `TELEGRAM_BOT_KEY` | Токен бота з @BotFather |
 | `ALLOWED_TELEGRAM_USER_ID` | Єдиний Telegram user id, якому дозволено доступ |
 | `DATABASE_PATH` | Шлях до локального `bun:sqlite` файлу |
-| `APP_TIMEZONE` | IANA time zone для streaks і spaced repetition |
+| `APP_TIMEZONE` | IANA time zone для дат у звітах |
 
 Усі чотири змінні обов'язкові. `src/infrastructure/config/env.ts` валідує їх на
 старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
@@ -136,7 +134,7 @@ bun run db:generate
 ### Table-rebuild migrations
 
 SQLite не вміє змінювати `CHECK`, тому будь-яка зміна enum-списку — тобто
-звичайний сценарій «додати значення в `QuestionType` / `ReviewItemState`» —
+звичайний сценарій «додати значення в `QuestionType` / `QuizAttemptMode`» —
 змушує `drizzle-kit generate` видати 12-step rebuild: `PRAGMA foreign_keys=OFF`,
 `CREATE TABLE __new_<name>`, `INSERT ... SELECT`, `DROP TABLE <name>`,
 `ALTER TABLE __new_<name> RENAME TO <name>`, `PRAGMA foreign_keys=ON`.
@@ -145,8 +143,8 @@ SQLite не вміє змінювати `CHECK`, тому будь-яка змі
 migrations в одній транзакції, а `PRAGMA foreign_keys` всередині транзакції —
 тихий no-op. Foreign keys залишаються включеними на `DROP TABLE`, кожен
 `ON DELETE CASCADE` спрацьовує, і весь дочірній graph зникає: разом із
-`quiz_sets` пішли б `questions`, `question_options`, `quiz_attempts`,
-`question_responses` та `review_items`. Migration завершилась би з кодом `0`.
+`quiz_sets` пішли б `questions`, `question_options`, `quiz_attempts`
+та `question_responses`. Migration завершилась би з кодом `0`.
 
 Тому `applyMigrations` відмовляється застосовувати pending migration, у SQL якої
 є `PRAGMA foreign_keys` або таблиця з префіксом `__new_`, і кидає
@@ -261,7 +259,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 3. **Application services** — authoring, attempts, scoring і statistics (готово).
 4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
 5. **MCP authoring** — локальний server та tools для Claude (готово).
-6. **Adaptive practice** — mistakes queue, weak topics і spaced repetition (готово).
+6. **Adaptive practice** — повторення та spaced repetition (знято; буде перероблено з нуля).
 7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment (готово).
 
 Детальні work packages та gates описані в [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
@@ -302,12 +300,11 @@ src/
   domain/
     quiz-set/       QuizSet, Question and validation model
     quiz-attempt/   QuizAttempt, answer evaluation and scoring model
-    review/         ReviewItem model і spaced-repetition schedule
     branded-id.ts
   application/
     use-case.ts    shared Command and UseCase contracts
     ports/         Clock, IdGenerator and Transaction contracts
-      repositories/ quiz set, quiz attempt and review repository contracts
+      repositories/ quiz set and quiz attempt repository contracts
     use-cases/
       quiz-sets/    create, update, add questions, publish, archive
       attempts/     start, pause, resume, answer, finish
@@ -416,36 +413,13 @@ claude mcp add recall-quiz --scope user \
 > дозволяють у назві лише `[A-Za-z0-9_-]`.
 
 
-## Повторення та spaced repetition
-
-Неправильна відповідь автоматично додає питання в чергу повторень; правильна —
-просуває streak, але **лише якщо питання вже настало за розкладом**. Одне
-питання ніколи не створює більше одного запису в черзі.
-
-`Повторити помилки` спершу бере питання, що вже настали; якщо таких немає —
-будь-які інші невивчені. Тобто помилку можна перепройти одразу, не чекаючи дня.
-Тренування наперед не просуває streak, тому воно нічого не псує.
-
-Інтервали rule-based: `1`, `3`, `7`, `21` днів. Оцінка (`Важко`, `Нормально`,
-`Легко`) з'являється **лише після правильної відповіді на питання, що настало** —
-вона відповідає на питання «наскільки легко пригадалося», а на провалену відповідь
-такого питання немає. Оцінка зсуває наступну дату, не змінюючи streak. Питання стає
-due на **початку дня** у вашому `APP_TIMEZONE`, а не через 24 години — тому
-повторення, зроблене об 23:30, не повертається о 23:30 наступного дня.
-
-Після `RETIREMENT_STREAK` правильних повторень питання виходить із черги, але
-повертається, якщо ви знову відповісте на нього неправильно.
-
-`Слабкі теми` формує сесію з теми з найнижчою точністю (мінімум 3 відповіді).
-Сесія прив'язана до одного набору — того, який дає найбільше кандидатів.
-
 ## Експлуатація
 
 | Команда | Призначення |
 | --- | --- |
 | `bun run dev` | запустити бота локально з hot reload |
 | `bun run start` | запустити зібраного бота |
-| `bun run status` | health-звіт: скільки наборів, спроб, питань у черзі |
+| `bun run status` | health-звіт: скільки наборів, спроб і питань |
 | `bun run <entrypoint> --check` | перевірити конфігурацію і вийти (не відкриває database) |
 | `bun run backup [файл]` | консистентний backup через `VACUUM INTO` |
 | `bun run restore <файл>` | відновити з backup |
