@@ -290,7 +290,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 				return ok(
 					result.created.length === 0
 						? `${args.path.join(" / ")} already exists.`
-						: `Created ${result.created.join(" / ")} under ${args.path.join(" / ")}.`,
+						: `${args.path.join(" / ")} is ready. Created: ${result.created.join(", ")}.`,
 					{ folderId: result.folderId, created: [...result.created] },
 				);
 			}),

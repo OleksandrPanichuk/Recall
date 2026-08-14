@@ -10,9 +10,12 @@ export class FolderNotEmptyError extends Error {
 	readonly sets: number;
 
 	constructor(folderId: FolderId, children: number, sets: number) {
-		super(
-			`Folder ${folderId} still holds ${children} folder(s) and ${sets} set(s)`,
-		);
+		const held = [
+			children === 0 ? undefined : `${children} folder(s)`,
+			sets === 0 ? undefined : `${sets} set(s)`,
+		].filter((part) => part !== undefined);
+
+		super(`Folder ${folderId} still holds ${held.join(" and ")}`);
 		this.name = "FolderNotEmptyError";
 		this.folderId = folderId;
 		this.children = children;
