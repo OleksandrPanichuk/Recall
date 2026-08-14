@@ -1,11 +1,13 @@
 import type { Database } from "bun:sqlite";
 import type { QuizDatabase } from "@/adapters/persistence/sqlite/database";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
+import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-folder.repository";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
+import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { Transaction } from "@/application/ports/transaction";
@@ -67,6 +69,7 @@ export interface TestContext {
 	readonly idGenerator: IdGenerator;
 	readonly transaction: Transaction;
 	readonly quizSets: QuizSetRepository;
+	readonly folders: FolderRepository;
 	readonly attempts: QuizAttemptRepository;
 	readonly timezone: string;
 	close(): void;
@@ -84,6 +87,7 @@ export function createTestContext(startAt = DEFAULT_START_AT): TestContext {
 		idGenerator: createSequentialIdGenerator(),
 		transaction,
 		quizSets: createSqliteQuizSetRepository(client, transaction),
+		folders: createSqliteFolderRepository(client, transaction),
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
 		timezone: DEFAULT_TIMEZONE,
 		close: () => {
