@@ -1,4 +1,5 @@
 import type { QuizSetSummary } from "@/application/ports/repositories/quiz-set.repository";
+import { toFolderId } from "@/domain/folder/folder";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	isDifficulty,
@@ -211,6 +212,7 @@ export function toQuizSet(
 		sourceChapters: row.sourceChapters ?? undefined,
 		publishedAt: optionalDate(row.publishedAt, "published_at", row.id),
 		archivedAt: optionalDate(row.archivedAt, "archived_at", row.id),
+		folderId: row.folderId === null ? undefined : toFolderId(row.folderId),
 	});
 }
 
@@ -238,6 +240,7 @@ export function toQuizSetRow(quizSet: QuizSet): QuizSetInsert {
 		updatedAt: quizSet.updatedAt.toISOString(),
 		publishedAt: quizSet.publishedAt?.toISOString() ?? null,
 		archivedAt: quizSet.archivedAt?.toISOString() ?? null,
+		folderId: quizSet.folderId ?? null,
 	};
 }
 

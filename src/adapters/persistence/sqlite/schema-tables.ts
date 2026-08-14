@@ -1,4 +1,5 @@
 export const applicationTables = [
+	"folders",
 	"question_options",
 	"question_responses",
 	"questions",

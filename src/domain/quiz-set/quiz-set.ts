@@ -1,4 +1,5 @@
 import { type BrandedId, brandedId } from "../branded-id";
+import type { FolderId } from "../folder/folder";
 import type { Question, QuestionId } from "./question";
 import { questionFingerprint } from "./question-fingerprint";
 import {
@@ -39,6 +40,7 @@ export interface QuizSet {
 	readonly sourceChapters?: string;
 	readonly publishedAt?: Date;
 	readonly archivedAt?: Date;
+	readonly folderId?: FolderId;
 }
 
 interface QuizSetDraft {

@@ -3,6 +3,7 @@ import { createDatabase } from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 
 export const applicationTables = [
+	"folders",
 	"question_options",
 	"question_responses",
 	"questions",

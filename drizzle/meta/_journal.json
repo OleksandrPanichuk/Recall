@@ -15,6 +15,13 @@
 			"when": 1786736228130,
 			"tag": "0001_drop-review-items",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "6",
+			"when": 1786737404008,
+			"tag": "0002_folders",
+			"breakpoints": true
 		}
 	]
 }

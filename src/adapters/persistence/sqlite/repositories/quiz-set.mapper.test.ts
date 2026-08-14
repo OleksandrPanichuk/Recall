@@ -23,6 +23,7 @@ const aQuizSetRow = (overrides: Partial<QuizSetRow> = {}): QuizSetRow => ({
 	updatedAt: "2026-08-01T00:00:00.000Z",
 	publishedAt: null,
 	archivedAt: null,
+	folderId: null,
 	...overrides,
 });
 
