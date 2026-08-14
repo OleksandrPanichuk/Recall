@@ -300,15 +300,17 @@ src/
   domain/
     quiz-set/       QuizSet, Question and validation model
     quiz-attempt/   QuizAttempt, answer evaluation and scoring model
+    folder/         Folder aggregate, naming and placement rules
     branded-id.ts
   application/
     use-case.ts    shared Command and UseCase contracts
     ports/         Clock, IdGenerator and Transaction contracts
-      repositories/ quiz set and quiz attempt repository contracts
+      repositories/ quiz set, quiz attempt and folder repository contracts
     use-cases/
       quiz-sets/    create, update, add questions, publish, archive
       attempts/     start, pause, resume, answer, finish
       statistics/   per-attempt, per-set, per-topic and improvement figures
+      folders/      create, rename, move, delete, ensure path, browse
   adapters/
     persistence/
       sqlite/
@@ -344,6 +346,8 @@ src/
     mcp.ts         stdio MCP server for Claude
 drizzle/
   0000_initial-schema.sql
+  0001_drop-review-items.sql
+  0002_folders.sql
   meta/
     _journal.json
 scripts/
@@ -405,12 +409,72 @@ claude mcp add recall-quiz --scope user \
 | `quiz_list_sets` | список наборів (`includeUnpublished` показує drafts) |
 | `quiz_publish_set` | опублікувати набір для проходження в Telegram |
 | `quiz_archive_set` | архівувати набір, зберігши історію спроб |
+| `quiz_list_folders` | показати дерево папок із кількістю наборів |
+| `quiz_ensure_folder_path` | створити шлях папок (створює лише те, чого бракує) |
+| `quiz_move_set` | покласти набір у папку або повернути в корінь |
+| `quiz_rename_folder` | перейменувати папку |
+| `quiz_delete_folder` | видалити порожню папку |
 
 Типовий сценарій: `quiz_create_set` → кілька `quiz_add_questions` → `quiz_get_set`
 для перевірки → `quiz_publish_set`. Після цього набір з'являється в Telegram-меню.
 
 > Назви tools використовують `_`, а не `.` як у `DEVELOPMENT_PLAN.md`: MCP-клієнти
 > дозволяють у назві лише `[A-Za-z0-9_-]`.
+
+
+## Папки
+
+Набори живуть у дереві папок: `Programming / SQL`,
+`English / Vocabulary / By levels / A1`.
+
+- Папка вкладається максимум **6 рівнів**; назва — до **60 символів**.
+- Імена унікальні серед сусідів і порівнюються без урахування регістру, тому
+  `Food` і `food` в одній папці співіснувати не можуть. Під різними батьками —
+  можуть.
+- Набір лежить рівно в одній папці або **ніде**: набори без папки показуються в
+  корені. Набір може лежати на будь-якому рівні, не лише в листі.
+- Папку можна видалити **лише порожньою** — і з підпапками, і з наборами
+  всередині видалення відхиляється. Жодна операція з папками не видаляє набір.
+- Лічильник біля папки рахує **опубліковані** набори безпосередньо в ній, без
+  підпапок. `quiz_list_folders` додатково показує чернетки й архівні набори
+  (`Scratch (0 sets, 1 unpublished)`), бо саме вони блокують видалення, а в
+  Telegram їх не видно.
+
+Дерево створюється **тільки через Claude (MCP)**. Telegram дерево лише показує:
+"📚 Мої набори" відкриває корінь, тап по `📁` спускається глибше, `« Назад`
+повертає до батька. Екран показує 8 записів і гортається кнопками
+`‹ Попередні` / `Наступні ›`.
+
+### Шляхи, а не id
+
+Усі folder-tools приймають шлях — масив назв, а не id:
+
+```jsonc
+// створити повний шлях; існуючі сегменти перевикористовуються
+quiz_ensure_folder_path({ path: ["English", "Vocabulary", "By levels", "A1"] })
+// → { folderId: "...", created: ["English", "Vocabulary", "By levels", "A1"] }
+
+// вдруге — нічого не створює, повертає той самий id
+quiz_ensure_folder_path({ path: ["English", "Vocabulary", "By levels", "A1"] })
+// → { folderId: "...", created: [] }
+
+// створити набір одразу в папці
+quiz_create_set({
+  title: "A1: базові слова",
+  language: "en",
+  folderPath: ["English", "Vocabulary", "By levels", "A1"],
+})
+
+// перекласти існуючий набір
+quiz_move_set({ quizSetId: "...", folderPath: ["Programming", "SQL"] })
+
+// повернути в корінь
+quiz_move_set({ quizSetId: "..." })
+```
+
+`quiz_ensure_folder_path` ідемпотентний, тому повтор після невдалої відповіді
+безпечний. `quiz_rename_folder` і `quiz_delete_folder` шлях **не створюють** —
+на неіснуючому шляху вони повертають помилку, а не мовчки роблять папку.
 
 
 ## Експлуатація
