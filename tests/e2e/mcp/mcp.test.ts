@@ -95,9 +95,14 @@ describe("MCP server (§4.1)", () => {
 			"quiz_add_questions",
 			"quiz_archive_set",
 			"quiz_create_set",
+			"quiz_delete_folder",
+			"quiz_ensure_folder_path",
 			"quiz_get_set",
+			"quiz_list_folders",
 			"quiz_list_sets",
+			"quiz_move_set",
 			"quiz_publish_set",
+			"quiz_rename_folder",
 			"quiz_update_set",
 		]);
 	});
@@ -299,5 +304,177 @@ describe("end-to-end authoring (§4.4)", () => {
 
 		expect(forTelegram).toHaveLength(1);
 		expect(forTelegram[0]?.questionCount).toBe(3);
+	});
+});
+
+describe("folders over MCP", () => {
+	const path = ["English", "Vocabulary", "By levels", "A1"];
+
+	const ensure = async (
+		segments: readonly string[] = path,
+	): Promise<ToolOutcome> =>
+		call("quiz_ensure_folder_path", { path: [...segments] });
+
+	const publishedSetIn = async (
+		folderPath: readonly string[],
+		title = "A1 words",
+	): Promise<string> => {
+		const created = await call("quiz_create_set", {
+			title,
+			language: "en",
+			folderPath: [...folderPath],
+		});
+		const quizSetId = String(created.structured.quizSetId);
+
+		await call("quiz_add_questions", {
+			quizSetId,
+			questions: [aQuestion("apple")],
+		});
+		await call("quiz_publish_set", { quizSetId });
+
+		return quizSetId;
+	};
+
+	test("reports an empty library", async () => {
+		const result = await call("quiz_list_folders");
+
+		expect(result.isError).toBe(false);
+		expect(result.text).toContain("No folders yet");
+	});
+
+	test("creates a path and reports every segment it made", async () => {
+		const result = await ensure();
+
+		expect(result.isError).toBe(false);
+		expect(result.structured.created).toEqual(path);
+		expect(String(result.structured.folderId).length).toBeGreaterThan(0);
+	});
+
+	test("is idempotent", async () => {
+		const first = await ensure();
+		const second = await ensure();
+
+		expect(second.structured.folderId).toBe(first.structured.folderId);
+		expect(second.structured.created).toEqual([]);
+	});
+
+	test("creates only the missing tail", async () => {
+		await ensure(["English", "Vocabulary"]);
+
+		expect((await ensure()).structured.created).toEqual(["By levels", "A1"]);
+	});
+
+	test("files a set at creation and counts it in the tree", async () => {
+		await publishedSetIn(path);
+
+		const tree = await call("quiz_list_folders");
+
+		expect(tree.text).toContain("A1 (1 set)");
+		expect(tree.text).toContain("English");
+	});
+
+	test("renders the tree indented by depth", async () => {
+		await ensure(["English", "Vocabulary"]);
+
+		const lines = (await call("quiz_list_folders")).text.split("\n");
+
+		expect(lines[0]).toBe("English (0 sets)");
+		expect(lines[1]).toBe("  Vocabulary (0 sets)");
+	});
+
+	test("returns a flat structure alongside the text", async () => {
+		await ensure(["English", "Vocabulary"]);
+
+		const folders = (await call("quiz_list_folders")).structured.folders as {
+			readonly name: string;
+			readonly parentId?: string;
+		}[];
+
+		expect(folders).toHaveLength(2);
+		expect(folders.find((f) => f.name === "English")?.parentId).toBeUndefined();
+		expect(
+			folders.find((f) => f.name === "Vocabulary")?.parentId,
+		).toBeDefined();
+	});
+
+	test("moves a set between folders and back to unfiled", async () => {
+		const quizSetId = await publishedSetIn(path);
+		const target = await ensure(["Programming", "SQL"]);
+
+		const moved = await call("quiz_move_set", {
+			quizSetId,
+			folderPath: ["Programming", "SQL"],
+		});
+
+		expect(moved.isError).toBe(false);
+		expect(moved.structured.folderId).toBe(target.structured.folderId);
+
+		const unfiled = await call("quiz_move_set", { quizSetId });
+
+		expect(unfiled.isError).toBe(false);
+		expect((await call("quiz_list_folders")).text).toContain("SQL (0 sets)");
+	});
+
+	test("renames a folder", async () => {
+		await ensure(["Enlgish"]);
+
+		const renamed = await call("quiz_rename_folder", {
+			path: ["Enlgish"],
+			name: "English",
+		});
+
+		expect(renamed.isError).toBe(false);
+		expect((await call("quiz_list_folders")).text).toContain("English");
+	});
+
+	test("refuses a rename that collides with a sibling", async () => {
+		await ensure(["English", "Vocabulary"]);
+		await ensure(["English", "Grammar"]);
+
+		const result = await call("quiz_rename_folder", {
+			path: ["English", "Grammar"],
+			name: "vocabulary",
+		});
+
+		expect(result.isError).toBe(true);
+		expect(result.text.toLowerCase()).toContain("already");
+	});
+
+	test("deletes an empty folder", async () => {
+		await ensure(["Scratch"]);
+
+		expect(
+			(await call("quiz_delete_folder", { path: ["Scratch"] })).isError,
+		).toBe(false);
+		expect((await call("quiz_list_folders")).text).toContain("No folders yet");
+	});
+
+	test("refuses to delete a folder that still holds something", async () => {
+		await publishedSetIn(path);
+
+		const result = await call("quiz_delete_folder", { path });
+
+		expect(result.isError).toBe(true);
+		expect(result.text).toContain("1 set");
+	});
+
+	test("refuses an unknown path with a readable message", async () => {
+		const result = await call("quiz_delete_folder", { path: ["Nope"] });
+
+		expect(result.isError).toBe(true);
+		expect(result.text).toContain("Nope");
+	});
+
+	test("refuses a segment longer than the name limit", async () => {
+		const result = await ensure(["x".repeat(61)]);
+
+		expect(result.isError).toBe(true);
+	});
+
+	test("refuses a path deeper than the depth limit", async () => {
+		const result = await ensure(["a", "b", "c", "d", "e", "f", "g"]);
+
+		expect(result.isError).toBe(true);
+		expect(result.text.toLowerCase()).toContain("deep");
 	});
 });

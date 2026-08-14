@@ -1,19 +1,32 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { DeleteFolder } from "@/application/use-cases/folders/delete-folder";
+import type { EnsureFolderPath } from "@/application/use-cases/folders/ensure-folder-path";
+import type { ListFolderTree } from "@/application/use-cases/folders/list-folder-tree";
+import type { RenameFolder } from "@/application/use-cases/folders/rename-folder";
+import type { ResolveFolderPath } from "@/application/use-cases/folders/resolve-folder-path";
 import type { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
 import type { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import type { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
 import type { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import type { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import type { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import type { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import type { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
+	describeFolderTree,
 	describeQuizSet,
 	describeSummaries,
 	failure,
 	ok,
 	type ToolResult,
 } from "./presenters/tool-result.presenter";
+import {
+	folderPathShape,
+	listFoldersShape,
+	moveSetShape,
+	renameFolderShape,
+} from "./schemas/folder.schema";
 import {
 	addQuestionsShape,
 	createSetShape,
@@ -30,6 +43,12 @@ export interface McpUseCases {
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly getQuizSet: GetQuizSet;
 	readonly listQuizSets: ListQuizSets;
+	readonly moveQuizSet: MoveQuizSet;
+	readonly ensureFolderPath: EnsureFolderPath;
+	readonly resolveFolderPath: ResolveFolderPath;
+	readonly renameFolder: RenameFolder;
+	readonly deleteFolder: DeleteFolder;
+	readonly listFolderTree: ListFolderTree;
 }
 
 export const MCP_SERVER_NAME = "recall-quiz";
@@ -59,11 +78,22 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 		},
 		async (args) =>
 			guard(async () => {
-				const { quizSetId } = await useCases.createQuizSet.execute(args);
-
-				return ok(`Created draft quiz set ${quizSetId} — "${args.title}".`, {
-					quizSetId,
+				const { folderPath, ...metadata } = args;
+				const folder =
+					folderPath === undefined
+						? undefined
+						: await useCases.ensureFolderPath.execute({ path: folderPath });
+				const { quizSetId } = await useCases.createQuizSet.execute({
+					...metadata,
+					folderId: folder?.folderId,
 				});
+
+				return ok(
+					folderPath === undefined
+						? `Created draft quiz set ${quizSetId} — "${args.title}".`
+						: `Created draft quiz set ${quizSetId} — "${args.title}" in ${folderPath.join(" / ")}.`,
+					{ quizSetId, folderId: folder?.folderId },
+				);
 			}),
 	);
 
@@ -214,5 +244,128 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			}),
 	);
 
+	registerFolderTools(server, useCases);
+
 	return server;
+}
+
+function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
+	server.registerTool(
+		"quiz_list_folders",
+		{
+			title: "List the folder tree",
+			description:
+				"Renders the whole folder tree, indented by depth, with the number of published sets filed directly in each folder. Counts are not recursive.",
+			inputSchema: listFoldersShape,
+		},
+		async () =>
+			guard(async () => {
+				const nodes = await useCases.listFolderTree.execute({});
+
+				return ok(describeFolderTree(nodes), {
+					folders: nodes.map((node) => ({
+						id: node.id,
+						name: node.name,
+						parentId: node.parentId,
+						setCount: node.setCount,
+					})),
+					count: nodes.length,
+				});
+			}),
+	);
+
+	server.registerTool(
+		"quiz_ensure_folder_path",
+		{
+			title: "Create a folder path",
+			description:
+				'Creates every missing folder along a path such as ["English","Vocabulary","By levels","A1"] and returns the id of the last one. Existing folders are reused, matching names case-insensitively, so calling this twice is safe.',
+			inputSchema: folderPathShape,
+		},
+		async (args) =>
+			guard(async () => {
+				const result = await useCases.ensureFolderPath.execute(args);
+
+				return ok(
+					result.created.length === 0
+						? `${args.path.join(" / ")} already exists.`
+						: `Created ${result.created.join(" / ")} under ${args.path.join(" / ")}.`,
+					{ folderId: result.folderId, created: [...result.created] },
+				);
+			}),
+	);
+
+	server.registerTool(
+		"quiz_move_set",
+		{
+			title: "File a quiz set",
+			description:
+				"Files a set into a folder path, creating the path if it does not exist. Omit folderPath to return the set to the root. Works on published sets — filing is not content.",
+			inputSchema: moveSetShape,
+		},
+		async (args) =>
+			guard(async () => {
+				const folder =
+					args.folderPath === undefined
+						? undefined
+						: await useCases.ensureFolderPath.execute({
+								path: args.folderPath,
+							});
+
+				await useCases.moveQuizSet.execute({
+					quizSetId: toQuizSetId(args.quizSetId),
+					folderId: folder?.folderId,
+				});
+
+				return ok(
+					args.folderPath === undefined
+						? `Moved ${args.quizSetId} back to the root.`
+						: `Moved ${args.quizSetId} into ${args.folderPath.join(" / ")}.`,
+					{ quizSetId: args.quizSetId, folderId: folder?.folderId },
+				);
+			}),
+	);
+
+	server.registerTool(
+		"quiz_rename_folder",
+		{
+			title: "Rename a folder",
+			description:
+				"Renames the folder at the given path. The sets and subfolders inside it are untouched.",
+			inputSchema: renameFolderShape,
+		},
+		async (args) =>
+			guard(async () => {
+				const { folderId } = await useCases.resolveFolderPath.execute({
+					path: args.path,
+				});
+
+				await useCases.renameFolder.execute({ folderId, name: args.name });
+
+				return ok(`Renamed ${args.path.join(" / ")} to "${args.name}".`, {
+					folderId,
+					name: args.name,
+				});
+			}),
+	);
+
+	server.registerTool(
+		"quiz_delete_folder",
+		{
+			title: "Delete an empty folder",
+			description:
+				"Deletes the folder at the given path. Refuses while it still holds subfolders or sets, so no quiz set is ever destroyed by a folder operation.",
+			inputSchema: folderPathShape,
+		},
+		async (args) =>
+			guard(async () => {
+				const { folderId } = await useCases.resolveFolderPath.execute({
+					path: args.path,
+				});
+
+				await useCases.deleteFolder.execute({ folderId });
+
+				return ok(`Deleted ${args.path.join(" / ")}.`, { folderId });
+			}),
+	);
 }
