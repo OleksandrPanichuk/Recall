@@ -14,6 +14,7 @@ import {
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
 import { CreateFolder, FolderNotFoundError } from "../folders/create-folder";
+import { CreateQuizSet } from "./create-quiz-set";
 import { MoveQuizSet } from "./move-quiz-set";
 
 let context: TestContext;
@@ -90,6 +91,23 @@ describe("MoveQuizSet", () => {
 
 		expect(
 			moveQuizSet.execute({ quizSetId, folderId: "missing" as FolderId }),
+		).rejects.toBeInstanceOf(FolderNotFoundError);
+	});
+
+	test("rejects a set created into an unknown folder", () => {
+		const createQuizSet = new CreateQuizSet({
+			quizSets: context.quizSets,
+			folders: context.folders,
+			clock: context.clock,
+			idGenerator: context.idGenerator,
+		});
+
+		expect(
+			createQuizSet.execute({
+				title: "T",
+				language: "uk",
+				folderId: "missing" as FolderId,
+			}),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 

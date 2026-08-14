@@ -5,6 +5,7 @@ import {
 	createDrizzleClient,
 } from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
+import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-folder.repository";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
@@ -75,6 +76,7 @@ export function createApplication(options: ApplicationOptions): Application {
 	const transaction = createSqliteTransaction(client);
 	const dependencies = {
 		quizSets: createSqliteQuizSetRepository(client, transaction),
+		folders: createSqliteFolderRepository(client, transaction),
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
