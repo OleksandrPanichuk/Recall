@@ -154,7 +154,7 @@ export function describeFolderTree(nodes: readonly FolderTreeNode[]): string {
 		.slice(0, MAX_TREE_LINES)
 		.map(
 			(node) =>
-				`${"  ".repeat(node.depth)}${node.name} (${node.setCount} ${node.setCount === 1 ? "set" : "sets"})`,
+				`${"  ".repeat(node.depth)}${node.name} (${node.setCount} ${node.setCount === 1 ? "set" : "sets"}${node.unpublishedCount === 0 ? "" : `, ${node.unpublishedCount} unpublished`})`,
 		);
 
 	if (nodes.length > MAX_TREE_LINES) {

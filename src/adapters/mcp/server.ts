@@ -268,6 +268,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 						name: node.name,
 						parentId: node.parentId,
 						setCount: node.setCount,
+						unpublishedCount: node.unpublishedCount,
 					})),
 					count: nodes.length,
 				});
@@ -305,6 +306,10 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 		},
 		async (args) =>
 			guard(async () => {
+				await useCases.getQuizSet.execute({
+					quizSetId: toQuizSetId(args.quizSetId),
+				});
+
 				const folder =
 					args.folderPath === undefined
 						? undefined

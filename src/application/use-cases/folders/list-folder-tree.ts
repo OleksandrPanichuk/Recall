@@ -9,6 +9,7 @@ export interface FolderTreeNode {
 	readonly parentId?: FolderId;
 	readonly depth: number;
 	readonly setCount: number;
+	readonly unpublishedCount: number;
 }
 
 export type ListFolderTreeCommand = Record<string, never>;
@@ -43,12 +44,15 @@ export class ListFolderTree
 		const nodes: FolderTreeNode[] = [];
 		const walk = (parentId: FolderId | undefined, depth: number): void => {
 			for (const folder of childrenByParent.get(parentId ?? "") ?? []) {
+				const setCount = this.folders.countSetsIn(folder.id, published);
+
 				nodes.push({
 					id: folder.id,
 					name: folder.name,
 					parentId: folder.parentId,
 					depth,
-					setCount: this.folders.countSetsIn(folder.id, published),
+					setCount,
+					unpublishedCount: this.folders.countSetsIn(folder.id) - setCount,
 				});
 				walk(folder.id, depth + 1);
 			}

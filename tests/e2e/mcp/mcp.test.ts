@@ -458,6 +458,44 @@ describe("folders over MCP", () => {
 		expect(result.text).toContain("1 set");
 	});
 
+	test("shows what blocks a delete instead of reporting an empty folder", async () => {
+		const created = await call("quiz_create_set", {
+			title: "Draft only",
+			language: "en",
+			folderPath: ["Scratch"],
+		});
+
+		const tree = await call("quiz_list_folders");
+
+		expect(tree.text).toContain("Scratch (0 sets, 1 unpublished)");
+
+		const refusal = await call("quiz_delete_folder", { path: ["Scratch"] });
+
+		expect(refusal.isError).toBe(true);
+		expect(refusal.text).toContain("1 set");
+		expect(String(created.structured.quizSetId).length).toBeGreaterThan(0);
+	});
+
+	test("does not create the folder path when the set id is unknown", async () => {
+		const result = await call("quiz_move_set", {
+			quizSetId: "does-not-exist",
+			folderPath: ["Programming", "SQL"],
+		});
+
+		expect(result.isError).toBe(true);
+		expect((await call("quiz_list_folders")).text).toContain("No folders yet");
+	});
+
+	test("resolves an existing path regardless of case", async () => {
+		await ensure(["Programming", "SQL"]);
+
+		const deleted = await call("quiz_delete_folder", {
+			path: ["PROGRAMMING", "sql"],
+		});
+
+		expect(deleted.isError).toBe(false);
+	});
+
 	test("refuses an unknown path with a readable message", async () => {
 		const result = await call("quiz_delete_folder", { path: ["Nope"] });
 
