@@ -300,15 +300,17 @@ src/
   domain/
     quiz-set/       QuizSet, Question and validation model
     quiz-attempt/   QuizAttempt, answer evaluation and scoring model
+    folder/         Folder aggregate, naming and placement rules
     branded-id.ts
   application/
     use-case.ts    shared Command and UseCase contracts
     ports/         Clock, IdGenerator and Transaction contracts
-      repositories/ quiz set and quiz attempt repository contracts
+      repositories/ quiz set, quiz attempt and folder repository contracts
     use-cases/
       quiz-sets/    create, update, add questions, publish, archive
       attempts/     start, pause, resume, answer, finish
       statistics/   per-attempt, per-set, per-topic and improvement figures
+      folders/      create, rename, move, delete, ensure path, browse
   adapters/
     persistence/
       sqlite/
@@ -344,6 +346,8 @@ src/
     mcp.ts         stdio MCP server for Claude
 drizzle/
   0000_initial-schema.sql
+  0001_drop-review-items.sql
+  0002_folders.sql
   meta/
     _journal.json
 scripts/
