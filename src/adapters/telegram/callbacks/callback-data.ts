@@ -10,6 +10,7 @@ export const CallbackAction = {
 	Finish: "f",
 	Statistics: "x",
 	StatisticsFor: "y",
+	Browse: "b",
 	Unavailable: "u",
 } as const;
 export type CallbackAction =
@@ -48,6 +49,14 @@ export interface ToggleCallback {
 	readonly questionId: string;
 	readonly optionPositions: readonly number[];
 }
+export interface BrowseCallback {
+	readonly action: typeof CallbackAction.Browse;
+	readonly leaf:
+		| typeof CallbackAction.StartSet
+		| typeof CallbackAction.StatisticsFor;
+	readonly folderId?: string;
+	readonly page?: number;
+}
 export interface UnavailableCallback {
 	readonly action: typeof CallbackAction.Unavailable;
 	readonly feature: string;
@@ -63,6 +72,7 @@ export type Callback =
 	| StatisticsForCallback
 	| AnswerCallback
 	| ToggleCallback
+	| BrowseCallback
 	| UnavailableCallback;
 
 export class CallbackTooLongError extends Error {
@@ -99,6 +109,13 @@ function serialise(callback: Callback): string {
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
 		case CallbackAction.Unavailable:
 			return [callback.action, callback.feature].join(SEPARATOR);
+		case CallbackAction.Browse:
+			return [
+				callback.action,
+				callback.leaf,
+				callback.folderId ?? "",
+				String(callback.page ?? 0),
+			].join(SEPARATOR);
 		case CallbackAction.Answer:
 		case CallbackAction.Toggle:
 			return [
@@ -128,7 +145,7 @@ const parsePositions = (raw: string | undefined): readonly number[] | null => {
 };
 
 export function decodeCallback(data: string): Callback | undefined {
-	const [action, first, second] = data.split(SEPARATOR);
+	const [action, first, second, third] = data.split(SEPARATOR);
 
 	switch (action) {
 		case CallbackAction.Menu:
@@ -146,6 +163,28 @@ export function decodeCallback(data: string): Callback | undefined {
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, feature: first };
+		case CallbackAction.Browse: {
+			if (
+				first !== CallbackAction.StartSet &&
+				first !== CallbackAction.StatisticsFor
+			) {
+				return undefined;
+			}
+
+			const page = Number(third ?? "0");
+
+			if (!Number.isSafeInteger(page) || page < 0) {
+				return undefined;
+			}
+
+			return {
+				action,
+				leaf: first,
+				folderId:
+					second === undefined || second.length === 0 ? undefined : second,
+				page,
+			};
+		}
 		case CallbackAction.Answer:
 		case CallbackAction.Toggle: {
 			const optionPositions = parsePositions(second);

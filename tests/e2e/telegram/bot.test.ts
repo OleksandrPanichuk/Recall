@@ -6,7 +6,9 @@ import {
 	type BotHarness,
 	createBotHarness,
 	OTHER_USER,
+	seedFolderPath,
 	seedPublishedSet,
+	seedPublishedSetIn,
 } from "./bot-harness";
 
 let harness: BotHarness;
@@ -98,7 +100,7 @@ describe("navigation shell (§3.2)", () => {
 
 		await harness.tap(buttonFor("Мої набори"));
 
-		expect(harness.lastButtons()[0]?.text).toBe("Bun (2)");
+		expect(harness.lastButtons()[0]?.text).toBe("📘 Bun (2)");
 	});
 
 	test("Налаштування routes to a placeholder", async () => {
@@ -554,5 +556,160 @@ describe("long option text stays readable", () => {
 
 		expect(harness.lastText()).toContain("☑️ 1.");
 		expect(harness.lastText()).toContain("⬜️ 2.");
+	});
+});
+
+describe("browsing the folder tree (§3.7)", () => {
+	const openRoot = async (): Promise<void> => {
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+	};
+
+	test("the root lists folders and unfiled sets", async () => {
+		await seedFolderPath(harness, ["English"]);
+		await seedPublishedSet(harness, "Loose set", [aQuestionInput("One")]);
+
+		await openRoot();
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(labels).toContainEqual(expect.stringContaining("English"));
+		expect(labels).toContainEqual(expect.stringContaining("Loose set"));
+	});
+
+	test("a set filed in a folder is not shown at the root", async () => {
+		await seedPublishedSetIn(harness, ["English"], "Filed set", [
+			aQuestionInput("One"),
+		]);
+
+		await openRoot();
+
+		expect(harness.lastButtons().map((entry) => entry.text)).not.toContainEqual(
+			expect.stringContaining("Filed set"),
+		);
+	});
+
+	test("the root has no back button, only the menu", async () => {
+		await seedFolderPath(harness, ["English"]);
+
+		await openRoot();
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(labels).toContainEqual(expect.stringContaining("Меню"));
+		expect(labels).not.toContainEqual(expect.stringContaining("Назад"));
+	});
+
+	test("tapping a folder descends and shows the breadcrumb", async () => {
+		await seedPublishedSetIn(harness, ["English", "Vocabulary"], "A1 words", [
+			aQuestionInput("One"),
+		]);
+
+		await openRoot();
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("Vocabulary"));
+
+		expect(harness.lastText()).toContain("English");
+		expect(harness.lastText()).toContain("Vocabulary");
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("A1 words"),
+		);
+	});
+
+	test("back returns to the parent, and from a root folder to the root", async () => {
+		await seedFolderPath(harness, ["English", "Vocabulary"]);
+		await seedPublishedSet(harness, "Loose set", [aQuestionInput("One")]);
+
+		await openRoot();
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("Vocabulary"));
+		await harness.tap(buttonFor("Назад"));
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("Vocabulary"),
+		);
+
+		await harness.tap(buttonFor("Назад"));
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("Loose set"),
+		);
+	});
+
+	test("a set inside a folder starts an attempt", async () => {
+		await seedPublishedSetIn(harness, ["English"], "A1 words", [
+			aQuestionInput("Capital of France?"),
+		]);
+
+		await openRoot();
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("A1 words"));
+
+		expect(harness.lastText()).toContain("Capital of France?");
+	});
+
+	test("an empty folder says so and offers a way back", async () => {
+		await seedFolderPath(harness, ["English"]);
+
+		await openRoot();
+		await harness.tap(buttonFor("English"));
+
+		expect(harness.lastText()).toContain("порожня");
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("Назад"),
+		);
+	});
+
+	test("more than eight entries paginate", async () => {
+		for (let index = 0; index < 11; index += 1) {
+			await seedPublishedSetIn(
+				harness,
+				["English"],
+				`Set ${String(index).padStart(2, "0")}`,
+				[aQuestionInput(`Q${index}`)],
+			);
+		}
+
+		await openRoot();
+		await harness.tap(buttonFor("English"));
+
+		const first = harness.lastButtons().map((entry) => entry.text);
+
+		expect(first.filter((label) => label.includes("Set "))).toHaveLength(8);
+
+		await harness.tap(buttonFor("Наступні"));
+
+		const second = harness.lastButtons().map((entry) => entry.text);
+
+		expect(second.filter((label) => label.includes("Set "))).toHaveLength(3);
+		expect(second).toContainEqual(expect.stringContaining("Попередні"));
+	});
+
+	test("a long folder name is truncated on the button but whole in the body", async () => {
+		const longName = "Дуже довга назва папки яка точно не вміщується";
+		await seedFolderPath(harness, [longName]);
+
+		await openRoot();
+
+		const label = harness
+			.lastButtons()
+			.map((entry) => entry.text)
+			.find((text) => text.includes("Дуже довга"));
+
+		expect(label?.length).toBeLessThanOrEqual(34);
+		expect(harness.lastText()).toContain(longName);
+	});
+
+	test("statistics browsing reaches a set through the same tree", async () => {
+		await seedPublishedSetIn(harness, ["English"], "A1 words", [
+			aQuestionInput("One"),
+		]);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("A1 words"));
+
+		expect(harness.lastText()).toContain("Статистика");
 	});
 });

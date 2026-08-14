@@ -251,3 +251,30 @@ export async function seedPublishedSet(
 
 	return quizSetId;
 }
+
+export async function seedFolderPath(
+	harness: BotHarness,
+	path: readonly string[],
+): Promise<string> {
+	const { folderId } = await harness.application.ensureFolderPath.execute({
+		path,
+	});
+
+	return folderId;
+}
+
+export async function seedPublishedSetIn(
+	harness: BotHarness,
+	path: readonly string[],
+	title: string,
+	questions: readonly QuestionInput[],
+): Promise<QuizSetId> {
+	const quizSetId = await seedPublishedSet(harness, title, questions);
+	const { folderId } = await harness.application.ensureFolderPath.execute({
+		path,
+	});
+
+	await harness.application.moveQuizSet.execute({ quizSetId, folderId });
+
+	return quizSetId;
+}
