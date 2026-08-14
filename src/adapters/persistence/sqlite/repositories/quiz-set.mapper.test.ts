@@ -61,9 +61,6 @@ const optionRows = (
 	},
 ];
 
-// These rows cannot be produced through the database: quiz_sets.status,
-// questions.type, questions.difficulty and question_options.is_correct all carry
-// CHECK constraints. The mapper guards them anyway, so they are exercised here.
 describe("quiz set mapper", () => {
 	test("restores a question with its options", () => {
 		const quizSet = toQuizSet(aQuizSetRow(), [aQuestionRow()], optionRows());

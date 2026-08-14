@@ -8,7 +8,6 @@ export const applicationTables = [
 	"questions",
 	"quiz_attempts",
 	"quiz_sets",
-	"review_items",
 ] as const;
 
 export function openMigratedDatabase(path = ":memory:"): Database {
@@ -129,29 +128,6 @@ export function insertQuestionResponse(
 			row.questionId,
 			"[]",
 			row.isCorrect ?? 1,
-			"2026-08-01T00:00:00.000Z",
-		],
-	);
-}
-
-export function insertReviewItem(
-	database: Database,
-	row: {
-		readonly id: string;
-		readonly questionId: string;
-		readonly telegramUserId?: number;
-		readonly state?: string;
-		readonly dueAt?: string;
-	},
-): void {
-	database.run(
-		"INSERT INTO review_items (id, question_id, telegram_user_id, state, due_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-		[
-			row.id,
-			row.questionId,
-			row.telegramUserId ?? 42,
-			row.state ?? "pending",
-			row.dueAt ?? "2026-08-02T00:00:00.000Z",
 			"2026-08-01T00:00:00.000Z",
 		],
 	);

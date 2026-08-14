@@ -1,8 +1,6 @@
 import type { Clock } from "@/application/ports/clock";
-import type { IdGenerator } from "@/application/ports/id-generator";
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { ReviewRepository } from "@/application/ports/repositories/review.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import type { Command, UseCase } from "@/application/use-case";
 import { correctOptionIds, evaluateAnswer } from "@/domain/quiz-attempt/answer";
@@ -24,16 +22,6 @@ import type {
 	QuestionId,
 	QuestionOptionId,
 } from "@/domain/quiz-set/question";
-import {
-	createReviewItem,
-	markReviewFailed,
-	markReviewPassed,
-	type ReviewItem,
-	ReviewItemState,
-	reopenReviewItem,
-	toReviewItemId,
-} from "@/domain/review/review-item";
-import { nextReviewDueAt, ReviewRating } from "@/domain/review/review-schedule";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {
@@ -46,12 +34,6 @@ export class AttemptNotActiveError extends Error {
 export interface AnswerQuestionCommand {
 	readonly telegramUserId: number;
 	readonly questionId: QuestionId;
-	/**
-	 * Option positions rather than ids. The adapter renders positions into its
-	 * callback payloads, and resolving them here — against the question this use
-	 * case already loads — means a stale payload can never be mapped against the
-	 * wrong question's options.
-	 */
 	readonly selectedOptionPositions: readonly number[];
 }
 
@@ -62,10 +44,7 @@ export interface AnswerQuestionResult {
 	readonly correctOptionIds: readonly QuestionOptionId[];
 	readonly nextQuestionId?: QuestionId;
 	readonly score: Score;
-	/** The question just answered, so a presenter can name the options. */
 	readonly question: Question;
-	/** Set when the question sits in the review queue and can be rated. */
-	readonly reviewDueAt?: Date;
 }
 
 export interface AnswerQuestionDependencies {
@@ -73,11 +52,6 @@ export interface AnswerQuestionDependencies {
 	readonly attempts: QuizAttemptRepository;
 	readonly clock: Clock;
 	readonly transaction: Transaction;
-	readonly reviews: ReviewRepository;
-	readonly idGenerator: IdGenerator;
-	readonly timezone: string;
-	/** Called when the review queue could not be updated for a recorded answer. */
-	readonly onReviewQueueError?: (error: unknown) => void;
 }
 
 export class AnswerQuestion
@@ -87,24 +61,12 @@ export class AnswerQuestion
 	private readonly attempts: QuizAttemptRepository;
 	private readonly clock: Clock;
 	private readonly transaction: Transaction;
-	private readonly reviews: ReviewRepository;
-	private readonly idGenerator: IdGenerator;
-	private readonly timezone: string;
-	private readonly onReviewQueueError: (error: unknown) => void;
 
 	constructor(dependencies: AnswerQuestionDependencies) {
 		this.quizSets = dependencies.quizSets;
 		this.attempts = dependencies.attempts;
 		this.clock = dependencies.clock;
 		this.transaction = dependencies.transaction;
-		this.reviews = dependencies.reviews;
-		this.idGenerator = dependencies.idGenerator;
-		this.timezone = dependencies.timezone;
-		this.onReviewQueueError =
-			dependencies.onReviewQueueError ??
-			((error) => {
-				console.error("review queue update failed", error);
-			});
 	}
 
 	async execute(
@@ -132,25 +94,12 @@ export class AnswerQuestion
 				throw new QuestionNotInAttemptError();
 			}
 
-			// A duplicated or stale callback replays an answer already recorded. Report
-			// what was recorded rather than re-evaluating, so the outcome the user was
-			// shown can never change under them and the score can never move twice.
 			const recorded = attempt.responses.find(
 				(response) => response.questionId === request.questionId,
 			);
 
 			if (recorded !== undefined) {
-				return this.resultOf(
-					attempt,
-					recorded.isCorrect,
-					true,
-					question,
-					this.rateableDueAt(
-						request.telegramUserId,
-						request.questionId,
-						recorded.isCorrect,
-					),
-				);
+				return this.resultOf(attempt, recorded.isCorrect, true, question);
 			}
 
 			const selectedOptionIds = selectedIdsOf(
@@ -167,105 +116,8 @@ export class AnswerQuestion
 
 			this.attempts.save(answered);
 
-			// Recording the answer is the user's action; queueing it for review is a
-			// convenience layered on top. Letting the second fail the first would mean
-			// a scheduling bug makes a question permanently unanswerable, so the
-			// review half is contained.
-			let reviewDueAt: Date | undefined;
-
-			try {
-				reviewDueAt = this.updateReviewQueue(
-					request.telegramUserId,
-					request.questionId,
-					isCorrect,
-					at,
-				);
-			} catch (error) {
-				this.onReviewQueueError(error);
-			}
-
-			return this.resultOf(answered, isCorrect, false, question, reviewDueAt);
+			return this.resultOf(answered, isCorrect, false, question);
 		});
-	}
-
-	/**
-	 * A wrong answer queues the question for review; a right one advances its
-	 * streak. Both go through the repository's upsert on (user, question), so one
-	 * question can never accumulate more than a single queue entry — the §5.1
-	 * gate. Runs inside the same transaction as the answer, so an attempt and its
-	 * review queue can never disagree.
-	 */
-	private updateReviewQueue(
-		telegramUserId: number,
-		questionId: QuestionId,
-		isCorrect: boolean,
-		at: Date,
-	): Date | undefined {
-		const existing = this.reviews.findByQuestion(telegramUserId, questionId);
-
-		if (!isCorrect) {
-			this.reviews.save(
-				this.queueMistake(existing, telegramUserId, questionId, at),
-			);
-
-			// A failed question is not rateable: "how easily did you recall it?" has
-			// only one answer when you did not recall it at all.
-			return undefined;
-		}
-
-		if (existing === undefined || existing.state === ReviewItemState.Retired) {
-			return undefined;
-		}
-
-		// Spacing is the whole point: a question answered again before it is due has
-		// not been remembered over an interval, it has been remembered over minutes.
-		// Without this a mistake made at 11:00 retires by 15:00 the same day and
-		// quietly leaves the queue having never been spaced at all.
-		if (existing.dueAt.getTime() > at.getTime()) {
-			// Practising ahead of schedule is welcome, but it is not a review, so it
-			// neither advances the streak nor asks how hard it felt.
-			return undefined;
-		}
-
-		const dueAt = nextReviewDueAt({
-			streak: existing.streak + 1,
-			rating: ReviewRating.Good,
-			at,
-			timezone: this.timezone,
-		});
-
-		this.reviews.save(markReviewPassed(existing, at, dueAt));
-
-		return dueAt;
-	}
-
-	private queueMistake(
-		existing: ReviewItem | undefined,
-		telegramUserId: number,
-		questionId: QuestionId,
-		at: Date,
-	): ReviewItem {
-		const dueAt = nextReviewDueAt({
-			streak: 0,
-			rating: ReviewRating.Hard,
-			at,
-			timezone: this.timezone,
-		});
-
-		if (existing === undefined) {
-			return createReviewItem({
-				id: toReviewItemId(this.idGenerator.generate()),
-				questionId,
-				telegramUserId,
-				createdAt: at,
-				dueAt,
-			});
-		}
-
-		// Retirement means "learned", not "never ask again".
-		return existing.state === ReviewItemState.Retired
-			? reopenReviewItem(existing, at, dueAt)
-			: markReviewFailed(existing, at, dueAt);
 	}
 
 	private resultOf(
@@ -273,7 +125,6 @@ export class AnswerQuestion
 		isCorrect: boolean,
 		alreadyAnswered: boolean,
 		question: Question,
-		reviewDueAt: Date | undefined,
 	): AnswerQuestionResult {
 		return {
 			isCorrect,
@@ -283,25 +134,7 @@ export class AnswerQuestion
 			question,
 			nextQuestionId: currentQuestionId(attempt),
 			score: attemptScore(attempt),
-			reviewDueAt,
 		};
-	}
-
-	/** Only a recalled question can be rated, and only while still in rotation. */
-	private rateableDueAt(
-		telegramUserId: number,
-		questionId: QuestionId,
-		isCorrect: boolean,
-	): Date | undefined {
-		if (!isCorrect) {
-			return undefined;
-		}
-
-		const item = this.reviews.findByQuestion(telegramUserId, questionId);
-
-		return item === undefined || item.state === ReviewItemState.Retired
-			? undefined
-			: item.dueAt;
 	}
 }
 

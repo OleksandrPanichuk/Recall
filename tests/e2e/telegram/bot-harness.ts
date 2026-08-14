@@ -33,33 +33,27 @@ export interface BotHarness {
 	readonly calls: ApiCall[];
 	send(text: string, userId?: number): Promise<void>;
 	tap(data: string, userId?: number): Promise<void>;
-	/** Text of the most recent screen the bot rendered. */
 	lastText(): string;
-	/** Inline keyboard of the most recent screen, flattened. */
 	lastButtons(): readonly InlineButton[];
 	answeredQueries(): readonly string[];
-	/** Makes the next call to `method` reject, as the real API would. */
 	failNext(failure: TelegramFailure): void;
 	close(): void;
 }
 
 let updateId = 0;
 
-// Telegraf builds a fresh Telegram instance for every update so a webhook can
-// answer inline, which means stubbing bot.telegram never reaches a handler. The
-// prototype is the only shared seam; calls are routed to whichever harness is
-// currently live, and each test builds its own.
+// Telegraf builds a fresh Telegram instance per update, so stubbing bot.telegram
+// never reaches a handler. The prototype is the only shared seam, so calls route
+// to whichever harness is currently live.
 let activeCalls: ApiCall[] | undefined;
 let activeFailures: TelegramFailure[] | undefined;
 let prototypePatched = false;
 
 export interface TelegramFailure {
-	/** Matches the API method, e.g. "editMessageText". */
 	readonly method: string;
 	readonly message: string;
 }
 
-/** Telegram's own hard limits, enforced on every outbound call. */
 const TEXT_LIMIT = 4096;
 const CALLBACK_DATA_LIMIT = 64;
 
@@ -113,8 +107,6 @@ function patchTelegramTransport(): void {
 			throw new Error(failure?.message ?? "telegram failed");
 		}
 
-		// The real API rejects these outright, and a stub that always succeeds is
-		// how a length overflow reaches production unnoticed.
 		assertWithinTelegramLimits(method, payload);
 
 		return true;
@@ -142,7 +134,6 @@ export function createBotHarness(): BotHarness {
 	activeCalls = calls;
 	activeFailures = failures;
 
-	// Supplying botInfo stops Telegraf calling getMe on the first update.
 	bot.botInfo = {
 		id: 1,
 		is_bot: true,

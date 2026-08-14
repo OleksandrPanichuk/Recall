@@ -7,7 +7,6 @@ export interface Score {
 	readonly percentage: number;
 }
 
-/** The single rounding rule for every percentage the app reports. */
 export function percentageOf(correct: number, total: number): number {
 	return total === 0 ? 0 : Math.round((correct / total) * 1000) / 10;
 }

@@ -49,8 +49,6 @@ export function createSqliteQuizSetRepository(
 					.onConflictDoUpdate({ target: quizSets.id, set: row })
 					.run();
 
-				// Options are rewritten wholesale: nothing references them, so there is
-				// no cascade to lose.
 				const storedQuestionIds = questionIdsOf(row.id);
 
 				if (storedQuestionIds.length > 0) {
@@ -60,12 +58,6 @@ export function createSqliteQuizSetRepository(
 						.run();
 				}
 
-				// Questions are upserted rather than deleted and reinserted so that
-				// saving a set again never cascades away the attempt responses and
-				// review items pointing at the surviving questions. The trade-off is
-				// that editing a stored question keeps the responses recorded against
-				// its previous wording; losing them to a cascade is the worse of the
-				// two, and published questions are immutable anyway.
 				database
 					.delete(questions)
 					.where(
@@ -79,11 +71,8 @@ export function createSqliteQuizSetRepository(
 					.run();
 
 				// Position and fingerprint are unique per set and SQLite checks both per
-				// statement, so upserting in aggregate order would collide whenever a
-				// question takes a value another surviving question still holds —
-				// inserting into the middle of a set, or reordering two questions.
-				// Parking every survivor outside the unique space first keeps any
-				// permutation writable.
+				// statement, so upserting in order collides with a survivor still holding
+				// the value. Parking survivors outside the unique space allows any order.
 				database
 					.update(questions)
 					.set({

@@ -93,13 +93,8 @@ function rebuildMarker(statements: string): string | undefined {
 	return undefined;
 }
 
-/**
- * The bot and the MCP server both open the database on start, so two processes
- * can reach an unmigrated file at the same moment. Drizzle's migrator is not
- * itself serialised: the loser of that race fails with `table already exists`
- * having done nothing wrong. Losing to a peer that finished the same migrations
- * is success, so it is only an error if the work is still outstanding afterwards.
- */
+// Bot and MCP server both migrate on start and Drizzle's migrator is not
+// serialised, so losing that race to a peer that did the same work is success.
 function runMigrations(
 	database: Database,
 	folder: string,

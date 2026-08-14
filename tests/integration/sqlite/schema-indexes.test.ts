@@ -6,7 +6,6 @@ import {
 	insertQuestionResponse,
 	insertQuizAttempt,
 	insertQuizSet,
-	insertReviewItem,
 	openMigratedDatabase,
 } from "./migrated-database";
 
@@ -26,7 +25,6 @@ beforeEach(() => {
 		attemptId: "attempt-1",
 		questionId: "question-1",
 	});
-	insertReviewItem(database, { id: "review-1", questionId: "question-1" });
 });
 
 afterEach(() => {
@@ -90,8 +88,6 @@ describe("index set", () => {
 			idx_question_responses_question: ["question_id"],
 			idx_quiz_attempts_user_status: ["telegram_user_id", "status"],
 			idx_quiz_sets_status: ["status", "updated_at"],
-			idx_review_items_due: ["telegram_user_id", "due_at"],
-			idx_review_items_question: ["question_id"],
 		});
 	});
 
@@ -100,10 +96,6 @@ describe("index set", () => {
 			question_options_question_id_position_unique: ["question_id", "position"],
 			questions_quiz_set_id_fingerprint_unique: ["quiz_set_id", "fingerprint"],
 			questions_quiz_set_id_position_unique: ["quiz_set_id", "position"],
-			review_items_telegram_user_id_question_id_unique: [
-				"telegram_user_id",
-				"question_id",
-			],
 		});
 	});
 });
@@ -128,17 +120,6 @@ describe("query plans", () => {
 
 		expect(plan).toContain("USING INDEX idx_quiz_attempts_user_status");
 		expect(plan).not.toContain("SCAN quiz_attempts");
-	});
-
-	test("lists due review items ordered by due date without a temp b-tree", () => {
-		const plan = queryPlan(
-			"SELECT id FROM review_items WHERE telegram_user_id = ? AND due_at <= ? AND state <> ? ORDER BY due_at ASC LIMIT ?",
-			[42, "2026-09-01T00:00:00.000Z", "retired", 10],
-		);
-
-		expect(plan).toContain("USING INDEX idx_review_items_due");
-		expect(plan).not.toContain("TEMP B-TREE");
-		expect(plan).not.toContain("SCAN review_items");
 	});
 
 	test("reads the questions of a set in position order without scanning or sorting", () => {

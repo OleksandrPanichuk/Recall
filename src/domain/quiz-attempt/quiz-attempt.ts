@@ -353,14 +353,9 @@ const collectSnapshotIssues = (
 	return issues;
 };
 
-/**
- * Rebuilds a persisted attempt without replaying the transitions. A paused and
- * resumed attempt has an `updatedAt` past its last answer, and the pause and
- * resume timestamps are not stored, so a replay would have to invent a
- * zero-length pause/resume pair to land on it — fabricating history to satisfy
- * the constructors. Validating the snapshot directly is the honest contract, so
- * the invariants the transitions enforce are checked here instead.
- */
+// Validates the snapshot rather than replaying transitions: pause and resume
+// timestamps are not stored, so a replay would have to invent a zero-length
+// pause/resume pair to land on a resumed attempt's `updatedAt`.
 export function restoreQuizAttempt(snapshot: QuizAttemptSnapshot): QuizAttempt {
 	if (snapshot.questionIds.length === 0) {
 		throw new EmptyQuizAttemptError();

@@ -6,7 +6,6 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { ReviewItemState } from "@/domain/review/review-item";
 import {
 	applicationTables,
 	countRows,
@@ -15,7 +14,6 @@ import {
 	insertQuestionResponse,
 	insertQuizAttempt,
 	insertQuizSet,
-	insertReviewItem,
 	openMigratedDatabase,
 	tableDefinition,
 } from "./migrated-database";
@@ -42,7 +40,6 @@ function seedGraph(): void {
 		attemptId: "attempt-1",
 		questionId: "question-1",
 	});
-	insertReviewItem(database, { id: "review-1", questionId: "question-1" });
 }
 
 describe("initial schema", () => {
@@ -123,10 +120,6 @@ describe("primary keys", () => {
 		[
 			"quiz_attempts",
 			"INSERT INTO quiz_attempts (id, quiz_set_id, telegram_user_id, mode, status, question_ids, started_at, updated_at) VALUES (NULL, 'set-1', 42, 'full', 'active', '[]', '2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z')",
-		],
-		[
-			"review_items",
-			"INSERT INTO review_items (id, question_id, telegram_user_id, state, due_at, created_at) VALUES (NULL, 'question-1', 42, 'pending', '2026-08-02T00:00:00.000Z', '2026-08-01T00:00:00.000Z')",
 		],
 	])("rejects a NULL primary key in %s", (_table, statement) => {
 		seedGraph();
@@ -280,33 +273,6 @@ describe("enumerated columns", () => {
 		).toThrow(/CHECK constraint failed/);
 	});
 
-	test.each(
-		Object.values(ReviewItemState),
-	)("accepts review_items.state %s", (state) => {
-		seedGraph();
-		insertReviewItem(database, {
-			id: "review-2",
-			questionId: "question-1",
-			telegramUserId: 99,
-			state,
-		});
-
-		expect(countRows(database, "review_items")).toBe(2);
-	});
-
-	test("rejects an unknown review_items.state", () => {
-		seedGraph();
-
-		expect(() =>
-			insertReviewItem(database, {
-				id: "review-2",
-				questionId: "question-1",
-				telegramUserId: 99,
-				state: "mastered",
-			}),
-		).toThrow(/CHECK constraint failed/);
-	});
-
 	test.each([0, 1])("accepts question_options.is_correct %p", (isCorrect) => {
 		insertQuizSet(database, { id: "set-1" });
 		insertQuestion(database, { id: "question-1", quizSetId: "set-1" });
@@ -354,16 +320,6 @@ describe("enumerated columns", () => {
 				questionId: "question-1",
 				isCorrect: 2,
 			}),
-		).toThrow(/CHECK constraint failed/);
-	});
-
-	test("rejects a negative streak", () => {
-		seedGraph();
-
-		expect(() =>
-			database.run(
-				"INSERT INTO review_items (id, question_id, telegram_user_id, state, streak, due_at, created_at) VALUES ('review-2', 'question-1', 99, 'pending', -1, '2026-08-02T00:00:00.000Z', '2026-08-01T00:00:00.000Z')",
-			),
 		).toThrow(/CHECK constraint failed/);
 	});
 });
@@ -428,17 +384,6 @@ describe("unique constraints", () => {
 			}),
 		).toThrow(/UNIQUE constraint failed/);
 	});
-
-	test("rejects two review items for the same user and question", () => {
-		seedGraph();
-
-		expect(() =>
-			insertReviewItem(database, {
-				id: "review-2",
-				questionId: "question-1",
-			}),
-		).toThrow(/UNIQUE constraint failed/);
-	});
 });
 
 describe("defaults", () => {
@@ -450,16 +395,6 @@ describe("defaults", () => {
 			.all();
 
 		expect(row?.tags).toBe("[]");
-	});
-
-	test("stores a zero streak when it is omitted", () => {
-		seedGraph();
-
-		const [row] = database
-			.query<{ streak: number }, []>("SELECT streak FROM review_items")
-			.all();
-
-		expect(row?.streak).toBe(0);
 	});
 });
 
@@ -473,10 +408,9 @@ describe("cascading deletes", () => {
 		expect(countRows(database, "question_options")).toBe(0);
 		expect(countRows(database, "quiz_attempts")).toBe(0);
 		expect(countRows(database, "question_responses")).toBe(0);
-		expect(countRows(database, "review_items")).toBe(0);
 	});
 
-	test("deleting a question removes its options, responses and review items", () => {
+	test("deleting a question removes its options and responses", () => {
 		seedGraph();
 
 		database.run("DELETE FROM questions WHERE id = 'question-1'");
@@ -485,6 +419,5 @@ describe("cascading deletes", () => {
 		expect(countRows(database, "quiz_attempts")).toBe(1);
 		expect(countRows(database, "question_options")).toBe(0);
 		expect(countRows(database, "question_responses")).toBe(0);
-		expect(countRows(database, "review_items")).toBe(0);
 	});
 });

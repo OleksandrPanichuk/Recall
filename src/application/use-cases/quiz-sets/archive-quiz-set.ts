@@ -35,7 +35,6 @@ export class ArchiveQuizSet
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
-		// Archiving twice is a retry, not an error: keep the original archivedAt.
 		if (stored.status === QuizSetStatus.Archived) {
 			return;
 		}

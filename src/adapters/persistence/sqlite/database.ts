@@ -81,9 +81,6 @@ function enableWriteAheadLog(database: Database, path: string): void {
 }
 
 export function createDatabase(options: DatabaseOptions): Database {
-	// SQLite will create the file but not the directory holding it, and the
-	// shipped DATABASE_PATH points at ./data — so a fresh checkout would fail on
-	// its very first run with a bare SQLITE_CANTOPEN.
 	if (options.path !== inMemoryPath) {
 		mkdirSync(dirname(options.path), { recursive: true });
 	}
@@ -106,9 +103,7 @@ function compactWriteAheadLog(database: Database): void {
 	try {
 		database.run("PRAGMA wal_checkpoint(TRUNCATE)");
 		database.query("PRAGMA journal_mode = DELETE").all();
-	} catch {
-		// Closing must continue even when compaction cannot acquire the database lock.
-	}
+	} catch {}
 }
 
 export function closeDatabase(database: Database): void {

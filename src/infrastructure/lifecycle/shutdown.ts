@@ -6,9 +6,7 @@ export interface ShutdownTask {
 }
 
 export interface Shutdown {
-	/** Tasks run in reverse registration order, so dependencies close last. */
 	register(task: ShutdownTask): void;
-	/** Resolves once every task has been given its chance. Safe to call twice. */
 	trigger(reason: string): Promise<void>;
 	listen(signals?: readonly NodeJS.Signals[]): void;
 	readonly triggered: boolean;
@@ -21,14 +19,8 @@ export interface ShutdownOptions {
 
 export const DEFAULT_SIGNALS: readonly NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
 
-/**
- * Ordered teardown. Tasks are registered in start-up order and run in reverse,
- * so the bot stops accepting updates before the database it writes to closes —
- * without that ordering a signal arriving mid-answer would close the handle
- * underneath an open transaction.
- *
- * One task failing must not strand the rest, so each is isolated.
- */
+// Reverse registration order, so polling stops before the database it writes to
+// closes — otherwise a signal mid-answer pulls the handle out of a transaction.
 export function createShutdown(options: ShutdownOptions): Shutdown {
 	const tasks: ShutdownTask[] = [];
 	let running: Promise<void> | undefined;
@@ -56,7 +48,6 @@ export function createShutdown(options: ShutdownOptions): Shutdown {
 			tasks.push(task);
 		},
 		trigger: (reason) => {
-			// A second signal must not start a second teardown over the first.
 			if (running === undefined) {
 				running = runAll(reason);
 			}

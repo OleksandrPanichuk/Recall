@@ -49,8 +49,6 @@ export class FinishQuizAttempt
 
 		return {
 			attemptId: finished.id,
-			// Unanswered questions still count against the score: attemptScore divides
-			// by the plan length, not by how many were reached.
 			unansweredCount: finished.questionIds.length - finished.responses.length,
 			score: attemptScore(finished),
 		};

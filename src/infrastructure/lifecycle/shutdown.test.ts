@@ -14,7 +14,6 @@ describe("createShutdown", () => {
 
 		await stop.trigger("SIGINT");
 
-		// The bot must stop accepting updates before its database closes.
 		expect(order).toEqual(["bot", "database"]);
 	});
 
@@ -33,7 +32,6 @@ describe("createShutdown", () => {
 		expect(order).toEqual(["fast", "slow"]);
 	});
 
-	// A second Ctrl-C must not tear down over a teardown already in flight.
 	test("a repeated signal does not start a second teardown", async () => {
 		let runs = 0;
 		const stop = shutdown();

@@ -12,7 +12,6 @@ import { render } from "../screen";
 
 const STALE = "Це питання вже позаду. Натисніть «Продовжити навчання».";
 
-/** Redraws the question with the selection the tap produced. Nothing is stored. */
 export function toggleHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: ToggleCallback): Promise<void> => {
 		const current = await useCases.getCurrentQuestion.execute({

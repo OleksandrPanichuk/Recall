@@ -17,8 +17,6 @@ import {
 } from "@/domain/quiz-set/quiz-set";
 import type { questionOptions, questions, quizSets } from "../schema";
 
-// Row shapes come from the Drizzle schema, so a column rename or a type change
-// breaks compilation here instead of at runtime.
 export type QuizSetRow = typeof quizSets.$inferSelect;
 export type QuestionRow = typeof questions.$inferSelect;
 export type QuestionOptionRow = typeof questionOptions.$inferSelect;
@@ -158,11 +156,6 @@ const groupOptionsByQuestion = (
 	return grouped;
 };
 
-// The aggregate is assembled from validated parts rather than replayed through
-// createQuizSet, which would renumber positions and overwrite updatedAt. These
-// checks stand in for the invariants those constructors would otherwise enforce,
-// so a hand-edited row fails here instead of surfacing as an impossible
-// aggregate inside a presenter.
 const assertAggregateInvariants = (
 	row: QuizSetRow,
 	status: QuizSetStatus,

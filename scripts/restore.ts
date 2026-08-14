@@ -13,8 +13,6 @@ try {
 
 	assertRestorable(backupPath);
 
-	// The current database is moved aside rather than overwritten: restoring the
-	// wrong file must not be the last thing that ever happens to real history.
 	if (existsSync(environment.databasePath)) {
 		const aside = `${environment.databasePath}.replaced-${new Date()
 			.toISOString()
@@ -24,7 +22,6 @@ try {
 		console.log(`Moved the existing database to ${aside}`);
 	}
 
-	// The sidecars belong to the replaced database, not the restored one.
 	for (const suffix of ["-wal", "-shm"]) {
 		const sidecar = `${environment.databasePath}${suffix}`;
 

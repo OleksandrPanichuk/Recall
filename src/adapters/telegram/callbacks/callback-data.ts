@@ -1,12 +1,3 @@
-/**
- * Callback payloads carry only stable identifiers and the user's own selection —
- * never which option is correct. Telegram caps `callback_data` at 64 bytes, so
- * options travel as their positions within the question rather than as ids.
- *
- * Selections are encoded into the buttons themselves rather than held in memory,
- * so a multiple-choice question keeps its half-made selection across a restart
- * and cannot be corrupted by a stale message from an earlier screen.
- */
 export const CALLBACK_DATA_LIMIT = 64;
 
 export const CallbackAction = {
@@ -19,9 +10,6 @@ export const CallbackAction = {
 	Finish: "f",
 	Statistics: "x",
 	StatisticsFor: "y",
-	Mistakes: "k",
-	WeakTopics: "w",
-	Rate: "v",
 	Unavailable: "u",
 } as const;
 export type CallbackAction =
@@ -60,17 +48,6 @@ export interface ToggleCallback {
 	readonly questionId: string;
 	readonly optionPositions: readonly number[];
 }
-export interface MistakesCallback {
-	readonly action: typeof CallbackAction.Mistakes;
-}
-export interface WeakTopicsCallback {
-	readonly action: typeof CallbackAction.WeakTopics;
-}
-export interface RateCallback {
-	readonly action: typeof CallbackAction.Rate;
-	readonly questionId: string;
-	readonly rating: string;
-}
 export interface UnavailableCallback {
 	readonly action: typeof CallbackAction.Unavailable;
 	readonly feature: string;
@@ -86,9 +63,6 @@ export type Callback =
 	| StatisticsForCallback
 	| AnswerCallback
 	| ToggleCallback
-	| MistakesCallback
-	| WeakTopicsCallback
-	| RateCallback
 	| UnavailableCallback;
 
 export class CallbackTooLongError extends Error {
@@ -105,8 +79,6 @@ const SEPARATOR = ":";
 export function encodeCallback(callback: Callback): string {
 	const data = serialise(callback);
 
-	// Telegram rejects an over-long payload at send time with an opaque API error.
-	// Failing here instead points at the identifier that outgrew the limit.
 	if (data.length > CALLBACK_DATA_LIMIT) {
 		throw new CallbackTooLongError(data);
 	}
@@ -121,13 +93,7 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
-		case CallbackAction.Mistakes:
-		case CallbackAction.WeakTopics:
 			return callback.action;
-		case CallbackAction.Rate:
-			return [callback.action, callback.questionId, callback.rating].join(
-				SEPARATOR,
-			);
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
@@ -161,7 +127,6 @@ const parsePositions = (raw: string | undefined): readonly number[] | null => {
 	return positions;
 };
 
-/** Returns undefined for anything malformed; callers must not trust the wire. */
 export function decodeCallback(data: string): Callback | undefined {
 	const [action, first, second] = data.split(SEPARATOR);
 
@@ -171,16 +136,7 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
-		case CallbackAction.Mistakes:
-		case CallbackAction.WeakTopics:
 			return { action };
-		case CallbackAction.Rate:
-			return first === undefined ||
-				first.length === 0 ||
-				second === undefined ||
-				second.length === 0
-				? undefined
-				: { action, questionId: first, rating: second };
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 			return first === undefined || first.length === 0

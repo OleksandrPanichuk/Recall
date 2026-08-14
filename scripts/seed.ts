@@ -1,11 +1,6 @@
 import { createApplication } from "@/composition/create-application";
 import { EnvironmentError, loadEnvironment } from "@/infrastructure/config/env";
 
-/**
- * Publishes one small set so the bot can be exercised end to end before the MCP
- * server is wired into Claude. Real content comes from `quiz_add_questions`;
- * this exists only so the first run has something to answer.
- */
 const QUESTIONS = [
 	{
 		type: "single_choice" as const,
@@ -51,7 +46,6 @@ try {
 	const environment = loadEnvironment();
 	const application = createApplication({
 		databasePath: environment.databasePath,
-		timezone: environment.appTimezone,
 	});
 
 	const { quizSetId } = await application.createQuizSet.execute({

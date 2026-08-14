@@ -34,8 +34,7 @@ afterEach(() => {
 
 const clock = createMutableClock();
 
-const open = (): Application =>
-	createApplication({ databasePath, timezone: "Europe/Kyiv", clock });
+const open = (): Application => createApplication({ databasePath, clock });
 
 const aQuestion = (prompt: string) => ({
 	type: QuestionType.SingleChoice,
@@ -62,7 +61,6 @@ async function seed(application: Application): Promise<QuizSetId> {
 	return quizSetId;
 }
 
-/** Answers the first question of a fresh attempt, leaving the attempt open. */
 async function startAndAnswerOne(
 	application: Application,
 	quizSetId: QuizSetId,
@@ -96,7 +94,6 @@ describe("backup and restore (§6.3)", () => {
 		backupDatabase(databasePath, backupPath);
 		application.close();
 
-		// Simulate losing the live database entirely.
 		rmSync(databasePath, { force: true });
 		rmSync(`${databasePath}-wal`, { force: true });
 		rmSync(`${databasePath}-shm`, { force: true });
@@ -167,8 +164,6 @@ describe("backup and restore (§6.3)", () => {
 });
 
 describe("restart continuity (§6.4)", () => {
-	// The §6.4 gate: a real process restart, not a second repository over one
-	// open handle — the database is closed and reopened from disk.
 	test("an unfinished attempt survives closing and reopening the database", async () => {
 		const first = open();
 		const quizSetId = await seed(first);
@@ -195,34 +190,6 @@ describe("restart continuity (§6.4)", () => {
 		expect(finished.score.correct).toBe(1);
 		second.close();
 	});
-
-	test("the review queue survives a restart", async () => {
-		const first = open();
-		const quizSetId = await seed(first);
-		await first.startQuizAttempt.execute({
-			quizSetId,
-			telegramUserId: USER,
-		});
-
-		const questions = (await first.getQuizSet.execute({ quizSetId })).questions;
-		clock.advance(60_000);
-		await first.answerQuestion.execute({
-			telegramUserId: USER,
-			questionId: questions[0]?.id as never,
-			selectedOptionPositions: [1],
-		});
-		clock.advance(60_000);
-		await first.finishQuizAttempt.execute({ telegramUserId: USER });
-		first.close();
-
-		const second = open();
-		const client = createDrizzleClient(second.database);
-
-		expect(
-			readStatus(client, { databasePath, timezone: "Europe/Kyiv" }).reviewQueue,
-		).toBe(1);
-		second.close();
-	});
 });
 
 describe("status command (§6.4)", () => {
@@ -245,7 +212,6 @@ describe("status command (§6.4)", () => {
 			completedAttempts: 0,
 			unfinishedAttempts: 1,
 			answeredQuestions: 1,
-			reviewQueue: 0,
 		});
 		application.close();
 	});

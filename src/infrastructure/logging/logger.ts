@@ -32,15 +32,8 @@ const SENSITIVE_SUBSTRINGS = [
 	"authorization",
 ] as const;
 
-/**
- * Anything whose name suggests a credential never reaches the output, whatever
- * it holds. Matching on the name rather than the value means a token that does
- * not look like one is still caught.
- *
- * Names are flattened first so `TELEGRAM_BOT_KEY` and `telegramBotKey` are the
- * same name. A trailing "key" counts, which catches those two without swallowing
- * innocent words that merely start with it, such as `keyboard`.
- */
+// Flattening makes `TELEGRAM_BOT_KEY` and `telegramBotKey` one name. A trailing
+// "key" counts, a contained one does not — otherwise `keyboard` is redacted.
 function isSensitiveKey(key: string): boolean {
 	const flattened = key.toLowerCase().replaceAll(/[^a-z]/g, "");
 
@@ -50,11 +43,6 @@ function isSensitiveKey(key: string): boolean {
 	);
 }
 
-/**
- * Learning material is the bulk of what flows through this app — prompts, option
- * text, book extracts. None of it belongs in an operational log, so string
- * fields are clipped to a length that identifies without reproducing.
- */
 export const MAX_FIELD_LENGTH = 80;
 
 const clip = (value: string): string =>
@@ -80,7 +68,6 @@ function sanitiseValue(value: unknown, depth: number): unknown {
 	}
 
 	if (value instanceof Error) {
-		// The stack can quote source lines, which may contain content.
 		return { name: value.name, message: clip(value.message) };
 	}
 
@@ -134,7 +121,6 @@ export function formatRecord(record: LogRecord): string {
 export function createLogger(options: LoggerOptions = {}): Logger {
 	const minimum = SEVERITY[options.level ?? LogLevel.Info];
 	const now = options.now ?? (() => new Date());
-	// stderr, so a bot log never corrupts the MCP protocol on stdout.
 	const write =
 		options.write ?? ((line: string) => process.stderr.write(`${line}\n`));
 

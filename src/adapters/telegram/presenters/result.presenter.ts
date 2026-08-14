@@ -5,7 +5,6 @@ import type { Question } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data";
 import { button, type Screen } from "./menu.presenter";
 
-/** Keeps the statistics screen inside Telegram's message length limit. */
 export const MAX_ROWS = 15;
 
 export function answerFeedback(
@@ -25,25 +24,9 @@ export function answerFeedback(
 		`\nРахунок: ${result.score.correct}/${result.score.total} (${result.score.percentage}%)`,
 	];
 
-	// Rating only appears for a question that is actually in the review queue —
-	// it adjusts when that question returns, so it is meaningless otherwise.
-	const rating =
-		result.reviewDueAt === undefined
-			? []
-			: [
-					(["hard", "good", "easy"] as const).map((value, index) =>
-						button(["😖 Важко", "🙂 Нормально", "😎 Легко"][index] as string, {
-							action: CallbackAction.Rate,
-							questionId: question.id,
-							rating: value,
-						}),
-					),
-				];
-
 	return {
 		text: lines.filter((line) => line !== undefined).join("\n"),
 		keyboard: [
-			...rating,
 			[
 				result.nextQuestionId === undefined
 					? button("🏁 Завершити", { action: CallbackAction.Finish })
@@ -83,10 +66,6 @@ export function statisticsScreen(
 		};
 	}
 
-	// Neither list is bounded by its query, and both grow for as long as the app
-	// is used — at ~50 attempts and ~40 topics the screen passes Telegram's 4096
-	// character limit and statistics stop opening at all. The recent end of each
-	// is the useful end.
 	const shownAttempts = statistics.attempts.slice(-MAX_ROWS);
 	const skippedAttempts = statistics.attempts.length - shownAttempts.length;
 	const shownTopics = statistics.topics.slice(0, MAX_ROWS);

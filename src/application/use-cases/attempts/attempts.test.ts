@@ -195,8 +195,6 @@ describe("StartQuizAttempt", () => {
 		).rejects.toThrow(QuizSetNotFoundError);
 	});
 
-	// Being blocked must never be a dead end: an attempt on a set that was
-	// archived mid-session can still be finished, which frees the user up.
 	test("finishing releases the block, even when its set was archived", async () => {
 		const first = await seedPublishedSet();
 		const second = await seedPublishedSet(["Three"]);

@@ -6,7 +6,6 @@ import type { Command, UseCase } from "@/application/use-case";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 
 export interface ListQuizSetsCommand {
-	/** Include drafts and archived sets. The Telegram menu never does. */
 	readonly includeUnpublished?: boolean;
 }
 
