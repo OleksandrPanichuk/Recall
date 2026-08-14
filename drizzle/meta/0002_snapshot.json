@@ -1,7 +1,7 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "673b29c7-7476-4b29-a077-160097995dba",
+	"id": "723f41f6-6c78-4655-9221-fbb5dd676976",
 	"prevId": "a0265acb-4c00-4798-9ca3-a5279e0e5847",
 	"tables": {
 		"folders": {
@@ -44,10 +44,11 @@
 				}
 			},
 			"indexes": {
-				"idx_folders_parent": {
-					"name": "idx_folders_parent",
-					"columns": ["parent_id"],
-					"isUnique": false
+				"folders_root_name_unique": {
+					"name": "folders_root_name_unique",
+					"columns": ["name"],
+					"isUnique": true,
+					"where": "parent_id IS NULL"
 				},
 				"folders_parent_id_name_unique": {
 					"name": "folders_parent_id_name_unique",

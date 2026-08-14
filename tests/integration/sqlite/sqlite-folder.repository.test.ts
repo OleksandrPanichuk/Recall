@@ -7,7 +7,7 @@ import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-tr
 import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import { createFolder, type Folder, toFolderId } from "@/domain/folder/folder";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { aQuestion, aQuizSet } from "../../fixtures/quiz-set.fixture";
 import { countRows, openMigratedDatabase } from "./migrated-database";
 
@@ -70,6 +70,33 @@ describe("SqliteFolderRepository", () => {
 
 		test("returns undefined for an unknown id", () => {
 			expect(folders.findById(toFolderId("missing"))).toBeUndefined();
+		});
+
+		test("refuses two root folders with the same name", () => {
+			folders.save(aFolder("english", "English"));
+
+			expect(() => {
+				folders.save(aFolder("english-2", "English"));
+			}).toThrow();
+		});
+
+		test("refuses two siblings with the same name", () => {
+			folders.save(aFolder("english", "English"));
+			folders.save(aFolder("vocab", "Vocabulary", "english"));
+
+			expect(() => {
+				folders.save(aFolder("vocab-2", "Vocabulary", "english"));
+			}).toThrow();
+		});
+
+		test("allows the same name under different parents", () => {
+			folders.save(aFolder("english", "English"));
+			folders.save(aFolder("prog", "Programming"));
+			folders.save(aFolder("b1", "Basics", "english"));
+
+			folders.save(aFolder("b2", "Basics", "prog"));
+
+			expect(folders.findById(toFolderId("b2"))?.name).toBe("Basics");
 		});
 
 		test("saving twice updates rather than duplicating", () => {
@@ -165,6 +192,15 @@ describe("SqliteFolderRepository", () => {
 			publishedSetIn("english", "set-3");
 
 			expect(folders.countSetsIn(toFolderId("levels"))).toBe(2);
+		});
+
+		test("reads a filed set back with its folder", () => {
+			seedChain();
+			publishedSetIn("levels", "set-1");
+
+			expect(quizSets.findById(toQuizSetId("set-1"))?.folderId).toBe(
+				toFolderId("levels"),
+			);
 		});
 
 		test("counts nothing for an empty folder", () => {

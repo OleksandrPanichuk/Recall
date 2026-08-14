@@ -8,6 +8,7 @@ import {
 	sqliteTable,
 	text,
 	unique,
+	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import {
 	QuizAttemptMode,
@@ -46,7 +47,9 @@ export const folders = sqliteTable(
 	},
 	(table) => [
 		unique().on(table.parentId, table.name),
-		index("idx_folders_parent").on(table.parentId),
+		uniqueIndex("folders_root_name_unique")
+			.on(table.name)
+			.where(sql`parent_id IS NULL`),
 	],
 );
 
