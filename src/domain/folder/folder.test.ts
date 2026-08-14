@@ -81,6 +81,12 @@ describe("createFolder", () => {
 		);
 	});
 
+	test("accepts a name of exactly the limit", () => {
+		expect(aFolder({ name: "x".repeat(MAX_FOLDER_NAME) }).name).toHaveLength(
+			MAX_FOLDER_NAME,
+		);
+	});
+
 	test("rejects a name over the limit", () => {
 		expect(
 			issuesOf({
@@ -137,10 +143,12 @@ describe("renameFolder", () => {
 });
 
 describe("reparentFolder", () => {
-	test("moves under a new parent", () => {
-		expect(
-			String(reparentFolder(aFolder(), toFolderId("root"), laterAt).parentId),
-		).toBe("root");
+	test("moves under a new parent and advances updatedAt", () => {
+		const moved = reparentFolder(aFolder(), toFolderId("root"), laterAt);
+
+		expect(String(moved.parentId)).toBe("root");
+		expect(moved.updatedAt).toEqual(laterAt);
+		expect(moved.createdAt).toEqual(createdAt);
 	});
 
 	test("moves back to the root", () => {
@@ -243,6 +251,15 @@ describe("restoreFolder", () => {
 				updatedAt: expected.updatedAt,
 			}),
 		).toEqual(expected);
+	});
+
+	test.each([
+		["createdAt", { createdAt: invalidDate, updatedAt: createdAt }],
+		["updatedAt", { createdAt, updatedAt: invalidDate }],
+	])("rejects an invalid %s", (_field, dates) => {
+		expect(() =>
+			restoreFolder({ id: toFolderId("cat-1"), name: "English", ...dates }),
+		).toThrow(FolderValidationError);
 	});
 
 	test("rejects an updatedAt before createdAt", () => {
