@@ -93,6 +93,8 @@ describe("index set", () => {
 
 	test("declares exactly the unique constraints", () => {
 		expect(declaredIndexes(true)).toEqual({
+			folders_parent_id_name_unique: ["parent_id", "name"],
+			folders_root_name_unique: ["name"],
 			question_options_question_id_position_unique: ["question_id", "position"],
 			questions_quiz_set_id_fingerprint_unique: ["quiz_set_id", "fingerprint"],
 			questions_quiz_set_id_position_unique: ["quiz_set_id", "position"],

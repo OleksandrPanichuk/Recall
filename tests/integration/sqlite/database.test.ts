@@ -43,6 +43,7 @@ describe("applyMigrations", () => {
 		expect(applyMigrations(database)).toEqual([
 			"0000_initial-schema",
 			"0001_drop-review-items",
+			"0002_folders",
 		]);
 		expect(applyMigrations(database)).toEqual([]);
 

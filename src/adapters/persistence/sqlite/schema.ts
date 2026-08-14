@@ -8,6 +8,7 @@ import {
 	sqliteTable,
 	text,
 	unique,
+	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import {
 	QuizAttemptMode,
@@ -33,10 +34,31 @@ function isBoolean(column: AnySQLiteColumn) {
 	return sql.raw(`${column.name} IN (0, 1)`);
 }
 
+export const folders = sqliteTable(
+	"folders",
+	{
+		id: text("id").notNull().primaryKey(),
+		name: text("name").notNull(),
+		parentId: text("parent_id").references((): AnySQLiteColumn => folders.id, {
+			onDelete: "restrict",
+		}),
+		createdAt: text("created_at").notNull(),
+		updatedAt: text("updated_at").notNull(),
+	},
+	(table) => [
+		unique().on(table.parentId, table.name),
+		uniqueIndex("folders_root_name_unique")
+			.on(table.name)
+			.where(sql`parent_id IS NULL`),
+	],
+);
+
 export const quizSets = sqliteTable(
 	"quiz_sets",
 	{
 		id: text("id").notNull().primaryKey(),
+		// drizzle-kit drops ON DELETE when generating ALTER TABLE ADD COLUMN
+		folderId: text("folder_id").references(() => folders.id),
 		title: text("title").notNull(),
 		description: text("description"),
 		language: text("language").notNull(),
