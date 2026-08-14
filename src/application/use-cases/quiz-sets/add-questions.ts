@@ -108,10 +108,8 @@ export class AddQuestions
 			);
 			const present = new Set(stored.questions.map(questionFingerprint));
 
-			// A retried authoring batch arrives with identical content but freshly
-			// generated ids. Fingerprints ignore ids, so an entirely-present batch is
-			// a replay and must not be an error. A partial overlap is a real conflict
-			// and is left to the domain to reject.
+			// A retried batch has identical content but fresh ids, and fingerprints
+			// ignore ids, so a fully-present batch is a replay rather than an error.
 			if (
 				questions.every((question) =>
 					present.has(questionFingerprint(question)),

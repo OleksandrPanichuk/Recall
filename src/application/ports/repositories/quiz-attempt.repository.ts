@@ -20,21 +20,13 @@ export interface TopicAccuracy {
 }
 
 export interface QuizAttemptRepository {
-	/** Upserts the attempt; recorded responses are never overwritten or doubled. */
 	save(attempt: QuizAttempt): void;
 	findById(id: QuizAttemptId): QuizAttempt | undefined;
-	/**
-	 * The user's unfinished attempt — active or paused. The MVP expects at most
-	 * one, but nothing in the schema enforces that, so the most recently updated
-	 * wins when several exist.
-	 */
 	findActiveByUser(telegramUserId: number): QuizAttempt | undefined;
-	/** Completed attempts only, oldest first, so improvement can be measured. */
 	listCompletedBySet(
 		telegramUserId: number,
 		quizSetId: QuizSetId,
 	): readonly AttemptStatistics[];
 	topicAccuracy(telegramUserId: number): readonly TopicAccuracy[];
-	/** Questions answered incorrectly and not answered correctly since. */
 	incorrectQuestionIds(telegramUserId: number): readonly QuestionId[];
 }

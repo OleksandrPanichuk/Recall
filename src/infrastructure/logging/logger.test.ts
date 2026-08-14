@@ -152,8 +152,6 @@ describe("sensitive-name matching", () => {
 		expect(last()[key]).toBe("visible");
 	});
 
-	// Over-redaction is the safe direction: a field named "monkey" being masked
-	// costs nothing, a leaked token costs everything.
 	test("redacts anything ending in key, even a false positive", () => {
 		const { logger, last } = captured();
 

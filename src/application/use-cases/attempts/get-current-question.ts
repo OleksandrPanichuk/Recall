@@ -15,15 +15,9 @@ export interface CurrentQuestionView {
 	readonly quizSetId: QuizSetId;
 	readonly quizSetTitle: string;
 	readonly status: QuizAttemptStatus;
-	/**
-	 * Absent once every planned question has been answered, or if the question
-	 * itself has since been removed from the set.
-	 */
 	readonly question?: Question;
-	/** Zero-based position in the attempt's plan. */
 	readonly index: number;
 	readonly total: number;
-	/** True when the only thing left to do with this attempt is finish it. */
 	readonly awaitingFinish: boolean;
 }
 
@@ -32,15 +26,6 @@ export interface GetCurrentQuestionDependencies {
 	readonly attempts: QuizAttemptRepository;
 }
 
-/**
- * The state of the user's unfinished attempt, if they have one.
- *
- * Resolving to `undefined` means "no unfinished attempt" and nothing else. An
- * attempt whose questions are all answered still resolves — it is exactly the
- * state that needs a Finish button, and reporting it as absent is how a user
- * ends up blocked from starting anything while being told to finish something
- * the interface no longer offers.
- */
 export class GetCurrentQuestion
 	implements
 		UseCase<Command<AttemptOfUserCommand>, CurrentQuestionView | undefined>

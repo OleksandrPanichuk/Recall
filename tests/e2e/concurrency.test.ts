@@ -43,14 +43,6 @@ async function run(tag: string, rounds: number): Promise<WorkerResult> {
 	return JSON.parse(out.trim().split("\n").at(-1) ?? "{}") as WorkerResult;
 }
 
-// The bot and the MCP server are meant to run at the same time against one
-// database file, so this guards both hazards that arrangement exposes:
-//
-//  1. both workers migrate on start — a race that used to kill the loser with
-//     "table already exists"; a worker exiting non-zero fails this test;
-//  2. both then do read-then-write transactions — under a deferred transaction
-//     that loses roughly half of all writes to "database is locked", because a
-//     read lock cannot wait to become a write lock in WAL mode.
 describe("two processes sharing one database", () => {
 	test("both migrate and write without losing anything", async () => {
 		const rounds = 30;

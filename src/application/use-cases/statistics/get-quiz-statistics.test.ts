@@ -65,7 +65,6 @@ async function seedPublishedSet(
 	return quizSetId;
 }
 
-/** Plays one full attempt, answering question `i` correctly iff `correct[i]`. */
 async function playAttempt(
 	quizSetId: QuizSetId,
 	correct: readonly boolean[],

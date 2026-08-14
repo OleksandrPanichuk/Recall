@@ -23,8 +23,6 @@ export const updateSetShape = {
 	tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
 };
 
-// The batch cap is declared by the application layer and mirrored here so an
-// oversized batch is refused by schema validation before any work begins.
 export const addQuestionsShape = {
 	quizSetId,
 	questions: z.array(questionSchema).min(1).max(MAX_QUESTIONS_PER_BATCH),

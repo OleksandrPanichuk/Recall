@@ -33,11 +33,6 @@ export function createMutableClock(startAt = DEFAULT_START_AT): MutableClock {
 	};
 }
 
-/**
- * Deterministic, but the same width as the production generator (18 characters),
- * so anything measuring an id — a Telegram callback payload, above all — is
- * measured against the real thing rather than against `q-1`.
- */
 export function createRealisticIdGenerator(prefix = "q"): IdGenerator {
 	let next = 0;
 

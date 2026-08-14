@@ -66,9 +66,8 @@ export function createSqliteQuizAttemptRepository(
 					.where(eq(quizAttempts.id, row.id))
 					.get();
 
-				// A writer holding an older copy of the attempt loses the race. Applying
-				// it would rewind updated_at past answers the database already holds —
-				// which are append-only and therefore stay — leaving a row the restore
+				// Applying a stale copy would rewind updated_at past answers already
+				// stored — they are append-only and stay — leaving a row the restore
 				// factory rejects, so the attempt could never be read again.
 				if (stored && stored.updatedAt > row.updatedAt) {
 					return;
@@ -80,10 +79,6 @@ export function createSqliteQuizAttemptRepository(
 					.onConflictDoUpdate({ target: quizAttempts.id, set: row })
 					.run();
 
-				// Responses are append-only, so a plan that no longer contains a question
-				// would otherwise leave its answer behind: it inflates the score, and it
-				// makes the attempt unreadable because the restore factory rejects
-				// responses outside the plan.
 				database
 					.delete(questionResponses)
 					.where(
@@ -98,9 +93,6 @@ export function createSqliteQuizAttemptRepository(
 
 				const responseRows = toQuestionResponseRows(attempt);
 
-				// A recorded answer is final: replaying a save must never overwrite it,
-				// and the composite primary key makes double-scoring impossible at the
-				// database level.
 				if (responseRows.length > 0) {
 					database
 						.insert(questionResponses)
@@ -156,9 +148,6 @@ export function createSqliteQuizAttemptRepository(
 				.all();
 			const responses = responsesOf(rows.map((row) => row.id));
 
-			// Scoring happens here rather than in SQL so that "correct" is counted only
-			// against the questions the attempt actually planned; a stale response left
-			// by an earlier plan must not inflate the total.
 			return rows.map((row): AttemptStatistics => {
 				const planned = new Set(plannedQuestionIds(row).map(String));
 
@@ -183,8 +172,7 @@ export function createSqliteQuizAttemptRepository(
 				.select({
 					topic: questions.topic,
 					answered: count(),
-					// count() ignores NULLs, so nulling out the wrong answers counts the
-					// right ones without a CASE expression.
+					// count() ignores NULLs, so this counts the right answers without CASE.
 					correct: count(sql`nullif(${questionResponses.isCorrect}, 0)`),
 				})
 				.from(questionResponses)

@@ -35,11 +35,6 @@ export interface McpUseCases {
 export const MCP_SERVER_NAME = "recall-quiz";
 export const MCP_SERVER_VERSION = "0.1.0";
 
-/**
- * Tool names use underscores rather than the dots the development plan sketched:
- * MCP clients constrain names to `[A-Za-z0-9_-]`, so `quiz.create_set` would be
- * rejected at registration.
- */
 const guard = async (run: () => Promise<ToolResult>): Promise<ToolResult> => {
 	try {
 		return await run();
@@ -94,9 +89,6 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 					);
 				}
 
-				// Leaving a finished set as a draft is the easy mistake: the tool call
-				// succeeded, so nothing looks wrong, and the bot lists published sets
-				// only — so the questions simply never appear.
 				return ok(
 					`Added ${result.addedQuestionIds.length} questions to ${args.quizSetId}. The set is still a DRAFT and will not appear in Telegram until you call quiz_publish_set.`,
 					{
@@ -208,8 +200,6 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 					return ok(describeSummaries(sets), { count: sets.length });
 				}
 
-				// A draft is invisible here by design, but silently invisible is how a
-				// finished set gets forgotten. Say it exists without listing it.
 				const all = await useCases.listQuizSets.execute({
 					includeUnpublished: true,
 				});

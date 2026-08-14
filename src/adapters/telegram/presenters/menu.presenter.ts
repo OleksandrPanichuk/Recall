@@ -37,10 +37,6 @@ export function mainMenu(state: MenuState): Screen {
 				? "Головне меню. У вас є незавершена спроба."
 				: "Головне меню.",
 		keyboard: [
-			// Without this the only Finish button lives on the feedback screen, which
-			// is edited away the moment the user opens anything else — leaving an
-			// answered-out attempt that blocks every other action with no way to
-			// close it.
 			...(state.hasUnfinishedAttempt
 				? [[button("🏁 Завершити спробу", { action: CallbackAction.Finish })]]
 				: []),
@@ -82,7 +78,6 @@ export function quizSetList(
 	};
 }
 
-/** Offered whenever an attempt has no question left but is still open. */
 export function finishPrompt(): Screen {
 	return {
 		text: "Усі питання пройдено. Завершіть спробу, щоб побачити результат.",

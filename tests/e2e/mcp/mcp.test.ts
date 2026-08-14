@@ -147,8 +147,6 @@ describe("write tools (§4.2)", () => {
 		expect(result.structured.addedQuestionIds).toHaveLength(2);
 	});
 
-	// Adding questions and stopping there is the easy mistake: the call succeeds,
-	// and the set never reaches Telegram because it is still a draft.
 	test("adding questions says the set is not published yet", async () => {
 		const quizSetId = await newDraft();
 
@@ -162,7 +160,6 @@ describe("write tools (§4.2)", () => {
 		expect(result.structured.nextStep).toBe("quiz_publish_set");
 	});
 
-	// §4.2 gate: an invalid batch rolls back entirely.
 	test("an invalid question rolls the whole batch back", async () => {
 		const quizSetId = await newDraft();
 
@@ -186,7 +183,6 @@ describe("write tools (§4.2)", () => {
 		);
 	});
 
-	// §4.2 gate: batch size has an upper bound.
 	test("an oversized batch is refused by the schema", async () => {
 		const quizSetId = await newDraft();
 
@@ -276,7 +272,6 @@ describe("read tools (§4.3)", () => {
 	});
 });
 
-// §4.4: the authoring scenario the plan describes, with no direct database access.
 describe("end-to-end authoring (§4.4)", () => {
 	test("Claude can draft in batches, re-read, publish, and hand over to Telegram", async () => {
 		const quizSetId = await newDraft("Designing Data-Intensive Applications");
@@ -300,8 +295,6 @@ describe("end-to-end authoring (§4.4)", () => {
 		expect(published.isError).toBe(false);
 		expect((await call("quiz_list_sets")).text).toContain(quizSetId);
 
-		// The Telegram side sees exactly what MCP published, through the same
-		// application services and with no SQL in between.
 		const forTelegram = await application.listQuizSets.execute({});
 
 		expect(forTelegram).toHaveLength(1);

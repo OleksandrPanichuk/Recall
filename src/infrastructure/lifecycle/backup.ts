@@ -8,18 +8,13 @@ export class BackupError extends Error {
 	}
 }
 
-/**
- * `VACUUM INTO` is SQLite's own supported way to take a consistent copy while a
- * database is in use: it runs inside a read transaction, so the result is a
- * single file with no `-wal` sidecar to lose. Copying `quiz.sqlite` by hand is
- * what people get wrong, because the newest writes may still live in the WAL.
- */
+// `VACUUM INTO` copies inside a read transaction, so the result is consistent
+// under load and has no `-wal` sidecar a hand-copied file would leave behind.
 export function backupDatabase(databasePath: string, target: string): void {
 	if (target.trim().length === 0) {
 		throw new BackupError("A backup target path is required");
 	}
 
-	// Read-only: a backup must never be able to alter the live database.
 	const source = new Database(databasePath, { readonly: true });
 
 	try {
@@ -35,16 +30,10 @@ export function backupDatabase(databasePath: string, target: string): void {
 	}
 }
 
-/**
- * Refuses anything that is not one of our databases, so a restore cannot
- * silently install an unrelated or truncated file over real history.
- */
 export function assertRestorable(backupPath: string): void {
 	let candidate: Database | undefined;
 	let present: Set<string>;
 
-	// bun:sqlite opens lazily, so a file that is not a database only fails when
-	// the first statement runs — both have to be inside the guard.
 	try {
 		candidate = new Database(backupPath, { readonly: true });
 		present = new Set(

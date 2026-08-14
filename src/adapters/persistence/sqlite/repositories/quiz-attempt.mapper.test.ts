@@ -111,8 +111,6 @@ describe("quiz attempt mapper", () => {
 		).toThrow(CorruptedQuizAttemptRowError);
 	});
 
-	// Plan order is authoritative; the factory refuses to silently reorder a row
-	// set whose timestamps contradict it.
 	test("rejects timestamps that disagree with plan order", () => {
 		expect(() =>
 			restore({ updatedAt: "2026-08-01T10:06:00.000Z" }, [

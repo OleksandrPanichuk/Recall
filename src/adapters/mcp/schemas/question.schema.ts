@@ -5,7 +5,6 @@ const values = <TValue extends string>(
 	source: Readonly<Record<string, TValue>>,
 ): [TValue, ...TValue[]] => Object.values(source) as [TValue, ...TValue[]];
 
-/** Upper bound on options per question; the domain requires at least two. */
 export const MAX_OPTIONS_PER_QUESTION = 10;
 
 export const questionOptionSchema = z.object({

@@ -23,15 +23,10 @@ export interface Improvement {
 }
 
 export interface QuizStatistics {
-	/** Completed attempts on this set, oldest first. */
 	readonly attempts: readonly AttemptSummary[];
-	/** Every completed attempt on this set, aggregated. */
 	readonly setAccuracy: Score;
-	/** Across every set the user has answered, not only this one. */
 	readonly topics: readonly TopicAccuracy[];
-	/** Across every set the user has answered, not only this one. */
 	readonly incorrectQuestionIds: readonly QuestionId[];
-	/** Undefined until there are at least two completed attempts to compare. */
 	readonly improvement?: Improvement;
 }
 

@@ -82,8 +82,6 @@ export class StartQuizAttempt
 		const unfinished = this.attempts.findActiveByUser(request.telegramUserId);
 
 		if (unfinished !== undefined) {
-			// Starting the set you are already on means "carry on", not "start over".
-			// Starting a different one would silently abandon work in progress.
 			if (unfinished.quizSetId !== request.quizSetId) {
 				throw new AttemptAlreadyInProgressError(
 					unfinished.id,

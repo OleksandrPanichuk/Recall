@@ -20,7 +20,6 @@ export function menuHandler(useCases: TelegramUseCases) {
 	};
 }
 
-/** "Продовжити навчання" — re-renders whatever question the attempt is on. */
 export function resumeHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context): Promise<void> => {
 		const current = await useCases.getCurrentQuestion.execute({

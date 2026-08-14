@@ -35,7 +35,6 @@ const total = (
 	database.select({ value: count() }).from(table).where(where).get()?.value ??
 	0;
 
-/** A read-only snapshot for the health command. Never touches user content. */
 export function readStatus(
 	database: QuizDatabase,
 	options: StatusOptions,

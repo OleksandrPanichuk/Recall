@@ -27,8 +27,6 @@ function loadOrExit(): Environment {
 function main(): void {
 	const environment = loadOrExit();
 
-	// `--check` validates configuration and exits, without opening the database or
-	// contacting Telegram, so it is safe to run against a live deployment.
 	if (process.argv.includes("--check")) {
 		console.log(
 			`Configuration is valid. database=${resolve(environment.databasePath)} timezone=${environment.appTimezone}`,
@@ -68,9 +66,6 @@ function main(): void {
 	});
 	const shutdown = createShutdown({ logger });
 
-	// Registered in start-up order and run in reverse, so polling stops before the
-	// database it writes to closes — otherwise a signal arriving mid-answer would
-	// pull the handle out from under an open transaction.
 	shutdown.register({
 		name: "database",
 		run: () => {
@@ -90,12 +85,8 @@ function main(): void {
 		timezone: environment.appTimezone,
 	});
 
-	// launch() only settles when polling stops, so a rejection here means Telegram
-	// refused us outright — a bad token, or no network. Report it and tear down
-	// rather than leaving an unhandled rejection and a half-open database.
-	// Updates queued while the bot was down are replayed by Telegram for up to 24
-	// hours. Every one of those callback queries is past its answer window and
-	// would act on a screen the user has long since moved past.
+	// Telegram replays updates queued during downtime for up to 24 hours, and each
+	// would act on a screen the user moved past hours ago.
 	bot.launch({ dropPendingUpdates: true }).catch((error: unknown) => {
 		logger.error("bot stopped", { error });
 		void shutdown.trigger("launch-failed").then(() => {

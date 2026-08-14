@@ -9,11 +9,6 @@ export function correctOptionIds(
 		.map((option) => option.id);
 }
 
-/**
- * An answer is correct when the selected options are exactly the correct ones —
- * no extras, no omissions. One rule covers all three question types; single
- * choice and true/false simply have exactly one correct option.
- */
 export function evaluateAnswer(
 	question: Question,
 	selectedOptionIds: readonly QuestionOptionId[],

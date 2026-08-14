@@ -17,7 +17,6 @@ async function main(): Promise<void> {
 		environment = loadEnvironment();
 	} catch (error) {
 		if (error instanceof EnvironmentError) {
-			// stdio carries the protocol, so diagnostics must go to stderr only.
 			console.error(error.message);
 			process.exit(1);
 		}
@@ -29,7 +28,6 @@ async function main(): Promise<void> {
 		databasePath: environment.databasePath,
 	});
 	const server = createMcpServer(application);
-	// stdout carries the protocol, so every log line goes to stderr.
 	const logger = createLogger();
 	const shutdown = createShutdown({ logger });
 

@@ -14,8 +14,6 @@ import {
 	QuizSetValidationError,
 } from "@/domain/quiz-set/quiz-set.errors";
 
-// The protocol's own result shape, reused rather than mirrored: it is mutable
-// and carries an index signature, neither of which this codebase would choose.
 export type ToolResult = CallToolResult;
 
 export function ok(
@@ -28,11 +26,6 @@ export function ok(
 	};
 }
 
-/**
- * Authoring errors are returned as tool results rather than thrown, so Claude
- * can read what went wrong and correct the batch instead of losing the session
- * to a protocol-level failure. The message names the rule that was broken.
- */
 export function failure(error: unknown): ToolResult {
 	return {
 		content: [{ type: "text", text: describe(error) }],

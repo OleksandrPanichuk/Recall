@@ -35,7 +35,6 @@ export class PublishQuizSet
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
-		// Publishing twice is a retry, not an error: keep the original publishedAt.
 		if (stored.status === QuizSetStatus.Published) {
 			return;
 		}

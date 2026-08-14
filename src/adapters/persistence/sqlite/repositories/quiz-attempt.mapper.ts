@@ -96,11 +96,6 @@ const toResponse = (
 	answeredAt: requiredDate(row.answeredAt, "answered_at", attemptId),
 });
 
-/**
- * Responses are ordered by the plan rather than by their stored timestamps, then
- * handed to `restoreQuizAttempt`, which rejects a row set whose timestamps
- * disagree with that order instead of silently accepting the reordering.
- */
 const orderedResponses = (
 	row: QuizAttemptRow,
 	questionIds: readonly QuestionId[],

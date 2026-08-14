@@ -29,11 +29,6 @@ import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-s
 
 export const systemClock: Clock = { now: () => new Date() };
 
-/**
- * Short, URL-safe, collision-resistant enough for a single user's library. Ids
- * travel inside Telegram callback payloads, which are capped at 64 bytes, so a
- * 36-character UUID would crowd out everything else.
- */
 export const shortIdGenerator: IdGenerator = {
 	generate: () => {
 		const bytes = new Uint8Array(9);
@@ -102,9 +97,6 @@ export function createApplication(options: ApplicationOptions): Application {
 		answerQuestion: new AnswerQuestion(dependencies),
 		finishQuizAttempt: new FinishQuizAttempt(dependencies),
 		getQuizStatistics: new GetQuizStatistics(dependencies),
-		// closeDatabase, not database.close: it checkpoints the write-ahead log first,
-		// so the newest writes end up in the file itself rather than a -wal sidecar
-		// that a backup or a restore can leave behind.
 		close: () => {
 			closeDatabase(database);
 		},

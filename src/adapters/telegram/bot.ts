@@ -57,10 +57,8 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 			return;
 		}
 
-		// Acknowledge before doing the work: Telegram shows a spinner on the button
-		// until the callback is answered, and the work may write to the database.
-		// A replayed update from before a restart is already past the ~10 second
-		// answer window, so this 400s — which must not abort the dispatch.
+		// Telegram spins the button until the query is answered. A replayed update
+		// is past the ~10s answer window and 400s, which must not abort dispatch.
 		await ctx.answerCbQuery().catch(() => {});
 
 		const telegramUserId = ctx.from.id;
@@ -121,12 +119,8 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 		}
 	});
 
-	// Typing anything at all should get the menu back, not silence — it is the
-	// only recovery route when a screen can no longer be edited.
 	bot.on("message", menuHandler(useCases));
 
-	// Without this Telegraf's default handler rethrows, which aborts the polling
-	// loop and exits the process on any unhandled failure.
 	bot.catch((error) => {
 		options.log?.(error);
 	});

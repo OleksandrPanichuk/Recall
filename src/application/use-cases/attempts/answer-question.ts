@@ -34,12 +34,6 @@ export class AttemptNotActiveError extends Error {
 export interface AnswerQuestionCommand {
 	readonly telegramUserId: number;
 	readonly questionId: QuestionId;
-	/**
-	 * Option positions rather than ids. The adapter renders positions into its
-	 * callback payloads, and resolving them here — against the question this use
-	 * case already loads — means a stale payload can never be mapped against the
-	 * wrong question's options.
-	 */
 	readonly selectedOptionPositions: readonly number[];
 }
 
@@ -50,7 +44,6 @@ export interface AnswerQuestionResult {
 	readonly correctOptionIds: readonly QuestionOptionId[];
 	readonly nextQuestionId?: QuestionId;
 	readonly score: Score;
-	/** The question just answered, so a presenter can name the options. */
 	readonly question: Question;
 }
 
@@ -101,9 +94,6 @@ export class AnswerQuestion
 				throw new QuestionNotInAttemptError();
 			}
 
-			// A duplicated or stale callback replays an answer already recorded. Report
-			// what was recorded rather than re-evaluating, so the outcome the user was
-			// shown can never change under them and the score can never move twice.
 			const recorded = attempt.responses.find(
 				(response) => response.questionId === request.questionId,
 			);

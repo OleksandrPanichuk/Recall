@@ -7,11 +7,6 @@ import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { quizSets } from "@/adapters/persistence/sqlite/schema";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 
-/**
- * A worker for the concurrency test. Repeats the read-then-write transaction
- * shape every repository save() uses, and reports how many writes were lost to
- * lock contention.
- */
 const tag = process.argv[2] ?? "worker";
 const rounds = Number(process.argv[3] ?? 40);
 const databasePath = process.argv[4] ?? "";
@@ -31,8 +26,6 @@ for (let round = 0; round < rounds; round += 1) {
 	try {
 		transaction.run(() => {
 			database.select().from(quizSets).where(eq(quizSets.id, id)).get();
-			// Widen the window between the read and the write so the two workers
-			// genuinely overlap rather than passing each other by luck.
 			Bun.sleepSync(2);
 			database
 				.insert(quizSets)

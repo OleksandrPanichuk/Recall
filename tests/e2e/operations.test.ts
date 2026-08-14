@@ -61,7 +61,6 @@ async function seed(application: Application): Promise<QuizSetId> {
 	return quizSetId;
 }
 
-/** Answers the first question of a fresh attempt, leaving the attempt open. */
 async function startAndAnswerOne(
 	application: Application,
 	quizSetId: QuizSetId,
@@ -95,7 +94,6 @@ describe("backup and restore (§6.3)", () => {
 		backupDatabase(databasePath, backupPath);
 		application.close();
 
-		// Simulate losing the live database entirely.
 		rmSync(databasePath, { force: true });
 		rmSync(`${databasePath}-wal`, { force: true });
 		rmSync(`${databasePath}-shm`, { force: true });
@@ -166,8 +164,6 @@ describe("backup and restore (§6.3)", () => {
 });
 
 describe("restart continuity (§6.4)", () => {
-	// The §6.4 gate: a real process restart, not a second repository over one
-	// open handle — the database is closed and reopened from disk.
 	test("an unfinished attempt survives closing and reopening the database", async () => {
 		const first = open();
 		const quizSetId = await seed(first);

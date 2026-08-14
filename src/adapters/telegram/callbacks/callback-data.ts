@@ -1,12 +1,3 @@
-/**
- * Callback payloads carry only stable identifiers and the user's own selection —
- * never which option is correct. Telegram caps `callback_data` at 64 bytes, so
- * options travel as their positions within the question rather than as ids.
- *
- * Selections are encoded into the buttons themselves rather than held in memory,
- * so a multiple-choice question keeps its half-made selection across a restart
- * and cannot be corrupted by a stale message from an earlier screen.
- */
 export const CALLBACK_DATA_LIMIT = 64;
 
 export const CallbackAction = {
@@ -88,8 +79,6 @@ const SEPARATOR = ":";
 export function encodeCallback(callback: Callback): string {
 	const data = serialise(callback);
 
-	// Telegram rejects an over-long payload at send time with an opaque API error.
-	// Failing here instead points at the identifier that outgrew the limit.
 	if (data.length > CALLBACK_DATA_LIMIT) {
 		throw new CallbackTooLongError(data);
 	}
@@ -138,7 +127,6 @@ const parsePositions = (raw: string | undefined): readonly number[] | null => {
 	return positions;
 };
 
-/** Returns undefined for anything malformed; callers must not trust the wire. */
 export function decodeCallback(data: string): Callback | undefined {
 	const [action, first, second] = data.split(SEPARATOR);
 

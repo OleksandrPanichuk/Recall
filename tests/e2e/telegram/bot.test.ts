@@ -139,7 +139,6 @@ describe("quiz flow (§3.3)", () => {
 		expect(harness.lastText()).toContain("One");
 	});
 
-	// §3.3 gate: the payload must carry stable ids, never the answer.
 	test("the option payloads do not reveal which is correct", async () => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
 
@@ -152,7 +151,6 @@ describe("quiz flow (§3.3)", () => {
 		for (const option of options) {
 			expect(option.callback_data).toMatch(/^a:q\d{17}:\d+$/);
 		}
-		// Both payloads differ only by option position — nothing marks correctness.
 		expect(
 			options.map((option) => option.callback_data.split(":").slice(0, 2)),
 		).toEqual([
@@ -200,7 +198,6 @@ describe("quiz flow (§3.3)", () => {
 		expect(harness.lastText()).toContain("Правильна відповідь: Right for One");
 	});
 
-	// §3.3 gate: a duplicated or stale callback must not score twice.
 	test("tapping the same answer twice does not move the score", async () => {
 		await seedPublishedSet(harness, "Bun", [
 			aQuestionInput("One"),
@@ -345,8 +342,6 @@ describe("callback acknowledgement", () => {
 	});
 });
 
-// The harness now enforces Telegram's real limits and can reject a call the way
-// the API does, so these are the failures that used to be invisible.
 describe("real API limits and failures", () => {
 	test("statistics stay inside the message limit after many attempts", async () => {
 		await seedPublishedSet(harness, "Bun", [
@@ -391,8 +386,6 @@ describe("real API limits and failures", () => {
 		expect(harness.lastText().length).toBeLessThanOrEqual(4096);
 	});
 
-	// Telegraf's default error handler rethrows, which aborts polling and exits
-	// the process. A transient API failure must not end the session.
 	test("an API failure mid-render does not escape the middleware", async () => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
 		await harness.send("/start");
@@ -403,7 +396,6 @@ describe("real API limits and failures", () => {
 
 		await harness.tap(buttonFor("Мої набори"));
 
-		// The tap failed, but the bot is still answering.
 		await harness.tap(buttonFor("« Меню"));
 
 		expect(harness.lastText()).toContain("Головне меню");
@@ -419,16 +411,12 @@ describe("real API limits and failures", () => {
 
 		await harness.tap(buttonFor("Мої набори"));
 
-		// A fresh message was sent rather than the edit failing the session.
 		expect(harness.calls.at(-1)?.method).toBe("sendMessage");
 		expect(harness.lastText()).toContain("Оберіть набір");
 		expect(buttonFor("Bun")).toContain("s:");
 	});
 });
 
-// Answering the last question and then tapping "« Меню" instead of "🏁 Завершити"
-// used to leave an attempt that blocked every other action, on a screen that no
-// longer offered any way to finish it. It needed a hand-written UPDATE to escape.
 describe("finishing an answered-out attempt", () => {
 	const answerEverything = async (): Promise<void> => {
 		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
@@ -484,9 +472,6 @@ describe("finishing an answered-out attempt", () => {
 	});
 });
 
-// Telegram truncates inline-button labels on one line with no way to see the
-// rest. Real authored options run well past 100 characters, so their text has to
-// live in the message body, which wraps.
 describe("long option text stays readable", () => {
 	const longOption =
 		"Це був просто вдалий хештег у Twitter для мітапу про open source distributed non-relational бази даних у 2009 році";
@@ -503,7 +488,6 @@ describe("long option text stays readable", () => {
 
 		await openSet("Bun");
 
-		// The whole text is present in the message, not clipped onto a button.
 		expect(harness.lastText()).toContain(longOption);
 		expect(harness.lastText()).toContain("1. ");
 		expect(harness.lastText()).toContain("2. ");
