@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { toFolderId } from "../folder/folder";
 import { createQuestion } from "./create-question";
 import {
 	Difficulty,
@@ -15,6 +16,7 @@ import {
 	archiveQuizSet,
 	createQuizSet,
 	isQuizSetStatus,
+	moveQuizSetToFolder,
 	publishQuizSet,
 	type QuizSet,
 	QuizSetStatus,
@@ -752,5 +754,70 @@ describe("QuizSet", () => {
 
 			expect(archiveQuizSet(published, updatedAt).updatedAt).toEqual(updatedAt);
 		});
+	});
+});
+
+describe("moveQuizSetToFolder", () => {
+	const filed = (): QuizSet =>
+		moveQuizSetToFolder(
+			draftWith(question("Filed?", 0)),
+			toFolderId("english"),
+			laterAt,
+		);
+
+	test("files a draft into a folder", () => {
+		expect(filed().folderId).toBe(toFolderId("english"));
+	});
+
+	test("clears the folder when given undefined", () => {
+		expect(moveQuizSetToFolder(filed(), undefined, laterAt).folderId).toBe(
+			undefined,
+		);
+	});
+
+	test("files a published set, because filing is not content", () => {
+		const published = publishQuizSet(draftWith(question("Filed?", 0)), laterAt);
+
+		const moved = moveQuizSetToFolder(
+			published,
+			toFolderId("english"),
+			laterAt,
+		);
+
+		expect(moved.folderId).toBe(toFolderId("english"));
+		expect(moved.status).toBe(QuizSetStatus.Published);
+		expect(moved.questions).toHaveLength(published.questions.length);
+	});
+
+	test("files an archived set", () => {
+		const archived = archiveQuizSet(draftWith(question("Filed?", 0)), laterAt);
+
+		expect(
+			moveQuizSetToFolder(archived, toFolderId("english"), laterAt).folderId,
+		).toBe(toFolderId("english"));
+	});
+
+	test("advances updatedAt", () => {
+		expect(filed().updatedAt).toEqual(laterAt);
+	});
+
+	test("refuses a timestamp that runs backwards", () => {
+		expect(() =>
+			moveQuizSetToFolder(
+				draftWith(question("Filed?", 0)),
+				toFolderId("x"),
+				earlierAt,
+			),
+		).toThrow(QuizSetValidationError);
+	});
+
+	test("refuses an invalid timestamp", () => {
+		expect(() =>
+			moveQuizSetToFolder(
+				draftWith(question("Filed?", 0)),
+				toFolderId("x"),
+				invalidDate,
+			),
+		).toThrow(QuizSetValidationError);
 	});
 });

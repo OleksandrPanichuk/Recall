@@ -307,6 +307,16 @@ export function updateQuizSetMetadata(
 	});
 }
 
+export function moveQuizSetToFolder(
+	quizSet: QuizSet,
+	folderId: FolderId | undefined,
+	at: Date,
+): QuizSet {
+	assertTransitionDate(quizSet, at);
+
+	return frozenQuizSet({ ...quizSet, folderId, updatedAt: at });
+}
+
 export function publishQuizSet(quizSet: QuizSet, at: Date): QuizSet {
 	assertStatus(quizSet, [QuizSetStatus.Draft], "published");
 	assertTransitionDate(quizSet, at);

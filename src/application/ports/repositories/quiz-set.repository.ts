@@ -1,3 +1,4 @@
+import type { FolderId } from "@/domain/folder/folder";
 import type {
 	QuizSet,
 	QuizSetId,
@@ -14,6 +15,8 @@ export interface QuizSetSummary {
 
 export interface QuizSetListFilter {
 	readonly statuses?: readonly QuizSetStatus[];
+	// null selects unfiled sets; omitted means every folder
+	readonly folderId?: FolderId | null;
 }
 
 export interface QuizSetRepository {

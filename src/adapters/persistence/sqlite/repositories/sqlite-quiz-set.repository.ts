@@ -5,7 +5,9 @@ import {
 	desc,
 	eq,
 	inArray,
+	isNull,
 	notInArray,
+	type SQL,
 	sql,
 } from "drizzle-orm";
 import type {
@@ -24,6 +26,22 @@ import {
 	toQuizSetRow,
 	toQuizSetSummary,
 } from "./quiz-set.mapper";
+
+function listConditions(filter?: QuizSetListFilter): SQL[] {
+	const conditions: SQL[] = [];
+
+	if (filter?.statuses !== undefined) {
+		conditions.push(inArray(quizSets.status, [...filter.statuses]));
+	}
+
+	if (filter?.folderId === null) {
+		conditions.push(isNull(quizSets.folderId));
+	} else if (filter?.folderId !== undefined) {
+		conditions.push(eq(quizSets.folderId, filter.folderId));
+	}
+
+	return conditions;
+}
 
 export function createSqliteQuizSetRepository(
 	database: QuizDatabase,
@@ -148,11 +166,7 @@ export function createSqliteQuizSetRepository(
 				})
 				.from(quizSets)
 				.leftJoin(questions, eq(questions.quizSetId, quizSets.id))
-				.where(
-					filter?.statuses === undefined
-						? undefined
-						: inArray(quizSets.status, [...filter.statuses]),
-				)
+				.where(and(...listConditions(filter)))
 				.groupBy(quizSets.id)
 				.orderBy(desc(quizSets.updatedAt), asc(quizSets.id))
 				.all();
