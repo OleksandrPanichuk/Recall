@@ -19,11 +19,20 @@ import {
 	ResumeQuizAttempt,
 } from "@/application/use-cases/attempts/resume-quiz-attempt";
 import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
+import { CreateFolder } from "@/application/use-cases/folders/create-folder";
+import { DeleteFolder } from "@/application/use-cases/folders/delete-folder";
+import { EnsureFolderPath } from "@/application/use-cases/folders/ensure-folder-path";
+import { ListFolderTree } from "@/application/use-cases/folders/list-folder-tree";
+import { MoveFolder } from "@/application/use-cases/folders/move-folder";
+import { RenameFolder } from "@/application/use-cases/folders/rename-folder";
+import { ResolveFolderPath } from "@/application/use-cases/folders/resolve-folder-path";
 import { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
 import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
 import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
@@ -51,6 +60,15 @@ export interface Application {
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly listQuizSets: ListQuizSets;
 	readonly getQuizSet: GetQuizSet;
+	readonly moveQuizSet: MoveQuizSet;
+	readonly createFolder: CreateFolder;
+	readonly renameFolder: RenameFolder;
+	readonly moveFolder: MoveFolder;
+	readonly deleteFolder: DeleteFolder;
+	readonly ensureFolderPath: EnsureFolderPath;
+	readonly resolveFolderPath: ResolveFolderPath;
+	readonly listFolderTree: ListFolderTree;
+	readonly browseFolder: BrowseFolder;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly pauseQuizAttempt: PauseQuizAttempt;
 	readonly resumeQuizAttempt: ResumeQuizAttempt;
@@ -92,6 +110,15 @@ export function createApplication(options: ApplicationOptions): Application {
 		archiveQuizSet: new ArchiveQuizSet(dependencies),
 		listQuizSets: new ListQuizSets(dependencies),
 		getQuizSet: new GetQuizSet(dependencies),
+		moveQuizSet: new MoveQuizSet(dependencies),
+		createFolder: new CreateFolder(dependencies),
+		renameFolder: new RenameFolder(dependencies),
+		moveFolder: new MoveFolder(dependencies),
+		deleteFolder: new DeleteFolder(dependencies),
+		ensureFolderPath: new EnsureFolderPath(dependencies),
+		resolveFolderPath: new ResolveFolderPath(dependencies),
+		listFolderTree: new ListFolderTree(dependencies),
+		browseFolder: new BrowseFolder(dependencies),
 		startQuizAttempt: new StartQuizAttempt(dependencies),
 		pauseQuizAttempt: new PauseQuizAttempt(dependencies),
 		resumeQuizAttempt: new ResumeQuizAttempt(dependencies),

@@ -1,10 +1,20 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { QuizSetSummary } from "@/application/ports/repositories/quiz-set.repository";
+import { FolderNotFoundError } from "@/application/use-cases/folders/create-folder";
+import { FolderNotEmptyError } from "@/application/use-cases/folders/delete-folder";
+import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
+import { FolderPathNotFoundError } from "@/application/use-cases/folders/resolve-folder-path";
 import {
 	EmptyQuestionBatchError,
 	QuestionBatchTooLargeError,
 } from "@/application/use-cases/quiz-sets/add-questions";
 import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
+import {
+	DuplicateFolderNameError,
+	FolderCycleError,
+	FolderDepthError,
+	FolderValidationError,
+} from "@/domain/folder/folder.errors";
 import type { QuizSet } from "@/domain/quiz-set/quiz-set";
 import {
 	DuplicateQuestionError,
@@ -66,6 +76,34 @@ function describe(error: unknown): string {
 		return "A batch must contain at least one question.";
 	}
 
+	if (error instanceof FolderPathNotFoundError) {
+		return `${error.message}. Call quiz_list_folders to see the tree, or quiz_ensure_folder_path to create it.`;
+	}
+
+	if (error instanceof FolderNotFoundError) {
+		return `${error.message}. Call quiz_list_folders to see the tree.`;
+	}
+
+	if (error instanceof FolderNotEmptyError) {
+		return `${error.message}. Move or delete what is inside first — quiz_move_set files a set elsewhere.`;
+	}
+
+	if (error instanceof DuplicateFolderNameError) {
+		return `${error.message}. Pick another name, or file into the existing folder.`;
+	}
+
+	if (error instanceof FolderDepthError) {
+		return `${error.message}. Flatten the path — folders may not nest deeper than ${error.limit}.`;
+	}
+
+	if (error instanceof FolderCycleError) {
+		return `${error.message}.`;
+	}
+
+	if (error instanceof FolderValidationError) {
+		return `Invalid folder: ${error.issues.join("; ")}`;
+	}
+
 	return error instanceof Error
 		? `Unexpected error: ${error.message}`
 		: "Unexpected error.";
@@ -103,4 +141,25 @@ export function describeSummaries(sets: readonly QuizSetSummary[]): string {
 				`${set.id} — ${set.title} [${set.status}] ${set.questionCount} questions`,
 		)
 		.join("\n");
+}
+
+const MAX_TREE_LINES = 200;
+
+export function describeFolderTree(nodes: readonly FolderTreeNode[]): string {
+	if (nodes.length === 0) {
+		return "No folders yet. Create one with quiz_ensure_folder_path.";
+	}
+
+	const lines = nodes
+		.slice(0, MAX_TREE_LINES)
+		.map(
+			(node) =>
+				`${"  ".repeat(node.depth)}${node.name} (${node.setCount} ${node.setCount === 1 ? "set" : "sets"}${node.unpublishedCount === 0 ? "" : `, ${node.unpublishedCount} unpublished`})`,
+		);
+
+	if (nodes.length > MAX_TREE_LINES) {
+		lines.push(`… and ${nodes.length - MAX_TREE_LINES} more folder(s).`);
+	}
+
+	return lines.join("\n");
 }

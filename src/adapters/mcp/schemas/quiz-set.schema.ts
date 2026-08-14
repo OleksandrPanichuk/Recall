@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_QUESTIONS_PER_BATCH } from "@/application/use-cases/quiz-sets/add-questions";
+import { folderPathInput } from "./folder.schema";
 import { questionSchema } from "./question.schema";
 
 const quizSetId = z.string().trim().min(1).max(64);
@@ -11,6 +12,7 @@ export const createSetShape = {
 	source: z.string().trim().max(300).optional(),
 	sourceChapters: z.string().trim().max(300).optional(),
 	tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+	folderPath: folderPathInput.optional(),
 };
 
 export const updateSetShape = {

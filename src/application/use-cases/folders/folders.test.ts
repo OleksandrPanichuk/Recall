@@ -17,8 +17,13 @@ import {
 import { CreateFolder, FolderNotFoundError } from "./create-folder";
 import { DeleteFolder, FolderNotEmptyError } from "./delete-folder";
 import { EnsureFolderPath } from "./ensure-folder-path";
+import { ListFolderTree } from "./list-folder-tree";
 import { MoveFolder } from "./move-folder";
 import { RenameFolder } from "./rename-folder";
+import {
+	FolderPathNotFoundError,
+	ResolveFolderPath,
+} from "./resolve-folder-path";
 
 let context: TestContext;
 let createFolder: CreateFolder;
@@ -26,6 +31,8 @@ let renameFolder: RenameFolder;
 let moveFolder: MoveFolder;
 let deleteFolder: DeleteFolder;
 let ensureFolderPath: EnsureFolderPath;
+let resolveFolderPath: ResolveFolderPath;
+let listFolderTree: ListFolderTree;
 
 beforeEach(() => {
 	context = createTestContext();
@@ -42,6 +49,8 @@ beforeEach(() => {
 	moveFolder = new MoveFolder(dependencies);
 	deleteFolder = new DeleteFolder(dependencies);
 	ensureFolderPath = new EnsureFolderPath(dependencies);
+	resolveFolderPath = new ResolveFolderPath(dependencies);
+	listFolderTree = new ListFolderTree(dependencies);
 });
 
 afterEach(() => {
@@ -315,5 +324,97 @@ describe("EnsureFolderPath", () => {
 				path: ["a", "b", "c", "d", "e", "f", "g"],
 			}),
 		).rejects.toBeInstanceOf(FolderDepthError);
+	});
+});
+
+describe("ResolveFolderPath", () => {
+	test("returns the folder at the path", async () => {
+		const levels = await chain("English", "Vocabulary", "By levels");
+
+		expect(
+			(
+				await resolveFolderPath.execute({
+					path: ["English", "Vocabulary", "By levels"],
+				})
+			).folderId,
+		).toBe(levels);
+	});
+
+	test("matches every segment case-insensitively", async () => {
+		const levels = await chain("English", "Vocabulary", "By levels");
+
+		expect(
+			(
+				await resolveFolderPath.execute({
+					path: ["ENGLISH", "vocabulary", "bY LeVeLs"],
+				})
+			).folderId,
+		).toBe(levels);
+	});
+
+	test("returns an intermediate folder for a prefix", async () => {
+		const english = await create("English");
+		await create("Vocabulary", english);
+
+		expect(
+			(await resolveFolderPath.execute({ path: ["English"] })).folderId,
+		).toBe(english);
+	});
+
+	test("rejects an unknown tail", async () => {
+		await create("English");
+
+		expect(
+			resolveFolderPath.execute({ path: ["English", "Missing"] }),
+		).rejects.toBeInstanceOf(FolderPathNotFoundError);
+	});
+
+	test("never creates anything", async () => {
+		await create("English");
+
+		await resolveFolderPath
+			.execute({ path: ["English", "Missing"] })
+			.catch(() => undefined);
+
+		expect(context.folders.listAll()).toHaveLength(1);
+	});
+});
+
+describe("ListFolderTree", () => {
+	test("walks depth-first, name-ordered, with the depth of each node", async () => {
+		const english = await create("English");
+		const vocabulary = await create("Vocabulary", english);
+		await create("By levels", vocabulary);
+		await create("Grammar", english);
+		await create("Programming");
+
+		expect(
+			(await listFolderTree.execute({})).map((node) => [node.name, node.depth]),
+		).toEqual([
+			["English", 0],
+			["Grammar", 1],
+			["Vocabulary", 1],
+			["By levels", 2],
+			["Programming", 0],
+		]);
+	});
+
+	test("separates published from unpublished counts", async () => {
+		const folderId = await create("English");
+		const draft = aQuizSet({
+			id: "set-1",
+			questions: [aQuestion({ id: "q1" })],
+		});
+
+		context.quizSets.save({ ...draft, folderId });
+
+		const [node] = await listFolderTree.execute({});
+
+		expect(node?.setCount).toBe(0);
+		expect(node?.unpublishedCount).toBe(1);
+	});
+
+	test("is empty for an empty library", async () => {
+		expect(await listFolderTree.execute({})).toEqual([]);
 	});
 });
