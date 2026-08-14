@@ -6,7 +6,13 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/coverage", "!!**/dist", "!!**/node_modules"]
+		"includes": [
+			"**",
+			"!!**/coverage",
+			"!!**/dist",
+			"!!**/node_modules",
+			"!!**/.claude"
+		]
 	},
 	"formatter": {
 		"enabled": true,

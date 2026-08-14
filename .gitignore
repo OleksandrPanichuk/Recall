@@ -48,3 +48,5 @@ tmp
 
 # implementation plans stay local: working artefacts, not product
 docs
+
+.claude/worktrees/
