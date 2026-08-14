@@ -700,6 +700,55 @@ describe("browsing the folder tree (§3.7)", () => {
 		expect(harness.lastText()).toContain(longName);
 	});
 
+	test("a truncated label stays valid UTF-16 when an emoji straddles the cut", async () => {
+		const longName = "Англійська для початківців 🚀 базова";
+		await seedFolderPath(harness, [longName]);
+
+		await openRoot();
+
+		const label = harness
+			.lastButtons()
+			.map((entry) => entry.text)
+			.find((text) => text.includes("Англійська"));
+
+		expect(label?.isWellFormed()).toBe(true);
+		expect(harness.lastText()).toContain(longName);
+	});
+
+	test("unfiled sets at the root paginate", async () => {
+		for (let index = 0; index < 11; index += 1) {
+			await seedPublishedSet(
+				harness,
+				`Root ${String(index).padStart(2, "0")}`,
+				[aQuestionInput(`Q${index}`)],
+			);
+		}
+
+		await openRoot();
+
+		expect(
+			harness
+				.lastButtons()
+				.map((entry) => entry.text)
+				.filter((label) => label.includes("Root ")),
+		).toHaveLength(8);
+
+		await harness.tap(buttonFor("Наступні"));
+
+		const second = harness.lastButtons().map((entry) => entry.text);
+
+		expect(second.filter((label) => label.includes("Root "))).toHaveLength(3);
+
+		await harness.tap(buttonFor("Попередні"));
+
+		expect(
+			harness
+				.lastButtons()
+				.map((entry) => entry.text)
+				.filter((label) => label.includes("Root ")),
+		).toHaveLength(8);
+	});
+
 	test("statistics browsing reaches a set through the same tree", async () => {
 		await seedPublishedSetIn(harness, ["English"], "A1 words", [
 			aQuestionInput("One"),

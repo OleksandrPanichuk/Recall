@@ -15,10 +15,13 @@ interface Entry {
 	readonly button: InlineButton;
 }
 
-const truncate = (text: string): string =>
-	text.length <= MAX_BUTTON_TEXT
+const truncate = (text: string): string => {
+	const characters = [...text];
+
+	return characters.length <= MAX_BUTTON_TEXT
 		? text
-		: `${text.slice(0, MAX_BUTTON_TEXT - 1)}…`;
+		: `${characters.slice(0, MAX_BUTTON_TEXT - 1).join("")}…`;
+};
 
 const breadcrumbOf = (view: BrowseView): string =>
 	[...view.breadcrumb.map((crumb) => crumb.name), view.name]

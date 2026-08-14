@@ -4,7 +4,6 @@ import type { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-
 import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
-import type { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { CallbackAction, decodeCallback } from "./callbacks/callback-data";
@@ -23,7 +22,6 @@ import { notice, UNAVAILABLE_FEATURES } from "./presenters/menu.presenter";
 import { render } from "./screen";
 
 export interface TelegramUseCases {
-	readonly listQuizSets: ListQuizSets;
 	readonly browseFolder: BrowseFolder;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly getCurrentQuestion: GetCurrentQuestion;
