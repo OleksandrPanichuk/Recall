@@ -2,8 +2,10 @@ import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { Command, UseCase } from "@/application/use-case";
+import type { FolderId } from "@/domain/folder/folder";
 import {
 	createQuizSet,
+	moveQuizSetToFolder,
 	type QuizSetId,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
@@ -15,6 +17,7 @@ export interface CreateQuizSetCommand {
 	readonly source?: string;
 	readonly sourceChapters?: string;
 	readonly tags?: readonly string[];
+	readonly folderId?: FolderId;
 }
 
 export interface CreateQuizSetResult {
@@ -54,7 +57,11 @@ export class CreateQuizSet
 			tags: request.tags,
 		});
 
-		this.quizSets.save(quizSet);
+		this.quizSets.save(
+			request.folderId === undefined
+				? quizSet
+				: moveQuizSetToFolder(quizSet, request.folderId, quizSet.createdAt),
+		);
 
 		return { quizSetId: quizSet.id };
 	}
