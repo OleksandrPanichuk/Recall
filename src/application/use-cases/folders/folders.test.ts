@@ -4,11 +4,16 @@ import {
 	DuplicateFolderNameError,
 	FolderCycleError,
 	FolderDepthError,
+	FolderValidationError,
 } from "@/domain/folder/folder.errors";
 import {
 	createTestContext,
 	type TestContext,
 } from "../../../../tests/fixtures/application.fixture";
+import {
+	aQuestion,
+	aQuizSet,
+} from "../../../../tests/fixtures/quiz-set.fixture";
 import { CreateFolder, FolderNotFoundError } from "./create-folder";
 import { DeleteFolder, FolderNotEmptyError } from "./delete-folder";
 import { EnsureFolderPath } from "./ensure-folder-path";
@@ -233,6 +238,20 @@ describe("DeleteFolder", () => {
 		);
 	});
 
+	test("refuses a folder that still holds a set", async () => {
+		const folderId = await create("English");
+		const draft = aQuizSet({
+			id: "set-1",
+			questions: [aQuestion({ id: "q1" })],
+		});
+
+		context.quizSets.save({ ...draft, folderId });
+
+		expect(deleteFolder.execute({ folderId })).rejects.toBeInstanceOf(
+			FolderNotEmptyError,
+		);
+	});
+
 	test("rejects an unknown folder", async () => {
 		expect(
 			deleteFolder.execute({ folderId: "missing" as FolderId }),
@@ -280,6 +299,14 @@ describe("EnsureFolderPath", () => {
 		expect(ensureFolderPath.execute({ path: [] })).rejects.toBeInstanceOf(
 			Error,
 		);
+	});
+
+	test("creates nothing when a later segment is invalid", () => {
+		expect(
+			ensureFolderPath.execute({ path: ["New", "Deep", "z".repeat(61)] }),
+		).rejects.toBeInstanceOf(FolderValidationError);
+
+		expect(context.folders.listAll()).toEqual([]);
 	});
 
 	test("rejects a path deeper than the limit", () => {
