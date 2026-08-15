@@ -1,5 +1,5 @@
-import { isValidDate } from "@/shared/date";
-import { hasDuplicates } from "@/shared/duplicates";
+import { isValidDate } from "@/shared/utils/date";
+import { hasDuplicates } from "@/shared/utils/duplicates";
 import {
 	isQuizAttemptMode,
 	isQuizAttemptStatus,

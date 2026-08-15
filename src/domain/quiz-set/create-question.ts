@@ -1,5 +1,5 @@
-import { hasDuplicates } from "@/shared/duplicates";
-import { trimmedOrUndefined } from "@/shared/text";
+import { hasDuplicates } from "@/shared/utils/duplicates";
+import { trimmedOrUndefined } from "@/shared/utils/text";
 import {
 	type Difficulty,
 	isDifficulty,

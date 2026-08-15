@@ -1,4 +1,4 @@
-import { isValidDate } from "@/shared/date";
+import { isValidDate } from "@/shared/utils/date";
 import type { Question, QuestionId } from "./question";
 import { questionFingerprint } from "./question-fingerprint";
 import type { QuizSet, QuizSetDraft } from "./quiz-set.types";

@@ -1,4 +1,8 @@
-import { copiedDate, copiedOptionalDate, isValidDate } from "@/shared/date";
+import {
+	copiedDate,
+	copiedOptionalDate,
+	isValidDate,
+} from "@/shared/utils/date";
 import { brandedId } from "../branded-id";
 import type { QuestionId } from "../quiz-set/question";
 import { QuizAttemptStatus } from "./quiz-attempt.constants";
