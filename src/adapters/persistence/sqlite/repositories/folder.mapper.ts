@@ -1,34 +1,16 @@
 import { type Folder, restoreFolder, toFolderId } from "@/domain/folder/folder";
 import type { folders } from "../schema";
+import { CorruptedFolderRowError } from "./folder.mapper.errors";
+import { createRowValueParsers } from "./utils/row-values";
+
+export { CorruptedFolderRowError } from "./folder.mapper.errors";
 
 export type FolderRow = typeof folders.$inferSelect;
 export type FolderInsert = typeof folders.$inferInsert;
 
-export class CorruptedFolderRowError extends Error {
-	readonly issues: readonly string[];
-
-	constructor(id: string, issues: readonly string[]) {
-		super(
-			`Folder ${id} cannot be restored from storage:\n${issues
-				.map((issue) => `- ${issue}`)
-				.join("\n")}`,
-		);
-		this.name = "CorruptedFolderRowError";
-		this.issues = issues;
-	}
-}
-
-const requiredDate = (value: string, column: string, id: string): Date => {
-	const date = new Date(value);
-
-	if (Number.isNaN(date.getTime())) {
-		throw new CorruptedFolderRowError(id, [
-			`${column} must be a valid ISO timestamp`,
-		]);
-	}
-
-	return date;
-};
+const { requiredDate } = createRowValueParsers(
+	(id, issues) => new CorruptedFolderRowError(id, issues),
+);
 
 export function toFolder(row: FolderRow): Folder {
 	return restoreFolder({
