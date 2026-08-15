@@ -297,6 +297,8 @@ Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
 
 ```text
 src/
+  shared/
+    utils/          layer-free date, text and duplicate primitives
   domain/
     quiz-set/       QuizSet, Question and validation model
     quiz-attempt/   QuizAttempt, answer evaluation and scoring model
@@ -335,11 +337,12 @@ src/
       bot.ts       Telegraf wiring and callback routing
       middleware/  error mapping, request logging and allowlist
       handlers/    thin handlers, one use case each
-      presenters/  screen text and inline keyboards
-      callbacks/   callback payload encoding
+      presenters/  screen text, inline keyboards and error text
+      callbacks/   callback payload types and encoding
       utils/       privacy-safe description of an update
     mcp/
-      server.ts    MCP tool registration
+      server.ts    MCP server construction and tool registration
+      tools/       one registrar per MCP tool
       schemas/     zod input schemas
       presenters/  tool result and error text
       utils/       per-call tool logging
@@ -531,10 +534,10 @@ MCP server.
 | `telegram update` | кожен оброблений update | `update`, `action`, `telegramUserId`, `durationMs`, `outcome` |
 | `telegram handler failed` | handler кинув помилку | ті самі поля плюс `error` (name і message, без stack) |
 | `rejected an update from an unknown user` | update не від `ALLOWED_TELEGRAM_USER_ID` | `telegramUserId`, `update` |
-| `could not decode callback data` | застаріла або зіпсована callback payload | `telegramUserId`, `data` |
+| `could not decode callback data` | застаріла або зіпсована callback payload | `telegramUserId`, `action`, `dataLength` |
 | `mcp tool` | кожен виклик MCP tool | `tool`, `durationMs`, `outcome` плюс `quizSetId`, `questionCount`, `folderPath` |
 | `mcp tool failed` | tool завершився помилкою | ті самі поля плюс `error` |
-| `database ready` | старт процесу | `path`, `appliedMigrations` |
+| `database ready` | старт процесу | `path`, `migrationCount`, `appliedMigrations` |
 | `shutting down`, `shutdown complete` | teardown | `reason`, `tasks` |
 
 Записи описують **що** сталося, а не **зміст**: замість тексту питання — його
