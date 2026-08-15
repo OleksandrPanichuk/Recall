@@ -42,16 +42,6 @@ export const questionSchema = z
 			.min(1)
 			.max(MAX_OPTIONS_PER_QUESTION)
 			.optional(),
-		orderedItems: z
-			.array(answerText)
-			.min(2)
-			.max(MAX_OPTIONS_PER_QUESTION)
-			.optional(),
-		pairs: z
-			.array(z.object({ left: answerText, right: answerText }))
-			.min(2)
-			.max(MAX_OPTIONS_PER_QUESTION)
-			.optional(),
 		explanation: z.string().trim().max(1000).optional(),
 		sourceReference: z.string().trim().max(300).optional(),
 		topic: z.string().trim().max(100).optional(),
@@ -70,10 +60,6 @@ export const questionSchema = z
 
 		if (TYPED_TYPES.includes(question.type)) {
 			require("acceptedAnswers", question.acceptedAnswers !== undefined);
-		} else if (question.type === QuestionType.Ordering) {
-			require("orderedItems", question.orderedItems !== undefined);
-		} else if (question.type === QuestionType.Matching) {
-			require("pairs", question.pairs !== undefined);
 		} else {
 			require("options", question.options !== undefined);
 		}

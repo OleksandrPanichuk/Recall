@@ -15,24 +15,6 @@ function optionsOf(
 		case QuestionType.TypedAnswer:
 		case QuestionType.Cloze:
 			return accepted(question.acceptedAnswers ?? []);
-		case QuestionType.Ordering:
-			return accepted(question.orderedItems ?? []);
-		case QuestionType.Matching: {
-			const pairs = question.pairs ?? [];
-
-			return [
-				...pairs.map((pair, index) => ({
-					text: pair.left,
-					isCorrect: true,
-					matchKey: `p${index}`,
-				})),
-				...pairs.map((pair, index) => ({
-					text: pair.right,
-					isCorrect: true,
-					matchKey: `p${index}`,
-				})),
-			];
-		}
 		default:
 			return question.options ?? [];
 	}
