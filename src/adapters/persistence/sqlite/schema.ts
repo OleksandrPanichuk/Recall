@@ -77,6 +77,48 @@ export const quizSets = sqliteTable(
 	],
 );
 
+export const repetitionSchedules = sqliteTable(
+	"repetition_schedules",
+	{
+		quizSetId: text("quiz_set_id")
+			.notNull()
+			.references(() => quizSets.id, { onDelete: "cascade" }),
+		telegramUserId: integer("telegram_user_id").notNull(),
+		repetitionCount: integer("repetition_count").notNull(),
+		lastCompletedAt: text("last_completed_at").notNull(),
+		dueAt: text("due_at"),
+		createdAt: text("created_at").notNull(),
+		updatedAt: text("updated_at").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.quizSetId, table.telegramUserId] }),
+		index("idx_repetition_schedules_due").on(table.telegramUserId, table.dueAt),
+	],
+);
+
+export const repetitionSettings = sqliteTable("repetition_settings", {
+	quizSetId: text("quiz_set_id")
+		.notNull()
+		.primaryKey()
+		.references(() => quizSets.id, { onDelete: "cascade" }),
+	intervalsDays: text("intervals_days").notNull(),
+	maxIntervalDays: integer("max_interval_days").notNull(),
+	maxRepetitions: integer("max_repetitions").notNull(),
+	updatedAt: text("updated_at").notNull(),
+});
+
+export const repetitionDefaults = sqliteTable(
+	"repetition_defaults",
+	{
+		id: integer("id").notNull().primaryKey(),
+		intervalsDays: text("intervals_days").notNull(),
+		maxIntervalDays: integer("max_interval_days").notNull(),
+		maxRepetitions: integer("max_repetitions").notNull(),
+		updatedAt: text("updated_at").notNull(),
+	},
+	(table) => [check("repetition_defaults_single_row", sql`${table.id} = 1`)],
+);
+
 export const vocabularyItems = sqliteTable(
 	"vocabulary_items",
 	{

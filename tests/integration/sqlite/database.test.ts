@@ -48,6 +48,7 @@ describe("applyMigrations", () => {
 			"0004_skipped_responses",
 			"0005_vocabulary_items",
 			"0006_partial_credit",
+			"0007_repetition",
 		]);
 		expect(applyMigrations(database)).toEqual([]);
 

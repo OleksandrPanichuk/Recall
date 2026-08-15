@@ -4,5 +4,4 @@ export const applicationTables = [
 	"questions",
 	"quiz_attempts",
 	"quiz_sets",
-	"vocabulary_items",
 ] as const;

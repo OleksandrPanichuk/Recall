@@ -50,6 +50,13 @@
 			"when": 1786816969146,
 			"tag": "0006_partial_credit",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "6",
+			"when": 1786819413822,
+			"tag": "0007_repetition",
+			"breakpoints": true
 		}
 	]
 }
