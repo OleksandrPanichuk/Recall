@@ -1,18 +1,5 @@
-const APOSTROPHES = /[’‘ʼ´`]/g;
-const TRAILING_PUNCTUATION = /[.!?]+$/;
-const WHITESPACE = /\s+/g;
-
-export function normaliseAnswer(text: string): string {
-	return text
-		.normalize("NFC")
-		.replaceAll(APOSTROPHES, "'")
-		.trim()
-		.replace(WHITESPACE, " ")
-		.replace(TRAILING_PUNCTUATION, "")
-		.trim()
-		.toLocaleLowerCase();
-}
-
+// Damerau: a transposition costs one edit, not two. Plain Levenshtein scores
+// recieve/receive as two, which would miss the typo people most often make.
 export function editDistance(left: string, right: string): number {
 	if (left === right) {
 		return 0;
@@ -31,7 +18,6 @@ export function editDistance(left: string, right: string): number {
 			const substitution =
 				(previous[column - 1] ?? 0) +
 				(left[row - 1] === right[column - 1] ? 0 : 1);
-
 			const best = Math.min(
 				substitution,
 				(previous[column] ?? 0) + 1,
@@ -55,6 +41,6 @@ export function editDistance(left: string, right: string): number {
 	return previous[right.length] ?? 0;
 }
 
-export function isNearMiss(candidate: string, accepted: string): boolean {
-	return editDistance(candidate, accepted) === 1;
+export function isWithinOneEdit(candidate: string, target: string): boolean {
+	return editDistance(candidate, target) === 1;
 }
