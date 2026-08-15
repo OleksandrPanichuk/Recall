@@ -13,6 +13,10 @@ export const QuestionType = {
 	SingleChoice: "single_choice",
 	MultipleChoice: "multiple_choice",
 	TrueFalse: "true_false",
+	TypedAnswer: "typed_answer",
+	Cloze: "cloze",
+	Ordering: "ordering",
+	Matching: "matching",
 } as const;
 export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
 
@@ -36,6 +40,7 @@ export interface QuestionOption {
 	readonly text: string;
 	readonly isCorrect: boolean;
 	readonly position: number;
+	readonly matchKey?: string;
 }
 
 interface QuestionFields {
@@ -62,7 +67,36 @@ export interface TrueFalseQuestion extends QuestionFields {
 	readonly type: typeof QuestionType.TrueFalse;
 }
 
+export interface TypedAnswerQuestion extends QuestionFields {
+	readonly type: typeof QuestionType.TypedAnswer;
+}
+
+export interface ClozeQuestion extends QuestionFields {
+	readonly type: typeof QuestionType.Cloze;
+}
+
+export interface OrderingQuestion extends QuestionFields {
+	readonly type: typeof QuestionType.Ordering;
+}
+
+export interface MatchingQuestion extends QuestionFields {
+	readonly type: typeof QuestionType.Matching;
+}
+
+export const CLOZE_BLANK = "___";
+
 export type Question =
 	| SingleChoiceQuestion
 	| MultipleChoiceQuestion
-	| TrueFalseQuestion;
+	| TrueFalseQuestion
+	| TypedAnswerQuestion
+	| ClozeQuestion
+	| OrderingQuestion
+	| MatchingQuestion;
+
+export function expectsTypedAnswer(question: Question): boolean {
+	return (
+		question.type === QuestionType.TypedAnswer ||
+		question.type === QuestionType.Cloze
+	);
+}

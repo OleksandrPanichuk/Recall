@@ -19,6 +19,7 @@ interface OptionOverrides {
 	readonly text?: string;
 	readonly isCorrect?: boolean;
 	readonly position?: number;
+	readonly matchKey?: string;
 }
 
 export function anOption(overrides: OptionOverrides = {}): QuestionOption {
@@ -30,6 +31,7 @@ export function anOption(overrides: OptionOverrides = {}): QuestionOption {
 		text: overrides.text ?? `Option ${id}`,
 		isCorrect: overrides.isCorrect ?? position === 0,
 		position,
+		matchKey: overrides.matchKey,
 	};
 }
 

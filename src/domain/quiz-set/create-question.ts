@@ -1,6 +1,7 @@
 import { hasDuplicates } from "@/shared/utils/duplicates";
 import { trimmedOrUndefined } from "@/shared/utils/text";
 import {
+	CLOZE_BLANK,
 	type Difficulty,
 	isDifficulty,
 	isQuestionType,
@@ -42,6 +43,107 @@ const collectUnsupportedValueIssues = (
 	return issues;
 };
 
+const ANSWER_ONLY_TYPES: readonly QuestionType[] = [
+	QuestionType.TypedAnswer,
+	QuestionType.Cloze,
+	QuestionType.Ordering,
+	QuestionType.Matching,
+];
+
+const collectShapeIssues = (
+	draft: QuestionDraft,
+	prompt: string,
+	options: readonly QuestionOption[],
+): readonly string[] => {
+	const issues: string[] = [];
+	const correctCount = options.filter((option) => option.isCorrect).length;
+
+	if (
+		ANSWER_ONLY_TYPES.includes(draft.type) &&
+		correctCount !== options.length
+	) {
+		issues.push(`${draft.type} options must all be correct answers`);
+	}
+
+	switch (draft.type) {
+		case QuestionType.TrueFalse:
+			if (options.length !== 2) {
+				issues.push("true_false requires exactly two options");
+			}
+
+			if (correctCount !== 1) {
+				issues.push("true_false requires exactly one correct option");
+			}
+
+			break;
+		case QuestionType.SingleChoice:
+			if (options.length < 2) {
+				issues.push("single_choice requires at least two options");
+			}
+
+			if (correctCount !== 1) {
+				issues.push("single_choice requires exactly one correct option");
+			}
+
+			break;
+		case QuestionType.MultipleChoice:
+			if (options.length < 2) {
+				issues.push("multiple_choice requires at least two options");
+			}
+
+			if (correctCount === 0) {
+				issues.push("multiple_choice requires at least one correct option");
+			}
+
+			break;
+		case QuestionType.TypedAnswer:
+		case QuestionType.Cloze:
+			if (options.length === 0) {
+				issues.push(`${draft.type} requires at least one accepted answer`);
+			}
+
+			if (draft.type === QuestionType.Cloze && !prompt.includes(CLOZE_BLANK)) {
+				issues.push(`cloze prompt must contain ${CLOZE_BLANK}`);
+			}
+
+			break;
+		case QuestionType.Ordering:
+			if (options.length < 2) {
+				issues.push("ordering requires at least two items");
+			}
+
+			break;
+		case QuestionType.Matching:
+			issues.push(...collectMatchingIssues(options));
+
+			break;
+	}
+
+	return issues;
+};
+
+const collectMatchingIssues = (
+	options: readonly QuestionOption[],
+): readonly string[] => {
+	if (options.some((option) => option.matchKey === undefined)) {
+		return ["matching options must each carry a matchKey"];
+	}
+
+	const sizes = new Map<string, number>();
+
+	for (const option of options) {
+		const key = option.matchKey ?? "";
+
+		sizes.set(key, (sizes.get(key) ?? 0) + 1);
+	}
+
+	if ([...sizes.values()].some((size) => size !== 2)) {
+		return ["each matchKey must appear on exactly two options"];
+	}
+
+	return sizes.size < 2 ? ["matching requires at least two pairs"] : [];
+};
+
 const collectIssues = (
 	draft: QuestionDraft,
 	prompt: string,
@@ -73,23 +175,7 @@ const collectIssues = (
 		issues.push("option ids must be unique");
 	}
 
-	if (draft.type !== QuestionType.TrueFalse && options.length < 2) {
-		issues.push(`${draft.type} requires at least two options`);
-	}
-
-	if (draft.type === QuestionType.TrueFalse && options.length !== 2) {
-		issues.push("true_false requires exactly two options");
-	}
-
-	const correctCount = options.filter((option) => option.isCorrect).length;
-
-	if (draft.type !== QuestionType.MultipleChoice && correctCount !== 1) {
-		issues.push(`${draft.type} requires exactly one correct option`);
-	}
-
-	if (draft.type === QuestionType.MultipleChoice && correctCount === 0) {
-		issues.push("multiple_choice requires at least one correct option");
-	}
+	issues.push(...collectShapeIssues(draft, prompt, options));
 
 	return issues;
 };
@@ -132,6 +218,14 @@ export function createQuestion(draft: QuestionDraft): Question {
 			return Object.freeze({ ...fields, type: QuestionType.SingleChoice });
 		case QuestionType.MultipleChoice:
 			return Object.freeze({ ...fields, type: QuestionType.MultipleChoice });
+		case QuestionType.TypedAnswer:
+			return Object.freeze({ ...fields, type: QuestionType.TypedAnswer });
+		case QuestionType.Cloze:
+			return Object.freeze({ ...fields, type: QuestionType.Cloze });
+		case QuestionType.Ordering:
+			return Object.freeze({ ...fields, type: QuestionType.Ordering });
+		case QuestionType.Matching:
+			return Object.freeze({ ...fields, type: QuestionType.Matching });
 		case QuestionType.TrueFalse:
 			return Object.freeze({ ...fields, type: QuestionType.TrueFalse });
 		default:
