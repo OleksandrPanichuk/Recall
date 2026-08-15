@@ -7,9 +7,6 @@ const values = <TValue extends string>(
 
 export const MAX_OPTIONS_PER_QUESTION = 10;
 
-// The domain knows seven types, but a question is only authorable once Telegram
-// can answer it. Authoring one it cannot answer strands the attempt on that
-// question with no way past, so this list grows as each answer path lands.
 export const AUTHORABLE_TYPES = [
 	QuestionType.SingleChoice,
 	QuestionType.MultipleChoice,
