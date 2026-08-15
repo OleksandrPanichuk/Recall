@@ -12,4 +12,5 @@ export interface QuestionDraft {
 	readonly sourceReference?: string;
 	readonly topic?: string;
 	readonly hint?: string;
+	readonly vocabularyItemId?: string;
 }

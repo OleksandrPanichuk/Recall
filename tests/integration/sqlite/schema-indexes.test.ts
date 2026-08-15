@@ -88,6 +88,7 @@ describe("index set", () => {
 			idx_question_responses_question: ["question_id"],
 			idx_quiz_attempts_user_status: ["telegram_user_id", "status"],
 			idx_quiz_sets_status: ["status", "updated_at"],
+			idx_vocabulary_items_set: ["quiz_set_id"],
 		});
 	});
 

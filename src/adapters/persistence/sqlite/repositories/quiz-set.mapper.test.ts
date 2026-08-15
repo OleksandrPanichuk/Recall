@@ -41,6 +41,7 @@ const aQuestionRow = (overrides: Partial<QuestionRow> = {}): QuestionRow => ({
 	hint: null,
 	position: 0,
 	fingerprint: "fingerprint-1",
+	vocabularyItemId: null,
 	...overrides,
 });
 

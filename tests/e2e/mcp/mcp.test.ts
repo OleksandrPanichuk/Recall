@@ -93,6 +93,7 @@ describe("MCP server (§4.1)", () => {
 
 		expect(tools.map((tool) => tool.name).toSorted()).toEqual([
 			"quiz_add_questions",
+			"quiz_add_vocabulary",
 			"quiz_archive_set",
 			"quiz_create_set",
 			"quiz_delete_folder",
@@ -652,5 +653,84 @@ describe("matching authoring", () => {
 		});
 
 		expect(added.isError).toBe(true);
+	});
+});
+
+describe("vocabulary authoring", () => {
+	const addPairs = async (
+		quizSetId: string,
+		pairs: unknown[],
+		extra: Record<string, unknown> = {},
+	) => call("quiz_add_vocabulary", { quizSetId, pairs, ...extra });
+
+	test("one pair becomes both directions", async () => {
+		const quizSetId = await newDraft("A1");
+
+		const added = await addPairs(quizSetId, [
+			{ term: "cat", translation: "кіт" },
+		]);
+
+		expect(added.isError).toBe(false);
+		expect(added.structured.addedQuestionCount).toBe(2);
+
+		const read = await call("quiz_get_set", { quizSetId });
+
+		expect(read.text).toContain("cat");
+		expect(read.text).toContain("кіт");
+	});
+
+	test("accepts every variant on either side", async () => {
+		const quizSetId = await newDraft("A1");
+
+		await addPairs(quizSetId, [
+			{ term: ["colour", "color"], translation: "колір" },
+		]);
+
+		const read = await call("quiz_get_set", { quizSetId });
+
+		expect(read.text).toContain("* colour");
+		expect(read.text).toContain("* color");
+	});
+
+	test("makes only the asked-for direction", async () => {
+		const quizSetId = await newDraft("A1");
+
+		const added = await addPairs(
+			quizSetId,
+			[{ term: "cat", translation: "кіт" }],
+			{ direction: "translation_to_term" },
+		);
+
+		expect(added.structured.addedQuestionCount).toBe(1);
+	});
+
+	test("re-sending the same pairs is a no-op", async () => {
+		const quizSetId = await newDraft("A1");
+		const pairs = [{ term: "cat", translation: "кіт" }];
+
+		await addPairs(quizSetId, pairs);
+		const again = await addPairs(quizSetId, pairs);
+
+		expect(again.text).toContain("No change");
+	});
+
+	test("carries the transcription as a hint on the harder direction", async () => {
+		const quizSetId = await newDraft("A1");
+
+		await addPairs(quizSetId, [
+			{ term: "cat", translation: "кіт", transcription: "/kæt/" },
+		]);
+
+		const read = await call("quiz_get_set", { quizSetId });
+
+		expect(read.text).toContain("cat");
+	});
+
+	test("refuses an empty pair", async () => {
+		const quizSetId = await newDraft("A1");
+
+		expect(
+			(await addPairs(quizSetId, [{ term: "", translation: "кіт" }])).isError,
+		).toBe(true);
 	});
 });

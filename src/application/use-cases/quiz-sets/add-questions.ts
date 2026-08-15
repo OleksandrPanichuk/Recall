@@ -47,6 +47,7 @@ export interface QuestionInput {
 	readonly sourceReference?: string;
 	readonly topic?: string;
 	readonly hint?: string;
+	readonly vocabularyItemId?: string;
 }
 
 export interface AddQuestionsCommand {
@@ -146,6 +147,7 @@ export class AddQuestions
 			sourceReference: input.sourceReference,
 			topic: input.topic,
 			hint: input.hint,
+			vocabularyItemId: input.vocabularyItemId,
 		});
 	}
 }

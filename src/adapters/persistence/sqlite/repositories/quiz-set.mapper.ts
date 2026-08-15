@@ -84,6 +84,7 @@ function toQuestion(
 		sourceReference: row.sourceReference ?? undefined,
 		topic: row.topic ?? undefined,
 		hint: row.hint ?? undefined,
+		vocabularyItemId: row.vocabularyItemId ?? undefined,
 	});
 }
 
@@ -208,6 +209,7 @@ export function toQuestionRow(
 		hint: question.hint ?? null,
 		position: question.position,
 		fingerprint: questionFingerprint(question),
+		vocabularyItemId: question.vocabularyItemId ?? null,
 	};
 }
 

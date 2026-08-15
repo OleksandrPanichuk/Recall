@@ -8,6 +8,7 @@ import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-folder.repository";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
+import { createSqliteVocabularyRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-vocabulary.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
@@ -28,6 +29,7 @@ import { MoveFolder } from "@/application/use-cases/folders/move-folder";
 import { RenameFolder } from "@/application/use-cases/folders/rename-folder";
 import { ResolveFolderPath } from "@/application/use-cases/folders/resolve-folder-path";
 import { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
+import { AddVocabulary } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
 import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
@@ -58,6 +60,7 @@ export interface Application {
 	readonly createQuizSet: CreateQuizSet;
 	readonly updateQuizSet: UpdateQuizSet;
 	readonly addQuestions: AddQuestions;
+	readonly addVocabulary: AddVocabulary;
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly listQuizSets: ListQuizSets;
@@ -104,17 +107,21 @@ export function createApplication(options: ApplicationOptions): Application {
 	const dependencies = {
 		quizSets: createSqliteQuizSetRepository(client, transaction),
 		folders: createSqliteFolderRepository(client, transaction),
+		vocabulary: createSqliteVocabularyRepository(client, transaction),
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
 		transaction,
 	};
 
+	const addQuestions = new AddQuestions(dependencies);
+
 	return {
 		database,
 		createQuizSet: new CreateQuizSet(dependencies),
 		updateQuizSet: new UpdateQuizSet(dependencies),
-		addQuestions: new AddQuestions(dependencies),
+		addQuestions,
+		addVocabulary: new AddVocabulary({ ...dependencies, addQuestions }),
 		publishQuizSet: new PublishQuizSet(dependencies),
 		archiveQuizSet: new ArchiveQuizSet(dependencies),
 		listQuizSets: new ListQuizSets(dependencies),

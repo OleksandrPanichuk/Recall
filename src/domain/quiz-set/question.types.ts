@@ -22,6 +22,7 @@ interface QuestionFields {
 	readonly sourceReference?: string;
 	readonly topic?: string;
 	readonly hint?: string;
+	readonly vocabularyItemId?: string;
 }
 
 export interface SingleChoiceQuestion extends QuestionFields {

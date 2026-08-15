@@ -46,6 +46,7 @@ describe("applyMigrations", () => {
 			"0002_folders",
 			"0003_question_types",
 			"0004_skipped_responses",
+			"0005_vocabulary_items",
 		]);
 		expect(applyMigrations(database)).toEqual([]);
 

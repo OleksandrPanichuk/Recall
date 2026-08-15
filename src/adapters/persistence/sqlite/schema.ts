@@ -77,6 +77,24 @@ export const quizSets = sqliteTable(
 	],
 );
 
+export const vocabularyItems = sqliteTable(
+	"vocabulary_items",
+	{
+		id: text("id").notNull().primaryKey(),
+		quizSetId: text("quiz_set_id")
+			.notNull()
+			.references(() => quizSets.id, { onDelete: "cascade" }),
+		terms: text("terms").notNull(),
+		translations: text("translations").notNull(),
+		transcription: text("transcription"),
+		example: text("example"),
+		topic: text("topic"),
+		createdAt: text("created_at").notNull(),
+		updatedAt: text("updated_at").notNull(),
+	},
+	(table) => [index("idx_vocabulary_items_set").on(table.quizSetId)],
+);
+
 export const questions = sqliteTable(
 	"questions",
 	{
@@ -93,6 +111,7 @@ export const questions = sqliteTable(
 		hint: text("hint"),
 		position: integer("position").notNull(),
 		fingerprint: text("fingerprint").notNull(),
+		vocabularyItemId: text("vocabulary_item_id"),
 	},
 	(table) => [
 		check("questions_difficulty_check", isOneOf(table.difficulty, Difficulty)),
