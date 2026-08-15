@@ -517,54 +517,6 @@ describe("folders over MCP", () => {
 	});
 });
 
-describe("only answerable types are authorable", () => {
-	test.each([
-		"matching",
-	])("refuses %s until Telegram can answer it", async (type) => {
-		const quizSetId = await newDraft("Draft");
-
-		const added = await call("quiz_add_questions", {
-			quizSetId,
-			questions: [
-				{
-					type,
-					prompt: "Anything",
-					difficulty: "easy",
-					options: [
-						{ text: "a", isCorrect: true },
-						{ text: "b", isCorrect: true },
-					],
-				},
-			],
-		});
-
-		expect(added.isError).toBe(true);
-		expect(added.text).toContain("type");
-		expect(added.text).toContain("single_choice");
-	});
-
-	test("still accepts the types it can answer", async () => {
-		const quizSetId = await newDraft("Draft");
-
-		const added = await call("quiz_add_questions", {
-			quizSetId,
-			questions: [
-				{
-					type: "single_choice",
-					prompt: "Pick",
-					difficulty: "easy",
-					options: [
-						{ text: "a", isCorrect: true },
-						{ text: "b", isCorrect: false },
-					],
-				},
-			],
-		});
-
-		expect(added.isError).toBe(false);
-	});
-});
-
 describe("authoring typed questions", () => {
 	test("takes accepted answers instead of options", async () => {
 		const quizSetId = await newDraft("Vocabulary");

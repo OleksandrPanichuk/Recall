@@ -8,6 +8,7 @@ const values = <TValue extends string>(
 export const MAX_OPTIONS_PER_QUESTION = 10;
 
 export const AUTHORABLE_TYPES = [
+	QuestionType.Matching,
 	QuestionType.Ordering,
 	QuestionType.TypedAnswer,
 	QuestionType.Cloze,
@@ -35,6 +36,11 @@ export const questionSchema = z
 		difficulty: z.enum(values(Difficulty)),
 		options: z
 			.array(questionOptionSchema)
+			.min(2)
+			.max(MAX_OPTIONS_PER_QUESTION)
+			.optional(),
+		pairs: z
+			.array(z.object({ left: answerText, right: answerText }))
 			.min(2)
 			.max(MAX_OPTIONS_PER_QUESTION)
 			.optional(),
@@ -68,6 +74,8 @@ export const questionSchema = z
 			require("acceptedAnswers", question.acceptedAnswers !== undefined);
 		} else if (question.type === QuestionType.Ordering) {
 			require("orderedItems", question.orderedItems !== undefined);
+		} else if (question.type === QuestionType.Matching) {
+			require("pairs", question.pairs !== undefined);
 		} else {
 			require("options", question.options !== undefined);
 		}

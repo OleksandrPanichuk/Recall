@@ -1078,3 +1078,117 @@ describe("ordering questions (§3.9)", () => {
 		expect(harness.lastButtons().map((entry) => entry.text)).toEqual(first);
 	});
 });
+
+describe("matching questions (§3.10)", () => {
+	const seedMatching = async (): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Pairs",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.Matching,
+					prompt: "Match the words",
+					difficulty: "easy",
+					options: [
+						{ text: "cat", isCorrect: true, matchKey: "p0" },
+						{ text: "dog", isCorrect: true, matchKey: "p1" },
+						{ text: "кіт", isCorrect: true, matchKey: "p0" },
+						{ text: "пес", isCorrect: true, matchKey: "p1" },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+	};
+
+	const openMatching = async (): Promise<void> => {
+		await seedMatching();
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Pairs"));
+	};
+
+	test("offers the left column first", async () => {
+		await openMatching();
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(labels).toContainEqual(expect.stringContaining("cat"));
+		expect(labels).toContainEqual(expect.stringContaining("dog"));
+		expect(labels).not.toContainEqual(expect.stringContaining("кіт"));
+		expect(harness.lastText()).toContain("Оберіть слово ліворуч");
+	});
+
+	test("asks for a partner once a left word is chosen", async () => {
+		await openMatching();
+
+		await harness.tap(buttonFor("cat"));
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(harness.lastText()).toContain("Оберіть пару для «cat»");
+		expect(labels).toContainEqual(expect.stringContaining("кіт"));
+		expect(labels).not.toContainEqual(expect.stringContaining("dog"));
+	});
+
+	test("accepts every correct pair", async () => {
+		await openMatching();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("dog"));
+		await harness.tap(buttonFor("пес"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Правильно");
+	});
+
+	test("rejects crossed pairs", async () => {
+		await openMatching();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("пес"));
+		await harness.tap(buttonFor("dog"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Неправильно");
+	});
+
+	test("shows the pairs made so far", async () => {
+		await openMatching();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+
+		expect(harness.lastText()).toContain("cat — кіт");
+	});
+
+	test("offers Відповісти only once every pair is made", async () => {
+		await openMatching();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+
+		expect(harness.lastButtons().map((entry) => entry.text)).not.toContainEqual(
+			expect.stringContaining("Відповісти"),
+		);
+	});
+
+	test("Скинути clears every pair", async () => {
+		await openMatching();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("Скинути"));
+
+		expect(harness.lastText()).toContain("Оберіть слово ліворуч");
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("cat"),
+		);
+	});
+});

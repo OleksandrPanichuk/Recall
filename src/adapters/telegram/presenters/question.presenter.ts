@@ -5,6 +5,7 @@ import {
 	QuestionType,
 } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data.constants";
+import { matchingQuestionScreen } from "./matching-question.presenter";
 import { orderingQuestionScreen } from "./ordering-question.presenter";
 import type { InlineButton, Screen } from "./screen.types";
 import { typedQuestionScreen } from "./typed-question.presenter";
@@ -52,6 +53,10 @@ export function questionScreen(
 
 	if (question.type === QuestionType.Ordering) {
 		return orderingQuestionScreen(view, question, selected);
+	}
+
+	if (question.type === QuestionType.Matching) {
+		return matchingQuestionScreen(view, question, selected);
 	}
 
 	const isMultiple = question.type === QuestionType.MultipleChoice;
