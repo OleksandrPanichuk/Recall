@@ -5,6 +5,7 @@ import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-cu
 import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
 import type { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
 import type { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -34,6 +35,7 @@ import { render } from "./screen";
 export interface TelegramUseCases {
 	readonly browseFolder: BrowseFolder;
 	readonly listDueRepetitions: ListDueRepetitions;
+	readonly listLeeches: ListLeeches;
 	readonly getAttemptDetail: GetAttemptDetail;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly getCurrentQuestion: GetCurrentQuestion;

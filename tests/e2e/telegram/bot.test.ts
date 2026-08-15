@@ -1646,3 +1646,51 @@ describe("a repetition drills only what is due (§3.17)", () => {
 		expect(harness.lastText()).toContain("Друге?");
 	});
 });
+
+describe("words that keep being forgotten (§3.18)", () => {
+	const day = 24 * 60 * 60 * 1000;
+
+	test("are surfaced once they pass the threshold", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Hard",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.TrueFalse,
+					prompt: "Уперте питання?",
+					difficulty: "easy",
+					options: [
+						{ text: "Так", isCorrect: true },
+						{ text: "Ні", isCorrect: false },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Hard"));
+
+		for (let round = 0; round < 5; round += 1) {
+			await harness.tap(buttonFor("Ні"));
+			await harness.tap(buttonFor("Завершити"));
+
+			harness.clock.advance(day);
+			await harness.send("/start");
+			await harness.tap(buttonFor("Повторення"));
+
+			if (round < 4) {
+				await harness.tap(buttonFor("Hard"));
+			}
+		}
+
+		expect(harness.lastText()).toContain("Не даються");
+		expect(harness.lastText()).toContain("Уперте питання?");
+		expect(harness.lastText()).toContain("забуто 5 р.");
+	});
+});
