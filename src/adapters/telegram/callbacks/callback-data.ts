@@ -1,22 +1,6 @@
 import { CallbackAction } from "./callback-data.constants";
 import type { Callback } from "./callback-data.types";
 
-export { CallbackAction } from "./callback-data.constants";
-export type {
-	AnswerCallback,
-	BrowseCallback,
-	Callback,
-	FinishCallback,
-	MenuCallback,
-	ResumeCallback,
-	SetsCallback,
-	StartSetCallback,
-	StatisticsCallback,
-	StatisticsForCallback,
-	ToggleCallback,
-	UnavailableCallback,
-} from "./callback-data.types";
-
 export const CALLBACK_DATA_LIMIT = 64;
 
 export class CallbackTooLongError extends Error {

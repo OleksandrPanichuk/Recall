@@ -2,9 +2,6 @@ import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { InlineButton, Screen } from "./screen.types";
 import { button } from "./utils/button";
 
-export type { InlineButton, Screen } from "./screen.types";
-export { button } from "./utils/button";
-
 const backToMenu = (): readonly InlineButton[] => [
 	button("« Меню", { action: CallbackAction.Menu }),
 ];

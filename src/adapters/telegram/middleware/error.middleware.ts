@@ -5,8 +5,6 @@ import { notice } from "../presenters/menu.presenter";
 import { render } from "../screen";
 import { describeUpdate } from "../utils/describe-update";
 
-export { userMessageFor } from "../presenters/error.presenter";
-
 export function errorMiddleware(logger: Logger): MiddlewareFn<Context> {
 	return async (ctx, next) => {
 		try {
