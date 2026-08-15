@@ -98,12 +98,14 @@ describe("MCP server (§4.1)", () => {
 			"quiz_create_set",
 			"quiz_delete_folder",
 			"quiz_ensure_folder_path",
+			"quiz_get_repetition_settings",
 			"quiz_get_set",
 			"quiz_list_folders",
 			"quiz_list_sets",
 			"quiz_move_set",
 			"quiz_publish_set",
 			"quiz_rename_folder",
+			"quiz_set_repetition_settings",
 			"quiz_update_set",
 		]);
 	});
@@ -732,5 +734,57 @@ describe("vocabulary authoring", () => {
 		expect(
 			(await addPairs(quizSetId, [{ term: "", translation: "кіт" }])).isError,
 		).toBe(true);
+	});
+});
+
+describe("repetition settings", () => {
+	test("reports the built-in defaults", async () => {
+		const result = await call("quiz_get_repetition_settings");
+
+		expect(result.isError).toBe(false);
+		expect(result.structured.intervalsDays).toEqual([1, 3, 7, 14, 30]);
+	});
+
+	test("changes the global settings", async () => {
+		await call("quiz_set_repetition_settings", {
+			intervalsDays: [1, 7],
+			maxIntervalDays: 7,
+			maxRepetitions: 5,
+		});
+
+		expect(
+			(await call("quiz_get_repetition_settings")).structured.maxIntervalDays,
+		).toBe(7);
+	});
+
+	test("a per-set setting wins over the global one", async () => {
+		const quizSetId = await newDraft("Set");
+
+		await call("quiz_set_repetition_settings", {
+			intervalsDays: [1, 7],
+			maxIntervalDays: 7,
+			maxRepetitions: 5,
+		});
+		await call("quiz_set_repetition_settings", {
+			quizSetId,
+			intervalsDays: [1, 30],
+			maxIntervalDays: 30,
+			maxRepetitions: 3,
+		});
+
+		expect(
+			(await call("quiz_get_repetition_settings", { quizSetId })).structured
+				.maxIntervalDays,
+		).toBe(30);
+	});
+
+	test("refuses an impossible schedule", async () => {
+		const result = await call("quiz_set_repetition_settings", {
+			intervalsDays: [0],
+			maxIntervalDays: 7,
+			maxRepetitions: 5,
+		});
+
+		expect(result.isError).toBe(true);
 	});
 });

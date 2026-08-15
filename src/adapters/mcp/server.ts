@@ -13,6 +13,7 @@ import { registerListSetsTool } from "./tools/list-sets.tool";
 import { registerMoveSetTool } from "./tools/move-set.tool";
 import { registerPublishSetTool } from "./tools/publish-set.tool";
 import { registerRenameFolderTool } from "./tools/rename-folder.tool";
+import { registerRepetitionSettingsTools } from "./tools/repetition-settings.tool";
 import { registerUpdateSetTool } from "./tools/update-set.tool";
 import { createToolRunner } from "./utils/tool-logging";
 
@@ -43,6 +44,7 @@ export function createMcpServer(
 	registerEnsureFolderPathTool(server, useCases, runTool);
 	registerMoveSetTool(server, useCases, runTool);
 	registerRenameFolderTool(server, useCases, runTool);
+	registerRepetitionSettingsTools(server, useCases, runTool);
 	registerDeleteFolderTool(server, useCases, runTool);
 
 	return server;
