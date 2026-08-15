@@ -93,6 +93,7 @@ export interface Application {
 
 export interface ApplicationOptions {
 	readonly databasePath: string;
+	readonly timezone?: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
 	readonly logger?: Logger;
@@ -121,6 +122,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
+		timezone: options.timezone ?? "UTC",
 		transaction,
 	};
 
