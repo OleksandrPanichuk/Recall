@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { startDailyReminder } from "@/adapters/telegram/reminders";
+import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -51,6 +53,19 @@ const publishAndTake = async (id: string, title: string): Promise<void> => {
 		quizSetId: toQuizSetId(id),
 		telegramUserId: USER,
 	});
+
+	const view = await new GetCurrentQuestion(context).execute({
+		telegramUserId: USER,
+	});
+
+	if (view?.question !== undefined) {
+		await new AnswerQuestion(context).execute({
+			telegramUserId: USER,
+			questionId: view.question.id,
+			selectedOptionPositions: [0],
+		});
+	}
+
 	await new FinishQuizAttempt(context).execute({ telegramUserId: USER });
 };
 
