@@ -32,13 +32,16 @@ export function millisecondsUntil(
 		return today - at.getTime();
 	}
 
-	const tomorrow = localPartsIn(new Date(at.getTime() + DAY_MS), timezone);
+	const tomorrow = new Date(
+		Date.UTC(parts.year ?? 1970, (parts.month ?? 1) - 1, parts.day ?? 1) +
+			DAY_MS,
+	);
 
 	return (
 		instantOf(
-			tomorrow.year ?? 1970,
-			tomorrow.month ?? 1,
-			tomorrow.day ?? 1,
+			tomorrow.getUTCFullYear(),
+			tomorrow.getUTCMonth() + 1,
+			tomorrow.getUTCDate(),
 			hour,
 			timezone,
 		).getTime() - at.getTime()

@@ -17,12 +17,22 @@ const USER = 42;
 const day = 24 * 60 * 60 * 1000;
 
 let context: TestContext;
-let sent: { chat: number; text: string }[];
+interface SentMessage {
+	readonly chat: number;
+	readonly text: string;
+	readonly markup?: { inline_keyboard?: unknown[] };
+}
+
+let sent: SentMessage[];
 
 const fakeBot = {
 	telegram: {
-		sendMessage: async (chat: number, text: string) => {
-			sent.push({ chat, text });
+		sendMessage: async (
+			chat: number,
+			text: string,
+			extra?: { reply_markup?: { inline_keyboard?: unknown[] } },
+		) => {
+			sent.push({ chat, text, markup: extra?.reply_markup });
 		},
 	},
 };
@@ -70,19 +80,22 @@ const publishAndTake = async (id: string, title: string): Promise<void> => {
 };
 
 const fireOnce = async (): Promise<void> => {
-	const listDueRepetitions = new ListDueRepetitions(context);
-	const due = await listDueRepetitions.execute({ telegramUserId: USER });
+	const target = context.clock.now().getTime();
+	const startedAt = Date.now();
+	const timer = startDailyReminder({
+		bot: fakeBot as never,
+		listDueRepetitions: new ListDueRepetitions(context),
+		telegramUserId: USER,
+		timezone: "UTC",
+		hour: new Date(target).getUTCHours(),
+		now: () => new Date(target - 5 + (Date.now() - startedAt)),
+		log: (error) => {
+			throw error;
+		},
+	});
 
-	if (due.length === 0) {
-		return;
-	}
-
-	await fakeBot.telegram.sendMessage(
-		USER,
-		(
-			await import("@/adapters/telegram/presenters/repetitions.presenter")
-		).repetitionsScreen(due).text,
-	);
+	await Bun.sleep(40);
+	timer.stop();
 };
 
 describe("daily reminder", () => {
@@ -111,6 +124,17 @@ describe("daily reminder", () => {
 
 		expect(lines[0]).toContain("Alpha");
 		expect(lines[1]).toContain("Beta");
+	});
+
+	test("sends to the allowed chat with the same buttons the menu shows", async () => {
+		await publishAndTake("set-1", "Alpha");
+		context.clock.advance(2 * day);
+
+		await fireOnce();
+
+		expect(sent).toHaveLength(1);
+		expect(sent[0]?.chat).toBe(USER);
+		expect(sent[0]?.markup?.inline_keyboard?.length ?? 0).toBeGreaterThan(1);
 	});
 
 	test("stops cleanly", () => {
