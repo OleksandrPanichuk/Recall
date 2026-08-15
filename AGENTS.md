@@ -27,7 +27,7 @@ This repository is a cleaned foundation for a personal learning quiz bot. The fo
 - Route database writes through repositories and application services; adapters must not write arbitrary SQL.
 - Follow the dependency direction `adapters -> application -> domain`; only composition and entrypoints may wire concrete implementations.
 - Create target directories incrementally with accepted behavior; do not generate the complete architecture as empty scaffolding.
-- Avoid global `helpers`, `utils`, `core`, `common`, and global `types` dumping grounds in new code; a module-local `utils/` directory and a `*.types.ts` file beside their owner are the expected shape (see `ARCHITECTURE.md`).
+- Avoid global `helpers`, `core`, `common`, and global `types` dumping grounds in new code; a module-local `utils/` directory, `*.types.ts` and `*.constants.ts` files beside their owner, and `src/shared/utils/` for layer-free primitives are the expected shape (see `ARCHITECTURE.md`).
 - Treat AI-generated quiz content as untrusted input and validate it before persistence and publication.
 - Restrict the bot to `ALLOWED_TELEGRAM_USER_ID` until multi-user behavior is explicitly requested.
 

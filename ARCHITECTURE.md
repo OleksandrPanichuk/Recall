@@ -275,10 +275,16 @@ src/
 ├── domain/
 │   ├── quiz-set/
 │   │   ├── quiz-set.ts
+│   │   ├── quiz-set.types.ts
+│   │   ├── quiz-set.constants.ts
+│   │   ├── quiz-set.validation.ts
 │   │   ├── question.ts
 │   │   └── quiz-set.errors.ts
 │   ├── quiz-attempt/
 │   │   ├── quiz-attempt.ts
+│   │   ├── quiz-attempt.types.ts
+│   │   ├── quiz-attempt.constants.ts
+│   │   ├── quiz-attempt.validation.ts
 │   │   ├── answer.ts
 │   │   ├── score.ts
 │   │   └── quiz-attempt.errors.ts
@@ -358,6 +364,12 @@ src/
 │       │   └── tool-result.presenter.ts
 │       └── utils/
 │           └── tool-logging.ts
+│
+├── shared/
+│   └── utils/
+│       ├── date.ts
+│       ├── duplicates.ts
+│       └── text.ts
 │
 ├── infrastructure/
 │   ├── config/
@@ -448,10 +460,18 @@ Minimal startup code for two independently runnable processes:
 - use explicit imports; do not add barrel `index.ts` files until they provide a
   clear boundary without cycles.
 
-Avoid global dumping grounds such as a top-level `helpers`, `utils`, `core`,
-`common`, or a global `types.ts`. Put behavior and types beside the feature or
-boundary that owns them. A narrowly named shared primitive is acceptable only
-after two real consumers demonstrate that ownership is genuinely shared.
+Avoid global dumping grounds such as a top-level `helpers`, `core`, `common`, or
+a global `types.ts`. Put behavior and types beside the feature or boundary that
+owns them. A narrowly named shared primitive is acceptable only after two real
+consumers demonstrate that ownership is genuinely shared.
+
+`src/shared/utils/` is the one place a primitive may live when no single layer
+owns it — `date.ts`, `text.ts` and `duplicates.ts` each replaced a helper copied
+across three domain files. It is bound by one rule: **nothing under
+`src/shared/` may import from `domain`, `application`, `adapters` or
+`infrastructure`.** A leaf with no layer dependencies cannot become a
+cross-layer coupling point, and dependency rule 1 stays intact because a domain
+file importing it reaches nothing but standard library behavior.
 
 Within a single module, two local conventions are expected once a file starts
 carrying more than one concern:
@@ -462,7 +482,16 @@ carrying more than one concern:
 - a `*.types.ts` file beside the implementation holds the contracts that module
   publishes, for example `infrastructure/logging/logger.types.ts`. Importers
   that need only a type import it from there, which keeps a type import from
-  pulling in a factory.
+  pulling in a factory;
+- a `*.constants.ts` file holds the runtime `as const` objects, their derived
+  types, and their type guards, for example
+  `domain/quiz-attempt/quiz-attempt.constants.ts`. These carry a runtime value,
+  so they do not belong in a `*.types.ts`. Keeping them in a leaf module also
+  lets an errors file name a status without importing the aggregate back.
+
+A module may keep the split internal by re-exporting its own contract, so
+`@/domain/quiz-set/quiz-set` continues to serve every name it served before the
+split. That is not a barrel: it is one module publishing its own surface.
 
 ## Test structure
 
@@ -475,8 +504,15 @@ domain/quiz-attempt/
 
 application/use-cases/attempts/
 ├── answer-question.ts
-└── answer-question.test.ts
+├── answer-question.test.ts
+└── attempts.fixture.ts
 ```
+
+One test file per use-case file. Where several use cases in a folder need the
+same wiring, the shared harness lives beside them as `<folder>.fixture.ts`
+rather than in `tests/fixtures/`, so an unrelated test cannot bind to a harness
+built for someone else. Fixtures reused across areas stay under
+`tests/fixtures/`.
 
 Broader tests live under `tests/`:
 
