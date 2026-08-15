@@ -1,7 +1,13 @@
-import { type BrandedId, brandedId } from "../branded-id";
+import {
+	copiedDate,
+	copiedOptionalDate,
+	isValidDate,
+} from "@/shared/utils/date";
+import { trimmedOrUndefined } from "@/shared/utils/text";
+import { brandedId } from "../branded-id";
 import type { FolderId } from "../folder/folder";
-import type { Question, QuestionId } from "./question";
-import { questionFingerprint } from "./question-fingerprint";
+import type { Question } from "./question";
+import { QuizSetStatus } from "./quiz-set.constants";
 import {
 	DuplicateQuestionError,
 	DuplicateQuestionIdError,
@@ -9,93 +15,29 @@ import {
 	QuizSetTransitionError,
 	QuizSetValidationError,
 } from "./quiz-set.errors";
+import { normaliseTags, optionalField, requiredField } from "./quiz-set.fields";
+import type {
+	QuizSet,
+	QuizSetDraft,
+	QuizSetId,
+	QuizSetMetadata,
+} from "./quiz-set.types";
+import {
+	collectDraftIssues,
+	collectDuplicateFingerprints,
+	collectDuplicateQuestionIds,
+} from "./quiz-set.validation";
 
-export type QuizSetId = BrandedId<"QuizSetId">;
+export { isQuizSetStatus, QuizSetStatus } from "./quiz-set.constants";
+export type {
+	QuizSet,
+	QuizSetDraft,
+	QuizSetId,
+	QuizSetMetadata,
+} from "./quiz-set.types";
 
 export const toQuizSetId = (value: string): QuizSetId =>
 	brandedId<"QuizSetId">(value, "QuizSetId");
-
-export const QuizSetStatus = {
-	Draft: "draft",
-	Published: "published",
-	Archived: "archived",
-} as const;
-export type QuizSetStatus = (typeof QuizSetStatus)[keyof typeof QuizSetStatus];
-
-export function isQuizSetStatus(value: unknown): value is QuizSetStatus {
-	return (Object.values(QuizSetStatus) as readonly unknown[]).includes(value);
-}
-
-export interface QuizSet {
-	readonly id: QuizSetId;
-	readonly title: string;
-	readonly status: QuizSetStatus;
-	readonly language: string;
-	readonly questions: readonly Question[];
-	readonly tags: readonly string[];
-	readonly createdAt: Date;
-	readonly updatedAt: Date;
-	readonly description?: string;
-	readonly source?: string;
-	readonly sourceChapters?: string;
-	readonly publishedAt?: Date;
-	readonly archivedAt?: Date;
-	readonly folderId?: FolderId;
-}
-
-interface QuizSetDraft {
-	readonly id: QuizSetId;
-	readonly title: string;
-	readonly language: string;
-	readonly createdAt: Date;
-	readonly description?: string;
-	readonly source?: string;
-	readonly sourceChapters?: string;
-	readonly tags?: readonly string[];
-}
-
-const trimmedOrUndefined = (value: string | undefined): string | undefined => {
-	const trimmed = value?.trim();
-
-	return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
-};
-
-const isValidDate = (value: Date): boolean => !Number.isNaN(value.getTime());
-
-const copiedDate = (value: Date): Date => new Date(value.getTime());
-
-const copiedOptionalDate = (value: Date | undefined): Date | undefined =>
-	value === undefined ? undefined : copiedDate(value);
-
-const normaliseTags = (tags: readonly string[] | undefined): string[] => [
-	...new Set(
-		(tags ?? [])
-			.map((tag) => tag.trim())
-			.filter((tag): tag is string => tag.length > 0),
-	),
-];
-
-const collectDraftIssues = (
-	draft: QuizSetDraft,
-	title: string,
-	language: string,
-): readonly string[] => {
-	const issues: string[] = [];
-
-	if (title.length === 0) {
-		issues.push("title must not be empty");
-	}
-
-	if (language.length === 0) {
-		issues.push("language must not be empty");
-	}
-
-	if (!isValidDate(draft.createdAt)) {
-		issues.push("createdAt must be a valid date");
-	}
-
-	return issues;
-};
 
 const assertTransitionDate = (quizSet: QuizSet, at: Date): void => {
 	if (!isValidDate(at)) {
@@ -164,44 +106,6 @@ export function createQuizSet(draft: QuizSetDraft): QuizSet {
 	});
 }
 
-const collectDuplicateQuestionIds = (
-	quizSet: QuizSet,
-	questions: readonly Question[],
-): readonly QuestionId[] => {
-	const seen = new Set(quizSet.questions.map((question) => question.id));
-	const duplicates = new Set<QuestionId>();
-
-	for (const question of questions) {
-		if (seen.has(question.id)) {
-			duplicates.add(question.id);
-		}
-
-		seen.add(question.id);
-	}
-
-	return [...duplicates];
-};
-
-const collectDuplicateFingerprints = (
-	quizSet: QuizSet,
-	questions: readonly Question[],
-): readonly string[] => {
-	const seen = new Set(quizSet.questions.map(questionFingerprint));
-	const duplicates = new Set<string>();
-
-	for (const question of questions) {
-		const fingerprint = questionFingerprint(question);
-
-		if (seen.has(fingerprint)) {
-			duplicates.add(fingerprint);
-		}
-
-		seen.add(fingerprint);
-	}
-
-	return [...duplicates];
-};
-
 export function addQuestions(
 	quizSet: QuizSet,
 	questions: readonly Question[],
@@ -233,42 +137,6 @@ export function addQuestions(
 
 	return frozenQuizSet({ ...quizSet, questions: appended, updatedAt: at });
 }
-
-export interface QuizSetMetadata {
-	readonly title?: string;
-	readonly language?: string;
-	readonly description?: string;
-	readonly source?: string;
-	readonly sourceChapters?: string;
-	readonly tags?: readonly string[];
-}
-
-const requiredField = (
-	value: string | undefined,
-	current: string,
-	label: string,
-	issues: string[],
-): string => {
-	if (value === undefined) {
-		return current;
-	}
-
-	const trimmed = value.trim();
-
-	if (trimmed.length === 0) {
-		issues.push(`${label} must not be empty`);
-
-		return current;
-	}
-
-	return trimmed;
-};
-
-const optionalField = (
-	value: string | undefined,
-	current: string | undefined,
-): string | undefined =>
-	value === undefined ? current : trimmedOrUndefined(value);
 
 export function updateQuizSetMetadata(
 	quizSet: QuizSet,

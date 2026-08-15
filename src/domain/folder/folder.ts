@@ -1,3 +1,4 @@
+import { copiedDate, isValidDate } from "@/shared/utils/date";
 import { type BrandedId, brandedId } from "../branded-id";
 import {
 	DuplicateFolderNameError,
@@ -36,10 +37,6 @@ interface FolderSnapshot {
 	readonly createdAt: Date;
 	readonly updatedAt: Date;
 }
-
-const isValidDate = (value: Date): boolean => !Number.isNaN(value.getTime());
-
-const copiedDate = (value: Date): Date => new Date(value.getTime());
 
 const frozenFolder = (fields: Folder): Folder =>
 	Object.freeze({

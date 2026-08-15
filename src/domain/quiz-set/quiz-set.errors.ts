@@ -1,5 +1,5 @@
 import type { QuestionId } from "./question";
-import type { QuizSetStatus } from "./quiz-set";
+import type { QuizSetStatus } from "./quiz-set.constants";
 
 export class InvalidIdentifierError extends Error {
 	constructor(label: string) {

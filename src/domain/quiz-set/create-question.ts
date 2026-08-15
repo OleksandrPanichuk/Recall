@@ -1,3 +1,5 @@
+import { hasDuplicates } from "@/shared/utils/duplicates";
+import { trimmedOrUndefined } from "@/shared/utils/text";
 import {
 	type Difficulty,
 	isDifficulty,
@@ -21,12 +23,6 @@ interface QuestionDraft {
 	readonly topic?: string;
 	readonly hint?: string;
 }
-
-const trimmedOrUndefined = (value: string | undefined): string | undefined => {
-	const trimmed = value?.trim();
-
-	return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
-};
 
 const normalisePosition = (value: number): number => (value === 0 ? 0 : value);
 
@@ -73,9 +69,7 @@ const collectIssues = (
 		issues.push("option positions must be unique and start at 0");
 	}
 
-	const ids = options.map((option) => option.id);
-
-	if (new Set(ids).size !== ids.length) {
+	if (hasDuplicates(options.map((option) => option.id))) {
 		issues.push("option ids must be unique");
 	}
 
