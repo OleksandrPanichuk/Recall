@@ -31,12 +31,15 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
+		case CallbackAction.Repetitions:
 			return callback.action;
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
 		case CallbackAction.Reveal:
 			return [callback.action, callback.questionId].join(SEPARATOR);
+		case CallbackAction.AttemptDetail:
+			return [callback.action, callback.attemptId].join(SEPARATOR);
 		case CallbackAction.Unavailable:
 			return [callback.action, callback.feature].join(SEPARATOR);
 		case CallbackAction.Browse:
@@ -83,6 +86,7 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
+		case CallbackAction.Repetitions:
 			return { action };
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
@@ -93,6 +97,10 @@ export function decodeCallback(data: string): Callback | undefined {
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, questionId: first };
+		case CallbackAction.AttemptDetail:
+			return first === undefined || first.length === 0
+				? undefined
+				: { action, attemptId: first };
 		case CallbackAction.Unavailable:
 			return first === undefined || first.length === 0
 				? undefined

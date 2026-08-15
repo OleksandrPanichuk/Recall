@@ -116,6 +116,17 @@ export function statisticsScreen(
 		]
 			.filter((line) => line !== undefined)
 			.join("\n"),
-		keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
+		keyboard: [
+			...shownAttempts.map((attempt, index) => [
+				button(
+					`${skippedAttempts + index + 1}. ${attempt.score.percentage}% — деталі`,
+					{
+						action: CallbackAction.AttemptDetail,
+						attemptId: attempt.attemptId,
+					},
+				),
+			]),
+			[button("« Меню", { action: CallbackAction.Menu })],
+		],
 	};
 }

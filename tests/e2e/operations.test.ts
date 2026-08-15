@@ -1,3 +1,4 @@
+import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -124,6 +125,37 @@ describe("backup and restore (§6.3)", () => {
 
 		assertRestorable(backupPath);
 		application.close();
+	});
+
+	// applicationTables is the "is this a Recall backup" signature, not the live
+	// table list: a backup taken before a feature shipped must still restore.
+	test("restores a backup taken before the newer tables existed", async () => {
+		const application = open();
+
+		await seed(application);
+
+		const backupPath = join(directory, "old.sqlite");
+
+		backupDatabase(databasePath, backupPath);
+		application.close();
+
+		const older = new Database(backupPath);
+
+		for (const table of [
+			"repetition_defaults",
+			"repetition_schedules",
+			"repetition_settings",
+			"vocabulary_items",
+			"folders",
+		]) {
+			older.run(`DROP TABLE IF EXISTS ${table}`);
+		}
+
+		older.close();
+
+		expect(() => {
+			assertRestorable(backupPath);
+		}).not.toThrow();
 	});
 
 	test("refuses to restore a file that is not a Recall backup", async () => {

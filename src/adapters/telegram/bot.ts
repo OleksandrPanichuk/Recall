@@ -4,6 +4,8 @@ import type { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-
 import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
+import type { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
@@ -16,8 +18,10 @@ import {
 	toggleHandler,
 	typedAnswerHandler,
 } from "./handlers/answer-question.handler";
+import { attemptDetailHandler } from "./handlers/attempt-detail.handler";
 import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
+import { repetitionsHandler } from "./handlers/repetitions.handler";
 import { menuHandler, resumeHandler } from "./handlers/start.handler";
 import { startAttemptHandler } from "./handlers/start-attempt.handler";
 import { statisticsHandler } from "./handlers/statistics.handler";
@@ -29,6 +33,8 @@ import { render } from "./screen";
 
 export interface TelegramUseCases {
 	readonly browseFolder: BrowseFolder;
+	readonly listDueRepetitions: ListDueRepetitions;
+	readonly getAttemptDetail: GetAttemptDetail;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly getCurrentQuestion: GetCurrentQuestion;
 	readonly answerQuestion: AnswerQuestion;
@@ -90,6 +96,14 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 					action: CallbackAction.Browse,
 					leaf: CallbackAction.StartSet,
 				});
+
+				return;
+			case CallbackAction.AttemptDetail:
+				await attemptDetailHandler(useCases)(ctx, callback);
+
+				return;
+			case CallbackAction.Repetitions:
+				await repetitionsHandler(useCases)(ctx);
 
 				return;
 			case CallbackAction.Statistics:

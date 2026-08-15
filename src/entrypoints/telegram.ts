@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createBot } from "@/adapters/telegram/bot";
+import { startDailyReminder } from "@/adapters/telegram/reminders";
 import { createApplication } from "@/composition/create-application";
 import {
 	type Environment,
@@ -11,6 +12,8 @@ import { createShutdown } from "@/infrastructure/lifecycle/shutdown";
 import { formatStatus, readStatus } from "@/infrastructure/lifecycle/status";
 import { createLogger } from "@/infrastructure/logging/logger";
 import { LogLevel } from "@/infrastructure/logging/logger.types";
+
+const REMINDER_HOUR = 9;
 
 function loadOrExit(): Environment {
 	try {
@@ -64,8 +67,25 @@ function main(): void {
 		useCases: application,
 		logger,
 	});
+	const reminder = startDailyReminder({
+		bot,
+		listDueRepetitions: application.listDueRepetitions,
+		telegramUserId: environment.allowedTelegramUserId,
+		timezone: environment.appTimezone,
+		hour: REMINDER_HOUR,
+		now: () => new Date(),
+		log: (error) => {
+			logger.error("daily reminder failed", { error });
+		},
+	});
 	const shutdown = createShutdown({ logger });
 
+	shutdown.register({
+		name: "reminder",
+		run: () => {
+			reminder.stop();
+		},
+	});
 	shutdown.register({
 		name: "database",
 		run: () => {

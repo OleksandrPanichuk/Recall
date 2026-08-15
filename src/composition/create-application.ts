@@ -8,6 +8,7 @@ import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-folder.repository";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
+import { createSqliteRepetitionRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-repetition.repository";
 import { createSqliteVocabularyRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-vocabulary.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
@@ -37,6 +38,10 @@ import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
+import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
+import { ResolveRepetitionSettings } from "@/application/use-cases/repetition/resolve-repetition-settings";
+import { UpdateRepetitionSettings } from "@/application/use-cases/repetition/update-repetition-settings";
+import { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { silentLogger } from "@/infrastructure/logging/logger";
 import type { Logger } from "@/infrastructure/logging/logger.types";
@@ -81,11 +86,16 @@ export interface Application {
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
 	readonly getQuizStatistics: GetQuizStatistics;
+	readonly getAttemptDetail: GetAttemptDetail;
+	readonly listDueRepetitions: ListDueRepetitions;
+	readonly resolveRepetitionSettings: ResolveRepetitionSettings;
+	readonly updateRepetitionSettings: UpdateRepetitionSettings;
 	close(): void;
 }
 
 export interface ApplicationOptions {
 	readonly databasePath: string;
+	readonly timezone?: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
 	readonly logger?: Logger;
@@ -108,9 +118,13 @@ export function createApplication(options: ApplicationOptions): Application {
 		quizSets: createSqliteQuizSetRepository(client, transaction),
 		folders: createSqliteFolderRepository(client, transaction),
 		vocabulary: createSqliteVocabularyRepository(client, transaction),
+		repetition: createSqliteRepetitionRepository(client, transaction, () =>
+			(options.clock ?? systemClock).now(),
+		),
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? shortIdGenerator,
+		timezone: options.timezone ?? "UTC",
 		transaction,
 	};
 
@@ -142,6 +156,10 @@ export function createApplication(options: ApplicationOptions): Application {
 		answerQuestion: new AnswerQuestion(dependencies),
 		finishQuizAttempt: new FinishQuizAttempt(dependencies),
 		getQuizStatistics: new GetQuizStatistics(dependencies),
+		getAttemptDetail: new GetAttemptDetail(dependencies),
+		listDueRepetitions: new ListDueRepetitions(dependencies),
+		resolveRepetitionSettings: new ResolveRepetitionSettings(dependencies),
+		updateRepetitionSettings: new UpdateRepetitionSettings(dependencies),
 		close: () => {
 			closeDatabase(database);
 			logger.debug("database closed", { path: database.filename });

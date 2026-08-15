@@ -9,6 +9,9 @@ export const applicationTables = [
 	"questions",
 	"quiz_attempts",
 	"quiz_sets",
+	"repetition_defaults",
+	"repetition_schedules",
+	"repetition_settings",
 	"vocabulary_items",
 ] as const;
 
