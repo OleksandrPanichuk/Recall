@@ -1,5 +1,6 @@
 import type { Context, MiddlewareFn } from "telegraf";
 import type { Logger } from "@/infrastructure/logging/logger.types";
+import { updateTypeOf } from "../utils/describe-update";
 
 export interface AllowlistMiddlewareOptions {
 	readonly allowedTelegramUserId: number;
@@ -18,7 +19,7 @@ export function allowlistMiddleware(
 
 		options.logger.warn("rejected an update from an unknown user", {
 			telegramUserId: ctx.from?.id,
-			update: ctx.updateType,
+			update: updateTypeOf(ctx),
 		});
 
 		if (ctx.callbackQuery !== undefined) {

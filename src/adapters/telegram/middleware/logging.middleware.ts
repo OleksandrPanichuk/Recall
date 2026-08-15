@@ -14,23 +14,25 @@ export function loggingMiddleware(
 
 	return async (ctx, next) => {
 		const startedAt = now();
-		const fields = describeUpdate(ctx);
+
+		const record = (outcome: string): void => {
+			try {
+				options.logger.info("telegram update", {
+					...describeUpdate(ctx),
+					durationMs: now() - startedAt,
+					outcome,
+				});
+			} catch {}
+		};
 
 		try {
 			await next();
-			options.logger.info("telegram update", {
-				...fields,
-				durationMs: now() - startedAt,
-				outcome: "ok",
-			});
 		} catch (error) {
-			options.logger.info("telegram update", {
-				...fields,
-				durationMs: now() - startedAt,
-				outcome: "failed",
-			});
+			record("failed");
 
 			throw error;
 		}
+
+		record("ok");
 	};
 }

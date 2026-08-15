@@ -95,6 +95,7 @@ export function createApplication(options: ApplicationOptions): Application {
 
 	logger.info("database ready", {
 		path: database.filename,
+		migrationCount: applied.length,
 		appliedMigrations: [...applied],
 	});
 
