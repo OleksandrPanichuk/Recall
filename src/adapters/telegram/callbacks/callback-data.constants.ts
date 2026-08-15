@@ -11,6 +11,7 @@ export const CallbackAction = {
 	Browse: "b",
 	Reveal: "v",
 	Repetitions: "p",
+	AttemptDetail: "d",
 	Unavailable: "u",
 } as const;
 export type CallbackAction =

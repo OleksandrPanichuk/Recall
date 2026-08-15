@@ -41,6 +41,7 @@ import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set
 import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ResolveRepetitionSettings } from "@/application/use-cases/repetition/resolve-repetition-settings";
 import { UpdateRepetitionSettings } from "@/application/use-cases/repetition/update-repetition-settings";
+import { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { silentLogger } from "@/infrastructure/logging/logger";
 import type { Logger } from "@/infrastructure/logging/logger.types";
@@ -85,6 +86,7 @@ export interface Application {
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
 	readonly getQuizStatistics: GetQuizStatistics;
+	readonly getAttemptDetail: GetAttemptDetail;
 	readonly listDueRepetitions: ListDueRepetitions;
 	readonly resolveRepetitionSettings: ResolveRepetitionSettings;
 	readonly updateRepetitionSettings: UpdateRepetitionSettings;
@@ -154,6 +156,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		answerQuestion: new AnswerQuestion(dependencies),
 		finishQuizAttempt: new FinishQuizAttempt(dependencies),
 		getQuizStatistics: new GetQuizStatistics(dependencies),
+		getAttemptDetail: new GetAttemptDetail(dependencies),
 		listDueRepetitions: new ListDueRepetitions(dependencies),
 		resolveRepetitionSettings: new ResolveRepetitionSettings(dependencies),
 		updateRepetitionSettings: new UpdateRepetitionSettings(dependencies),

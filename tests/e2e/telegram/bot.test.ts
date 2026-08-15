@@ -1436,3 +1436,82 @@ describe("repetitions menu (§3.14)", () => {
 		expect(harness.lastText()).toContain("Alpha?");
 	});
 });
+
+describe("attempt details (§3.15)", () => {
+	const seedAndTake = async (): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Details",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.TrueFalse,
+					prompt: "Небо синє?",
+					difficulty: "easy",
+					options: [
+						{ text: "Так", isCorrect: true },
+						{ text: "Ні", isCorrect: false },
+					],
+				},
+				{
+					type: QuestionType.TypedAnswer,
+					prompt: "кіт",
+					difficulty: "easy",
+					options: [{ text: "cat", isCorrect: true }],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Details"));
+		await harness.tap(buttonFor("Ні"));
+		await harness.send("cat");
+		await harness.tap(buttonFor("Завершити"));
+	};
+
+	test("statistics lists each attempt as a button", async () => {
+		await seedAndTake();
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("Details"));
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("деталі"),
+		);
+	});
+
+	test("the detail screen shows every question and what was answered", async () => {
+		await seedAndTake();
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("Details"));
+		await harness.tap(buttonFor("деталі"));
+
+		const text = harness.lastText();
+
+		expect(text).toContain("Небо синє?");
+		expect(text).toContain("кіт");
+		expect(text).toContain("Ні");
+		expect(text).toContain("cat");
+		expect(text).toContain("❌");
+		expect(text).toContain("✅");
+	});
+
+	test("shows the correct answer for what was got wrong", async () => {
+		await seedAndTake();
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("Details"));
+		await harness.tap(buttonFor("деталі"));
+
+		expect(harness.lastText()).toContain("✔️");
+	});
+});
