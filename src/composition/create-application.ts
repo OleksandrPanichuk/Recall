@@ -38,6 +38,7 @@ import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
+import { UpdateVocabulary } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
 import { ResolveRepetitionSettings } from "@/application/use-cases/repetition/resolve-repetition-settings";
@@ -67,6 +68,7 @@ export interface Application {
 	readonly updateQuizSet: UpdateQuizSet;
 	readonly addQuestions: AddQuestions;
 	readonly addVocabulary: AddVocabulary;
+	readonly updateVocabulary: UpdateVocabulary;
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly listQuizSets: ListQuizSets;
@@ -138,6 +140,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		updateQuizSet: new UpdateQuizSet(dependencies),
 		addQuestions,
 		addVocabulary: new AddVocabulary({ ...dependencies, addQuestions }),
+		updateVocabulary: new UpdateVocabulary(dependencies),
 		publishQuizSet: new PublishQuizSet(dependencies),
 		archiveQuizSet: new ArchiveQuizSet(dependencies),
 		listQuizSets: new ListQuizSets(dependencies),

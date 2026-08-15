@@ -37,3 +37,11 @@ export const addVocabularyShape = {
 		.enum(Object.values(Difficulty) as [string, ...string[]])
 		.optional(),
 };
+
+export const updateVocabularyShape = {
+	itemId: z.string().trim().min(1).max(64),
+	term: side.optional(),
+	translation: side.optional(),
+	transcription: z.string().trim().max(100).optional(),
+	example: z.string().trim().max(500).optional(),
+};

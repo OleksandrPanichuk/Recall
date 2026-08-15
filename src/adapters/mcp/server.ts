@@ -15,6 +15,7 @@ import { registerPublishSetTool } from "./tools/publish-set.tool";
 import { registerRenameFolderTool } from "./tools/rename-folder.tool";
 import { registerRepetitionSettingsTools } from "./tools/repetition-settings.tool";
 import { registerUpdateSetTool } from "./tools/update-set.tool";
+import { registerUpdateVocabularyTool } from "./tools/update-vocabulary.tool";
 import { createToolRunner } from "./utils/tool-logging";
 
 export type { McpServerOptions, McpUseCases } from "./server.types";
@@ -36,6 +37,7 @@ export function createMcpServer(
 	registerAddQuestionsTool(server, useCases, runTool);
 	registerAddVocabularyTool(server, useCases, runTool);
 	registerUpdateSetTool(server, useCases, runTool);
+	registerUpdateVocabularyTool(server, useCases, runTool);
 	registerPublishSetTool(server, useCases, runTool);
 	registerArchiveSetTool(server, useCases, runTool);
 	registerGetSetTool(server, useCases, runTool);

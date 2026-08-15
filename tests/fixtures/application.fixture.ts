@@ -5,6 +5,7 @@ import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repo
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
 import { createSqliteRepetitionRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-repetition.repository";
+import { createSqliteVocabularyRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-vocabulary.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
@@ -12,6 +13,7 @@ import type { FolderRepository } from "@/application/ports/repositories/folder.r
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
+import type { VocabularyRepository } from "@/application/ports/repositories/vocabulary.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import { openMigratedDatabase } from "../integration/sqlite/migrated-database";
 
@@ -74,6 +76,7 @@ export interface TestContext {
 	readonly folders: FolderRepository;
 	readonly attempts: QuizAttemptRepository;
 	readonly repetition: RepetitionRepository;
+	readonly vocabulary: VocabularyRepository;
 	readonly timezone: string;
 	close(): void;
 }
@@ -96,6 +99,7 @@ export function createTestContext(startAt = DEFAULT_START_AT): TestContext {
 		repetition: createSqliteRepetitionRepository(client, transaction, () =>
 			clock.now(),
 		),
+		vocabulary: createSqliteVocabularyRepository(client, transaction),
 		timezone: DEFAULT_TIMEZONE,
 		close: () => {
 			database.close();

@@ -107,6 +107,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_rename_folder",
 			"quiz_set_repetition_settings",
 			"quiz_update_set",
+			"quiz_update_vocabulary",
 		]);
 	});
 
@@ -848,5 +849,40 @@ describe("repetition settings", () => {
 		});
 
 		expect(result.isError).toBe(true);
+	});
+});
+
+describe("correcting a vocabulary item", () => {
+	test("rebuilds both directions and keeps the question ids", async () => {
+		const quizSetId = await newDraft("A1");
+		const added = await call("quiz_add_vocabulary", {
+			quizSetId,
+			pairs: [{ term: "cat", translation: "кыт" }],
+		});
+		const itemId = (added.structured.itemIds as string[])[0];
+
+		const before = await call("quiz_get_set", { quizSetId });
+
+		expect(before.text).toContain("кыт");
+
+		const fixed = await call("quiz_update_vocabulary", {
+			itemId,
+			translation: "кіт",
+		});
+
+		expect(fixed.isError).toBe(false);
+		expect(fixed.structured.rebuiltQuestionCount).toBe(2);
+
+		const after = await call("quiz_get_set", { quizSetId });
+
+		expect(after.text).not.toContain("кыт");
+		expect(after.text).toContain("кіт");
+	});
+
+	test("refuses an item that does not exist", async () => {
+		expect(
+			(await call("quiz_update_vocabulary", { itemId: "ghost", term: "cat" }))
+				.isError,
+		).toBe(true);
 	});
 });
