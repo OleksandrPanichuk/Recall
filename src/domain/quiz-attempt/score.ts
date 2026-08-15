@@ -1,5 +1,5 @@
-import type { QuestionResponse } from "./quiz-attempt";
 import { QuizAttemptValidationError } from "./quiz-attempt.errors";
+import type { QuestionResponse } from "./quiz-attempt.types";
 
 export interface Score {
 	readonly correct: number;
