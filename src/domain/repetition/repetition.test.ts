@@ -21,6 +21,9 @@ const start = at("2026-08-15T09:00:00.000Z");
 
 const settings = defaultRepetitionSettings();
 
+const startOfDay = (at: Date): Date =>
+	new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
+
 const complete = (
 	previous: RepetitionSchedule | undefined,
 	completedAt: Date,
@@ -32,6 +35,7 @@ const complete = (
 		user,
 		createRepetitionSettings({ ...settings, ...overrides }),
 		completedAt,
+		startOfDay(completedAt),
 	);
 
 const daysBetween = (from: Date, to: Date): number =>
@@ -68,7 +72,14 @@ describe("scheduleAfter", () => {
 		const schedule = complete(undefined, start);
 
 		expect(schedule.repetitionCount).toBe(1);
-		expect(daysBetween(start, schedule.dueAt as Date)).toBe(1);
+		expect(schedule.dueAt).toEqual(at("2026-08-16T00:00:00.000Z"));
+	});
+
+	test("a set finished late in the evening is still due the next day", () => {
+		const schedule = complete(undefined, at("2026-08-15T21:00:00.000Z"));
+
+		expect(schedule.dueAt).toEqual(at("2026-08-16T00:00:00.000Z"));
+		expect(isDue(schedule, at("2026-08-16T09:00:00.000Z"))).toBe(true);
 	});
 
 	test("each repetition waits longer than the last", () => {
@@ -79,7 +90,7 @@ describe("scheduleAfter", () => {
 			const completedAt = schedule.dueAt as Date;
 			const next = complete(schedule, completedAt);
 
-			waits.push(daysBetween(completedAt, next.dueAt as Date));
+			waits.push(daysBetween(startOfDay(completedAt), next.dueAt as Date));
 			schedule = next;
 		}
 
@@ -92,22 +103,29 @@ describe("scheduleAfter", () => {
 
 		const second = complete(first, muchLater);
 
-		expect(daysBetween(muchLater, second.dueAt as Date)).toBe(3);
+		expect(second.dueAt).toEqual(at("2026-09-23T00:00:00.000Z"));
+	});
+
+	test("maxRepetitions counts the repetitions, not the first pass", () => {
+		let schedule = complete(undefined, start, { maxRepetitions: 1 });
+
+		expect(isRetired(schedule)).toBe(false);
+
+		schedule = complete(schedule, start, { maxRepetitions: 1 });
+
+		expect(isRetired(schedule)).toBe(true);
 	});
 
 	test("retires once the repetition limit is reached", () => {
 		let schedule = complete(undefined, start, { maxRepetitions: 3 });
 
-		expect(isRetired(schedule)).toBe(false);
-
-		schedule = complete(schedule, start, { maxRepetitions: 3 });
-
-		expect(isRetired(schedule)).toBe(false);
-
-		schedule = complete(schedule, start, { maxRepetitions: 3 });
+		for (let round = 0; round < 3; round += 1) {
+			expect(isRetired(schedule)).toBe(false);
+			schedule = complete(schedule, start, { maxRepetitions: 3 });
+		}
 
 		expect(isRetired(schedule)).toBe(true);
-		expect(schedule.repetitionCount).toBe(3);
+		expect(schedule.repetitionCount).toBe(4);
 	});
 
 	test("rejects an invalid completion date", () => {
@@ -119,21 +137,31 @@ describe("scheduleAfter", () => {
 
 describe("isDue and overdueDaysOf", () => {
 	const schedule = complete(undefined, start);
+	const overdue = (todayIso: string): number =>
+		overdueDaysOf(schedule, startOfDay(at(todayIso)));
 
-	test("is not due before its date", () => {
-		expect(isDue(schedule, at("2026-08-16T08:59:00.000Z"))).toBe(false);
+	test("is not due the day before", () => {
+		expect(isDue(schedule, at("2026-08-15T23:59:00.000Z"))).toBe(false);
 	});
 
-	test("is due on its date", () => {
-		expect(isDue(schedule, at("2026-08-16T09:00:00.000Z"))).toBe(true);
+	test("is due from the first minute of its day", () => {
+		expect(isDue(schedule, at("2026-08-16T00:01:00.000Z"))).toBe(true);
 	});
 
-	test("counts whole days overdue", () => {
-		expect(overdueDaysOf(schedule, at("2026-08-21T09:00:00.000Z"))).toBe(5);
+	test("counts calendar days, so yesterday reads as one", () => {
+		expect(overdue("2026-08-16T09:00:00.000Z")).toBe(0);
+		expect(overdue("2026-08-17T09:00:00.000Z")).toBe(1);
+		expect(overdue("2026-08-21T09:00:00.000Z")).toBe(5);
 	});
 
 	test("a retired schedule is never due", () => {
-		const retired = complete(undefined, start, { maxRepetitions: 1 });
+		const retired = complete(
+			complete(undefined, start, { maxRepetitions: 1 }),
+			start,
+			{
+				maxRepetitions: 1,
+			},
+		);
 
 		expect(isDue(retired, at("2030-01-01T00:00:00.000Z"))).toBe(false);
 		expect(overdueDaysOf(retired, at("2030-01-01T00:00:00.000Z"))).toBe(0);
@@ -143,14 +171,17 @@ describe("isDue and overdueDaysOf", () => {
 describe("dueRepetitionOf", () => {
 	test("describes an overdue set", () => {
 		const schedule = complete(undefined, start);
-		const due = dueRepetitionOf(schedule, at("2026-08-21T09:00:00.000Z"));
+		const today = at("2026-08-21T09:00:00.000Z");
+		const due = dueRepetitionOf(schedule, today, startOfDay(today));
 
 		expect(due?.overdueDays).toBe(5);
 		expect(due?.repetitionCount).toBe(1);
 	});
 
 	test("is nothing when the set is not due yet", () => {
-		expect(dueRepetitionOf(complete(undefined, start), start)).toBeUndefined();
+		expect(
+			dueRepetitionOf(complete(undefined, start), start, startOfDay(start)),
+		).toBeUndefined();
 	});
 });
 

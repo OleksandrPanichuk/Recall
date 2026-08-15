@@ -105,6 +105,7 @@ export function scheduleAfter(
 	telegramUserId: number,
 	settings: RepetitionSettings,
 	completedAt: Date,
+	completedDayStart: Date,
 ): RepetitionSchedule {
 	if (!isValidDate(completedAt)) {
 		throw new RepetitionSettingsValidationError([
@@ -113,7 +114,7 @@ export function scheduleAfter(
 	}
 
 	const repetitionCount = (previous?.repetitionCount ?? 0) + 1;
-	const retired = repetitionCount >= settings.maxRepetitions;
+	const retired = repetitionCount > settings.maxRepetitions;
 
 	return Object.freeze({
 		quizSetId,
@@ -123,7 +124,7 @@ export function scheduleAfter(
 		dueAt: retired
 			? undefined
 			: new Date(
-					completedAt.getTime() +
+					completedDayStart.getTime() +
 						intervalDaysFor(repetitionCount, settings) * DAY_MS,
 				),
 	});
@@ -139,20 +140,24 @@ export function isDue(schedule: RepetitionSchedule, at: Date): boolean {
 	);
 }
 
-export function overdueDaysOf(schedule: RepetitionSchedule, at: Date): number {
+export function overdueDaysOf(
+	schedule: RepetitionSchedule,
+	todayStart: Date,
+): number {
 	if (schedule.dueAt === undefined) {
 		return 0;
 	}
 
 	return Math.max(
 		0,
-		Math.floor((at.getTime() - schedule.dueAt.getTime()) / DAY_MS),
+		Math.round((todayStart.getTime() - schedule.dueAt.getTime()) / DAY_MS),
 	);
 }
 
 export function dueRepetitionOf(
 	schedule: RepetitionSchedule,
 	at: Date,
+	todayStart: Date,
 ): DueRepetition | undefined {
 	if (schedule.dueAt === undefined || !isDue(schedule, at)) {
 		return undefined;
@@ -161,7 +166,7 @@ export function dueRepetitionOf(
 	return Object.freeze({
 		quizSetId: schedule.quizSetId,
 		dueAt: copiedDate(schedule.dueAt),
-		overdueDays: overdueDaysOf(schedule, at),
+		overdueDays: overdueDaysOf(schedule, todayStart),
 		repetitionCount: schedule.repetitionCount,
 	});
 }
