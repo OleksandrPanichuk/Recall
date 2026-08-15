@@ -7,11 +7,14 @@ import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
+import { normaliseForComparison } from "@/shared/utils/text";
 import { decodeCallback } from "./callbacks/callback-data";
 import { CallbackAction } from "./callbacks/callback-data.constants";
 import {
 	answerHandler,
+	revealHandler,
 	toggleHandler,
+	typedAnswerHandler,
 } from "./handlers/answer-question.handler";
 import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
@@ -126,6 +129,10 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				await answerHandler(useCases)(ctx, callback);
 
 				return;
+			case CallbackAction.Reveal:
+				await revealHandler(useCases)(ctx, callback);
+
+				return;
 			case CallbackAction.Finish:
 				await finishHandler(useCases)(ctx);
 
@@ -143,7 +150,25 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 		}
 	});
 
-	bot.on("message", menuHandler(useCases));
+	// A typed question is answered by sending a message, so text has to be
+	// offered to the attempt before it falls through to the menu.
+	bot.on("message", async (ctx) => {
+		const text =
+			"text" in ctx.message && typeof ctx.message.text === "string"
+				? ctx.message.text.trim()
+				: undefined;
+
+		if (
+			text !== undefined &&
+			normaliseForComparison(text).length > 0 &&
+			!text.startsWith("/") &&
+			(await typedAnswerHandler(useCases)(ctx, text))
+		) {
+			return;
+		}
+
+		await menuHandler(useCases)(ctx);
+	});
 
 	bot.catch((error) => {
 		logger.error("telegram update was dropped", { error });

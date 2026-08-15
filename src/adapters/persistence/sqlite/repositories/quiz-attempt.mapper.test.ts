@@ -36,6 +36,7 @@ const aResponseRow = (
 	selectedOptionIds: '["option-1"]',
 	isCorrect: true,
 	typedAnswer: null,
+	skipped: null,
 	answeredAt: "2026-08-01T10:05:00.000Z",
 	...overrides,
 });
@@ -124,5 +125,27 @@ describe("quiz attempt mapper", () => {
 				}),
 			]),
 		).toThrow(QuizAttemptValidationError);
+	});
+});
+
+describe("typed and skipped responses", () => {
+	test("round-trips a typed answer", () => {
+		const attempt = restore({}, [aResponseRow({ typedAnswer: "  DOG " })]);
+
+		expect(attempt.responses[0]?.typedAnswer).toBe("  DOG ");
+	});
+
+	test("round-trips a skipped response", () => {
+		const attempt = restore({}, [
+			aResponseRow({
+				isCorrect: false,
+				selectedOptionIds: "[]",
+				typedAnswer: null,
+				skipped: true,
+			}),
+		]);
+
+		expect(attempt.responses[0]?.skipped).toBe(true);
+		expect(attempt.responses[0]?.typedAnswer).toBeUndefined();
 	});
 });

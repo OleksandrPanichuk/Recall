@@ -15,6 +15,7 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Statistics]: "statistics",
 	[CallbackAction.StatisticsFor]: "statistics-for",
 	[CallbackAction.Browse]: "browse",
+	[CallbackAction.Reveal]: "reveal",
 	[CallbackAction.Unavailable]: "unavailable",
 };
 

@@ -360,13 +360,33 @@ describe("QuizAttempt", () => {
 			).toThrow(QuestionNotInAttemptError);
 		});
 
-		test("rejects an empty selection", () => {
+		test("rejects a response with neither options nor typed text", () => {
 			expect(() =>
 				recordResponse(
 					activeAttempt(),
 					answer(firstQuestionId, false, laterAt, []),
 				),
-			).toThrow("Invalid quiz attempt:\n- selectedOptionIds must not be empty");
+			).toThrow(
+				"Invalid quiz attempt:\n- a response must carry selected options or a typed answer",
+			);
+		});
+
+		test("accepts a typed answer with no options", () => {
+			const recorded = recordResponse(activeAttempt(), {
+				...answer(firstQuestionId, true, laterAt, []),
+				typedAnswer: "cat",
+			});
+
+			expect(recorded.responses[0]?.typedAnswer).toBe("cat");
+		});
+
+		test("rejects a typed answer that is only whitespace", () => {
+			expect(() =>
+				recordResponse(activeAttempt(), {
+					...answer(firstQuestionId, true, laterAt, []),
+					typedAnswer: "   ",
+				}),
+			).toThrow("a response must carry selected options or a typed answer");
 		});
 
 		test("rejects duplicate selected option ids", () => {
@@ -843,14 +863,14 @@ describe("QuizAttempt", () => {
 			).toContain("answeredAt must not precede startedAt");
 		});
 
-		test("rejects empty selected options", () => {
+		test("rejects a stored response with neither options nor typed text", () => {
 			expect(
 				restoreIssues(
 					snapshot({
 						responses: [answer(firstQuestionId, true, laterAt, [])],
 					}),
 				),
-			).toContain("selectedOptionIds must not be empty");
+			).toContain("a response must carry selected options or a typed answer");
 		});
 
 		test("rejects duplicate selected options", () => {
@@ -929,5 +949,25 @@ describe("QuizAttempt", () => {
 				restoreIssues(snapshot({ mode: "cram" as QuizAttemptMode })),
 			).toContain("mode must be a supported quiz attempt mode");
 		});
+	});
+});
+
+describe("skipped responses", () => {
+	test("cannot be correct", () => {
+		expect(() =>
+			recordResponse(activeAttempt(), {
+				...answer(firstQuestionId, true, laterAt, []),
+				skipped: true,
+			}),
+		).toThrow("a skipped response cannot be correct");
+	});
+
+	test("are recorded when wrong", () => {
+		const recorded = recordResponse(activeAttempt(), {
+			...answer(firstQuestionId, false, laterAt, []),
+			skipped: true,
+		});
+
+		expect(recorded.responses[0]?.skipped).toBe(true);
 	});
 });

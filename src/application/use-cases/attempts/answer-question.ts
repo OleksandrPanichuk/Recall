@@ -4,9 +4,15 @@ import type { QuizSetRepository } from "@/application/ports/repositories/quiz-se
 import type { Transaction } from "@/application/ports/transaction";
 import type { Command, UseCase } from "@/application/use-case";
 import {
+	type Answer,
+	acceptedAnswers,
 	correctOptionIds,
 	evaluateAnswer,
+	type OptionPair,
 	optionsAnswer,
+	orderAnswer,
+	pairsAnswer,
+	textAnswer,
 } from "@/domain/quiz-attempt/answer";
 import {
 	attemptScore,
@@ -21,11 +27,15 @@ import {
 	QuizAttemptValidationError,
 } from "@/domain/quiz-attempt/quiz-attempt.errors";
 import type { Score } from "@/domain/quiz-attempt/score";
-import type {
-	Question,
-	QuestionId,
-	QuestionOptionId,
+import {
+	expectsTypedAnswer,
+	type Question,
+	type QuestionId,
+	type QuestionOptionId,
+	QuestionType,
 } from "@/domain/quiz-set/question";
+import { isWithinOneEdit } from "@/shared/utils/edit-distance";
+import { normaliseForComparison } from "@/shared/utils/text";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {
@@ -38,7 +48,9 @@ export class AttemptNotActiveError extends Error {
 export interface AnswerQuestionCommand {
 	readonly telegramUserId: number;
 	readonly questionId: QuestionId;
-	readonly selectedOptionPositions: readonly number[];
+	readonly selectedOptionPositions?: readonly number[];
+	readonly typedAnswer?: string;
+	readonly revealed?: boolean;
 }
 
 export interface AnswerQuestionResult {
@@ -49,6 +61,9 @@ export interface AnswerQuestionResult {
 	readonly nextQuestionId?: QuestionId;
 	readonly score: Score;
 	readonly question: Question;
+	readonly acceptedAnswers: readonly string[];
+	readonly typedAnswer?: string;
+	readonly nearMiss?: string;
 }
 
 export interface AnswerQuestionDependencies {
@@ -103,27 +118,44 @@ export class AnswerQuestion
 			);
 
 			if (recorded !== undefined) {
-				return this.resultOf(attempt, recorded.isCorrect, true, question);
+				return this.resultOf(
+					attempt,
+					recorded.isCorrect,
+					true,
+					question,
+					recorded.typedAnswer,
+				);
 			}
 
 			const selectedOptionIds = selectedIdsOf(
 				question,
-				request.selectedOptionPositions,
+				request.selectedOptionPositions ?? [],
 			);
-			const isCorrect = evaluateAnswer(
-				question,
-				optionsAnswer(selectedOptionIds),
-			);
+			const isCorrect =
+				request.revealed === true
+					? false
+					: evaluateAnswer(
+							question,
+							answerOf(question, selectedOptionIds, request.typedAnswer),
+						);
 			const answered = recordResponse(attempt, {
 				questionId: request.questionId,
 				selectedOptionIds,
 				isCorrect,
 				answeredAt: at,
+				typedAnswer: request.typedAnswer,
+				skipped: request.revealed === true ? true : undefined,
 			});
 
 			this.attempts.save(answered);
 
-			return this.resultOf(answered, isCorrect, false, question);
+			return this.resultOf(
+				answered,
+				isCorrect,
+				false,
+				question,
+				request.typedAnswer,
+			);
 		});
 	}
 
@@ -132,17 +164,77 @@ export class AnswerQuestion
 		isCorrect: boolean,
 		alreadyAnswered: boolean,
 		question: Question,
+		typedAnswer?: string,
 	): AnswerQuestionResult {
 		return {
 			isCorrect,
 			alreadyAnswered,
 			explanation: question.explanation,
+			acceptedAnswers: expectsTypedAnswer(question)
+				? acceptedAnswers(question)
+				: [],
+			typedAnswer,
+			nearMiss:
+				isCorrect || typedAnswer === undefined
+					? undefined
+					: nearMissOf(question, typedAnswer),
 			correctOptionIds: correctOptionIds(question),
 			question,
 			nextQuestionId: currentQuestionId(attempt),
 			score: attemptScore(attempt),
 		};
 	}
+}
+
+function answerOf(
+	question: Question,
+	selectedOptionIds: readonly QuestionOptionId[],
+	typed: string | undefined,
+): Answer {
+	if (expectsTypedAnswer(question)) {
+		return textAnswer(typed ?? "");
+	}
+
+	if (question.type === QuestionType.Ordering) {
+		return orderAnswer(selectedOptionIds);
+	}
+
+	if (question.type === QuestionType.Matching) {
+		return pairsAnswer(pairsOf(selectedOptionIds));
+	}
+
+	return optionsAnswer(selectedOptionIds);
+}
+
+// Matching arrives as a flat left, right, left, right sequence, because that is
+// what a Telegram keyboard can send and what one JSON column can store.
+function pairsOf(
+	optionIds: readonly QuestionOptionId[],
+): readonly OptionPair[] {
+	if (optionIds.length % 2 !== 0) {
+		throw new QuizAttemptValidationError([
+			"a matching answer must pair every selection",
+		]);
+	}
+
+	const pairs: OptionPair[] = [];
+
+	for (let index = 0; index < optionIds.length; index += 2) {
+		pairs.push([
+			optionIds[index] as QuestionOptionId,
+			optionIds[index + 1] as QuestionOptionId,
+		]);
+	}
+
+	return pairs;
+}
+
+function nearMissOf(question: Question, typed: string): string | undefined {
+	const candidate = normaliseForComparison(typed);
+
+	return acceptedAnswers(question).find((accepted) =>
+		isWithinOneEdit(candidate, normaliseForComparison(accepted)),
+	);
 }
 
 function selectedIdsOf(

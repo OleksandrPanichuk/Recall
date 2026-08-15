@@ -39,8 +39,18 @@ export const collectResponseIssues = (
 ): readonly string[] => {
 	const issues: string[] = [];
 
-	if (response.selectedOptionIds.length === 0) {
-		issues.push("selectedOptionIds must not be empty");
+	const typed = response.typedAnswer?.trim() ?? "";
+
+	if (
+		response.selectedOptionIds.length === 0 &&
+		typed.length === 0 &&
+		response.skipped !== true
+	) {
+		issues.push("a response must carry selected options or a typed answer");
+	}
+
+	if (response.skipped === true && response.isCorrect) {
+		issues.push("a skipped response cannot be correct");
 	}
 
 	if (hasDuplicates(response.selectedOptionIds)) {

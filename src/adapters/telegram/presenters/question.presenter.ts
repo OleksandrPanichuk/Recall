@@ -1,8 +1,14 @@
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
-import { type Question, QuestionType } from "@/domain/quiz-set/question";
+import {
+	expectsTypedAnswer,
+	type Question,
+	QuestionType,
+} from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { InlineButton, Screen } from "./screen.types";
+import { typedQuestionScreen } from "./typed-question.presenter";
 import { button } from "./utils/button";
+import { heading, hintLine } from "./utils/question-heading";
 
 export const MAX_BUTTON_TEXT = 32;
 
@@ -34,14 +40,15 @@ const chunk = (
 	return rows;
 };
 
-const hintLine = (hint: string | undefined): string | undefined =>
-	hint === undefined ? undefined : `\n💡 ${hint}`;
-
 export function questionScreen(
 	view: CurrentQuestionView,
 	question: Question,
 	selected: readonly number[] = [],
 ): Screen {
+	if (expectsTypedAnswer(question)) {
+		return typedQuestionScreen(view, question);
+	}
+
 	const isMultiple = question.type === QuestionType.MultipleChoice;
 	const numbered = question.options.some(
 		(option) => option.text.length > MAX_BUTTON_TEXT,
@@ -84,7 +91,7 @@ export function questionScreen(
 
 	return {
 		text: [
-			`${view.quizSetTitle} — питання ${view.index + 1}/${view.total}`,
+			heading(view),
 			"",
 			question.prompt,
 			numbered

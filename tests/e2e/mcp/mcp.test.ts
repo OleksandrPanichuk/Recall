@@ -519,8 +519,6 @@ describe("folders over MCP", () => {
 
 describe("only answerable types are authorable", () => {
 	test.each([
-		"typed_answer",
-		"cloze",
 		"ordering",
 		"matching",
 	])("refuses %s until Telegram can answer it", async (type) => {
@@ -546,7 +544,7 @@ describe("only answerable types are authorable", () => {
 		expect(added.text).toContain("single_choice");
 	});
 
-	test("still accepts the three it can answer", async () => {
+	test("still accepts the types it can answer", async () => {
 		const quizSetId = await newDraft("Draft");
 
 		const added = await call("quiz_add_questions", {
@@ -565,5 +563,93 @@ describe("only answerable types are authorable", () => {
 		});
 
 		expect(added.isError).toBe(false);
+	});
+});
+
+describe("authoring typed questions", () => {
+	test("takes accepted answers instead of options", async () => {
+		const quizSetId = await newDraft("Vocabulary");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type: "typed_answer",
+					prompt: "кіт",
+					difficulty: "easy",
+					acceptedAnswers: ["cat"],
+				},
+			],
+		});
+
+		expect(added.isError).toBe(false);
+
+		const read = await call("quiz_get_set", { quizSetId });
+
+		expect(read.text).toContain("typed_answer");
+		expect(read.text).toContain("* cat");
+	});
+
+	test("accepts several spellings", async () => {
+		const quizSetId = await newDraft("Vocabulary");
+
+		await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type: "typed_answer",
+					prompt: "колір",
+					difficulty: "easy",
+					acceptedAnswers: ["colour", "color"],
+				},
+			],
+		});
+
+		const read = await call("quiz_get_set", { quizSetId });
+
+		expect(read.text).toContain("* colour");
+		expect(read.text).toContain("* color");
+	});
+
+	test("refuses a typed question with no accepted answers", async () => {
+		const quizSetId = await newDraft("Vocabulary");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [{ type: "typed_answer", prompt: "кіт", difficulty: "easy" }],
+		});
+
+		expect(added.isError).toBe(true);
+	});
+
+	test("refuses a cloze prompt with no blank", async () => {
+		const quizSetId = await newDraft("Grammar");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type: "cloze",
+					prompt: "She has lived here since 2019.",
+					difficulty: "medium",
+					acceptedAnswers: ["since"],
+				},
+			],
+		});
+
+		expect(added.isError).toBe(true);
+	});
+
+	test("still refuses a single choice with no options", async () => {
+		const quizSetId = await newDraft("Vocabulary");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{ type: "single_choice", prompt: "Pick one", difficulty: "easy" },
+			],
+		});
+
+		expect(added.isError).toBe(true);
 	});
 });

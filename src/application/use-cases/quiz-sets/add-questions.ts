@@ -35,6 +35,7 @@ export class QuestionBatchTooLargeError extends Error {
 export interface QuestionOptionInput {
 	readonly text: string;
 	readonly isCorrect: boolean;
+	readonly matchKey?: string;
 }
 
 export interface QuestionInput {
@@ -139,6 +140,7 @@ export class AddQuestions
 				text: option.text,
 				isCorrect: option.isCorrect,
 				position: index,
+				matchKey: option.matchKey,
 			})),
 			explanation: input.explanation,
 			sourceReference: input.sourceReference,
