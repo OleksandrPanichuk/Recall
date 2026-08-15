@@ -1,101 +1,16 @@
-import { hasDuplicates } from "@/shared/utils/duplicates";
 import { trimmedOrUndefined } from "@/shared/utils/text";
+import type { QuestionDraft } from "./create-question.types";
 import {
-	type Difficulty,
-	isDifficulty,
-	isQuestionType,
-	type Question,
-	type QuestionId,
-	type QuestionOption,
-	QuestionType,
-} from "./question";
+	collectQuestionIssues,
+	collectQuestionValueIssues,
+} from "./create-question.validation";
+import { type Question, QuestionType } from "./question";
 import { QuestionValidationError } from "./quiz-set.errors";
-
-interface QuestionDraft {
-	readonly id: QuestionId;
-	readonly type: QuestionType;
-	readonly prompt: string;
-	readonly difficulty: Difficulty;
-	readonly position: number;
-	readonly options: readonly QuestionOption[];
-	readonly explanation?: string;
-	readonly sourceReference?: string;
-	readonly topic?: string;
-	readonly hint?: string;
-}
 
 const normalisePosition = (value: number): number => (value === 0 ? 0 : value);
 
-const collectUnsupportedValueIssues = (
-	draft: QuestionDraft,
-): readonly string[] => {
-	const issues: string[] = [];
-
-	if (!isQuestionType(draft.type)) {
-		issues.push("type must be a supported question type");
-	}
-
-	if (!isDifficulty(draft.difficulty)) {
-		issues.push("difficulty must be a supported difficulty");
-	}
-
-	return issues;
-};
-
-const collectIssues = (
-	draft: QuestionDraft,
-	prompt: string,
-	options: readonly QuestionOption[],
-): readonly string[] => {
-	const issues: string[] = [];
-
-	if (prompt.length === 0) {
-		issues.push("prompt must not be empty");
-	}
-
-	if (!Number.isSafeInteger(draft.position) || draft.position < 0) {
-		issues.push("position must be a non-negative integer");
-	}
-
-	if (options.some((option) => option.text.length === 0)) {
-		issues.push("option text must not be empty");
-	}
-
-	const positions = options
-		.map((option) => option.position)
-		.toSorted((left, right) => left - right);
-
-	if (!positions.every((position, index) => position === index)) {
-		issues.push("option positions must be unique and start at 0");
-	}
-
-	if (hasDuplicates(options.map((option) => option.id))) {
-		issues.push("option ids must be unique");
-	}
-
-	if (draft.type !== QuestionType.TrueFalse && options.length < 2) {
-		issues.push(`${draft.type} requires at least two options`);
-	}
-
-	if (draft.type === QuestionType.TrueFalse && options.length !== 2) {
-		issues.push("true_false requires exactly two options");
-	}
-
-	const correctCount = options.filter((option) => option.isCorrect).length;
-
-	if (draft.type !== QuestionType.MultipleChoice && correctCount !== 1) {
-		issues.push(`${draft.type} requires exactly one correct option`);
-	}
-
-	if (draft.type === QuestionType.MultipleChoice && correctCount === 0) {
-		issues.push("multiple_choice requires at least one correct option");
-	}
-
-	return issues;
-};
-
 export function createQuestion(draft: QuestionDraft): Question {
-	const unsupportedValueIssues = collectUnsupportedValueIssues(draft);
+	const unsupportedValueIssues = collectQuestionValueIssues(draft);
 
 	if (unsupportedValueIssues.length > 0) {
 		throw new QuestionValidationError(unsupportedValueIssues);
@@ -109,7 +24,7 @@ export function createQuestion(draft: QuestionDraft): Question {
 			position: normalisePosition(option.position),
 		}),
 	);
-	const issues = collectIssues(draft, prompt, options);
+	const issues = collectQuestionIssues(draft, prompt, options);
 
 	if (issues.length > 0) {
 		throw new QuestionValidationError(issues);
@@ -132,6 +47,14 @@ export function createQuestion(draft: QuestionDraft): Question {
 			return Object.freeze({ ...fields, type: QuestionType.SingleChoice });
 		case QuestionType.MultipleChoice:
 			return Object.freeze({ ...fields, type: QuestionType.MultipleChoice });
+		case QuestionType.TypedAnswer:
+			return Object.freeze({ ...fields, type: QuestionType.TypedAnswer });
+		case QuestionType.Cloze:
+			return Object.freeze({ ...fields, type: QuestionType.Cloze });
+		case QuestionType.Ordering:
+			return Object.freeze({ ...fields, type: QuestionType.Ordering });
+		case QuestionType.Matching:
+			return Object.freeze({ ...fields, type: QuestionType.Matching });
 		case QuestionType.TrueFalse:
 			return Object.freeze({ ...fields, type: QuestionType.TrueFalse });
 		default:

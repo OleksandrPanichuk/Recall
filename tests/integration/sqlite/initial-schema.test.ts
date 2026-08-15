@@ -186,7 +186,7 @@ describe("enumerated columns", () => {
 		expect(countRows(database, "questions")).toBe(1);
 	});
 
-	test("rejects an unknown questions.type", () => {
+	test("leaves an unknown questions.type to the domain", () => {
 		insertQuizSet(database, { id: "set-1" });
 
 		expect(() =>
@@ -195,7 +195,7 @@ describe("enumerated columns", () => {
 				quizSetId: "set-1",
 				type: "open_text",
 			}),
-		).toThrow(/CHECK constraint failed/);
+		).not.toThrow();
 	});
 
 	test.each(

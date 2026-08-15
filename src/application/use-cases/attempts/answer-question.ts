@@ -3,7 +3,11 @@ import type { QuizAttemptRepository } from "@/application/ports/repositories/qui
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import type { Command, UseCase } from "@/application/use-case";
-import { correctOptionIds, evaluateAnswer } from "@/domain/quiz-attempt/answer";
+import {
+	correctOptionIds,
+	evaluateAnswer,
+	optionsAnswer,
+} from "@/domain/quiz-attempt/answer";
 import {
 	attemptScore,
 	currentQuestionId,
@@ -106,7 +110,10 @@ export class AnswerQuestion
 				question,
 				request.selectedOptionPositions,
 			);
-			const isCorrect = evaluateAnswer(question, selectedOptionIds);
+			const isCorrect = evaluateAnswer(
+				question,
+				optionsAnswer(selectedOptionIds),
+			);
 			const answered = recordResponse(attempt, {
 				questionId: request.questionId,
 				selectedOptionIds,

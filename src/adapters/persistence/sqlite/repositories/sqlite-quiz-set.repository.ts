@@ -145,6 +145,7 @@ export function createSqliteQuizSetRepository(
 					text: questionOptions.text,
 					isCorrect: questionOptions.isCorrect,
 					position: questionOptions.position,
+					matchKey: questionOptions.matchKey,
 				})
 				.from(questionOptions)
 				.innerJoin(questions, eq(questions.id, questionOptions.questionId))

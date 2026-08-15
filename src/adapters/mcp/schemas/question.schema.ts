@@ -7,13 +7,19 @@ const values = <TValue extends string>(
 
 export const MAX_OPTIONS_PER_QUESTION = 10;
 
+export const AUTHORABLE_TYPES = [
+	QuestionType.SingleChoice,
+	QuestionType.MultipleChoice,
+	QuestionType.TrueFalse,
+] as const;
+
 export const questionOptionSchema = z.object({
 	text: z.string().trim().min(1).max(300),
 	isCorrect: z.boolean(),
 });
 
 export const questionSchema = z.object({
-	type: z.enum(values(QuestionType)),
+	type: z.enum(AUTHORABLE_TYPES),
 	prompt: z.string().trim().min(1).max(1000),
 	difficulty: z.enum(values(Difficulty)),
 	options: z.array(questionOptionSchema).min(2).max(MAX_OPTIONS_PER_QUESTION),

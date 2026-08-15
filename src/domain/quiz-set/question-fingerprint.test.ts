@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createQuestion } from "./create-question";
 import {
 	Difficulty,
+	type Question,
 	QuestionType,
 	toQuestionId,
 	toQuestionOptionId,
@@ -110,6 +111,140 @@ describe("questionFingerprint", () => {
 
 		expect(questionFingerprint(other)).not.toBe(
 			questionFingerprint(createQuestion(validDraft)),
+		);
+	});
+});
+
+describe("order-bearing questions", () => {
+	const ordering = (texts: readonly string[]): Question =>
+		createQuestion({
+			id: toQuestionId("q-order"),
+			type: QuestionType.Ordering,
+			prompt: "Build it",
+			difficulty: Difficulty.Easy,
+			position: 0,
+			options: texts.map((text, index) => ({
+				id: toQuestionOptionId(`o-${text}`),
+				text,
+				isCorrect: true,
+				position: index,
+			})),
+		});
+
+	const matching = (keys: readonly string[]): Question =>
+		createQuestion({
+			id: toQuestionId("q-match"),
+			type: QuestionType.Matching,
+			prompt: "Match",
+			difficulty: Difficulty.Easy,
+			position: 0,
+			options: ["cat", "dog", "кіт", "пес"].map((text, index) => ({
+				id: toQuestionOptionId(`o-${text}`),
+				text,
+				isCorrect: true,
+				position: index,
+				matchKey: keys[index],
+			})),
+		});
+
+	test("a different correct order is a different question", () => {
+		expect(questionFingerprint(ordering(["a", "b", "c"]))).not.toBe(
+			questionFingerprint(ordering(["a", "c", "b"])),
+		);
+	});
+
+	test("the same order is the same question", () => {
+		expect(questionFingerprint(ordering(["a", "b", "c"]))).toBe(
+			questionFingerprint(ordering(["a", "b", "c"])),
+		);
+	});
+
+	test("a different pairing is a different question", () => {
+		expect(questionFingerprint(matching(["p0", "p1", "p0", "p1"]))).not.toBe(
+			questionFingerprint(matching(["p0", "p1", "p1", "p0"])),
+		);
+	});
+
+	test("a reordered single choice is still the same question", () => {
+		const build = (texts: readonly string[]): Question =>
+			createQuestion({
+				id: toQuestionId("q-single"),
+				type: QuestionType.SingleChoice,
+				prompt: "Pick",
+				difficulty: Difficulty.Easy,
+				position: 0,
+				options: texts.map((text, index) => ({
+					id: toQuestionOptionId(`o-${text}`),
+					text,
+					isCorrect: text === "a",
+					position: index,
+				})),
+			});
+
+		expect(questionFingerprint(build(["a", "b"]))).toBe(
+			questionFingerprint(build(["b", "a"])),
+		);
+	});
+});
+
+describe("matching questions", () => {
+	const matching = (
+		pairs: readonly (readonly [string, string])[],
+		keys?: readonly string[],
+	): Question =>
+		createQuestion({
+			id: toQuestionId("q-match"),
+			type: QuestionType.Matching,
+			prompt: "Match them",
+			difficulty: Difficulty.Easy,
+			position: 0,
+			options: [
+				...pairs.map(([left], index) => ({
+					id: toQuestionOptionId(`l-${left}`),
+					text: left,
+					isCorrect: true,
+					position: index,
+					matchKey: keys?.[index] ?? `p${index}`,
+				})),
+				...pairs.map(([, right], index) => ({
+					id: toQuestionOptionId(`r-${right}`),
+					text: right,
+					isCorrect: true,
+					position: pairs.length + index,
+					matchKey: keys?.[index] ?? `p${index}`,
+				})),
+			],
+		});
+
+	const cat = ["cat", "кіт"] as const;
+	const dog = ["dog", "пес"] as const;
+
+	test("ignores what the author called the groups", () => {
+		expect(questionFingerprint(matching([cat, dog], ["a", "b"]))).toBe(
+			questionFingerprint(matching([cat, dog], ["p0", "p1"])),
+		);
+	});
+
+	test("ignores the order the pairs are listed in", () => {
+		expect(questionFingerprint(matching([cat, dog]))).toBe(
+			questionFingerprint(matching([dog, cat])),
+		);
+	});
+
+	test("separates a different pairing of the same words", () => {
+		expect(questionFingerprint(matching([cat, dog]))).not.toBe(
+			questionFingerprint(
+				matching([
+					["cat", "пес"],
+					["dog", "кіт"],
+				]),
+			),
+		);
+	});
+
+	test("separates different words", () => {
+		expect(questionFingerprint(matching([cat, dog]))).not.toBe(
+			questionFingerprint(matching([cat, ["bird", "птах"]])),
 		);
 	});
 });

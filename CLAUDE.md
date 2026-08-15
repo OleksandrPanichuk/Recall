@@ -106,3 +106,15 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Code comments
+
+Do not write code comments. Not header comments, not JSDoc, not a one-line note
+above a tricky branch, not a "why this and not that" explanation. In 90%+ of
+cases they are useless: they restate what the code already says, and they rot.
+
+When something needs explaining, put it in the commit message or the pull
+request description, where it is dated and reviewable.
+
+The only exceptions are machine-readable directives (`biome-ignore`,
+`@ts-expect-error`) and licence headers, which are not prose.
