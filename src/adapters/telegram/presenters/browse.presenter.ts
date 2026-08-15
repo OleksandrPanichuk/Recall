@@ -46,7 +46,7 @@ export function browseScreen(
 ): Screen {
 	const entries: readonly Entry[] = [
 		...view.children.map((child) => {
-			const label = `📁 ${child.name} (${child.setCount})`;
+			const label = `📁 ${child.name} (${child.itemCount})`;
 
 			return {
 				label,

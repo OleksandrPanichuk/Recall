@@ -589,6 +589,34 @@ describe("browsing the folder tree (§3.7)", () => {
 		);
 	});
 
+	test("a folder whose sets sit deeper is not badged as empty", async () => {
+		await seedPublishedSetIn(
+			harness,
+			["English", "Vocabulary", "By levels"],
+			"A1 words",
+			[aQuestionInput("One")],
+		);
+
+		await openRoot();
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			"📁 English (1)",
+		);
+	});
+
+	test("a folder badge adds its subfolders to its own sets", async () => {
+		await seedPublishedSetIn(harness, ["English"], "A1 words", [
+			aQuestionInput("One"),
+		]);
+		await seedFolderPath(harness, ["English", "Vocabulary"]);
+
+		await openRoot();
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			"📁 English (2)",
+		);
+	});
+
 	test("the root has no back button, only the menu", async () => {
 		await seedFolderPath(harness, ["English"]);
 

@@ -8,5 +8,6 @@ export interface FolderRepository {
 	listAncestors(id: FolderId): readonly Folder[];
 	listAll(): readonly Folder[];
 	countSetsIn(id: FolderId, statuses?: readonly QuizSetStatus[]): number;
+	countChildFolders(id: FolderId): number;
 	delete(id: FolderId): void;
 }

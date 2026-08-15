@@ -100,6 +100,16 @@ export function createSqliteFolderRepository(
 			);
 		},
 
+		countChildFolders(id: FolderId): number {
+			return (
+				database
+					.select({ total: count() })
+					.from(folders)
+					.where(eq(folders.parentId, id))
+					.get()?.total ?? 0
+			);
+		},
+
 		delete(id: FolderId): void {
 			transaction.run(() => {
 				database.delete(folders).where(eq(folders.id, id)).run();

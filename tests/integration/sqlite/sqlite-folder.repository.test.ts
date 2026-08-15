@@ -223,6 +223,27 @@ describe("SqliteFolderRepository", () => {
 		});
 	});
 
+	describe("countChildFolders", () => {
+		test("counts direct children only", () => {
+			seedChain();
+
+			expect(folders.countChildFolders(toFolderId("english"))).toBe(1);
+		});
+
+		test("counts every direct child", () => {
+			seedChain();
+			folders.save(aFolder("grammar", "Grammar", "english"));
+
+			expect(folders.countChildFolders(toFolderId("english"))).toBe(2);
+		});
+
+		test("counts nothing for a leaf", () => {
+			seedChain();
+
+			expect(folders.countChildFolders(toFolderId("levels"))).toBe(0);
+		});
+	});
+
 	describe("delete", () => {
 		test("removes an empty leaf", () => {
 			seedChain();
