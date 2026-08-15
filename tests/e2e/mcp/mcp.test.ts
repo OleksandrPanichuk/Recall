@@ -604,3 +604,53 @@ describe("authoring typed questions", () => {
 		expect(added.isError).toBe(true);
 	});
 });
+
+describe("matching authoring", () => {
+	test("stores pairs as lefts then rights sharing a key", async () => {
+		const quizSetId = await newDraft("Pairs");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type: "matching",
+					prompt: "Match",
+					difficulty: "easy",
+					pairs: [
+						{ left: "cat", right: "кіт" },
+						{ left: "dog", right: "пес" },
+					],
+				},
+			],
+		});
+
+		expect(added.isError).toBe(false);
+
+		const read = await call("quiz_get_set", { quizSetId });
+
+		expect(read.text).toContain("matching");
+		expect(read.text).toContain("cat");
+		expect(read.text).toContain("кіт");
+	});
+
+	test("refuses more pairs than a callback payload can carry", async () => {
+		const quizSetId = await newDraft("Pairs");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type: "matching",
+					prompt: "Match",
+					difficulty: "easy",
+					pairs: Array.from({ length: 10 }, (_value, index) => ({
+						left: `l${index}`,
+						right: `r${index}`,
+					})),
+				},
+			],
+		});
+
+		expect(added.isError).toBe(true);
+	});
+});

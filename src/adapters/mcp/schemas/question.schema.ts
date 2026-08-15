@@ -42,7 +42,7 @@ export const questionSchema = z
 		pairs: z
 			.array(z.object({ left: answerText, right: answerText }))
 			.min(2)
-			.max(MAX_OPTIONS_PER_QUESTION)
+			.max(MAX_OPTIONS_PER_QUESTION / 2)
 			.optional(),
 		orderedItems: z
 			.array(answerText)

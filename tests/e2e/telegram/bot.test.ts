@@ -1192,3 +1192,79 @@ describe("matching questions (§3.10)", () => {
 		);
 	});
 });
+
+describe("matching feedback and limits (§3.12)", () => {
+	test("a wrong answer shows the correct pairing, not a flat list", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Pairs feedback",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.Matching,
+					prompt: "Match",
+					difficulty: "easy",
+					options: [
+						{ text: "cat", isCorrect: true, matchKey: "p0" },
+						{ text: "dog", isCorrect: true, matchKey: "p1" },
+						{ text: "кіт", isCorrect: true, matchKey: "p0" },
+						{ text: "пес", isCorrect: true, matchKey: "p1" },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Pairs feedback"));
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("пес"));
+		await harness.tap(buttonFor("dog"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Неправильно");
+		expect(harness.lastText()).toContain("cat — кіт");
+		expect(harness.lastText()).toContain("dog — пес");
+	});
+
+	test("the prompt stops asking for a left word once everything is paired", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "All paired",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.Matching,
+					prompt: "Match",
+					difficulty: "easy",
+					options: [
+						{ text: "cat", isCorrect: true, matchKey: "p0" },
+						{ text: "dog", isCorrect: true, matchKey: "p1" },
+						{ text: "кіт", isCorrect: true, matchKey: "p0" },
+						{ text: "пес", isCorrect: true, matchKey: "p1" },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("All paired"));
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("dog"));
+		await harness.tap(buttonFor("пес"));
+
+		expect(harness.lastText()).not.toContain("Оберіть слово ліворуч");
+		expect(harness.lastText()).toContain("Відповісти");
+	});
+});

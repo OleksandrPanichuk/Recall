@@ -68,9 +68,11 @@ export function matchingQuestionScreen(
 			question.prompt,
 			"",
 			pairs.length === 0 ? undefined : pairs.join("\n"),
-			pending === undefined
-				? "Оберіть слово ліворуч."
-				: `Оберіть пару для «${textAt(pending)}».`,
+			selected.length === question.options.length
+				? "Усе зіставлено — натисніть Відповісти."
+				: pending === undefined
+					? "Оберіть слово ліворуч."
+					: `Оберіть пару для «${textAt(pending)}».`,
 			hintLine(question.hint),
 		]
 			.filter((line) => line !== undefined)

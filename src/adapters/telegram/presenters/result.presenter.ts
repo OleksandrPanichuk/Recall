@@ -5,6 +5,7 @@ import type { Question } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { Screen } from "./screen.types";
 import { button } from "./utils/button";
+import { correctAnswerText } from "./utils/correct-answer";
 
 export const MAX_ROWS = 15;
 
@@ -12,10 +13,7 @@ export function answerFeedback(
 	result: AnswerQuestionResult,
 	question: Question,
 ): Screen {
-	const correctText = question.options
-		.filter((option) => result.correctOptionIds.includes(option.id))
-		.map((option) => option.text)
-		.join(", ");
+	const correctText = correctAnswerText(question, result.correctOptionIds);
 
 	const accepted =
 		result.acceptedAnswers.length > 0
