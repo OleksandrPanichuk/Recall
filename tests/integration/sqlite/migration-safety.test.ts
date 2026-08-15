@@ -337,3 +337,69 @@ describe("declared rebuilds", () => {
 		]);
 	});
 });
+
+describe("undeclared rebuilds of any shape", () => {
+	const dropAndRecreate = [
+		"CREATE TABLE `parents_backup` (",
+		"\t`id` text PRIMARY KEY NOT NULL,",
+		"\t`status` text NOT NULL",
+		") STRICT;",
+		"--> statement-breakpoint",
+		"INSERT INTO `parents_backup` SELECT `id`, `status` FROM `parents`;",
+		"--> statement-breakpoint",
+		"DROP TABLE `parents`;",
+		"--> statement-breakpoint",
+		"CREATE TABLE `parents` (",
+		"\t`id` text PRIMARY KEY NOT NULL,",
+		"\t`status` text NOT NULL",
+		") STRICT;",
+		"--> statement-breakpoint",
+		"INSERT INTO `parents` SELECT `id`, `status` FROM `parents_backup`;",
+		"--> statement-breakpoint",
+		"DROP TABLE `parents_backup`;",
+	].join("\n");
+
+	test("refuses a drop-and-recreate that never renames", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_recreate", sql: dropAndRecreate },
+		]);
+
+		expect(() => applyMigrations(database, folder)).toThrow(
+			UnsafeMigrationError,
+		);
+	});
+
+	test("keeps every child row when that migration is refused", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_recreate", sql: dropAndRecreate },
+		]);
+
+		expect(() => applyMigrations(database, folder)).toThrow();
+		expect(countRows("children")).toBe(1);
+		expect(countRows("parents")).toBe(1);
+	});
+
+	test("applies the same migration once it declares itself", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_recreate", sql: `-- rebuild\n${dropAndRecreate}` },
+		]);
+
+		expect(applyMigrations(database, folder)).toEqual(["0001_recreate"]);
+		expect(countRows("parents")).toBe(1);
+		expect(countRows("children")).toBe(1);
+	});
+
+	test("refuses a plain table drop that is not declared", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_drop", sql: "DROP TABLE `children`;" },
+		]);
+
+		expect(() => applyMigrations(database, folder)).toThrow(
+			UnsafeMigrationError,
+		);
+	});
+});

@@ -186,3 +186,65 @@ describe("order-bearing questions", () => {
 		);
 	});
 });
+
+describe("matching questions", () => {
+	const matching = (
+		pairs: readonly (readonly [string, string])[],
+		keys?: readonly string[],
+	): Question =>
+		createQuestion({
+			id: toQuestionId("q-match"),
+			type: QuestionType.Matching,
+			prompt: "Match them",
+			difficulty: Difficulty.Easy,
+			position: 0,
+			options: [
+				...pairs.map(([left], index) => ({
+					id: toQuestionOptionId(`l-${left}`),
+					text: left,
+					isCorrect: true,
+					position: index,
+					matchKey: keys?.[index] ?? `p${index}`,
+				})),
+				...pairs.map(([, right], index) => ({
+					id: toQuestionOptionId(`r-${right}`),
+					text: right,
+					isCorrect: true,
+					position: pairs.length + index,
+					matchKey: keys?.[index] ?? `p${index}`,
+				})),
+			],
+		});
+
+	const cat = ["cat", "кіт"] as const;
+	const dog = ["dog", "пес"] as const;
+
+	test("ignores what the author called the groups", () => {
+		expect(questionFingerprint(matching([cat, dog], ["a", "b"]))).toBe(
+			questionFingerprint(matching([cat, dog], ["p0", "p1"])),
+		);
+	});
+
+	test("ignores the order the pairs are listed in", () => {
+		expect(questionFingerprint(matching([cat, dog]))).toBe(
+			questionFingerprint(matching([dog, cat])),
+		);
+	});
+
+	test("separates a different pairing of the same words", () => {
+		expect(questionFingerprint(matching([cat, dog]))).not.toBe(
+			questionFingerprint(
+				matching([
+					["cat", "пес"],
+					["dog", "кіт"],
+				]),
+			),
+		);
+	});
+
+	test("separates different words", () => {
+		expect(questionFingerprint(matching([cat, dog]))).not.toBe(
+			questionFingerprint(matching([cat, ["bird", "птах"]])),
+		);
+	});
+});

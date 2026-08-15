@@ -19,11 +19,8 @@ function rebuildMarker(statements: string): string | undefined {
 		return "__new_ table";
 	}
 
-	if (
-		/\bdrop\s+table\b/i.test(statements) &&
-		/\balter\s+table\b[\s\S]*?\brename\s+to\b/i.test(statements)
-	) {
-		return "DROP TABLE with a RENAME TO";
+	if (/\bdrop\s+table\b/i.test(statements)) {
+		return "DROP TABLE";
 	}
 
 	return undefined;
