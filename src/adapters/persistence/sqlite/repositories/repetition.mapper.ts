@@ -1,4 +1,4 @@
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuestionId } from "@/domain/quiz-set/question";
 import {
 	createRepetitionSettings,
 	type RepetitionSchedule,
@@ -47,12 +47,13 @@ const parseIntervals = (raw: string, id: string): number[] => {
 export function toRepetitionSchedule(
 	row: RepetitionScheduleRow,
 ): RepetitionSchedule {
-	const id = `${row.quizSetId}/${row.telegramUserId}`;
+	const id = `${row.questionId}/${row.telegramUserId}`;
 
 	return Object.freeze({
-		quizSetId: toQuizSetId(row.quizSetId),
+		questionId: toQuestionId(row.questionId),
 		telegramUserId: row.telegramUserId,
 		repetitionCount: row.repetitionCount,
+		lapses: row.lapses,
 		lastCompletedAt: requiredDate(row.lastCompletedAt, "last_completed_at", id),
 		dueAt: optionalDate(row.dueAt, "due_at", id),
 	});
@@ -63,9 +64,10 @@ export function toRepetitionScheduleRow(
 	at: Date,
 ): RepetitionScheduleInsert {
 	return {
-		quizSetId: schedule.quizSetId,
+		questionId: schedule.questionId,
 		telegramUserId: schedule.telegramUserId,
 		repetitionCount: schedule.repetitionCount,
+		lapses: schedule.lapses,
 		lastCompletedAt: schedule.lastCompletedAt.toISOString(),
 		dueAt: schedule.dueAt?.toISOString() ?? null,
 		createdAt: at.toISOString(),

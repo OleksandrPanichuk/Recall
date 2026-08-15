@@ -1,6 +1,7 @@
-import { and, asc, eq, isNotNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
 import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Transaction } from "@/application/ports/transaction";
+import type { QuestionId } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type {
 	RepetitionSchedule,
@@ -33,45 +34,57 @@ export function createSqliteRepetitionRepository(
 	});
 
 	return {
-		saveSchedule(schedule: RepetitionSchedule): void {
-			const row = toRepetitionScheduleRow(schedule, now());
+		saveSchedules(schedules: readonly RepetitionSchedule[]): void {
+			if (schedules.length === 0) {
+				return;
+			}
+
+			const at = now();
 
 			transaction.run(() => {
-				database
-					.insert(repetitionSchedules)
-					.values(row)
-					.onConflictDoUpdate({
-						target: [
-							repetitionSchedules.quizSetId,
-							repetitionSchedules.telegramUserId,
-						],
-						set: {
-							repetitionCount: row.repetitionCount,
-							lastCompletedAt: row.lastCompletedAt,
-							dueAt: row.dueAt,
-							updatedAt: row.updatedAt,
-						},
-					})
-					.run();
+				for (const schedule of schedules) {
+					const row = toRepetitionScheduleRow(schedule, at);
+
+					database
+						.insert(repetitionSchedules)
+						.values(row)
+						.onConflictDoUpdate({
+							target: [
+								repetitionSchedules.questionId,
+								repetitionSchedules.telegramUserId,
+							],
+							set: {
+								repetitionCount: row.repetitionCount,
+								lapses: row.lapses,
+								lastCompletedAt: row.lastCompletedAt,
+								dueAt: row.dueAt,
+								updatedAt: row.updatedAt,
+							},
+						})
+						.run();
+				}
 			});
 		},
 
-		findSchedule(
-			quizSetId: QuizSetId,
+		findSchedules(
+			questionIds: readonly QuestionId[],
 			telegramUserId: number,
-		): RepetitionSchedule | undefined {
-			const row = database
+		): readonly RepetitionSchedule[] {
+			if (questionIds.length === 0) {
+				return [];
+			}
+
+			return database
 				.select()
 				.from(repetitionSchedules)
 				.where(
 					and(
-						eq(repetitionSchedules.quizSetId, quizSetId),
 						eq(repetitionSchedules.telegramUserId, telegramUserId),
+						inArray(repetitionSchedules.questionId, [...questionIds]),
 					),
 				)
-				.get();
-
-			return row ? toRepetitionSchedule(row) : undefined;
+				.all()
+				.map(toRepetitionSchedule);
 		},
 
 		listDue(telegramUserId: number, at: Date): readonly RepetitionSchedule[] {
@@ -86,6 +99,24 @@ export function createSqliteRepetitionRepository(
 					),
 				)
 				.orderBy(asc(repetitionSchedules.dueAt))
+				.all()
+				.map(toRepetitionSchedule);
+		},
+
+		listLeeches(
+			telegramUserId: number,
+			threshold: number,
+		): readonly RepetitionSchedule[] {
+			return database
+				.select()
+				.from(repetitionSchedules)
+				.where(
+					and(
+						eq(repetitionSchedules.telegramUserId, telegramUserId),
+						gte(repetitionSchedules.lapses, threshold),
+					),
+				)
+				.orderBy(desc(repetitionSchedules.lapses))
 				.all()
 				.map(toRepetitionSchedule);
 		},

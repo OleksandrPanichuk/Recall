@@ -5,3 +5,5 @@ export const DEFAULT_MAX_REPETITIONS = 10;
 export const MAX_INTERVALS = 12;
 export const MAX_INTERVAL_LIMIT_DAYS = 365;
 export const MAX_REPETITIONS_LIMIT = 100;
+
+export const DEFAULT_LEECH_THRESHOLD = 5;

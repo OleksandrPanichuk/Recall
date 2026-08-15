@@ -1,3 +1,4 @@
+import type { QuestionId } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type {
 	RepetitionSchedule,
@@ -5,12 +6,16 @@ import type {
 } from "@/domain/repetition/repetition";
 
 export interface RepetitionRepository {
-	saveSchedule(schedule: RepetitionSchedule): void;
-	findSchedule(
-		quizSetId: QuizSetId,
+	saveSchedules(schedules: readonly RepetitionSchedule[]): void;
+	findSchedules(
+		questionIds: readonly QuestionId[],
 		telegramUserId: number,
-	): RepetitionSchedule | undefined;
+	): readonly RepetitionSchedule[];
 	listDue(telegramUserId: number, at: Date): readonly RepetitionSchedule[];
+	listLeeches(
+		telegramUserId: number,
+		threshold: number,
+	): readonly RepetitionSchedule[];
 	saveSettings(quizSetId: QuizSetId, settings: RepetitionSettings): void;
 	findSettings(quizSetId: QuizSetId): RepetitionSettings | undefined;
 	saveDefaults(settings: RepetitionSettings): void;

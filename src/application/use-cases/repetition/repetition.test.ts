@@ -89,7 +89,7 @@ describe("finishing an attempt schedules a repetition", () => {
 		const due = await listDue.execute({ telegramUserId: USER });
 
 		expect(due).toHaveLength(1);
-		expect(due[0]?.repetitionCount).toBe(1);
+		expect(due[0]?.dueCount).toBe(1);
 	});
 
 	test("taking it again pushes it three days out", async () => {
@@ -184,9 +184,9 @@ describe("attempts that answer nothing", () => {
 		await abandon("set-1");
 
 		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
-		expect(
-			(await listDue.execute({ telegramUserId: USER }))[0]?.repetitionCount,
-		).toBe(1);
+		expect((await listDue.execute({ telegramUserId: USER }))[0]?.dueCount).toBe(
+			1,
+		);
 	});
 });
 

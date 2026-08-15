@@ -1,4 +1,4 @@
-import type { DueRepetitionView } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { DueSet } from "@/application/use-cases/repetition/list-due-repetitions";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { Screen } from "./screen.types";
 import { button } from "./utils/button";
@@ -16,7 +16,7 @@ export const overdueLabel = (overdueDays: number): string => {
 	return `${overdueDays} дн. тому`;
 };
 
-export function repetitionsScreen(due: readonly DueRepetitionView[]): Screen {
+export function repetitionsScreen(due: readonly DueSet[]): Screen {
 	if (due.length === 0) {
 		return {
 			text: "Нічого повторювати — усе за розкладом. Загляньте пізніше.",
@@ -29,15 +29,16 @@ export function repetitionsScreen(due: readonly DueRepetitionView[]): Screen {
 			`🔁 На повторення: ${due.length}`,
 			"",
 			...due.map(
-				(entry) => `• ${entry.title} — ${overdueLabel(entry.overdueDays)}`,
+				(entry) =>
+					`• ${entry.title} — ${entry.dueCount} сл., ${overdueLabel(entry.overdueDays)}`,
 			),
 		].join("\n"),
 		keyboard: [
 			...due.map((entry) => [
-				button(
-					truncated(`🔁 ${entry.title} (${overdueLabel(entry.overdueDays)})`),
-					{ action: CallbackAction.StartSet, quizSetId: entry.quizSetId },
-				),
+				button(truncated(`🔁 ${entry.title} (${entry.dueCount})`), {
+					action: CallbackAction.StartSet,
+					quizSetId: entry.quizSetId,
+				}),
 			]),
 			[button("« Меню", { action: CallbackAction.Menu })],
 		],

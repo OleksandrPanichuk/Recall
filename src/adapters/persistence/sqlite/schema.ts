@@ -78,21 +78,22 @@ export const quizSets = sqliteTable(
 );
 
 export const repetitionSchedules = sqliteTable(
-	"repetition_schedules",
+	"question_repetition_schedules",
 	{
-		quizSetId: text("quiz_set_id")
+		questionId: text("question_id")
 			.notNull()
-			.references(() => quizSets.id, { onDelete: "cascade" }),
+			.references(() => questions.id, { onDelete: "cascade" }),
 		telegramUserId: integer("telegram_user_id").notNull(),
 		repetitionCount: integer("repetition_count").notNull(),
+		lapses: integer("lapses").notNull().default(0),
 		lastCompletedAt: text("last_completed_at").notNull(),
 		dueAt: text("due_at"),
 		createdAt: text("created_at").notNull(),
 		updatedAt: text("updated_at").notNull(),
 	},
 	(table) => [
-		primaryKey({ columns: [table.quizSetId, table.telegramUserId] }),
-		index("idx_repetition_schedules_due").on(table.telegramUserId, table.dueAt),
+		primaryKey({ columns: [table.questionId, table.telegramUserId] }),
+		index("idx_question_schedules_due").on(table.telegramUserId, table.dueAt),
 	],
 );
 
