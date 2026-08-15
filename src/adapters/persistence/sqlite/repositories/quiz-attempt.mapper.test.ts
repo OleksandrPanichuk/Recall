@@ -35,6 +35,7 @@ const aResponseRow = (
 	questionId: "question-1",
 	selectedOptionIds: '["option-1"]',
 	isCorrect: true,
+	typedAnswer: null,
 	answeredAt: "2026-08-01T10:05:00.000Z",
 	...overrides,
 });

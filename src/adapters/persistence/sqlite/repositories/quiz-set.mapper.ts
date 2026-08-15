@@ -69,6 +69,7 @@ function toQuestion(
 			text: option.text,
 			isCorrect: option.isCorrect,
 			position: option.position,
+			matchKey: option.matchKey ?? undefined,
 		}),
 	);
 
@@ -219,5 +220,6 @@ export function toQuestionOptionRows(
 		text: option.text,
 		isCorrect: option.isCorrect,
 		position: option.position,
+		matchKey: option.matchKey ?? null,
 	}));
 }

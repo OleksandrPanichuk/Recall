@@ -14,7 +14,7 @@ import {
 	QuizAttemptMode,
 	QuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
+import { Difficulty } from "@/domain/quiz-set/question";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 
 function quoteText(value: string): string {
@@ -95,7 +95,6 @@ export const questions = sqliteTable(
 		fingerprint: text("fingerprint").notNull(),
 	},
 	(table) => [
-		check("questions_type_check", isOneOf(table.type, QuestionType)),
 		check("questions_difficulty_check", isOneOf(table.difficulty, Difficulty)),
 		unique().on(table.quizSetId, table.position),
 		unique().on(table.quizSetId, table.fingerprint),
@@ -111,6 +110,7 @@ export const questionOptions = sqliteTable(
 			.references(() => questions.id, { onDelete: "cascade" }),
 		text: text("text").notNull(),
 		isCorrect: integer("is_correct", { mode: "boolean" }).notNull(),
+		matchKey: text("match_key"),
 		position: integer("position").notNull(),
 	},
 	(table) => [
@@ -158,6 +158,7 @@ export const questionResponses = sqliteTable(
 			.references(() => questions.id, { onDelete: "cascade" }),
 		selectedOptionIds: text("selected_option_ids").notNull(),
 		isCorrect: integer("is_correct", { mode: "boolean" }).notNull(),
+		typedAnswer: text("typed_answer"),
 		answeredAt: text("answered_at").notNull(),
 	},
 	(table) => [

@@ -133,94 +133,36 @@ bun run db:generate
 
 ### Table-rebuild migrations
 
-SQLite не вміє змінювати `CHECK`, тому будь-яка зміна enum-списку — тобто
-звичайний сценарій «додати значення в `QuestionType` / `QuizAttemptMode`» —
-змушує `drizzle-kit generate` видати 12-step rebuild: `PRAGMA foreign_keys=OFF`,
-`CREATE TABLE __new_<name>`, `INSERT ... SELECT`, `DROP TABLE <name>`,
-`ALTER TABLE __new_<name> RENAME TO <name>`, `PRAGMA foreign_keys=ON`.
+SQLite не вміє змінювати `CHECK`, тому будь-яка зміна enum-списку змушує
+`drizzle-kit generate` видати 12-step rebuild: `CREATE TABLE __new_<name>`,
+`INSERT ... SELECT`, `DROP TABLE <name>`, `ALTER TABLE ... RENAME TO`.
 
-Через Drizzle migrator такий файл застосовувати **не можна**. Drizzle виконує всі
-migrations в одній транзакції, а `PRAGMA foreign_keys` всередині транзакції —
-тихий no-op. Foreign keys залишаються включеними на `DROP TABLE`, кожен
-`ON DELETE CASCADE` спрацьовує, і весь дочірній graph зникає: разом із
-`quiz_sets` пішли б `questions`, `question_options`, `quiz_attempts`
-та `question_responses`. Migration завершилась би з кодом `0`.
+Такий файл **не можна** застосовувати всередині однієї транзакції з рештою
+migrations: `PRAGMA foreign_keys` всередині транзакції — тихий no-op, тому
+foreign keys залишаються увімкненими на `DROP TABLE`, кожен `ON DELETE CASCADE`
+спрацьовує, і весь дочірній graph зникає — а migration завершується кодом `0`.
 
-Тому `applyMigrations` відмовляється застосовувати pending migration, у SQL якої
-є `PRAGMA foreign_keys` або таблиця з префіксом `__new_`, і кидає
-`UnsafeMigrationError` з назвою файлу. Нічого не застосовується.
+Тому rebuild оголошується явно: **перший рядок файлу — `-- rebuild`**. Тоді
+`applyMigrations`:
 
-Ручна процедура для такої migration:
+1. застосовує всі попередні safe migrations одним batch (усе або нічого);
+2. вимикає `PRAGMA foreign_keys` **поза** транзакцією, відкриває
+   `BEGIN IMMEDIATE` і виконує statements файлу (рядки `PRAGMA foreign_keys`
+   всередині файлу ігноруються — вони були б no-op);
+3. запускає `PRAGMA foreign_key_check`. Якщо є хоч один row — `ROLLBACK`,
+   `RebuildFailedError`, у ledger нічого не пишеться;
+4. якщо чисто — пише ledger record і робить `COMMIT`, потім вмикає
+   `PRAGMA foreign_keys` назад.
 
-1. Переконатися, що всі попередні **безпечні** migrations уже застосовані, а
-   rebuild migration є наступною pending migration. Створити консистентний
-   backup через SQLite backup API (не копіювати лише database-файл):
+Файл rebuild-у, у якому є `PRAGMA foreign_keys` або `__new_`, але немає
+директиви `-- rebuild`, відхиляється з `UnsafeMigrationError` — щоб випадковий
+rebuild не проїхав як звичайна migration.
 
-   ```bash
-   backup_path="${DATABASE_PATH}.before-rebuild.sqlite"
-   sqlite3 "$DATABASE_PATH" ".backup '$backup_path'"
-   ```
-2. Записати кількість рows у кожній дочірній таблиці **до** зміни.
-3. Дописати `) STRICT;` до кожного `CREATE TABLE` у згенерованому файлі,
-   включно з `__new_*`.
-4. Відкрити **інтерактивну** SQLite session (`sqlite3 "$DATABASE_PATH"`) і
-   виконати наведений нижче порядок в одному connection. Не закривайте session
-   після `PRAGMA foreign_key_check`: transaction має залишатися відкритою до
-   рішення `ROLLBACK` або `COMMIT`.
+Не забудьте дописати `) STRICT;` до кожного `CREATE TABLE`, включно з
+`__new_*`: drizzle-kit його не генерує.
 
-   ```sql
-   PRAGMA foreign_keys=OFF;
-   BEGIN IMMEDIATE;
-   -- reviewed statements зі згенерованого rebuild .sql file;
-   -- вилучити його PRAGMA foreign_keys=OFF/ON рядки
-   PRAGMA foreign_key_check;
-   ```
-
-   `PRAGMA foreign_keys=OFF` має стояти **до** `BEGIN IMMEDIATE`, інакше він
-   буде no-op. Перевірте результат `PRAGMA foreign_key_check` **до** commit:
-
-   - якщо він повернув хоча б один row, виконайте `ROLLBACK;`, не додавайте
-     migration до ledger і відновіть database з backup перед повторною спробою;
-   - якщо він не повернув rows, не виходячи з тієї самої transaction, вставте
-     ledger record і лише потім commit:
-
-     ```sql
-     -- SHA-256 exact reviewed contents of drizzle/<tag>.sql:
-     -- shasum -a 256 "drizzle/<tag>.sql"
-     INSERT INTO __drizzle_migrations (hash, created_at)
-     VALUES ('<SHA-256 of reviewed drizzle/<tag>.sql>', <when from drizzle/meta/_journal.json>);
-     COMMIT;
-     ```
-
-   **Ніколи не запускайте `bun run migrate` між ручним rebuild і цим ledger
-   insert.** До ledger record migrator вважатиме migration pending і навмисно
-   відмовиться її застосовувати.
-5. Після commit, у тій самій SQLite session, знову увімкніть і перевірте foreign
-   keys:
-
-   ```sql
-   PRAGMA foreign_keys=ON;
-   PRAGMA foreign_keys; -- must return 1
-   PRAGMA foreign_key_check; -- must return no rows
-   ```
-
-6. Порівняти кількість rows у дочірніх таблицях із кроком 2. Лише після цього
-   `bun run migrate` має повідомити `database is up to date`.
-
-Перевірити clean baseline:
-
-```bash
-bun run verify
-```
-
-Quiz runtime behavior ще не реалізовано. `src/entrypoints/telegram.ts`
-тимчасово лише валідує конфігурацію, щоб quality, typecheck, test і build
-scripts працювали до першого quiz-bot vertical slice:
-
-```bash
-bun run dev
-# Configuration is valid. database=./data/quiz.sqlite timezone=Europe/Kyiv
-```
+> `questions.type` навмисно **не має** `CHECK`. Кожен новий тип питання
+> означав би новий rebuild; натомість значення валідує `createQuestion`.
 
 ## Команди
 

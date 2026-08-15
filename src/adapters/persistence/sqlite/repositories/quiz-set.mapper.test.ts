@@ -53,6 +53,7 @@ const optionRows = (
 		text: "Right",
 		isCorrect: true,
 		position: 0,
+		matchKey: null,
 		...overrides,
 	},
 	{
@@ -60,6 +61,7 @@ const optionRows = (
 		questionId: "question-1",
 		text: "Wrong",
 		isCorrect: false,
+		matchKey: null,
 		position: 1,
 	},
 ];

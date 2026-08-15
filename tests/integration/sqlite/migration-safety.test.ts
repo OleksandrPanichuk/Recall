@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { createDatabase } from "@/adapters/persistence/sqlite/database";
 import {
 	applyMigrations,
+	RebuildFailedError,
 	UnsafeMigrationError,
 } from "@/adapters/persistence/sqlite/migrator";
 
@@ -170,14 +171,14 @@ describe("applyMigrations", () => {
 		);
 	});
 
-	test("names the offending migration and the manual procedure", () => {
+	test("names the offending migration and how to declare it", () => {
 		writeMigrations([
 			{ tag: "0000_base", sql: baseMigration },
 			{ tag: "0001_rebuild", sql: rebuildMigration },
 		]);
 
 		expect(() => applyMigrations(database, folder)).toThrow(
-			/0001_rebuild\.sql[\s\S]*README\.md/,
+			/0001_rebuild\.sql[\s\S]*-- rebuild/,
 		);
 	});
 
@@ -243,5 +244,96 @@ describe("applyMigrations", () => {
 		);
 
 		expect(applyMigrations(database, folder)).toEqual([]);
+	});
+});
+
+describe("declared rebuilds", () => {
+	const declaredRebuild = `-- rebuild\n${rebuildMigration}`;
+
+	test("applies a declared rebuild and keeps every child row", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_rebuild", sql: declaredRebuild },
+		]);
+
+		expect(applyMigrations(database, folder)).toEqual(["0001_rebuild"]);
+		expect(countRows("children")).toBe(1);
+		expect(countRows("parents")).toBe(1);
+	});
+
+	test("the rebuilt table accepts the value the old constraint refused", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_rebuild", sql: declaredRebuild },
+		]);
+		applyMigrations(database, folder);
+
+		expect(() => {
+			database.run(
+				"INSERT INTO parents (id, status) VALUES ('p-2', 'archived')",
+			);
+		}).not.toThrow();
+	});
+
+	test("leaves foreign keys enforced afterwards", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_rebuild", sql: declaredRebuild },
+		]);
+		applyMigrations(database, folder);
+
+		expect(() => {
+			database.run(
+				"INSERT INTO children (id, parent_id) VALUES ('c-9', 'missing')",
+			);
+		}).toThrow();
+	});
+
+	test("is idempotent", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_rebuild", sql: declaredRebuild },
+		]);
+		applyMigrations(database, folder);
+
+		expect(applyMigrations(database, folder)).toEqual([]);
+	});
+
+	test("rolls back and records nothing when the rebuild orphans a child", () => {
+		const orphaning = [
+			"-- rebuild",
+			"PRAGMA foreign_keys=OFF;--> statement-breakpoint",
+			"CREATE TABLE `__new_parents` (",
+			"\t`id` text PRIMARY KEY NOT NULL,",
+			"\t`status` text NOT NULL",
+			");",
+			"--> statement-breakpoint",
+			"DROP TABLE `parents`;--> statement-breakpoint",
+			"ALTER TABLE `__new_parents` RENAME TO `parents`;--> statement-breakpoint",
+			"PRAGMA foreign_keys=ON;",
+		].join("\n");
+
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_rebuild", sql: orphaning },
+		]);
+
+		expect(() => applyMigrations(database, folder)).toThrow(RebuildFailedError);
+		expect(countRows("parents")).toBe(1);
+		expect(countRows("children")).toBe(1);
+		expect(appliedTags()).toEqual(["1"]);
+	});
+
+	test("applies a safe batch and then the rebuild, in order", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_additive", sql: additiveMigration },
+			{ tag: "0002_rebuild", sql: declaredRebuild },
+		]);
+
+		expect(applyMigrations(database, folder)).toEqual([
+			"0001_additive",
+			"0002_rebuild",
+		]);
 	});
 });
