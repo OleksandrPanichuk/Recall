@@ -8,12 +8,26 @@ import {
 import type { McpUseCases } from "../server.types";
 import type { ToolRunner } from "../utils/tool-logging";
 
+const SOURCES: Readonly<Record<string, string>> = {
+	set: "this set's own",
+	global: "the global",
+	default: "the built-in",
+};
+
 const describe = (settings: {
 	intervalsDays: readonly number[];
 	maxIntervalDays: number;
 	maxRepetitions: number;
-}): string =>
-	`intervals: ${settings.intervalsDays.join(", ")} days; ceiling ${settings.maxIntervalDays} days; stops after ${settings.maxRepetitions} repetitions`;
+}): string => {
+	const effective = settings.intervalsDays.map((days) =>
+		Math.min(days, settings.maxIntervalDays),
+	);
+	const pinned = effective.some(
+		(days, index) => days !== settings.intervalsDays[index],
+	);
+
+	return `waits: ${effective.join(", ")} days${pinned ? ` (ceiling ${settings.maxIntervalDays} caps ${settings.intervalsDays.join(", ")})` : ""}, then ${effective.at(-1)} days each time; stops after ${settings.maxRepetitions} repetitions`;
+};
 
 export function registerRepetitionSettingsTools(
 	server: McpServer,
@@ -25,20 +39,28 @@ export function registerRepetitionSettingsTools(
 		{
 			title: "Read repetition settings",
 			description:
-				"Returns the repetition schedule a set uses: its own settings if it has any, otherwise the global ones, otherwise the built-in defaults. Omit quizSetId to read the global settings.",
+				'Returns the repetition schedule a set uses and where it comes from — source is "set", "global" or "default". Omit quizSetId to read the global settings. Writing back what you read for a set pins it: it stops following the global schedule.',
 			inputSchema: repetitionScopeShape,
 		},
 		async (args) =>
 			runTool("quiz_get_repetition_settings", args, async () => {
-				const settings = await useCases.resolveRepetitionSettings.execute({
-					quizSetId: toQuizSetId(args.quizSetId ?? "global"),
-				});
+				const { settings, source } =
+					await useCases.resolveRepetitionSettings.execute({
+						quizSetId:
+							args.quizSetId === undefined
+								? undefined
+								: toQuizSetId(args.quizSetId),
+					});
 
-				return ok(describe(settings), {
-					intervalsDays: [...settings.intervalsDays],
-					maxIntervalDays: settings.maxIntervalDays,
-					maxRepetitions: settings.maxRepetitions,
-				});
+				return ok(
+					`Using ${SOURCES[source] ?? source} schedule — ${describe(settings)}.`,
+					{
+						source,
+						intervalsDays: [...settings.intervalsDays],
+						maxIntervalDays: settings.maxIntervalDays,
+						maxRepetitions: settings.maxRepetitions,
+					},
+				);
 			}),
 	);
 
@@ -47,7 +69,7 @@ export function registerRepetitionSettingsTools(
 		{
 			title: "Change repetition settings",
 			description:
-				"Sets how often a quiz set comes back. intervalsDays lists the waits between repetitions and the last one repeats forever; maxIntervalDays caps it, so a set can be pinned to weekly or monthly; maxRepetitions retires the set once reached. Omit quizSetId to change the global settings every set falls back to.",
+				"Sets how often a quiz set comes back. intervalsDays lists the waits between repetitions and the last one repeats until the limit; maxIntervalDays caps every wait, so a set can be pinned to weekly or monthly; maxRepetitions retires the set once reached. Passing quizSetId pins that set to these settings — it will no longer follow the global schedule. Omit it to change the global settings instead.",
 			inputSchema: repetitionSettingsShape,
 		},
 		async (args) =>

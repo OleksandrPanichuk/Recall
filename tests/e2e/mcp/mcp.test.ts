@@ -778,6 +778,68 @@ describe("repetition settings", () => {
 		).toBe(30);
 	});
 
+	test("says where the settings came from", async () => {
+		expect((await call("quiz_get_repetition_settings")).structured.source).toBe(
+			"default",
+		);
+
+		await call("quiz_set_repetition_settings", {
+			intervalsDays: [1, 7],
+			maxIntervalDays: 7,
+			maxRepetitions: 5,
+		});
+
+		expect((await call("quiz_get_repetition_settings")).structured.source).toBe(
+			"global",
+		);
+
+		const quizSetId = await newDraft("Pinned");
+
+		expect(
+			(await call("quiz_get_repetition_settings", { quizSetId })).structured
+				.source,
+		).toBe("global");
+
+		await call("quiz_set_repetition_settings", {
+			quizSetId,
+			intervalsDays: [1, 30],
+			maxIntervalDays: 30,
+			maxRepetitions: 3,
+		});
+
+		expect(
+			(await call("quiz_get_repetition_settings", { quizSetId })).structured
+				.source,
+		).toBe("set");
+	});
+
+	test("refuses a set that does not exist", async () => {
+		expect(
+			(await call("quiz_get_repetition_settings", { quizSetId: "ghost" }))
+				.isError,
+		).toBe(true);
+		expect(
+			(
+				await call("quiz_set_repetition_settings", {
+					quizSetId: "ghost",
+					intervalsDays: [1],
+					maxIntervalDays: 1,
+					maxRepetitions: 1,
+				})
+			).isError,
+		).toBe(true);
+	});
+
+	test("reports the waits the ceiling actually allows", async () => {
+		const result = await call("quiz_set_repetition_settings", {
+			intervalsDays: [30, 60, 90],
+			maxIntervalDays: 1,
+			maxRepetitions: 5,
+		});
+
+		expect(result.text).toContain("waits: 1, 1, 1");
+	});
+
 	test("refuses an impossible schedule", async () => {
 		const result = await call("quiz_set_repetition_settings", {
 			intervalsDays: [0],
