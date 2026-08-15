@@ -29,7 +29,6 @@ import type {
 import { createRowValueParsers } from "./utils/row-values";
 
 export { CorruptedQuizSetRowError } from "./quiz-set.mapper.errors";
-export type * from "./quiz-set.mapper.types";
 
 const { requiredDate, optionalDate, parseStringArray } = createRowValueParsers(
 	(id, issues) => new CorruptedQuizSetRowError(id, issues),

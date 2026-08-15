@@ -3,12 +3,14 @@ import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import {
 	CorruptedQuizSetRowError,
-	type QuestionOptionRow,
-	type QuestionRow,
-	type QuizSetRow,
 	toQuizSet,
 	toQuizSetSummary,
 } from "./quiz-set.mapper";
+import type {
+	QuestionOptionRow,
+	QuestionRow,
+	QuizSetRow,
+} from "./quiz-set.mapper.types";
 
 const aQuizSetRow = (overrides: Partial<QuizSetRow> = {}): QuizSetRow => ({
 	id: "set-1",

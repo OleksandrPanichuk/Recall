@@ -24,7 +24,6 @@ import type {
 import { createRowValueParsers } from "./utils/row-values";
 
 export { CorruptedQuizAttemptRowError } from "./quiz-attempt.mapper.errors";
-export type * from "./quiz-attempt.mapper.types";
 
 const { requiredDate, optionalDate, parseStringArray } = createRowValueParsers(
 	(id, issues) => new CorruptedQuizAttemptRowError(id, issues),

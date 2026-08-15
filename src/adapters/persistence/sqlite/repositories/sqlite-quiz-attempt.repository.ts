@@ -29,12 +29,12 @@ import type { QuizDatabase } from "../database";
 import { questionResponses, questions, quizAttempts } from "../schema";
 import {
 	plannedQuestionIds,
-	type QuizAttemptRow,
 	toQuestionResponseRows,
 	toQuizAttempt,
 	toQuizAttemptRow,
 	toTopicAccuracy,
 } from "./quiz-attempt.mapper";
+import type { QuizAttemptRow } from "./quiz-attempt.mapper.types";
 
 const unfinishedStatuses = [QuizAttemptStatus.Active, QuizAttemptStatus.Paused];
 

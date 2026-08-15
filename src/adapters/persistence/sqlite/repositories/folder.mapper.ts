@@ -3,8 +3,6 @@ import type { folders } from "../schema";
 import { CorruptedFolderRowError } from "./folder.mapper.errors";
 import { createRowValueParsers } from "./utils/row-values";
 
-export { CorruptedFolderRowError } from "./folder.mapper.errors";
-
 export type FolderRow = typeof folders.$inferSelect;
 export type FolderInsert = typeof folders.$inferInsert;
 
