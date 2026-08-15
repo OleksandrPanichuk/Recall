@@ -13,6 +13,6 @@ export function statisticsHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, request: StatisticsRequest): Promise<void> => {
 		const statistics = await useCases.getQuizStatistics.execute(request);
 
-		await render(ctx, statisticsScreen("📊 Статистика", statistics));
+		await render(ctx, statisticsScreen(statistics));
 	};
 }

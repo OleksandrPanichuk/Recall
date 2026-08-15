@@ -285,8 +285,8 @@ describe("results and statistics (§3.4)", () => {
 		expect(harness.lastText()).toContain("1/1 (100%)");
 
 		await harness.tap(buttonFor("Статистика"));
-		await harness.tap(buttonFor("Bun"));
 
+		expect(harness.lastText()).toContain("Статистика — Bun");
 		expect(harness.lastText()).toContain("Точність по набору: 1/1 (100%)");
 	});
 
@@ -789,6 +789,48 @@ describe("browsing the folder tree (§3.7)", () => {
 		await harness.tap(buttonFor("A1 words"));
 
 		expect(harness.lastText()).toContain("Статистика");
+		expect(harness.lastText()).toContain("A1 words");
+	});
+
+	test("statistics walks back to the folder it was opened from", async () => {
+		await seedPublishedSetIn(harness, ["English"], "A1 words", [
+			aQuestionInput("One"),
+		]);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("A1 words"));
+		await harness.tap(buttonFor("До наборів"));
+
+		expect(harness.lastText()).toContain("English");
+		expect(buttonFor("A1 words")).toBeDefined();
+	});
+
+	test("an attempt walks back to the statistics of its own set", async () => {
+		await seedPublishedSetIn(harness, ["English"], "A1 words", [
+			aQuestionInput("One"),
+		]);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("A1 words"));
+		await harness.tap(buttonFor("Меню"));
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("A1 words"));
+		await harness.tap(buttonFor("One"));
+		await harness.tap(buttonFor("Завершити"));
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("деталі"));
+
+		expect(harness.lastText()).toContain("A1 words");
+
+		await harness.tap(buttonFor("До статистики"));
+
+		expect(harness.lastText()).toContain("Статистика — A1 words");
+		expect(buttonFor("деталі")).toBeDefined();
 	});
 });
 

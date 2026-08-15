@@ -98,6 +98,9 @@ describe("GetQuizStatistics", () => {
 		expect(
 			await statistics.execute({ telegramUserId: USER, quizSetId }),
 		).toEqual({
+			quizSetId,
+			title: "Bun persistence",
+			folderId: undefined,
 			attempts: [],
 			setAccuracy: { correct: 0, total: 0, percentage: 0 },
 			topics: [],

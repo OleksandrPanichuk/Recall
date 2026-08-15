@@ -3,7 +3,7 @@ import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/f
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import type { Question } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data.constants";
-import type { Screen } from "./screen.types";
+import type { InlineButton, Screen } from "./screen.types";
 import { button } from "./utils/button";
 import { correctAnswerText } from "./utils/correct-answer";
 
@@ -62,20 +62,34 @@ export function finalResult(result: FinishQuizAttemptResult): Screen {
 	return {
 		text: lines.filter((line) => line !== undefined).join("\n"),
 		keyboard: [
-			[button("📊 Статистика", { action: CallbackAction.Statistics })],
+			[
+				button("📊 Статистика", {
+					action: CallbackAction.StatisticsFor,
+					quizSetId: result.quizSetId,
+				}),
+			],
 			[button("« Меню", { action: CallbackAction.Menu })],
 		],
 	};
 }
 
-export function statisticsScreen(
-	title: string,
-	statistics: QuizStatistics,
-): Screen {
+const statisticsNavigation = (statistics: QuizStatistics): InlineButton[][] => [
+	[
+		button("« До наборів", {
+			action: CallbackAction.Browse,
+			leaf: CallbackAction.StatisticsFor,
+			folderId: statistics.folderId,
+		}),
+	],
+	[button("« Меню", { action: CallbackAction.Menu })],
+];
+
+export function statisticsScreen(statistics: QuizStatistics): Screen {
+	const title = `📊 Статистика — ${statistics.title}`;
 	if (statistics.attempts.length === 0) {
 		return {
 			text: `${title}\n\nЗавершених спроб ще немає.`,
-			keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
+			keyboard: statisticsNavigation(statistics),
 		};
 	}
 
@@ -126,7 +140,7 @@ export function statisticsScreen(
 					},
 				),
 			]),
-			[button("« Меню", { action: CallbackAction.Menu })],
+			...statisticsNavigation(statistics),
 		],
 	};
 }
