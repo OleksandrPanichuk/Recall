@@ -31,3 +31,10 @@ export function typedQuestionScreen(
 		],
 	};
 }
+
+export function followedBy(feedback: Screen, next: Screen): Screen {
+	return {
+		text: `${feedback.text}\n\n———\n\n${next.text}`,
+		keyboard: next.keyboard,
+	};
+}

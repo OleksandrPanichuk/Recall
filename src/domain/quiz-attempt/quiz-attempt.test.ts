@@ -951,3 +951,23 @@ describe("QuizAttempt", () => {
 		});
 	});
 });
+
+describe("skipped responses", () => {
+	test("cannot be correct", () => {
+		expect(() =>
+			recordResponse(activeAttempt(), {
+				...answer(firstQuestionId, true, laterAt, []),
+				skipped: true,
+			}),
+		).toThrow("a skipped response cannot be correct");
+	});
+
+	test("are recorded when wrong", () => {
+		const recorded = recordResponse(activeAttempt(), {
+			...answer(firstQuestionId, false, laterAt, []),
+			skipped: true,
+		});
+
+		expect(recorded.responses[0]?.skipped).toBe(true);
+	});
+});

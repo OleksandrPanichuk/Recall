@@ -9,6 +9,8 @@ import type {
 import { notice } from "../presenters/menu.presenter";
 import { questionScreen } from "../presenters/question.presenter";
 import { answerFeedback } from "../presenters/result.presenter";
+import type { Screen } from "../presenters/screen.types";
+import { followedBy } from "../presenters/typed-question.presenter";
 import { render } from "../screen";
 
 const STALE = "Це питання вже позаду. Натисніть «Продовжити навчання».";
@@ -53,6 +55,23 @@ export function answerHandler(useCases: TelegramUseCases) {
 	};
 }
 
+async function renderWithNext(
+	ctx: Context,
+	useCases: TelegramUseCases,
+	feedback: Screen,
+): Promise<void> {
+	const next = await useCases.getCurrentQuestion.execute({
+		telegramUserId: ctx.from?.id ?? 0,
+	});
+
+	await render(
+		ctx,
+		next?.question === undefined
+			? feedback
+			: followedBy(feedback, questionScreen(next, next.question)),
+	);
+}
+
 export function revealHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: RevealCallback): Promise<void> => {
 		const result = await useCases.answerQuestion.execute({
@@ -61,7 +80,11 @@ export function revealHandler(useCases: TelegramUseCases) {
 			revealed: true,
 		});
 
-		await render(ctx, answerFeedback(result, result.question));
+		await renderWithNext(
+			ctx,
+			useCases,
+			answerFeedback(result, result.question),
+		);
 	};
 }
 
@@ -84,7 +107,11 @@ export function typedAnswerHandler(useCases: TelegramUseCases) {
 			typedAnswer: text,
 		});
 
-		await render(ctx, answerFeedback(result, result.question));
+		await renderWithNext(
+			ctx,
+			useCases,
+			answerFeedback(result, result.question),
+		);
 
 		return true;
 	};

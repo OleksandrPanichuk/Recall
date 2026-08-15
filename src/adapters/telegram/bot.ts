@@ -7,6 +7,7 @@ import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
+import { normaliseForComparison } from "@/shared/utils/text";
 import { decodeCallback } from "./callbacks/callback-data";
 import { CallbackAction } from "./callbacks/callback-data.constants";
 import {
@@ -159,7 +160,7 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 
 		if (
 			text !== undefined &&
-			text.length > 0 &&
+			normaliseForComparison(text).length > 0 &&
 			!text.startsWith("/") &&
 			(await typedAnswerHandler(useCases)(ctx, text))
 		) {

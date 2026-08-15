@@ -911,3 +911,71 @@ describe("typed answers (§3.8)", () => {
 		expect(harness.lastText()).toContain("Правильно");
 	});
 });
+
+describe("typed answers do not consume unseen questions (§3.11)", () => {
+	const seedThree = async (): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Vocab",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.TypedAnswer,
+					prompt: "кіт",
+					difficulty: "easy",
+					options: [{ text: "cat", isCorrect: true }],
+				},
+				{
+					type: QuestionType.TypedAnswer,
+					prompt: "пес",
+					difficulty: "easy",
+					options: [{ text: "dog", isCorrect: true }],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Vocab"));
+	};
+
+	test("the feedback screen already shows the next question", async () => {
+		await seedThree();
+
+		await harness.send("cat");
+
+		expect(harness.lastText()).toContain("Правильно");
+		expect(harness.lastText()).toContain("пес");
+	});
+
+	test("a following message answers the question that was shown", async () => {
+		await seedThree();
+		await harness.send("cat");
+
+		await harness.send("dog");
+
+		expect(harness.lastText()).toContain("Правильно");
+		expect(harness.lastText()).toContain("2/2");
+	});
+
+	test("Не знаю also shows the next question", async () => {
+		await seedThree();
+
+		await harness.tap(buttonFor("Не знаю"));
+
+		expect(harness.lastText()).toContain("cat");
+		expect(harness.lastText()).toContain("пес");
+	});
+
+	test("a punctuation-only message opens the menu instead of erroring", async () => {
+		await seedThree();
+
+		await harness.send("?");
+
+		expect(harness.lastText()).toContain("Головне меню");
+	});
+});
