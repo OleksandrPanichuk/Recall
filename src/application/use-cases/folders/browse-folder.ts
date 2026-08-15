@@ -14,7 +14,7 @@ export interface BrowseCrumb {
 }
 
 export interface BrowseChild extends BrowseCrumb {
-	readonly setCount: number;
+	readonly itemCount: number;
 }
 
 export interface BrowseView {
@@ -59,7 +59,9 @@ export class BrowseFolder
 			.map((child) => ({
 				id: child.id,
 				name: child.name,
-				setCount: this.folders.countSetsIn(child.id, published),
+				itemCount:
+					this.folders.countSetsIn(child.id, published) +
+					this.folders.countChildFolders(child.id),
 			}));
 
 		return {

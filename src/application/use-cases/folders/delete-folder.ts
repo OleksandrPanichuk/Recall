@@ -41,7 +41,7 @@ export class DeleteFolder
 	async execute(request: Command<DeleteFolderCommand>): Promise<void> {
 		this.transaction.run(() => {
 			const folder = requireFolder(this.folders, request.folderId);
-			const children = this.folders.listChildren(folder.id).length;
+			const children = this.folders.countChildFolders(folder.id);
 			const sets = this.folders.countSetsIn(folder.id);
 
 			if (children > 0 || sets > 0) {

@@ -144,11 +144,43 @@ describe("BrowseFolder at the root", () => {
 		const english = await create("English");
 		await fileInto("set-published", english);
 		const draft = store("set-draft", QuizSetStatus.Draft);
+		const archived = store("set-archived", QuizSetStatus.Archived);
 		await moveQuizSet.execute({ quizSetId: draft.id, folderId: english });
+		await moveQuizSet.execute({ quizSetId: archived.id, folderId: english });
 
 		const view = await browseFolder.execute({ folderId: undefined });
 
-		expect(view.children[0]?.setCount).toBe(1);
+		expect(view.children[0]?.itemCount).toBe(1);
+	});
+
+	test("counts the subfolders of a child that holds no set", async () => {
+		const english = await create("English");
+		await create("Vocabulary", english);
+
+		const view = await browseFolder.execute({ folderId: undefined });
+
+		expect(view.children[0]?.itemCount).toBe(1);
+	});
+
+	test("adds the subfolders of a child to its published sets", async () => {
+		const english = await create("English");
+		await create("Vocabulary", english);
+		await create("Grammar", english);
+		await fileInto("set-published", english);
+
+		const view = await browseFolder.execute({ folderId: undefined });
+
+		expect(view.children[0]?.itemCount).toBe(3);
+	});
+
+	test("counts only the direct subfolders of a child", async () => {
+		const english = await create("English");
+		const vocabulary = await create("Vocabulary", english);
+		await create("By levels", vocabulary);
+
+		const view = await browseFolder.execute({ folderId: undefined });
+
+		expect(view.children[0]?.itemCount).toBe(1);
 	});
 });
 
@@ -165,6 +197,17 @@ describe("BrowseFolder inside a folder", () => {
 		expect(view.breadcrumb.map((crumb) => crumb.name)).toEqual(["English"]);
 		expect(view.children.map((child) => child.name)).toEqual(["By levels"]);
 		expect(titles(view.sets)).toEqual(["set-vocab"]);
+	});
+
+	test("counts the items of a child that is itself nested", async () => {
+		const english = await create("English");
+		const vocabulary = await create("Vocabulary", english);
+		await create("By levels", vocabulary);
+		await fileInto("set-vocab", vocabulary);
+
+		const view = await browseFolder.execute({ folderId: english });
+
+		expect(view.children[0]?.itemCount).toBe(2);
 	});
 
 	test("reports the parent so the caller can offer a way back", async () => {
