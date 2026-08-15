@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
 import type { Context } from "telegraf";
+import type { Logger } from "@/infrastructure/logging/logger.types";
 import { loggingMiddleware } from "./logging.middleware";
 
 const contextOf = (update: Record<string, unknown>): Context =>
@@ -60,5 +61,29 @@ describe("loggingMiddleware", () => {
 			outcome: "failed",
 			durationMs: 5,
 		});
+	});
+
+	test("a failing log sink neither fails the update nor reports it as failed", async () => {
+		const attempts: string[] = [];
+		const brokenSink: Logger = {
+			debug: () => {},
+			info: (_message, fields) => {
+				attempts.push(String(fields?.outcome));
+				throw new Error("EPIPE: stderr is gone");
+			},
+			warn: () => {},
+			error: () => {},
+		};
+		let handled = false;
+
+		await loggingMiddleware({ logger: brokenSink, now: elapsing() })(
+			messageContext("/start"),
+			async () => {
+				handled = true;
+			},
+		);
+
+		expect(handled).toBe(true);
+		expect(attempts).toEqual(["ok"]);
 	});
 });

@@ -12,8 +12,6 @@ const asRecord = (args: unknown): Readonly<Record<string, unknown>> =>
 		? (args as Record<string, unknown>)
 		: {};
 
-// Question prompts, option text and explanations are the content this bot exists
-// to protect, so the log keeps only the addressing arguments and batch sizes.
 export function describeToolArgs(args: unknown): LogFields {
 	const record = asRecord(args);
 	const path = record.folderPath ?? record.path;

@@ -18,8 +18,6 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Unavailable]: "unavailable",
 };
 
-// Ids and positions identify what the user pressed; the prompt, option text and
-// message body behind them stay out of the log.
 function describeCallback(callback: Callback): LogFields {
 	switch (callback.action) {
 		case CallbackAction.StartSet:
@@ -39,6 +37,8 @@ function describeCallback(callback: Callback): LogFields {
 			return {};
 	}
 }
+
+const COMMAND = /^\/[A-Za-z0-9_]{1,32}(@[A-Za-z0-9_]{1,32})?(?=\s|$)/;
 
 export function describeUpdate(ctx: Context): LogFields {
 	const identity = { telegramUserId: ctx.from?.id };
@@ -67,10 +67,18 @@ export function describeUpdate(ctx: Context): LogFields {
 		return {
 			...identity,
 			update: "message",
-			command: text.startsWith("/") ? text.split(" ")[0] : undefined,
+			command: COMMAND.exec(text)?.[0],
 			textLength: text.length,
 		};
 	}
 
-	return { ...identity, update: ctx.updateType };
+	return { ...identity, update: updateTypeOf(ctx) };
+}
+
+export function updateTypeOf(ctx: Context): string {
+	try {
+		return ctx.updateType;
+	} catch {
+		return "unknown";
+	}
 }

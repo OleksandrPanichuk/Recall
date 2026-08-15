@@ -63,7 +63,8 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 		if (callback === undefined) {
 			logger.warn("could not decode callback data", {
 				telegramUserId: ctx.from.id,
-				data,
+				action: data?.split(":")[0],
+				dataLength: data?.length,
 			});
 			await ctx.answerCbQuery("Незрозуміла дія").catch(() => {});
 

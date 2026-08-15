@@ -35,6 +35,15 @@ describe("sanitiseFields", () => {
 		});
 	});
 
+	test("stops at the depth bound even when the leaf is a string", () => {
+		const fields = sanitiseFields({
+			update: { message: { text: "the whole message body of the user" } },
+		});
+
+		expect(fields).toEqual({ update: { message: { text: "[nested]" } } });
+		expect(JSON.stringify(fields)).not.toContain("message body");
+	});
+
 	test("stops walking past the requested depth", () => {
 		expect(sanitiseFields({ a: { b: { c: "deep" } } }, 1)).toEqual({
 			a: { b: "[nested]" },

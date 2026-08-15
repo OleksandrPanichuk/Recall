@@ -33,6 +33,10 @@ function sanitiseValue(value: unknown, depth: number): unknown {
 		return value;
 	}
 
+	if (depth <= 0) {
+		return "[nested]";
+	}
+
 	if (typeof value === "string") {
 		return clip(value);
 	}
@@ -47,10 +51,6 @@ function sanitiseValue(value: unknown, depth: number): unknown {
 
 	if (value instanceof Error) {
 		return { name: value.name, message: clip(value.message) };
-	}
-
-	if (depth <= 0) {
-		return "[nested]";
 	}
 
 	if (Array.isArray(value)) {
