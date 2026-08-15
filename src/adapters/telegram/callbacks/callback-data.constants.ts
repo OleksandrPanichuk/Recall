@@ -9,6 +9,7 @@ export const CallbackAction = {
 	Statistics: "x",
 	StatisticsFor: "y",
 	Browse: "b",
+	Reveal: "v",
 	Unavailable: "u",
 } as const;
 export type CallbackAction =

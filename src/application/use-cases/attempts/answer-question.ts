@@ -28,16 +28,14 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt.errors";
 import type { Score } from "@/domain/quiz-attempt/score";
 import {
-	isNearMiss,
-	normaliseAnswer,
-} from "@/domain/quiz-set/answer-normalisation";
-import {
 	expectsTypedAnswer,
 	type Question,
 	type QuestionId,
 	type QuestionOptionId,
 	QuestionType,
 } from "@/domain/quiz-set/question";
+import { isWithinOneEdit } from "@/shared/utils/edit-distance";
+import { normaliseForComparison } from "@/shared/utils/text";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {
@@ -232,10 +230,10 @@ function pairsOf(
 }
 
 function nearMissOf(question: Question, typed: string): string | undefined {
-	const candidate = normaliseAnswer(typed);
+	const candidate = normaliseForComparison(typed);
 
 	return acceptedAnswers(question).find((accepted) =>
-		isNearMiss(candidate, normaliseAnswer(accepted)),
+		isWithinOneEdit(candidate, normaliseForComparison(accepted)),
 	);
 }
 

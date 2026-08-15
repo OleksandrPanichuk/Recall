@@ -35,6 +35,8 @@ function serialise(callback: Callback): string {
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
+		case CallbackAction.Reveal:
+			return [callback.action, callback.questionId].join(SEPARATOR);
 		case CallbackAction.Unavailable:
 			return [callback.action, callback.feature].join(SEPARATOR);
 		case CallbackAction.Browse:
@@ -87,6 +89,10 @@ export function decodeCallback(data: string): Callback | undefined {
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, quizSetId: first };
+		case CallbackAction.Reveal:
+			return first === undefined || first.length === 0
+				? undefined
+				: { action, questionId: first };
 		case CallbackAction.Unavailable:
 			return first === undefined || first.length === 0
 				? undefined
