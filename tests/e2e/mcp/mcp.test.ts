@@ -542,6 +542,8 @@ describe("only answerable types are authorable", () => {
 		});
 
 		expect(added.isError).toBe(true);
+		expect(added.text).toContain("type");
+		expect(added.text).toContain("single_choice");
 	});
 
 	test("still accepts the three it can answer", async () => {

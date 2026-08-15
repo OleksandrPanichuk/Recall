@@ -19,6 +19,13 @@ function rebuildMarker(statements: string): string | undefined {
 		return "__new_ table";
 	}
 
+	if (
+		/\bdrop\s+table\b/i.test(statements) &&
+		/\balter\s+table\b[\s\S]*?\brename\s+to\b/i.test(statements)
+	) {
+		return "DROP TABLE with a RENAME TO";
+	}
+
 	return undefined;
 }
 
@@ -64,10 +71,6 @@ export function applyBatch(
 	}
 }
 
-// A rebuild drops and recreates a table, and SQLite only honours
-// PRAGMA foreign_keys outside a transaction — set inside one it is a silent
-// no-op and the DROP cascades every child row away. So the pragma is disabled
-// first, and foreign_key_check verifies the result before the commit decides.
 export function applyRebuild(
 	database: Database,
 	entry: JournalEntry,

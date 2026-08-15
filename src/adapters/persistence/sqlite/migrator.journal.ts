@@ -82,6 +82,3 @@ export function record(database: Database, sql: string, when: number): void {
 		[ledgerHash(sql), when],
 	);
 }
-
-// Safe migrations keep their all-or-nothing guarantee: a broken one anywhere in
-// the run leaves the database exactly as it was. Only a rebuild has to stand

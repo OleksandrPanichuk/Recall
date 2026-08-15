@@ -1,5 +1,3 @@
-// Damerau: a transposition costs one edit, not two. Plain Levenshtein scores
-// recieve/receive as two, which would miss the typo people most often make.
 export function editDistance(left: string, right: string): number {
 	if (left === right) {
 		return 0;

@@ -60,8 +60,6 @@ export function applyMigrations(
 
 		applyBatch(database, folder, batch);
 	} catch (error) {
-		// Bot and MCP server both migrate on start and BEGIN IMMEDIATE lets only
-		// one of them in, so losing the race is success once the peer has finished.
 		if (!waitForPeer(database, pending)) {
 			throw error;
 		}

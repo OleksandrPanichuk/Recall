@@ -42,8 +42,6 @@ export function expectsTypedAnswer(question: Question): boolean {
 	);
 }
 
-// Options are stored as every left in position order, then every right. The
-// matchKey pairs them; position decides which column each one belongs to.
 export function matchingSides(question: Question): MatchingSides {
 	const ordered = question.options.toSorted(
 		(left, right) => left.position - right.position,

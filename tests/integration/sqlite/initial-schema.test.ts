@@ -186,8 +186,6 @@ describe("enumerated columns", () => {
 		expect(countRows(database, "questions")).toBe(1);
 	});
 
-	// questions.type carries no CHECK: extending one means rebuilding the table,
-	// and every new question type would need that. createQuestion is the guard.
 	test("leaves an unknown questions.type to the domain", () => {
 		insertQuizSet(database, { id: "set-1" });
 
