@@ -4,7 +4,7 @@ import type { TelegramUseCases } from "../bot";
 import type {
 	AnswerCallback,
 	ToggleCallback,
-} from "../callbacks/callback-data";
+} from "../callbacks/callback-data.types";
 import { notice } from "../presenters/menu.presenter";
 import { questionScreen } from "../presenters/question.presenter";
 import { answerFeedback } from "../presenters/result.presenter";

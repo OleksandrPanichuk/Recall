@@ -1,5 +1,5 @@
 import type { Context } from "telegraf";
-import type { Screen } from "./presenters/menu.presenter";
+import type { Screen } from "./presenters/screen.types";
 
 export const TELEGRAM_TEXT_LIMIT = 4096;
 const SAFE_LIMIT = 4000;

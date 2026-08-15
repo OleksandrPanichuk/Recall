@@ -7,7 +7,8 @@ import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
-import { CallbackAction, decodeCallback } from "./callbacks/callback-data";
+import { decodeCallback } from "./callbacks/callback-data";
+import { CallbackAction } from "./callbacks/callback-data.constants";
 import {
 	answerHandler,
 	toggleHandler,
