@@ -519,7 +519,6 @@ describe("folders over MCP", () => {
 
 describe("only answerable types are authorable", () => {
 	test.each([
-		"ordering",
 		"matching",
 	])("refuses %s until Telegram can answer it", async (type) => {
 		const quizSetId = await newDraft("Draft");

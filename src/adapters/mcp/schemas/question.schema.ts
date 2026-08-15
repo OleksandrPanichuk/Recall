@@ -8,6 +8,7 @@ const values = <TValue extends string>(
 export const MAX_OPTIONS_PER_QUESTION = 10;
 
 export const AUTHORABLE_TYPES = [
+	QuestionType.Ordering,
 	QuestionType.TypedAnswer,
 	QuestionType.Cloze,
 	QuestionType.SingleChoice,
@@ -37,6 +38,11 @@ export const questionSchema = z
 			.min(2)
 			.max(MAX_OPTIONS_PER_QUESTION)
 			.optional(),
+		orderedItems: z
+			.array(answerText)
+			.min(2)
+			.max(MAX_OPTIONS_PER_QUESTION)
+			.optional(),
 		acceptedAnswers: z
 			.array(answerText)
 			.min(1)
@@ -60,6 +66,8 @@ export const questionSchema = z
 
 		if (TYPED_TYPES.includes(question.type)) {
 			require("acceptedAnswers", question.acceptedAnswers !== undefined);
+		} else if (question.type === QuestionType.Ordering) {
+			require("orderedItems", question.orderedItems !== undefined);
 		} else {
 			require("options", question.options !== undefined);
 		}
