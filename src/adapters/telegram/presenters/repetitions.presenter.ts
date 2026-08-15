@@ -36,7 +36,7 @@ export function repetitionsScreen(due: readonly DueSet[]): Screen {
 		keyboard: [
 			...due.map((entry) => [
 				button(truncated(`🔁 ${entry.title} (${entry.dueCount})`), {
-					action: CallbackAction.StartSet,
+					action: CallbackAction.StartDue,
 					quizSetId: entry.quizSetId,
 				}),
 			]),

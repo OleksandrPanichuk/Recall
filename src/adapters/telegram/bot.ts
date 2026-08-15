@@ -124,6 +124,14 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				});
 
 				return;
+			case CallbackAction.StartDue:
+				await startAttemptHandler(useCases)(ctx, {
+					telegramUserId,
+					quizSetId: toQuizSetId(callback.quizSetId),
+					onlyDue: true,
+				});
+
+				return;
 			case CallbackAction.StatisticsFor:
 				await statisticsHandler(useCases)(ctx, {
 					telegramUserId,

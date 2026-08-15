@@ -2,6 +2,7 @@ import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
+import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import {
 	currentQuestionId,
@@ -33,9 +34,20 @@ export class AttemptAlreadyInProgressError extends Error {
 	}
 }
 
+export class NothingDueError extends Error {
+	readonly quizSetId: QuizSetId;
+
+	constructor(quizSetId: QuizSetId) {
+		super(`Nothing is due for repetition in ${quizSetId}`);
+		this.name = "NothingDueError";
+		this.quizSetId = quizSetId;
+	}
+}
+
 export interface StartQuizAttemptCommand {
 	readonly quizSetId: QuizSetId;
 	readonly telegramUserId: number;
+	readonly onlyDue?: boolean;
 }
 
 export interface StartQuizAttemptResult {
@@ -49,6 +61,7 @@ export interface StartQuizAttemptDependencies {
 	readonly attempts: QuizAttemptRepository;
 	readonly clock: Clock;
 	readonly idGenerator: IdGenerator;
+	readonly repetition: RepetitionRepository;
 }
 
 export class StartQuizAttempt
@@ -58,12 +71,14 @@ export class StartQuizAttempt
 	private readonly attempts: QuizAttemptRepository;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
+	private readonly repetition: RepetitionRepository;
 
 	constructor(dependencies: StartQuizAttemptDependencies) {
 		this.quizSets = dependencies.quizSets;
 		this.attempts = dependencies.attempts;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
+		this.repetition = dependencies.repetition;
 	}
 
 	async execute(
@@ -92,13 +107,32 @@ export class StartQuizAttempt
 			return this.resume(unfinished);
 		}
 
+		const at = this.clock.now();
+		const everyQuestion = quizSet.questions.map((question) => question.id);
+		const due =
+			request.onlyDue === true
+				? new Set(
+						this.repetition
+							.listDue(request.telegramUserId, at)
+							.map((schedule) => schedule.questionId),
+					)
+				: undefined;
+		const questionIds =
+			due === undefined
+				? everyQuestion
+				: everyQuestion.filter((questionId) => due.has(questionId));
+
+		if (questionIds.length === 0) {
+			throw new NothingDueError(request.quizSetId);
+		}
+
 		const attempt = startQuizAttempt({
 			id: toQuizAttemptId(this.idGenerator.generate()),
 			quizSetId: quizSet.id,
 			telegramUserId: request.telegramUserId,
 			mode: QuizAttemptMode.Full,
-			questionIds: quizSet.questions.map((question) => question.id),
-			startedAt: this.clock.now(),
+			questionIds,
+			startedAt: at,
 		});
 
 		this.attempts.save(attempt);
