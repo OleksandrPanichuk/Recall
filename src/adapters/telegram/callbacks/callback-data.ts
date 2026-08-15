@@ -31,6 +31,7 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
+		case CallbackAction.Repetitions:
 			return callback.action;
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
@@ -83,6 +84,7 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
+		case CallbackAction.Repetitions:
 			return { action };
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:

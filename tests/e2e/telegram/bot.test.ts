@@ -78,6 +78,7 @@ describe("navigation shell (§3.2)", () => {
 		expect(labels).toEqual([
 			expect.stringContaining("Продовжити навчання"),
 			expect.stringContaining("Мої набори"),
+			expect.stringContaining("Повторення"),
 			expect.stringContaining("Статистика"),
 			expect.stringContaining("Налаштування"),
 		]);
@@ -1341,5 +1342,97 @@ describe("partial credit for matching (§3.13)", () => {
 
 		expect(harness.lastText()).toContain("Правильно");
 		expect(harness.lastText()).toContain("100%");
+	});
+});
+
+describe("repetitions menu (§3.14)", () => {
+	const day = 24 * 60 * 60 * 1000;
+
+	const takeSet = async (title: string): Promise<void> => {
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor(title));
+		await harness.tap(buttonFor("Так"));
+		await harness.tap(buttonFor("Завершити"));
+	};
+
+	const seedTwo = async (): Promise<void> => {
+		for (const title of ["Alpha", "Beta"]) {
+			const { quizSetId } = await harness.application.createQuizSet.execute({
+				title,
+				language: "uk",
+			});
+
+			await harness.application.addQuestions.execute({
+				quizSetId,
+				questions: [
+					{
+						type: QuestionType.TrueFalse,
+						prompt: `${title}?`,
+						difficulty: "easy",
+						options: [
+							{ text: "Так", isCorrect: true },
+							{ text: "Ні", isCorrect: false },
+						],
+					},
+				],
+			});
+			await harness.application.publishQuizSet.execute({ quizSetId });
+		}
+	};
+
+	test("says so when nothing is due", async () => {
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+
+		expect(harness.lastText()).toContain("Нічого повторювати");
+	});
+
+	test("lists a set once its day arrives", async () => {
+		await seedTwo();
+		await takeSet("Alpha");
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+
+		expect(harness.lastText()).toContain("Нічого повторювати");
+
+		harness.clock.advance(day);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+
+		expect(harness.lastText()).toContain("Alpha");
+		expect(harness.lastText()).toContain("сьогодні");
+	});
+
+	test("puts the most overdue set first", async () => {
+		await seedTwo();
+		await takeSet("Alpha");
+		harness.clock.advance(10 * day);
+		await takeSet("Beta");
+		harness.clock.advance(2 * day);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+
+		const lines = harness
+			.lastText()
+			.split("\n")
+			.filter((l) => l.startsWith("•"));
+
+		expect(lines[0]).toContain("Alpha");
+		expect(lines[1]).toContain("Beta");
+	});
+
+	test("starts the set the user picks", async () => {
+		await seedTwo();
+		await takeSet("Alpha");
+		harness.clock.advance(day);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+		await harness.tap(buttonFor("Alpha"));
+
+		expect(harness.lastText()).toContain("Alpha?");
 	});
 });

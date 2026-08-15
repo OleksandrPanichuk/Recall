@@ -10,6 +10,7 @@ export const CallbackAction = {
 	StatisticsFor: "y",
 	Browse: "b",
 	Reveal: "v",
+	Repetitions: "p",
 	Unavailable: "u",
 } as const;
 export type CallbackAction =

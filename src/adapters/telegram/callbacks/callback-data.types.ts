@@ -41,6 +41,9 @@ export interface BrowseCallback {
 	readonly folderId?: string;
 	readonly page?: number;
 }
+export interface RepetitionsCallback {
+	readonly action: typeof CallbackAction.Repetitions;
+}
 export interface RevealCallback {
 	readonly action: typeof CallbackAction.Reveal;
 	readonly questionId: string;
@@ -61,5 +64,6 @@ export type Callback =
 	| AnswerCallback
 	| ToggleCallback
 	| BrowseCallback
+	| RepetitionsCallback
 	| RevealCallback
 	| UnavailableCallback;
