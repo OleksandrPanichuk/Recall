@@ -516,3 +516,52 @@ describe("folders over MCP", () => {
 		expect(result.text.toLowerCase()).toContain("deep");
 	});
 });
+
+describe("only answerable types are authorable", () => {
+	test.each([
+		"typed_answer",
+		"cloze",
+		"ordering",
+		"matching",
+	])("refuses %s until Telegram can answer it", async (type) => {
+		const quizSetId = await newDraft("Draft");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type,
+					prompt: "Anything",
+					difficulty: "easy",
+					options: [
+						{ text: "a", isCorrect: true },
+						{ text: "b", isCorrect: true },
+					],
+				},
+			],
+		});
+
+		expect(added.isError).toBe(true);
+	});
+
+	test("still accepts the three it can answer", async () => {
+		const quizSetId = await newDraft("Draft");
+
+		const added = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [
+				{
+					type: "single_choice",
+					prompt: "Pick",
+					difficulty: "easy",
+					options: [
+						{ text: "a", isCorrect: true },
+						{ text: "b", isCorrect: false },
+					],
+				},
+			],
+		});
+
+		expect(added.isError).toBe(false);
+	});
+});
