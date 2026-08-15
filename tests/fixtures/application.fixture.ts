@@ -4,12 +4,14 @@ import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-folder.repository";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
+import { createSqliteRepetitionRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-repetition.repository";
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
+import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Transaction } from "@/application/ports/transaction";
 import { openMigratedDatabase } from "../integration/sqlite/migrated-database";
 
@@ -71,6 +73,7 @@ export interface TestContext {
 	readonly quizSets: QuizSetRepository;
 	readonly folders: FolderRepository;
 	readonly attempts: QuizAttemptRepository;
+	readonly repetition: RepetitionRepository;
 	readonly timezone: string;
 	close(): void;
 }
@@ -79,16 +82,20 @@ export function createTestContext(startAt = DEFAULT_START_AT): TestContext {
 	const database = openMigratedDatabase();
 	const client = createDrizzleClient(database);
 	const transaction = createSqliteTransaction(client);
+	const clock = createMutableClock(startAt);
 
 	return {
 		database,
 		client,
-		clock: createMutableClock(startAt),
+		clock,
 		idGenerator: createSequentialIdGenerator(),
 		transaction,
 		quizSets: createSqliteQuizSetRepository(client, transaction),
 		folders: createSqliteFolderRepository(client, transaction),
 		attempts: createSqliteQuizAttemptRepository(client, transaction),
+		repetition: createSqliteRepetitionRepository(client, transaction, () =>
+			clock.now(),
+		),
 		timezone: DEFAULT_TIMEZONE,
 		close: () => {
 			database.close();
