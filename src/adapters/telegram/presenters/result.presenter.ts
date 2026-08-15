@@ -23,6 +23,9 @@ export function answerFeedback(
 	const lines = [
 		result.isCorrect ? "✅ Правильно" : "❌ Неправильно",
 		result.alreadyAnswered ? "(відповідь уже зарахована раніше)" : undefined,
+		result.credit.possible > 1
+			? `Правильно ${result.credit.earned} з ${result.credit.possible} пар`
+			: undefined,
 		result.typedAnswer === undefined || result.isCorrect
 			? undefined
 			: `Ви написали: ${result.typedAnswer}`,

@@ -15,6 +15,8 @@ export interface QuestionResponse {
 	readonly answeredAt: Date;
 	readonly typedAnswer?: string;
 	readonly skipped?: boolean;
+	readonly creditEarned?: number;
+	readonly creditPossible?: number;
 }
 
 export interface QuizAttempt {

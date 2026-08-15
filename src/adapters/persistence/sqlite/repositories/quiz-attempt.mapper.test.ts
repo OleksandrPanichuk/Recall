@@ -37,6 +37,8 @@ const aResponseRow = (
 	isCorrect: true,
 	typedAnswer: null,
 	skipped: null,
+	creditEarned: null,
+	creditPossible: null,
 	answeredAt: "2026-08-01T10:05:00.000Z",
 	...overrides,
 });

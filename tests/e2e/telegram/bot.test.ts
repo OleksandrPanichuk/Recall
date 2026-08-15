@@ -1268,3 +1268,78 @@ describe("matching feedback and limits (§3.12)", () => {
 		expect(harness.lastText()).toContain("Відповісти");
 	});
 });
+
+describe("partial credit for matching (§3.13)", () => {
+	const seedThreePairs = async (): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Three pairs",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.Matching,
+					prompt: "Match",
+					difficulty: "easy",
+					options: [
+						{ text: "cat", isCorrect: true, matchKey: "p0" },
+						{ text: "dog", isCorrect: true, matchKey: "p1" },
+						{ text: "bird", isCorrect: true, matchKey: "p2" },
+						{ text: "кіт", isCorrect: true, matchKey: "p0" },
+						{ text: "пес", isCorrect: true, matchKey: "p1" },
+						{ text: "птах", isCorrect: true, matchKey: "p2" },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Three pairs"));
+	};
+
+	test("shows how many pairs are matched so far", async () => {
+		await seedThreePairs();
+
+		expect(harness.lastText()).toContain("Зіставлено 0/3");
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+
+		expect(harness.lastText()).toContain("Зіставлено 1/3");
+	});
+
+	test("one right pair out of three earns a third of the question", async () => {
+		await seedThreePairs();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("dog"));
+		await harness.tap(buttonFor("птах"));
+		await harness.tap(buttonFor("bird"));
+		await harness.tap(buttonFor("пес"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Неправильно");
+		expect(harness.lastText()).toContain("Правильно 1 з 3 пар");
+		expect(harness.lastText()).toContain("33.3%");
+	});
+
+	test("every pair right scores the whole question", async () => {
+		await seedThreePairs();
+
+		await harness.tap(buttonFor("cat"));
+		await harness.tap(buttonFor("кіт"));
+		await harness.tap(buttonFor("dog"));
+		await harness.tap(buttonFor("пес"));
+		await harness.tap(buttonFor("bird"));
+		await harness.tap(buttonFor("птах"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Правильно");
+		expect(harness.lastText()).toContain("100%");
+	});
+});

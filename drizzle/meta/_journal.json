@@ -43,6 +43,13 @@
 			"when": 1786794196218,
 			"tag": "0005_vocabulary_items",
 			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "6",
+			"when": 1786816969146,
+			"tag": "0006_partial_credit",
+			"breakpoints": true
 		}
 	]
 }
