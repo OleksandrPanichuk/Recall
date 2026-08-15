@@ -40,6 +40,7 @@ export function createQuestion(draft: QuestionDraft): Question {
 		sourceReference: trimmedOrUndefined(draft.sourceReference),
 		topic: trimmedOrUndefined(draft.topic),
 		hint: trimmedOrUndefined(draft.hint),
+		vocabularyItemId: draft.vocabularyItemId,
 	};
 
 	switch (draft.type) {

@@ -9,6 +9,7 @@ export const applicationTables = [
 	"questions",
 	"quiz_attempts",
 	"quiz_sets",
+	"vocabulary_items",
 ] as const;
 
 export function openMigratedDatabase(path = ":memory:"): Database {

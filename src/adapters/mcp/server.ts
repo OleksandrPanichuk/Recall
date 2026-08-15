@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { silentLogger } from "@/infrastructure/logging/logger";
 import type { McpServerOptions, McpUseCases } from "./server.types";
 import { registerAddQuestionsTool } from "./tools/add-questions.tool";
+import { registerAddVocabularyTool } from "./tools/add-vocabulary.tool";
 import { registerArchiveSetTool } from "./tools/archive-set.tool";
 import { registerCreateSetTool } from "./tools/create-set.tool";
 import { registerDeleteFolderTool } from "./tools/delete-folder.tool";
@@ -32,6 +33,7 @@ export function createMcpServer(
 
 	registerCreateSetTool(server, useCases, runTool);
 	registerAddQuestionsTool(server, useCases, runTool);
+	registerAddVocabularyTool(server, useCases, runTool);
 	registerUpdateSetTool(server, useCases, runTool);
 	registerPublishSetTool(server, useCases, runTool);
 	registerArchiveSetTool(server, useCases, runTool);

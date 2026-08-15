@@ -4,6 +4,7 @@ import type { ListFolderTree } from "@/application/use-cases/folders/list-folder
 import type { RenameFolder } from "@/application/use-cases/folders/rename-folder";
 import type { ResolveFolderPath } from "@/application/use-cases/folders/resolve-folder-path";
 import type { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
+import type { AddVocabulary } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import type { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import type { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
 import type { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
@@ -17,6 +18,7 @@ export interface McpUseCases {
 	readonly createQuizSet: CreateQuizSet;
 	readonly updateQuizSet: UpdateQuizSet;
 	readonly addQuestions: AddQuestions;
+	readonly addVocabulary: AddVocabulary;
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly getQuizSet: GetQuizSet;
