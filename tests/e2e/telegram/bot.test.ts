@@ -979,3 +979,102 @@ describe("typed answers do not consume unseen questions (§3.11)", () => {
 		expect(harness.lastText()).toContain("Головне меню");
 	});
 });
+describe("ordering questions (§3.9)", () => {
+	const seedOrdering = async (): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Word order",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.Ordering,
+					prompt: "Build the question",
+					difficulty: "medium",
+					options: [
+						{ text: "where", isCorrect: true },
+						{ text: "the station", isCorrect: true },
+						{ text: "is", isCorrect: true },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+	};
+
+	const openOrdering = async (): Promise<void> => {
+		await seedOrdering();
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Word order"));
+	};
+
+	test("offers every word and no answer button yet", async () => {
+		await openOrdering();
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(labels).toContainEqual(expect.stringContaining("where"));
+		expect(labels).toContainEqual(expect.stringContaining("the station"));
+		expect(labels).toContainEqual(expect.stringContaining("is"));
+		expect(labels).not.toContainEqual(expect.stringContaining("Відповісти"));
+	});
+
+	test("builds the sequence as words are tapped", async () => {
+		await openOrdering();
+
+		await harness.tap(buttonFor("where"));
+
+		expect(harness.lastText()).toContain("1. where");
+		expect(harness.lastButtons().map((entry) => entry.text)).not.toContainEqual(
+			expect.stringContaining("where"),
+		);
+	});
+
+	test("accepts the declared order", async () => {
+		await openOrdering();
+
+		await harness.tap(buttonFor("where"));
+		await harness.tap(buttonFor("the station"));
+		await harness.tap(buttonFor("is"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Правильно");
+	});
+
+	test("rejects a different order", async () => {
+		await openOrdering();
+
+		await harness.tap(buttonFor("where"));
+		await harness.tap(buttonFor("is"));
+		await harness.tap(buttonFor("the station"));
+		await harness.tap(buttonFor("Відповісти"));
+
+		expect(harness.lastText()).toContain("Неправильно");
+	});
+
+	test("Скинути clears the sequence", async () => {
+		await openOrdering();
+
+		await harness.tap(buttonFor("where"));
+		await harness.tap(buttonFor("Скинути"));
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(labels).toContainEqual(expect.stringContaining("where"));
+		expect(harness.lastText()).toContain("Натискайте слова");
+	});
+
+	test("keeps the same shuffle when the screen is re-rendered", async () => {
+		await openOrdering();
+
+		const first = harness.lastButtons().map((entry) => entry.text);
+
+		await harness.tap(buttonFor("where"));
+		await harness.tap(buttonFor("Скинути"));
+
+		expect(harness.lastButtons().map((entry) => entry.text)).toEqual(first);
+	});
+});

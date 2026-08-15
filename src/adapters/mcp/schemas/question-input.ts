@@ -15,6 +15,8 @@ function optionsOf(
 		case QuestionType.TypedAnswer:
 		case QuestionType.Cloze:
 			return accepted(question.acceptedAnswers ?? []);
+		case QuestionType.Ordering:
+			return accepted(question.orderedItems ?? []);
 		default:
 			return question.options ?? [];
 	}
