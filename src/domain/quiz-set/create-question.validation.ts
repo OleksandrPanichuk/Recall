@@ -122,6 +122,22 @@ const collectMatchingIssues = (
 		return ["each matchKey must appear on exactly two options"];
 	}
 
+	const half = options.length / 2;
+	const straddles = [...sizes.keys()].every((key) => {
+		const positions = options
+			.filter((option) => (option.matchKey ?? "") === key)
+			.map((option) => option.position);
+
+		return (
+			positions.filter((position) => position < half).length === 1 &&
+			positions.filter((position) => position >= half).length === 1
+		);
+	});
+
+	if (!straddles) {
+		return ["each matchKey must have one option on each side"];
+	}
+
 	return sizes.size < 2 ? ["matching requires at least two pairs"] : [];
 };
 

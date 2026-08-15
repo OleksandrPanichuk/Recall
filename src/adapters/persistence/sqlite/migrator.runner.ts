@@ -10,7 +10,15 @@ import {
 
 const REBUILD_DIRECTIVE = "-- rebuild";
 
-function rebuildMarker(statements: string): string | undefined {
+const withoutComments = (sql: string): string =>
+	sql
+		.split("\n")
+		.map((line) => line.replace(/--.*$/, ""))
+		.join("\n");
+
+function rebuildMarker(sql: string): string | undefined {
+	const statements = withoutComments(sql);
+
 	if (/pragma\s+foreign_keys/i.test(statements)) {
 		return "PRAGMA foreign_keys";
 	}
@@ -33,9 +41,14 @@ function isDeclaredRebuild(sql: string): boolean {
 function statementsOf(sql: string): readonly string[] {
 	return sql
 		.split("--> statement-breakpoint")
-		.map((statement) => statement.trim())
-		.filter((statement) => statement.length > 0)
-		.filter((statement) => !/^\s*pragma\s+foreign_keys/i.test(statement));
+		.map((statement) =>
+			statement
+				.split("\n")
+				.filter((line) => !/^\s*pragma\s+foreign_keys/i.test(line))
+				.join("\n")
+				.trim(),
+		)
+		.filter((statement) => withoutComments(statement).trim().length > 0);
 }
 
 export function applyBatch(

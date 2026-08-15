@@ -403,3 +403,51 @@ describe("undeclared rebuilds of any shape", () => {
 		);
 	});
 });
+
+describe("statement splitting", () => {
+	test("keeps DDL that shares a group with a foreign_keys pragma", () => {
+		const rebuild = [
+			"-- rebuild",
+			"CREATE TABLE `__new_parents` (",
+			"\t`id` text PRIMARY KEY NOT NULL,",
+			"\t`status` text NOT NULL",
+			");",
+			"--> statement-breakpoint",
+			"INSERT INTO `__new_parents` SELECT `id`, `status` FROM `parents`;",
+			"--> statement-breakpoint",
+			"PRAGMA foreign_keys=OFF;",
+			"DROP TABLE `parents`;",
+			"ALTER TABLE `__new_parents` RENAME TO `parents`;",
+		].join("\n");
+
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{ tag: "0001_rebuild", sql: rebuild },
+		]);
+
+		expect(applyMigrations(database, folder)).toEqual(["0001_rebuild"]);
+		expect(tableExists("__new_parents")).toBeFalse();
+		expect(
+			database
+				.query<{ sql: string }, []>(
+					"SELECT sql FROM sqlite_master WHERE name = 'parents'",
+				)
+				.get()?.sql ?? "",
+		).not.toContain("parents_status_check");
+	});
+
+	test("does not read a table drop mentioned only in a comment", () => {
+		writeMigrations([
+			{ tag: "0000_base", sql: baseMigration },
+			{
+				tag: "0001_ordinary",
+				sql: [
+					"-- follow-up: drop table legacy_notes once the export lands",
+					"ALTER TABLE `parents` ADD `note` text;",
+				].join("\n"),
+			},
+		]);
+
+		expect(applyMigrations(database, folder)).toEqual(["0001_ordinary"]);
+	});
+});
