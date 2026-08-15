@@ -22,7 +22,15 @@ const { requiredDate, optionalDate } = createRowValueParsers(
 );
 
 const parseIntervals = (raw: string, id: string): number[] => {
-	const parsed: unknown = JSON.parse(raw);
+	let parsed: unknown;
+
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw new CorruptedRepetitionRowError(id, [
+			"intervals_days must be a JSON array",
+		]);
+	}
 
 	if (
 		!Array.isArray(parsed) ||

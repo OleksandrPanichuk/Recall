@@ -158,6 +158,19 @@ describe("settings", () => {
 		).toEqual({ total: 1 });
 	});
 
+	test("round-trips the interval list itself", () => {
+		repetition.saveDefaults({ ...custom, intervalsDays: [1, 3, 9, 27] });
+
+		expect(repetition.findDefaults()?.intervalsDays).toEqual([1, 3, 9, 27]);
+	});
+
+	test("names the row when the interval list is not JSON", () => {
+		repetition.saveDefaults(custom);
+		database.run("UPDATE repetition_defaults SET intervals_days = 'oops'");
+
+		expect(() => repetition.findDefaults()).toThrow(/intervals_days/);
+	});
+
 	test("refuses a second defaults row", () => {
 		repetition.saveDefaults(custom);
 
