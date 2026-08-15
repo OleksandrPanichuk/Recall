@@ -1515,3 +1515,50 @@ describe("attempt details (§3.15)", () => {
 		expect(harness.lastText()).toContain("✔️");
 	});
 });
+
+describe("attempt details stay inside Telegram's limit (§3.16)", () => {
+	test("a long attempt is trimmed with a footer, not silently cut", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Long",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: Array.from({ length: 30 }, (_value, index) => ({
+				type: QuestionType.TrueFalse,
+				prompt: `Питання ${index} — ${"д".repeat(120)}`,
+				difficulty: "easy" as const,
+				options: [
+					{ text: "Так", isCorrect: true },
+					{ text: "Ні", isCorrect: false },
+				],
+			})),
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Long"));
+
+		for (let index = 0; index < 30; index += 1) {
+			await harness.tap(buttonFor("Так"));
+
+			if (index < 29) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		await harness.tap(buttonFor("Завершити"));
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor("Long"));
+		await harness.tap(buttonFor("деталі"));
+
+		const text = harness.lastText();
+
+		expect(text.length).toBeLessThanOrEqual(4096);
+		expect(text).toContain("і ще");
+		expect(text).not.toContain("(скорочено)");
+	});
+});

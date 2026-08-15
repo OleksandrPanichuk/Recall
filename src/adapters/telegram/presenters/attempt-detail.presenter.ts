@@ -8,7 +8,7 @@ import type { Screen } from "./screen.types";
 import { button } from "./utils/button";
 import { correctAnswerText } from "./utils/correct-answer";
 
-const MAX_QUESTIONS = 20;
+const TEXT_BUDGET = 3600;
 
 const mark = (answer: AnsweredQuestion): string => {
 	if (!answer.answered) {
@@ -56,10 +56,7 @@ const givenText = (answer: AnsweredQuestion): string => {
 };
 
 export function attemptDetailScreen(detail: AttemptDetail): Screen {
-	const shown = detail.answers.slice(0, MAX_QUESTIONS);
-	const hidden = detail.answers.length - shown.length;
-
-	const lines = shown.map((answer, index) => {
+	const describe = (answer: AnsweredQuestion, index: number): string => {
 		const credit =
 			answer.creditPossible > 1
 				? ` (${answer.creditEarned}/${answer.creditPossible})`
@@ -74,7 +71,23 @@ export function attemptDetailScreen(detail: AttemptDetail): Screen {
 				).replaceAll("\n", "; ")}`;
 
 		return `${mark(answer)} ${index + 1}. ${answer.question.prompt}\n   ➡️ ${givenText(answer)}${credit}${correct}`;
-	});
+	};
+
+	const lines: string[] = [];
+	let used = 0;
+
+	for (const [index, answer] of detail.answers.entries()) {
+		const line = describe(answer, index);
+
+		if (used + line.length > TEXT_BUDGET) {
+			break;
+		}
+
+		lines.push(line);
+		used += line.length + 2;
+	}
+
+	const hidden = detail.answers.length - lines.length;
 
 	return {
 		text: [
