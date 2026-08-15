@@ -10,6 +10,7 @@ import { registerEnsureFolderPathTool } from "./tools/ensure-folder-path.tool";
 import { registerGetSetTool } from "./tools/get-set.tool";
 import { registerListFoldersTool } from "./tools/list-folders.tool";
 import { registerListSetsTool } from "./tools/list-sets.tool";
+import { registerListVocabularyTool } from "./tools/list-vocabulary.tool";
 import { registerMoveSetTool } from "./tools/move-set.tool";
 import { registerPublishSetTool } from "./tools/publish-set.tool";
 import { registerRenameFolderTool } from "./tools/rename-folder.tool";
@@ -38,6 +39,7 @@ export function createMcpServer(
 	registerAddVocabularyTool(server, useCases, runTool);
 	registerUpdateSetTool(server, useCases, runTool);
 	registerUpdateVocabularyTool(server, useCases, runTool);
+	registerListVocabularyTool(server, useCases, runTool);
 	registerPublishSetTool(server, useCases, runTool);
 	registerArchiveSetTool(server, useCases, runTool);
 	registerGetSetTool(server, useCases, runTool);

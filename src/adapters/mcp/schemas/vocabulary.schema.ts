@@ -38,6 +38,10 @@ export const addVocabularyShape = {
 		.optional(),
 };
 
+export const listVocabularyShape = {
+	quizSetId: z.string().trim().min(1).max(64),
+};
+
 export const updateVocabularyShape = {
 	itemId: z.string().trim().min(1).max(64),
 	term: side.optional(),

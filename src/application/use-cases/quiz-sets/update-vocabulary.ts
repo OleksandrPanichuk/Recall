@@ -6,12 +6,14 @@ import type { Command, UseCase } from "@/application/use-case";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	type Question,
+	type QuestionId,
 	QuestionType,
 	toQuestionOptionId,
 } from "@/domain/quiz-set/question";
+import { replaceQuestions } from "@/domain/quiz-set/quiz-set";
 import {
 	cardsOf,
-	createVocabularyItem,
+	restoreVocabularyItem,
 	type VocabularyCard,
 	VocabularyDirection,
 	type VocabularyItem,
@@ -41,6 +43,7 @@ export interface UpdateVocabularyCommand {
 export interface UpdateVocabularyResult {
 	readonly itemId: VocabularyItemId;
 	readonly rebuiltQuestionCount: number;
+	readonly removedQuestionCount: number;
 }
 
 export interface UpdateVocabularyDependencies {
@@ -50,19 +53,83 @@ export interface UpdateVocabularyDependencies {
 	readonly transaction: Transaction;
 }
 
-const directionOf = (
-	question: Question,
-	item: VocabularyItem,
-): VocabularyDirection => {
-	const prompt = normaliseForComparison(question.prompt);
-	const isTerm = item.terms.some(
-		(term) => normaliseForComparison(term) === prompt,
-	);
+const BOTH_WAYS = [
+	VocabularyDirection.TermToTranslation,
+	VocabularyDirection.TranslationToTerm,
+];
 
-	return isTerm
-		? VocabularyDirection.TermToTranslation
-		: VocabularyDirection.TranslationToTerm;
-};
+interface Rebuild {
+	readonly replacements: readonly Question[];
+	readonly removedIds: readonly QuestionId[];
+}
+
+const cardsByDirection = (
+	item: VocabularyItem,
+): Map<VocabularyDirection, VocabularyCard> =>
+	new Map(cardsOf(item, BOTH_WAYS).map((card) => [card.direction, card]));
+
+const rebuiltFrom = (
+	question: Question,
+	card: VocabularyCard,
+	example: string | undefined,
+): Question =>
+	createQuestion({
+		id: question.id,
+		type: QuestionType.TypedAnswer,
+		prompt: card.prompt,
+		difficulty: question.difficulty,
+		position: question.position,
+		options: card.acceptedAnswers.map((text, index) => ({
+			id: toQuestionOptionId(`${question.id}-${index}`),
+			text,
+			isCorrect: true,
+			position: index,
+		})),
+		explanation: example,
+		hint: card.hint,
+		topic: question.topic,
+		vocabularyItemId: question.vocabularyItemId,
+	});
+
+function planRebuild(
+	questions: readonly Question[],
+	stored: VocabularyItem,
+	updated: VocabularyItem,
+): Rebuild {
+	const before = cardsByDirection(stored);
+	const after = cardsByDirection(updated);
+	const unclaimed = new Map(
+		[...before].map(
+			([direction, card]) =>
+				[normaliseForComparison(card.prompt), direction] as const,
+		),
+	);
+	const replacements: Question[] = [];
+	const removedIds: QuestionId[] = [];
+
+	for (const question of questions) {
+		const key = normaliseForComparison(question.prompt);
+		const direction = unclaimed.get(key);
+
+		if (direction === undefined) {
+			continue;
+		}
+
+		unclaimed.delete(key);
+
+		const card = after.get(direction);
+
+		if (card === undefined) {
+			removedIds.push(question.id);
+			continue;
+		}
+
+		after.delete(direction);
+		replacements.push(rebuiltFrom(question, card, updated.example));
+	}
+
+	return { replacements, removedIds };
+}
 
 export class UpdateVocabulary
 	implements UseCase<Command<UpdateVocabularyCommand>, UpdateVocabularyResult>
@@ -82,75 +149,48 @@ export class UpdateVocabulary
 	async execute(
 		request: Command<UpdateVocabularyCommand>,
 	): Promise<UpdateVocabularyResult> {
-		const stored = this.vocabulary.findById(request.itemId);
-
-		if (stored === undefined) {
-			throw new VocabularyItemNotFoundError(request.itemId);
-		}
-
-		const quizSet = this.quizSets.findById(stored.quizSetId);
-
-		if (quizSet === undefined) {
-			throw new QuizSetNotFoundError(stored.quizSetId);
-		}
-
 		const at = this.clock.now();
-		const updated = createVocabularyItem({
-			id: stored.id,
-			quizSetId: stored.quizSetId,
-			terms: request.term ?? stored.terms,
-			translations: request.translation ?? stored.translations,
-			transcription: request.transcription ?? stored.transcription,
-			example: request.example ?? stored.example,
-			topic: stored.topic,
-			createdAt: stored.createdAt,
-		});
 
-		const cards = new Map<VocabularyDirection, VocabularyCard>(
-			cardsOf(updated, [
-				VocabularyDirection.TermToTranslation,
-				VocabularyDirection.TranslationToTerm,
-			]).map((card) => [card.direction, card]),
-		);
+		return this.transaction.run(() => {
+			const stored = this.vocabulary.findById(request.itemId);
 
-		let rebuilt = 0;
-		const questions = quizSet.questions.map((question) => {
-			if (question.vocabularyItemId !== String(stored.id)) {
-				return question;
+			if (stored === undefined) {
+				throw new VocabularyItemNotFoundError(request.itemId);
 			}
 
-			const card = cards.get(directionOf(question, stored));
+			const quizSet = this.quizSets.findById(stored.quizSetId);
 
-			if (card === undefined) {
-				return question;
+			if (quizSet === undefined) {
+				throw new QuizSetNotFoundError(stored.quizSetId);
 			}
 
-			rebuilt += 1;
-
-			return createQuestion({
-				id: question.id,
-				type: QuestionType.TypedAnswer,
-				prompt: card.prompt,
-				difficulty: question.difficulty,
-				position: question.position,
-				options: card.acceptedAnswers.map((text, index) => ({
-					id: toQuestionOptionId(`${question.id}-${index}`),
-					text,
-					isCorrect: true,
-					position: index,
-				})),
-				explanation: updated.example,
-				hint: card.hint,
-				topic: question.topic,
-				vocabularyItemId: question.vocabularyItemId,
+			const updated = restoreVocabularyItem({
+				id: stored.id,
+				quizSetId: stored.quizSetId,
+				terms: request.term ?? stored.terms,
+				translations: request.translation ?? stored.translations,
+				transcription: request.transcription ?? stored.transcription,
+				example: request.example ?? stored.example,
+				topic: stored.topic,
+				createdAt: stored.createdAt,
+				updatedAt: at,
 			});
-		});
 
-		this.transaction.run(() => {
-			this.vocabulary.save({ ...updated, updatedAt: at });
-			this.quizSets.save({ ...quizSet, questions, updatedAt: at });
-		});
+			const owned = quizSet.questions.filter(
+				(question) => question.vocabularyItemId === String(stored.id),
+			);
+			const { replacements, removedIds } = planRebuild(owned, stored, updated);
 
-		return { itemId: updated.id, rebuiltQuestionCount: rebuilt };
+			this.vocabulary.save(updated);
+			this.quizSets.save(
+				replaceQuestions(quizSet, replacements, removedIds, at),
+			);
+
+			return {
+				itemId: updated.id,
+				rebuiltQuestionCount: replacements.length,
+				removedQuestionCount: removedIds.length,
+			};
+		});
 	}
 }

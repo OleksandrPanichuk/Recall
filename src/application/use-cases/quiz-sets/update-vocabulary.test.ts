@@ -2,9 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
+	DuplicateQuestionError,
+	QuizSetTransitionError,
+} from "@/domain/quiz-set/quiz-set.errors";
+import {
 	toVocabularyItemId,
 	VocabularyDirection,
 	type VocabularyItemId,
+	VocabularyItemValidationError,
 } from "@/domain/vocabulary/vocabulary-item";
 import {
 	createQuizSetsHarness,
@@ -20,6 +25,7 @@ let addVocabulary: QuizSetsHarness["addVocabulary"];
 let update: UpdateVocabulary;
 let newDraft: QuizSetsHarness["newDraft"];
 let publish: QuizSetsHarness["publish"];
+let archive: QuizSetsHarness["archive"];
 
 const bothWays = [
 	VocabularyDirection.TermToTranslation,
@@ -54,6 +60,7 @@ beforeEach(() => {
 		updateVocabulary: update,
 		newDraft,
 		publish,
+		archive,
 	} = createQuizSetsHarness());
 });
 
@@ -171,6 +178,95 @@ describe("UpdateVocabulary", () => {
 		expect(schedule?.repetitionCount).toBe(4);
 		expect(schedule?.lapses).toBe(1);
 		expect(schedule?.dueAt?.toISOString()).toBe("2026-08-15T10:00:00.000Z");
+	});
+
+	test("keeps the two cards apart when a word appears on both sides", async () => {
+		const quizSetId = await newDraft();
+		const { itemIds } = await addVocabulary.execute({
+			quizSetId,
+			directions: bothWays,
+			pairs: [{ term: ["kot", "cat"], translation: ["cat"] }],
+		});
+		const itemId = itemIds[0];
+
+		if (itemId === undefined) throw new Error("nothing was added");
+
+		const result = await update.execute({ itemId, transcription: "/kɔt/" });
+
+		expect(result.rebuiltQuestionCount).toBe(2);
+		expect(
+			cardsOfItem(quizSetId, itemId)
+				.map((card) => card.prompt)
+				.sort(),
+		).toEqual(["cat", "kot"]);
+	});
+
+	test("refuses a correction that duplicates another word", async () => {
+		const quizSetId = await newDraft();
+
+		await addVocabulary.execute({
+			quizSetId,
+			directions: [VocabularyDirection.TermToTranslation],
+			pairs: [{ term: ["cat"], translation: ["кіт"] }],
+		});
+
+		const { itemIds } = await addVocabulary.execute({
+			quizSetId,
+			directions: [VocabularyDirection.TermToTranslation],
+			pairs: [{ term: ["cat"], translation: ["кыт"] }],
+		});
+		const itemId = itemIds[0];
+
+		if (itemId === undefined) throw new Error("nothing was added");
+
+		await expect(
+			update.execute({ itemId, translation: ["кіт"] }),
+		).rejects.toThrow(DuplicateQuestionError);
+
+		expect(context.vocabulary.findById(itemId)?.translations).toEqual(["кыт"]);
+	});
+
+	test("drops the card a correction leaves without a word to ask", async () => {
+		const quizSetId = await newDraft();
+		const itemId = await addOne(quizSetId);
+
+		await addVocabulary.execute({
+			quizSetId,
+			directions: bothWays,
+			pairs: [{ term: ["dog"], translation: ["пес"] }],
+		});
+
+		const result = await update.execute({ itemId, translation: ["cat"] });
+		const cards = cardsOfItem(quizSetId, itemId);
+
+		expect(result.removedQuestionCount).toBe(1);
+		expect(cards).toHaveLength(1);
+		expect(cards[0]?.prompt).toBe("cat");
+	});
+
+	test("refuses to touch an archived set", async () => {
+		const quizSetId = await newDraft();
+		const itemId = await addOne(quizSetId);
+
+		await publish.execute({ quizSetId });
+		await archive.execute({ quizSetId });
+
+		await expect(
+			update.execute({ itemId, translation: ["кіт"] }),
+		).rejects.toThrow(QuizSetTransitionError);
+	});
+
+	test("refuses a clock that went backwards instead of writing an unreadable row", async () => {
+		const quizSetId = await newDraft();
+		const itemId = await addOne(quizSetId);
+
+		context.clock.set(new Date("2020-01-01T00:00:00.000Z"));
+
+		await expect(
+			update.execute({ itemId, translation: ["кіт"] }),
+		).rejects.toThrow(VocabularyItemValidationError);
+
+		expect(context.vocabulary.findById(itemId)?.translations).toEqual(["кыт"]);
 	});
 
 	test("rejects an item that does not exist", async () => {

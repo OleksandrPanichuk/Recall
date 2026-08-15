@@ -35,6 +35,7 @@ import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-s
 import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
 import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import { ListVocabulary } from "@/application/use-cases/quiz-sets/list-vocabulary";
 import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
@@ -69,6 +70,7 @@ export interface Application {
 	readonly addQuestions: AddQuestions;
 	readonly addVocabulary: AddVocabulary;
 	readonly updateVocabulary: UpdateVocabulary;
+	readonly listVocabulary: ListVocabulary;
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly listQuizSets: ListQuizSets;
@@ -141,6 +143,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		addQuestions,
 		addVocabulary: new AddVocabulary({ ...dependencies, addQuestions }),
 		updateVocabulary: new UpdateVocabulary(dependencies),
+		listVocabulary: new ListVocabulary(dependencies),
 		publishQuizSet: new PublishQuizSet(dependencies),
 		archiveQuizSet: new ArchiveQuizSet(dependencies),
 		listQuizSets: new ListQuizSets(dependencies),

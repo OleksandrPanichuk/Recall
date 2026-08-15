@@ -102,6 +102,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_get_set",
 			"quiz_list_folders",
 			"quiz_list_sets",
+			"quiz_list_vocabulary",
 			"quiz_move_set",
 			"quiz_publish_set",
 			"quiz_rename_folder",
@@ -853,36 +854,69 @@ describe("repetition settings", () => {
 });
 
 describe("correcting a vocabulary item", () => {
-	test("rebuilds both directions and keeps the question ids", async () => {
+	test("rebuilds both directions while the question ids stay put", async () => {
 		const quizSetId = await newDraft("A1");
-		const added = await call("quiz_add_vocabulary", {
+
+		await call("quiz_add_vocabulary", {
 			quizSetId,
 			pairs: [{ term: "cat", translation: "кыт" }],
 		});
-		const itemId = (added.structured.itemIds as string[])[0];
 
-		const before = await call("quiz_get_set", { quizSetId });
+		const listed = await call("quiz_list_vocabulary", { quizSetId });
+		const item = (
+			listed.structured.items as { itemId: string; questionIds: string[] }[]
+		)[0];
 
-		expect(before.text).toContain("кыт");
+		if (item === undefined) throw new Error("nothing was listed");
+
+		expect(listed.text).toContain("кыт");
 
 		const fixed = await call("quiz_update_vocabulary", {
-			itemId,
+			itemId: item.itemId,
 			translation: "кіт",
 		});
 
 		expect(fixed.isError).toBe(false);
 		expect(fixed.structured.rebuiltQuestionCount).toBe(2);
 
-		const after = await call("quiz_get_set", { quizSetId });
+		const after = await call("quiz_list_vocabulary", { quizSetId });
+		const rebuilt = (after.structured.items as { questionIds: string[] }[])[0];
 
-		expect(after.text).not.toContain("кыт");
+		expect(rebuilt?.questionIds).toEqual(item.questionIds);
 		expect(after.text).toContain("кіт");
+		expect(after.text).not.toContain("кыт");
 	});
 
-	test("refuses an item that does not exist", async () => {
-		expect(
-			(await call("quiz_update_vocabulary", { itemId: "ghost", term: "cat" }))
-				.isError,
-		).toBe(true);
+	test("tells the caller how to find a real id", async () => {
+		const result = await call("quiz_update_vocabulary", {
+			itemId: "ghost",
+			term: "cat",
+		});
+
+		expect(result.isError).toBe(true);
+		expect(result.text).toContain("quiz_list_vocabulary");
+	});
+
+	test("explains an invalid correction instead of dumping the error", async () => {
+		const quizSetId = await newDraft("A1");
+
+		await call("quiz_add_vocabulary", {
+			quizSetId,
+			pairs: [{ term: "cat", translation: "кіт" }],
+		});
+
+		const listed = await call("quiz_list_vocabulary", { quizSetId });
+		const item = (listed.structured.items as { itemId: string }[])[0];
+
+		if (item === undefined) throw new Error("nothing was listed");
+
+		const result = await call("quiz_update_vocabulary", {
+			itemId: item.itemId,
+			term: ["cat", "cat"],
+		});
+
+		expect(result.isError).toBe(true);
+		expect(result.text).toContain("Invalid vocabulary item");
+		expect(result.text).not.toContain("Unexpected error");
 	});
 });
