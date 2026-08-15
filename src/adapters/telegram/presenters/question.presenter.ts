@@ -1,7 +1,8 @@
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
 import { type Question, QuestionType } from "@/domain/quiz-set/question";
-import { CallbackAction } from "../callbacks/callback-data";
-import { button, type InlineButton, type Screen } from "./menu.presenter";
+import { CallbackAction } from "../callbacks/callback-data.constants";
+import type { InlineButton, Screen } from "./screen.types";
+import { button } from "./utils/button";
 
 export const MAX_BUTTON_TEXT = 32;
 

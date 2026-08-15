@@ -1,8 +1,9 @@
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
-import type { CallbackAction } from "../callbacks/callback-data";
-import { CallbackAction as Action } from "../callbacks/callback-data";
-import { button, type InlineButton, type Screen } from "./menu.presenter";
+import type { CallbackAction } from "../callbacks/callback-data.constants";
+import { CallbackAction as Action } from "../callbacks/callback-data.constants";
 import { MAX_BUTTON_TEXT } from "./question.presenter";
+import type { InlineButton, Screen } from "./screen.types";
+import { button } from "./utils/button";
 
 export const BROWSE_PAGE_SIZE = 8;
 

@@ -1,10 +1,8 @@
 import type { Context } from "telegraf";
 import type { LogFields } from "@/infrastructure/logging/logger.types";
-import {
-	type Callback,
-	CallbackAction,
-	decodeCallback,
-} from "../callbacks/callback-data";
+import { decodeCallback } from "../callbacks/callback-data";
+import { CallbackAction } from "../callbacks/callback-data.constants";
+import type { Callback } from "../callbacks/callback-data.types";
 
 const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Menu]: "menu",

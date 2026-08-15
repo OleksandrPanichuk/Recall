@@ -2,8 +2,9 @@ import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answ
 import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import type { Question } from "@/domain/quiz-set/question";
-import { CallbackAction } from "../callbacks/callback-data";
-import { button, type Screen } from "./menu.presenter";
+import { CallbackAction } from "../callbacks/callback-data.constants";
+import type { Screen } from "./screen.types";
+import { button } from "./utils/button";
 
 export const MAX_ROWS = 15;
 

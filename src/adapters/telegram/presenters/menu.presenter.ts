@@ -1,23 +1,9 @@
-import {
-	type Callback,
-	CallbackAction,
-	encodeCallback,
-} from "../callbacks/callback-data";
+import { CallbackAction } from "../callbacks/callback-data.constants";
+import type { InlineButton, Screen } from "./screen.types";
+import { button } from "./utils/button";
 
-export interface InlineButton {
-	readonly text: string;
-	readonly callback_data: string;
-}
-
-export interface Screen {
-	readonly text: string;
-	readonly keyboard: readonly (readonly InlineButton[])[];
-}
-
-export const button = (text: string, callback: Callback): InlineButton => ({
-	text,
-	callback_data: encodeCallback(callback),
-});
+export type { InlineButton, Screen } from "./screen.types";
+export { button } from "./utils/button";
 
 const backToMenu = (): readonly InlineButton[] => [
 	button("« Меню", { action: CallbackAction.Menu }),

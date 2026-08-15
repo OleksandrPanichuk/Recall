@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
 import { toFolderId } from "@/domain/folder/folder";
 import type { TelegramUseCases } from "../bot";
-import type { BrowseCallback } from "../callbacks/callback-data";
+import type { BrowseCallback } from "../callbacks/callback-data.types";
 import { browseScreen } from "../presenters/browse.presenter";
 import { render } from "../screen";
 
