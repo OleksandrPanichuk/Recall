@@ -13,7 +13,6 @@ import { ResolveFolderPath } from "./resolve-folder-path";
 
 export interface FoldersHarness {
 	readonly context: TestContext;
-	readonly createFolder: CreateFolder;
 	readonly renameFolder: RenameFolder;
 	readonly moveFolder: MoveFolder;
 	readonly deleteFolder: DeleteFolder;
@@ -42,7 +41,6 @@ export function createFoldersHarness(): FoldersHarness {
 
 	return {
 		context,
-		createFolder,
 		renameFolder: new RenameFolder(dependencies),
 		moveFolder: new MoveFolder(dependencies),
 		deleteFolder: new DeleteFolder(dependencies),

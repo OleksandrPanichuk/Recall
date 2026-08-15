@@ -31,7 +31,6 @@ export interface AttemptsHarness {
 	readonly context: TestContext;
 	readonly create: CreateQuizSet;
 	readonly add: AddQuestions;
-	readonly publish: PublishQuizSet;
 	readonly archive: ArchiveQuizSet;
 	readonly start: StartQuizAttempt;
 	readonly pause: PauseQuizAttempt;
@@ -56,7 +55,6 @@ export function createAttemptsHarness(): AttemptsHarness {
 		context,
 		create,
 		add,
-		publish,
 		archive: new ArchiveQuizSet(context),
 		start: new StartQuizAttempt(context),
 		pause: new PauseQuizAttempt(context),
