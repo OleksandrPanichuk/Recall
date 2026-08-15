@@ -76,8 +76,8 @@ describe("navigation shell (§3.2)", () => {
 		const labels = harness.lastButtons().map((entry) => entry.text);
 
 		expect(labels).toEqual([
-			expect.stringContaining("Мої набори"),
 			expect.stringContaining("Продовжити навчання"),
+			expect.stringContaining("Мої набори"),
 			expect.stringContaining("Статистика"),
 			expect.stringContaining("Налаштування"),
 		]);

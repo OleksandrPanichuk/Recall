@@ -39,8 +39,8 @@ export function mainMenu(state: MenuState): Screen {
 			...(state.hasUnfinishedAttempt
 				? [[button("🏁 Завершити спробу", { action: CallbackAction.Finish })]]
 				: []),
-			[button("📚 Мої набори", { action: CallbackAction.Sets })],
 			[button("▶️ Продовжити навчання", { action: CallbackAction.Resume })],
+			[button("📚 Мої набори", { action: CallbackAction.Sets })],
 			[button("📊 Статистика", { action: CallbackAction.Statistics })],
 			[
 				button("⚙️ Налаштування", {
