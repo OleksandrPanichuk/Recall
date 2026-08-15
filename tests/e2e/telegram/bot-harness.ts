@@ -7,6 +7,8 @@ import {
 } from "@/composition/create-application";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { silentLogger } from "@/infrastructure/logging/logger";
+import type { Logger } from "@/infrastructure/logging/logger.types";
 import {
 	createMutableClock,
 	createRealisticIdGenerator,
@@ -24,6 +26,10 @@ export interface ApiCall {
 export interface InlineButton {
 	readonly text: string;
 	readonly callback_data: string;
+}
+
+export interface BotHarnessOptions {
+	readonly logger?: Logger;
 }
 
 export interface BotHarness {
@@ -113,18 +119,19 @@ function patchTelegramTransport(): void {
 	}) as typeof Telegram.prototype.callApi;
 }
 
-export function createBotHarness(): BotHarness {
+export function createBotHarness(options: BotHarnessOptions = {}): BotHarness {
 	const clock = createMutableClock();
 	const application = createApplication({
 		databasePath: ":memory:",
 		clock,
 		idGenerator: createRealisticIdGenerator("q"),
+		logger: options.logger,
 	});
 	const bot = createBot({
 		token: "test-token",
 		allowedTelegramUserId: ALLOWED_USER,
 		useCases: application,
-		log: () => {},
+		logger: options.logger ?? silentLogger,
 	});
 	const calls: ApiCall[] = [];
 

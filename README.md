@@ -323,7 +323,9 @@ src/
     config/
       env.ts       validated startup configuration
     logging/
-      logger.ts    structured, privacy-safe JSON logs on stderr
+      logger.ts       structured, privacy-safe JSON logs on stderr
+      logger.types.ts log level, record and logger contracts
+      utils/          field redaction, clipping and record formatting
     lifecycle/
       shutdown.ts  ordered teardown on SIGINT/SIGTERM
       backup.ts    consistent backup and restore validation
@@ -331,14 +333,16 @@ src/
   adapters/
     telegram/
       bot.ts       Telegraf wiring and callback routing
-      middleware/  allowlist and error mapping
+      middleware/  error mapping, request logging and allowlist
       handlers/    thin handlers, one use case each
       presenters/  screen text and inline keyboards
       callbacks/   callback payload encoding
+      utils/       privacy-safe description of an update
     mcp/
       server.ts    MCP tool registration
       schemas/     zod input schemas
       presenters/  tool result and error text
+      utils/       per-call tool logging
   composition/
     create-application.ts  manual dependency injection root
   entrypoints/
@@ -515,7 +519,25 @@ bun run backup ~/backups/quiz.sqlite # або явний шлях
 Structured JSON, один рядок на запис, у **stderr** (stdout зайнятий MCP
 протоколом). Поля з іменами, схожими на credentials, редагуються; довгі рядки
 обрізаються, тому тексти книг і питань не потрапляють у logs; raw Telegram
-updates не логуються взагалі. `--debug` вмикає debug-рівень.
+updates не логуються взагалі. `--debug` вмикає debug-рівень і для бота, і для
+MCP server.
+
+Логуються всі змістовні requests:
+
+| Запис | Коли | Ключові поля |
+| --- | --- | --- |
+| `telegram update` | кожен оброблений update | `update`, `action`, `telegramUserId`, `durationMs`, `outcome` |
+| `telegram handler failed` | handler кинув помилку | ті самі поля плюс `error` (name і message, без stack) |
+| `rejected an update from an unknown user` | update не від `ALLOWED_TELEGRAM_USER_ID` | `telegramUserId`, `update` |
+| `could not decode callback data` | застаріла або зіпсована callback payload | `telegramUserId`, `data` |
+| `mcp tool` | кожен виклик MCP tool | `tool`, `durationMs`, `outcome` плюс `quizSetId`, `questionCount`, `folderPath` |
+| `mcp tool failed` | tool завершився помилкою | ті самі поля плюс `error` |
+| `database ready` | старт процесу | `path`, `appliedMigrations` |
+| `shutting down`, `shutdown complete` | teardown | `reason`, `tasks` |
+
+Записи описують **що** сталося, а не **зміст**: замість тексту питання — його
+id, замість вибраних варіантів — їх кількість, замість тіла повідомлення — його
+довжина.
 
 ## Безпека та приватність
 

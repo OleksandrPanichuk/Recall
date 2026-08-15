@@ -6,6 +6,7 @@ import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-qu
 import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import type { Logger } from "@/infrastructure/logging/logger.types";
 import { CallbackAction, decodeCallback } from "./callbacks/callback-data";
 import {
 	answerHandler,
@@ -18,6 +19,7 @@ import { startAttemptHandler } from "./handlers/start-attempt.handler";
 import { statisticsHandler } from "./handlers/statistics.handler";
 import { allowlistMiddleware } from "./middleware/allowlist.middleware";
 import { errorMiddleware } from "./middleware/error.middleware";
+import { loggingMiddleware } from "./middleware/logging.middleware";
 import { notice, UNAVAILABLE_FEATURES } from "./presenters/menu.presenter";
 import { render } from "./screen";
 
@@ -34,15 +36,21 @@ export interface TelegramBotOptions {
 	readonly token: string;
 	readonly allowedTelegramUserId: number;
 	readonly useCases: TelegramUseCases;
-	readonly log?: (error: unknown) => void;
+	readonly logger: Logger;
 }
 
 export function createBot(options: TelegramBotOptions): Telegraf {
 	const bot = new Telegraf(options.token);
-	const { useCases } = options;
+	const { useCases, logger } = options;
 
-	bot.use(errorMiddleware(options.log));
-	bot.use(allowlistMiddleware(options.allowedTelegramUserId));
+	bot.use(errorMiddleware(logger));
+	bot.use(loggingMiddleware({ logger }));
+	bot.use(
+		allowlistMiddleware({
+			allowedTelegramUserId: options.allowedTelegramUserId,
+			logger,
+		}),
+	);
 
 	bot.start(menuHandler(useCases));
 
@@ -52,6 +60,10 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 		const callback = data === undefined ? undefined : decodeCallback(data);
 
 		if (callback === undefined) {
+			logger.warn("could not decode callback data", {
+				telegramUserId: ctx.from.id,
+				data,
+			});
 			await ctx.answerCbQuery("Незрозуміла дія").catch(() => {});
 
 			return;
@@ -132,7 +144,7 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 	bot.on("message", menuHandler(useCases));
 
 	bot.catch((error) => {
-		options.log?.(error);
+		logger.error("telegram update was dropped", { error });
 	});
 
 	return bot;
