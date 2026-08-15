@@ -43,6 +43,8 @@ const toResponse = (
 	answeredAt: requiredDate(row.answeredAt, "answered_at", attemptId),
 	typedAnswer: row.typedAnswer ?? undefined,
 	skipped: row.skipped ?? undefined,
+	creditEarned: row.creditEarned ?? undefined,
+	creditPossible: row.creditPossible ?? undefined,
 });
 
 const orderedResponses = (
@@ -148,6 +150,8 @@ export function toQuestionResponseRows(
 		isCorrect: response.isCorrect,
 		typedAnswer: response.typedAnswer ?? null,
 		skipped: response.skipped ?? null,
+		creditEarned: response.creditEarned ?? null,
+		creditPossible: response.creditPossible ?? null,
 		answeredAt: response.answeredAt.toISOString(),
 	}));
 }

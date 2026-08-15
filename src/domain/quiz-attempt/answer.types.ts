@@ -11,6 +11,11 @@ export type Answer =
 	| { readonly kind: "order"; readonly optionIds: readonly QuestionOptionId[] }
 	| { readonly kind: "pairs"; readonly pairs: readonly OptionPair[] };
 
+export interface AnswerGrade {
+	readonly earned: number;
+	readonly possible: number;
+}
+
 export const optionsAnswer = (
 	optionIds: readonly QuestionOptionId[],
 ): Answer => ({ kind: "options", optionIds });

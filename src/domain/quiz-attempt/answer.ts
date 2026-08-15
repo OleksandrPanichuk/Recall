@@ -2,10 +2,10 @@ import { type Question, QuestionType } from "../quiz-set/question";
 import {
 	evaluateOptions,
 	evaluateOrder,
-	evaluatePairs,
 	evaluateText,
+	gradePairs,
 } from "./answer.evaluators";
-import type { Answer } from "./answer.types";
+import type { Answer, AnswerGrade } from "./answer.types";
 import { QuizAttemptValidationError } from "./quiz-attempt.errors";
 
 export { acceptedAnswers, correctOptionIds } from "./answer.evaluators";
@@ -16,6 +16,14 @@ export {
 	pairsAnswer,
 	textAnswer,
 } from "./answer.types";
+
+const whole = (correct: boolean): AnswerGrade => ({
+	earned: correct ? 1 : 0,
+	possible: 1,
+});
+
+export const isFullyCorrect = (grade: AnswerGrade): boolean =>
+	grade.possible > 0 && grade.earned === grade.possible;
 
 const expectedKind = (question: Question): Answer["kind"] => {
 	switch (question.type) {
@@ -31,7 +39,7 @@ const expectedKind = (question: Question): Answer["kind"] => {
 	}
 };
 
-export function evaluateAnswer(question: Question, answer: Answer): boolean {
+export function gradeAnswer(question: Question, answer: Answer): AnswerGrade {
 	if (answer.kind !== expectedKind(question)) {
 		throw new QuizAttemptValidationError([
 			`${question.type} expects a ${expectedKind(question)} answer`,
@@ -40,12 +48,16 @@ export function evaluateAnswer(question: Question, answer: Answer): boolean {
 
 	switch (answer.kind) {
 		case "options":
-			return evaluateOptions(question, answer.optionIds);
+			return whole(evaluateOptions(question, answer.optionIds));
 		case "text":
-			return evaluateText(question, answer.text);
+			return whole(evaluateText(question, answer.text));
 		case "order":
-			return evaluateOrder(question, answer.optionIds);
+			return whole(evaluateOrder(question, answer.optionIds));
 		case "pairs":
-			return evaluatePairs(question, answer.pairs);
+			return gradePairs(question, answer.pairs);
 	}
+}
+
+export function evaluateAnswer(question: Question, answer: Answer): boolean {
+	return isFullyCorrect(gradeAnswer(question, answer));
 }

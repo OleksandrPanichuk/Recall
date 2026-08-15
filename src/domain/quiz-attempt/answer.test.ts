@@ -4,6 +4,8 @@ import { QuestionType, toQuestionOptionId } from "../quiz-set/question";
 import {
 	correctOptionIds,
 	evaluateAnswer,
+	gradeAnswer,
+	isFullyCorrect,
 	optionsAnswer,
 	orderAnswer,
 	pairsAnswer,
@@ -298,5 +300,116 @@ describe("evaluateAnswer for matching", () => {
 		expect(
 			evaluateAnswer(matching(), pairsAnswer([pair("en-cat", "ua-cat")])),
 		).toBe(false);
+	});
+});
+
+describe("gradeAnswer", () => {
+	const pair = (left: string, right: string) =>
+		[toQuestionOptionId(left), toQuestionOptionId(right)] as const;
+
+	test("credits every correctly matched pair", () => {
+		expect(
+			gradeAnswer(
+				matching(),
+				pairsAnswer([pair("en-cat", "ua-cat"), pair("en-dog", "ua-dog")]),
+			),
+		).toEqual({ earned: 2, possible: 2 });
+	});
+
+	test("credits the pairs that are right when others are crossed", () => {
+		const question = aQuestion({
+			id: "question-three",
+			type: QuestionType.Matching,
+			prompt: "Match three",
+			options: [
+				anOption({
+					id: "a",
+					text: "a",
+					isCorrect: true,
+					position: 0,
+					matchKey: "p0",
+				}),
+				anOption({
+					id: "b",
+					text: "b",
+					isCorrect: true,
+					position: 1,
+					matchKey: "p1",
+				}),
+				anOption({
+					id: "c",
+					text: "c",
+					isCorrect: true,
+					position: 2,
+					matchKey: "p2",
+				}),
+				anOption({
+					id: "x",
+					text: "x",
+					isCorrect: true,
+					position: 3,
+					matchKey: "p0",
+				}),
+				anOption({
+					id: "y",
+					text: "y",
+					isCorrect: true,
+					position: 4,
+					matchKey: "p1",
+				}),
+				anOption({
+					id: "z",
+					text: "z",
+					isCorrect: true,
+					position: 5,
+					matchKey: "p2",
+				}),
+			],
+		});
+
+		expect(
+			gradeAnswer(
+				question,
+				pairsAnswer([pair("a", "x"), pair("b", "z"), pair("c", "y")]),
+			),
+		).toEqual({ earned: 1, possible: 3 });
+	});
+
+	test("credits nothing when every pair is crossed", () => {
+		expect(
+			gradeAnswer(
+				matching(),
+				pairsAnswer([pair("en-cat", "ua-dog"), pair("en-dog", "ua-cat")]),
+			),
+		).toEqual({ earned: 0, possible: 2 });
+	});
+
+	test("grades every other type as a whole", () => {
+		const question = singleChoice();
+		const [correct] = idsOf(question);
+
+		expect(gradeAnswer(question, optionsAnswer([correct as never]))).toEqual({
+			earned: 1,
+			possible: 1,
+		});
+	});
+});
+
+describe("isFullyCorrect", () => {
+	test("is true only when every unit is earned", () => {
+		expect(isFullyCorrect({ earned: 2, possible: 2 })).toBe(true);
+		expect(isFullyCorrect({ earned: 1, possible: 2 })).toBe(false);
+		expect(isFullyCorrect({ earned: 0, possible: 2 })).toBe(false);
+	});
+
+	test("a partly correct matching answer is not correct", () => {
+		const question = matching();
+		const answer = pairsAnswer([
+			[toQuestionOptionId("en-cat"), toQuestionOptionId("ua-cat")],
+			[toQuestionOptionId("en-dog"), toQuestionOptionId("ua-cat")],
+		]);
+
+		expect(gradeAnswer(question, answer).earned).toBeGreaterThan(0);
+		expect(evaluateAnswer(question, answer)).toBe(false);
 	});
 });

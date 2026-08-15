@@ -1,6 +1,6 @@
 import { normaliseForComparison } from "@/shared/utils/text";
 import type { Question, QuestionOptionId } from "../quiz-set/question";
-import type { OptionPair } from "./answer.types";
+import type { AnswerGrade, OptionPair } from "./answer.types";
 import { QuizAttemptValidationError } from "./quiz-attempt.errors";
 
 export function correctOptionIds(
@@ -83,10 +83,10 @@ export function evaluateOrder(
 	);
 }
 
-export function evaluatePairs(
+export function gradePairs(
 	question: Question,
 	pairs: readonly OptionPair[],
-): boolean {
+): AnswerGrade {
 	if (pairs.length === 0) {
 		throw new QuizAttemptValidationError(["pairs must not be empty"]);
 	}
@@ -96,15 +96,12 @@ export function evaluatePairs(
 	const keyOf = new Map(
 		question.options.map((option) => [option.id, option.matchKey]),
 	);
-	const expected = new Set(
+
+	const possible = new Set(
 		question.options
 			.filter((option) => option.matchKey !== undefined)
 			.map((option) => option.matchKey),
-	);
-
-	if (pairs.length !== expected.size) {
-		return false;
-	}
+	).size;
 
 	const matched = new Set<string>();
 
@@ -112,16 +109,14 @@ export function evaluatePairs(
 		const key = keyOf.get(left);
 
 		if (
-			key === undefined ||
-			key !== keyOf.get(right) ||
-			left === right ||
-			matched.has(key)
+			key !== undefined &&
+			key === keyOf.get(right) &&
+			left !== right &&
+			!matched.has(key)
 		) {
-			return false;
+			matched.add(key);
 		}
-
-		matched.add(key);
 	}
 
-	return true;
+	return { earned: matched.size, possible };
 }

@@ -134,3 +134,54 @@ describe("calculateScore", () => {
 		});
 	});
 });
+
+describe("partial credit", () => {
+	const partial = (
+		questionId: string,
+		earned: number,
+		possible: number,
+	): QuestionResponse => ({
+		questionId: toQuestionId(questionId),
+		selectedOptionIds: [toQuestionOptionId("option-1")],
+		isCorrect: earned === possible,
+		answeredAt: new Date("2026-08-15T10:00:00.000Z"),
+		creditEarned: earned,
+		creditPossible: possible,
+	});
+
+	test("counts a third of a question as a third of its weight", () => {
+		const score = calculateScore([partial("q-1", 1, 3)], 4);
+
+		expect(score.correct).toBe(0);
+		expect(score.percentage).toBe(8.3);
+	});
+
+	test("a fully correct matching question weighs the same as any other", () => {
+		expect(calculateScore([partial("q-1", 3, 3)], 4).percentage).toBe(25);
+	});
+
+	test("a wholly wrong answer earns nothing", () => {
+		expect(calculateScore([partial("q-1", 0, 3)], 4).percentage).toBe(0);
+	});
+
+	test("responses without credit still count as whole questions", () => {
+		const whole: QuestionResponse = {
+			questionId: toQuestionId("q-2"),
+			selectedOptionIds: [toQuestionOptionId("option-1")],
+			isCorrect: true,
+			answeredAt: new Date("2026-08-15T10:00:00.000Z"),
+		};
+
+		expect(calculateScore([whole], 4).percentage).toBe(25);
+	});
+
+	test("correct counts whole questions, percentage counts credit", () => {
+		const score = calculateScore(
+			[partial("q-1", 3, 3), partial("q-2", 1, 3)],
+			4,
+		);
+
+		expect(score.correct).toBe(1);
+		expect(score.percentage).toBe(33.3);
+	});
+});

@@ -179,6 +179,8 @@ export const questionResponses = sqliteTable(
 		isCorrect: integer("is_correct", { mode: "boolean" }).notNull(),
 		typedAnswer: text("typed_answer"),
 		skipped: integer("skipped", { mode: "boolean" }),
+		creditEarned: integer("credit_earned"),
+		creditPossible: integer("credit_possible"),
 		answeredAt: text("answered_at").notNull(),
 	},
 	(table) => [

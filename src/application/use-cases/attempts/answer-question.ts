@@ -7,13 +7,15 @@ import {
 	type Answer,
 	acceptedAnswers,
 	correctOptionIds,
-	evaluateAnswer,
+	gradeAnswer,
+	isFullyCorrect,
 	type OptionPair,
 	optionsAnswer,
 	orderAnswer,
 	pairsAnswer,
 	textAnswer,
 } from "@/domain/quiz-attempt/answer";
+import type { AnswerGrade } from "@/domain/quiz-attempt/answer.types";
 import {
 	attemptScore,
 	currentQuestionId,
@@ -64,6 +66,7 @@ export interface AnswerQuestionResult {
 	readonly acceptedAnswers: readonly string[];
 	readonly typedAnswer?: string;
 	readonly nearMiss?: string;
+	readonly credit: AnswerGrade;
 }
 
 export interface AnswerQuestionDependencies {
@@ -123,6 +126,10 @@ export class AnswerQuestion
 					recorded.isCorrect,
 					true,
 					question,
+					{
+						earned: recorded.creditEarned ?? (recorded.isCorrect ? 1 : 0),
+						possible: recorded.creditPossible ?? 1,
+					},
 					recorded.typedAnswer,
 				);
 			}
@@ -131,13 +138,14 @@ export class AnswerQuestion
 				question,
 				request.selectedOptionPositions ?? [],
 			);
-			const isCorrect =
+			const grade =
 				request.revealed === true
-					? false
-					: evaluateAnswer(
+					? { earned: 0, possible: 1 }
+					: gradeAnswer(
 							question,
 							answerOf(question, selectedOptionIds, request.typedAnswer),
 						);
+			const isCorrect = isFullyCorrect(grade);
 			const answered = recordResponse(attempt, {
 				questionId: request.questionId,
 				selectedOptionIds,
@@ -145,6 +153,8 @@ export class AnswerQuestion
 				answeredAt: at,
 				typedAnswer: request.typedAnswer,
 				skipped: request.revealed === true ? true : undefined,
+				creditEarned: grade.earned,
+				creditPossible: grade.possible,
 			});
 
 			this.attempts.save(answered);
@@ -154,6 +164,7 @@ export class AnswerQuestion
 				isCorrect,
 				false,
 				question,
+				grade,
 				request.typedAnswer,
 			);
 		});
@@ -164,6 +175,7 @@ export class AnswerQuestion
 		isCorrect: boolean,
 		alreadyAnswered: boolean,
 		question: Question,
+		grade: AnswerGrade,
 		typedAnswer?: string,
 	): AnswerQuestionResult {
 		return {
@@ -182,6 +194,7 @@ export class AnswerQuestion
 			question,
 			nextQuestionId: currentQuestionId(attempt),
 			score: attemptScore(attempt),
+			credit: grade,
 		};
 	}
 }
@@ -206,8 +219,6 @@ function answerOf(
 	return optionsAnswer(selectedOptionIds);
 }
 
-// Matching arrives as a flat left, right, left, right sequence, because that is
-// what a Telegram keyboard can send and what one JSON column can store.
 function pairsOf(
 	optionIds: readonly QuestionOptionId[],
 ): readonly OptionPair[] {
