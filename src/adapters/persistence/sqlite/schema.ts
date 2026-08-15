@@ -159,6 +159,7 @@ export const questionResponses = sqliteTable(
 		selectedOptionIds: text("selected_option_ids").notNull(),
 		isCorrect: integer("is_correct", { mode: "boolean" }).notNull(),
 		typedAnswer: text("typed_answer"),
+		skipped: integer("skipped", { mode: "boolean" }),
 		answeredAt: text("answered_at").notNull(),
 	},
 	(table) => [

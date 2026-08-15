@@ -41,6 +41,8 @@ const toResponse = (
 	).map(toQuestionOptionId),
 	isCorrect: row.isCorrect,
 	answeredAt: requiredDate(row.answeredAt, "answered_at", attemptId),
+	typedAnswer: row.typedAnswer ?? undefined,
+	skipped: row.skipped ?? undefined,
 });
 
 const orderedResponses = (
@@ -144,6 +146,8 @@ export function toQuestionResponseRows(
 		questionId: response.questionId,
 		selectedOptionIds: JSON.stringify(response.selectedOptionIds),
 		isCorrect: response.isCorrect,
+		typedAnswer: response.typedAnswer ?? null,
+		skipped: response.skipped ?? null,
 		answeredAt: response.answeredAt.toISOString(),
 	}));
 }

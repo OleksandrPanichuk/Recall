@@ -13,6 +13,8 @@ export interface QuestionResponse {
 	readonly selectedOptionIds: readonly QuestionOptionId[];
 	readonly isCorrect: boolean;
 	readonly answeredAt: Date;
+	readonly typedAnswer?: string;
+	readonly skipped?: boolean;
 }
 
 export interface QuizAttempt {

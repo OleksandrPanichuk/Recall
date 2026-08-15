@@ -790,3 +790,124 @@ describe("browsing the folder tree (§3.7)", () => {
 		expect(harness.lastText()).toContain("Статистика");
 	});
 });
+
+describe("typed answers (§3.8)", () => {
+	const seedTyped = async (): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "A1 words",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.TypedAnswer,
+					prompt: "кіт",
+					difficulty: "easy",
+					options: [{ text: "cat", isCorrect: true }],
+					explanation: "cat = кіт",
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+	};
+
+	const openTyped = async (): Promise<void> => {
+		await seedTyped();
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("A1 words"));
+	};
+
+	test("asks for a written answer instead of options", async () => {
+		await openTyped();
+
+		expect(harness.lastText()).toContain("кіт");
+		expect(harness.lastText()).toContain("Напишіть відповідь");
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("Не знаю"),
+		);
+	});
+
+	test("accepts the right word typed as a message", async () => {
+		await openTyped();
+
+		await harness.send("cat");
+
+		expect(harness.lastText()).toContain("Правильно");
+	});
+
+	test("ignores case and stray whitespace", async () => {
+		await openTyped();
+
+		await harness.send("  CAT  ");
+
+		expect(harness.lastText()).toContain("Правильно");
+	});
+
+	test("rejects a wrong word and shows what was written", async () => {
+		await openTyped();
+
+		await harness.send("dog");
+
+		expect(harness.lastText()).toContain("Неправильно");
+		expect(harness.lastText()).toContain("Ви написали: dog");
+		expect(harness.lastText()).toContain("cat");
+	});
+
+	test("names a near miss instead of leaving it a plain failure", async () => {
+		await openTyped();
+
+		await harness.send("cta");
+
+		expect(harness.lastText()).toContain("Майже");
+	});
+
+	test("Не знаю reveals the answer and scores it wrong", async () => {
+		await openTyped();
+
+		await harness.tap(buttonFor("Не знаю"));
+
+		expect(harness.lastText()).toContain("Неправильно");
+		expect(harness.lastText()).toContain("cat");
+	});
+
+	test("a message with no attempt running still opens the menu", async () => {
+		await harness.send("/start");
+
+		await harness.send("cat");
+
+		expect(harness.lastText()).toContain("Головне меню");
+	});
+
+	test("a cloze question is answered the same way", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Prepositions",
+			language: "en",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.Cloze,
+					prompt: "She has lived here ___ 2019.",
+					difficulty: "medium",
+					options: [{ text: "since", isCorrect: true }],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Prepositions"));
+
+		expect(harness.lastText()).toContain("___");
+
+		await harness.send("since");
+
+		expect(harness.lastText()).toContain("Правильно");
+	});
+});

@@ -17,10 +17,21 @@ export function answerFeedback(
 		.map((option) => option.text)
 		.join(", ");
 
+	const accepted =
+		result.acceptedAnswers.length > 0
+			? result.acceptedAnswers.join(" / ")
+			: correctText;
+
 	const lines = [
 		result.isCorrect ? "✅ Правильно" : "❌ Неправильно",
 		result.alreadyAnswered ? "(відповідь уже зарахована раніше)" : undefined,
-		`Правильна відповідь: ${correctText}`,
+		result.typedAnswer === undefined || result.isCorrect
+			? undefined
+			: `Ви написали: ${result.typedAnswer}`,
+		result.nearMiss === undefined
+			? undefined
+			: `Майже — одна літера: ${result.nearMiss}`,
+		`Правильна відповідь: ${accepted}`,
 		result.explanation === undefined ? undefined : `\n${result.explanation}`,
 		`\nРахунок: ${result.score.correct}/${result.score.total} (${result.score.percentage}%)`,
 	];
