@@ -7,8 +7,10 @@ import {
 } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { QuestionNotInAttemptError } from "@/domain/quiz-attempt/quiz-attempt.errors";
+import type { Logger } from "@/infrastructure/logging/logger.types";
 import { notice } from "../presenters/menu.presenter";
 import { render } from "../screen";
+import { describeUpdate } from "../utils/describe-update";
 
 export function userMessageFor(error: unknown): string {
 	if (error instanceof NoActiveAttemptError) {
@@ -38,19 +40,23 @@ export function userMessageFor(error: unknown): string {
 	return "Сталася помилка. Спробуйте ще раз.";
 }
 
-export function errorMiddleware(
-	log: (error: unknown) => void = console.error,
-): MiddlewareFn<Context> {
+export function errorMiddleware(logger: Logger): MiddlewareFn<Context> {
 	return async (ctx, next) => {
 		try {
 			await next();
 		} catch (error) {
-			log(error);
+			logger.error("telegram handler failed", {
+				...describeUpdate(ctx),
+				error,
+			});
 
 			try {
 				await render(ctx, notice(userMessageFor(error)));
 			} catch (renderError) {
-				log(renderError);
+				logger.error("could not show the error notice", {
+					...describeUpdate(ctx),
+					error: renderError,
+				});
 			}
 		}
 	};

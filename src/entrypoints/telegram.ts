@@ -9,7 +9,8 @@ import {
 } from "@/infrastructure/config/env";
 import { createShutdown } from "@/infrastructure/lifecycle/shutdown";
 import { formatStatus, readStatus } from "@/infrastructure/lifecycle/status";
-import { createLogger, LogLevel } from "@/infrastructure/logging/logger";
+import { createLogger } from "@/infrastructure/logging/logger";
+import { LogLevel } from "@/infrastructure/logging/logger.types";
 
 function loadOrExit(): Environment {
 	try {
@@ -40,6 +41,7 @@ function main(): void {
 	});
 	const application = createApplication({
 		databasePath: environment.databasePath,
+		logger,
 	});
 
 	if (process.argv.includes("--status")) {
@@ -60,9 +62,7 @@ function main(): void {
 		token: environment.telegramBotKey,
 		allowedTelegramUserId: environment.allowedTelegramUserId,
 		useCases: application,
-		log: (error) => {
-			logger.error("handler failed", { error });
-		},
+		logger,
 	});
 	const shutdown = createShutdown({ logger });
 

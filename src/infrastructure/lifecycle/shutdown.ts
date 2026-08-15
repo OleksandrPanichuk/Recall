@@ -1,4 +1,4 @@
-import type { Logger } from "../logging/logger";
+import type { Logger } from "../logging/logger.types";
 
 export interface ShutdownTask {
 	readonly name: string;

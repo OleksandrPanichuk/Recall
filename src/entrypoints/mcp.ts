@@ -9,6 +9,7 @@ import {
 } from "@/infrastructure/config/env";
 import { createShutdown } from "@/infrastructure/lifecycle/shutdown";
 import { createLogger } from "@/infrastructure/logging/logger";
+import { LogLevel } from "@/infrastructure/logging/logger.types";
 
 async function main(): Promise<void> {
 	let environment: Environment;
@@ -24,11 +25,14 @@ async function main(): Promise<void> {
 		throw error;
 	}
 
+	const logger = createLogger({
+		level: process.argv.includes("--debug") ? LogLevel.Debug : LogLevel.Info,
+	});
 	const application = createApplication({
 		databasePath: environment.databasePath,
+		logger,
 	});
-	const server = createMcpServer(application);
-	const logger = createLogger();
+	const server = createMcpServer(application, { logger });
 	const shutdown = createShutdown({ logger });
 
 	logger.info("mcp server ready", {

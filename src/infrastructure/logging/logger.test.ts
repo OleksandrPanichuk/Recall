@@ -1,11 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import {
-	createLogger,
-	LogLevel,
-	MAX_FIELD_LENGTH,
-	REDACTED,
-	sanitiseFields,
-} from "./logger";
+import { createLogger } from "./logger";
+import { LogLevel } from "./logger.types";
+import { MAX_FIELD_LENGTH, REDACTED } from "./utils/sanitise-fields";
 
 const captured = (level?: LogLevel) => {
 	const lines: string[] = [];
@@ -111,30 +107,6 @@ describe("privacy (§6.2)", () => {
 		logger.info("batch", { ids: Array.from({ length: 50 }, (_v, i) => i) });
 
 		expect(last().ids).toHaveLength(10);
-	});
-});
-
-describe("sanitiseFields", () => {
-	test("passes through primitives and dates", () => {
-		expect(
-			sanitiseFields({
-				count: 3,
-				ok: true,
-				at: new Date("2026-08-01T10:00:00.000Z"),
-				missing: undefined,
-			}),
-		).toEqual({
-			count: 3,
-			ok: true,
-			at: "2026-08-01T10:00:00.000Z",
-			missing: undefined,
-		});
-	});
-
-	test("refuses to serialise a function", () => {
-		expect(sanitiseFields({ callback: () => {} }).callback).toBe(
-			"[unloggable]",
-		);
 	});
 });
 

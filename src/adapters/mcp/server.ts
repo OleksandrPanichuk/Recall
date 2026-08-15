@@ -13,13 +13,13 @@ import type { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-se
 import type { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import type { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { silentLogger } from "@/infrastructure/logging/logger";
+import type { Logger } from "@/infrastructure/logging/logger.types";
 import {
 	describeFolderTree,
 	describeQuizSet,
 	describeSummaries,
-	failure,
 	ok,
-	type ToolResult,
 } from "./presenters/tool-result.presenter";
 import {
 	folderPathShape,
@@ -34,6 +34,7 @@ import {
 	quizSetIdShape,
 	updateSetShape,
 } from "./schemas/quiz-set.schema";
+import { createToolRunner, type ToolRunner } from "./utils/tool-logging";
 
 export interface McpUseCases {
 	readonly createQuizSet: CreateQuizSet;
@@ -54,19 +55,19 @@ export interface McpUseCases {
 export const MCP_SERVER_NAME = "recall-quiz";
 export const MCP_SERVER_VERSION = "0.1.0";
 
-const guard = async (run: () => Promise<ToolResult>): Promise<ToolResult> => {
-	try {
-		return await run();
-	} catch (error) {
-		return failure(error);
-	}
-};
+export interface McpServerOptions {
+	readonly logger?: Logger;
+}
 
-export function createMcpServer(useCases: McpUseCases): McpServer {
+export function createMcpServer(
+	useCases: McpUseCases,
+	options: McpServerOptions = {},
+): McpServer {
 	const server = new McpServer({
 		name: MCP_SERVER_NAME,
 		version: MCP_SERVER_VERSION,
 	});
+	const runTool = createToolRunner(options.logger ?? silentLogger);
 
 	server.registerTool(
 		"quiz_create_set",
@@ -77,7 +78,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: createSetShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_create_set", args, async () => {
 				const { folderPath, ...metadata } = args;
 				const folder =
 					folderPath === undefined
@@ -106,7 +107,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: addQuestionsShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_add_questions", args, async () => {
 				const result = await useCases.addQuestions.execute({
 					quizSetId: toQuizSetId(args.quizSetId),
 					questions: args.questions,
@@ -140,7 +141,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: updateSetShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_update_set", args, async () => {
 				await useCases.updateQuizSet.execute({
 					...args,
 					quizSetId: toQuizSetId(args.quizSetId),
@@ -161,7 +162,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: quizSetIdShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_publish_set", args, async () => {
 				await useCases.publishQuizSet.execute({
 					quizSetId: toQuizSetId(args.quizSetId),
 				});
@@ -181,7 +182,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: quizSetIdShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_archive_set", args, async () => {
 				await useCases.archiveQuizSet.execute({
 					quizSetId: toQuizSetId(args.quizSetId),
 				});
@@ -201,7 +202,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: quizSetIdShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_get_set", args, async () => {
 				const quizSet = await useCases.getQuizSet.execute({
 					quizSetId: toQuizSetId(args.quizSetId),
 				});
@@ -223,7 +224,7 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			inputSchema: listSetsShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_list_sets", args, async () => {
 				const sets = await useCases.listQuizSets.execute(args);
 
 				if (args.includeUnpublished === true) {
@@ -244,12 +245,16 @@ export function createMcpServer(useCases: McpUseCases): McpServer {
 			}),
 	);
 
-	registerFolderTools(server, useCases);
+	registerFolderTools(server, useCases, runTool);
 
 	return server;
 }
 
-function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
+function registerFolderTools(
+	server: McpServer,
+	useCases: McpUseCases,
+	runTool: ToolRunner,
+): void {
 	server.registerTool(
 		"quiz_list_folders",
 		{
@@ -259,7 +264,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 			inputSchema: listFoldersShape,
 		},
 		async () =>
-			guard(async () => {
+			runTool("quiz_list_folders", {}, async () => {
 				const nodes = await useCases.listFolderTree.execute({});
 
 				return ok(describeFolderTree(nodes), {
@@ -284,7 +289,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 			inputSchema: folderPathShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_ensure_folder_path", args, async () => {
 				const result = await useCases.ensureFolderPath.execute(args);
 
 				return ok(
@@ -305,7 +310,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 			inputSchema: moveSetShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_move_set", args, async () => {
 				await useCases.getQuizSet.execute({
 					quizSetId: toQuizSetId(args.quizSetId),
 				});
@@ -340,7 +345,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 			inputSchema: renameFolderShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_rename_folder", args, async () => {
 				const { folderId } = await useCases.resolveFolderPath.execute({
 					path: args.path,
 				});
@@ -363,7 +368,7 @@ function registerFolderTools(server: McpServer, useCases: McpUseCases): void {
 			inputSchema: folderPathShape,
 		},
 		async (args) =>
-			guard(async () => {
+			runTool("quiz_delete_folder", args, async () => {
 				const { folderId } = await useCases.resolveFolderPath.execute({
 					path: args.path,
 				});

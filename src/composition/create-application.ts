@@ -36,6 +36,8 @@ import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
+import { silentLogger } from "@/infrastructure/logging/logger";
+import type { Logger } from "@/infrastructure/logging/logger.types";
 
 export const systemClock: Clock = { now: () => new Date() };
 
@@ -83,12 +85,18 @@ export interface ApplicationOptions {
 	readonly databasePath: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
+	readonly logger?: Logger;
 }
 
 export function createApplication(options: ApplicationOptions): Application {
+	const logger = options.logger ?? silentLogger;
 	const database = createDatabase({ path: options.databasePath });
+	const applied = applyMigrations(database);
 
-	applyMigrations(database);
+	logger.info("database ready", {
+		path: database.filename,
+		appliedMigrations: [...applied],
+	});
 
 	const client = createDrizzleClient(database);
 	const transaction = createSqliteTransaction(client);
@@ -128,6 +136,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		getQuizStatistics: new GetQuizStatistics(dependencies),
 		close: () => {
 			closeDatabase(database);
+			logger.debug("database closed", { path: database.filename });
 		},
 	};
 }

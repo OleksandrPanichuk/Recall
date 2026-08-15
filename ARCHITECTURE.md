@@ -339,9 +339,11 @@ src/
 │   │   │   └── statistics.handler.ts
 │   │   ├── callbacks/
 │   │   │   └── callback-data.ts
-│   │   └── presenters/
-│   │       ├── question.presenter.ts
-│   │       └── result.presenter.ts
+│   │   ├── presenters/
+│   │   │   ├── question.presenter.ts
+│   │   │   └── result.presenter.ts
+│   │   └── utils/
+│   │       └── describe-update.ts
 │   └── mcp/
 │       ├── server.ts
 │       ├── schemas/
@@ -352,14 +354,20 @@ src/
 │       │   ├── add-questions.tool.ts
 │       │   ├── get-set.tool.ts
 │       │   └── publish-set.tool.ts
-│       └── presenters/
-│           └── tool-result.presenter.ts
+│       ├── presenters/
+│       │   └── tool-result.presenter.ts
+│       └── utils/
+│           └── tool-logging.ts
 │
 ├── infrastructure/
 │   ├── config/
 │   │   └── env.ts
 │   ├── logging/
-│   │   └── logger.ts
+│   │   ├── logger.ts
+│   │   ├── logger.types.ts
+│   │   └── utils/
+│   │       ├── format-record.ts
+│   │       └── sanitise-fields.ts
 │   └── lifecycle/
 │       └── shutdown.ts
 │
@@ -440,10 +448,21 @@ Minimal startup code for two independently runnable processes:
 - use explicit imports; do not add barrel `index.ts` files until they provide a
   clear boundary without cycles.
 
-Avoid generic dumping grounds such as `helpers`, `utils`, `core`, `common`, or a
-global `types.ts`. Put behavior and types beside the feature or boundary that
-owns them. A narrowly named shared primitive is acceptable only after two real
-consumers demonstrate that ownership is genuinely shared.
+Avoid global dumping grounds such as a top-level `helpers`, `utils`, `core`,
+`common`, or a global `types.ts`. Put behavior and types beside the feature or
+boundary that owns them. A narrowly named shared primitive is acceptable only
+after two real consumers demonstrate that ownership is genuinely shared.
+
+Within a single module, two local conventions are expected once a file starts
+carrying more than one concern:
+
+- a module-local `utils/` directory holds the pure functions that module owns,
+  for example `infrastructure/logging/utils/sanitise-fields.ts`. It is scoped to
+  its module and must not become a cross-layer catch-all;
+- a `*.types.ts` file beside the implementation holds the contracts that module
+  publishes, for example `infrastructure/logging/logger.types.ts`. Importers
+  that need only a type import it from there, which keeps a type import from
+  pulling in a factory.
 
 ## Test structure
 
