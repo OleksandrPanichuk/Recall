@@ -13,74 +13,21 @@ import {
 	toQuestionOptionId,
 } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import type { questionResponses, quizAttempts } from "../schema";
+import { CorruptedQuizAttemptRowError } from "./quiz-attempt.mapper.errors";
+import type {
+	QuestionResponseInsert,
+	QuestionResponseRow,
+	QuizAttemptInsert,
+	QuizAttemptRow,
+	TopicAccuracyRow,
+} from "./quiz-attempt.mapper.types";
+import { createRowValueParsers } from "./utils/row-values";
 
-export type QuizAttemptRow = typeof quizAttempts.$inferSelect;
-export type QuestionResponseRow = typeof questionResponses.$inferSelect;
-export type QuizAttemptInsert = typeof quizAttempts.$inferInsert;
-export type QuestionResponseInsert = typeof questionResponses.$inferInsert;
+export { CorruptedQuizAttemptRowError } from "./quiz-attempt.mapper.errors";
 
-export interface TopicAccuracyRow {
-	readonly topic: string | null;
-	readonly answered: number;
-	readonly correct: number;
-}
-
-export class CorruptedQuizAttemptRowError extends Error {
-	readonly issues: readonly string[];
-
-	constructor(id: string, issues: readonly string[]) {
-		super(
-			`Quiz attempt ${id} cannot be restored from storage:\n${issues
-				.map((issue) => `- ${issue}`)
-				.join("\n")}`,
-		);
-		this.name = "CorruptedQuizAttemptRowError";
-		this.issues = issues;
-	}
-}
-
-const requiredDate = (value: string, column: string, id: string): Date => {
-	const date = new Date(value);
-
-	if (Number.isNaN(date.getTime())) {
-		throw new CorruptedQuizAttemptRowError(id, [
-			`${column} must be a valid ISO timestamp`,
-		]);
-	}
-
-	return date;
-};
-
-const optionalDate = (
-	value: string | null,
-	column: string,
-	id: string,
-): Date | undefined =>
-	value === null ? undefined : requiredDate(value, column, id);
-
-const parseStringArray = (value: string, column: string, id: string) => {
-	let parsed: unknown;
-
-	try {
-		parsed = JSON.parse(value);
-	} catch {
-		throw new CorruptedQuizAttemptRowError(id, [
-			`${column} must be a JSON array`,
-		]);
-	}
-
-	if (
-		!Array.isArray(parsed) ||
-		!parsed.every((entry): entry is string => typeof entry === "string")
-	) {
-		throw new CorruptedQuizAttemptRowError(id, [
-			`${column} must be a JSON array of strings`,
-		]);
-	}
-
-	return parsed;
-};
+const { requiredDate, optionalDate, parseStringArray } = createRowValueParsers(
+	(id, issues) => new CorruptedQuizAttemptRowError(id, issues),
+);
 
 const toResponse = (
 	row: QuestionResponseRow,

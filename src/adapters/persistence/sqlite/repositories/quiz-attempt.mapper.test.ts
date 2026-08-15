@@ -6,10 +6,12 @@ import {
 import { QuizAttemptValidationError } from "@/domain/quiz-attempt/quiz-attempt.errors";
 import {
 	CorruptedQuizAttemptRowError,
-	type QuestionResponseRow,
-	type QuizAttemptRow,
 	toQuizAttempt,
 } from "./quiz-attempt.mapper";
+import type {
+	QuestionResponseRow,
+	QuizAttemptRow,
+} from "./quiz-attempt.mapper.types";
 
 const aQuizAttemptRow = (
 	overrides: Partial<QuizAttemptRow> = {},

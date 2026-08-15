@@ -16,76 +16,23 @@ import {
 	QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import type { questionOptions, questions, quizSets } from "../schema";
+import { CorruptedQuizSetRowError } from "./quiz-set.mapper.errors";
+import type {
+	QuestionInsert,
+	QuestionOptionInsert,
+	QuestionOptionRow,
+	QuestionRow,
+	QuizSetInsert,
+	QuizSetRow,
+	QuizSetSummaryRow,
+} from "./quiz-set.mapper.types";
+import { createRowValueParsers } from "./utils/row-values";
 
-export type QuizSetRow = typeof quizSets.$inferSelect;
-export type QuestionRow = typeof questions.$inferSelect;
-export type QuestionOptionRow = typeof questionOptions.$inferSelect;
-export type QuizSetInsert = typeof quizSets.$inferInsert;
-export type QuestionInsert = typeof questions.$inferInsert;
-export type QuestionOptionInsert = typeof questionOptions.$inferInsert;
+export { CorruptedQuizSetRowError } from "./quiz-set.mapper.errors";
 
-export interface QuizSetSummaryRow {
-	readonly id: string;
-	readonly title: string;
-	readonly status: string;
-	readonly questionCount: number;
-	readonly updatedAt: string;
-}
-
-export class CorruptedQuizSetRowError extends Error {
-	readonly issues: readonly string[];
-
-	constructor(id: string, issues: readonly string[]) {
-		super(
-			`Quiz set ${id} cannot be restored from storage:\n${issues
-				.map((issue) => `- ${issue}`)
-				.join("\n")}`,
-		);
-		this.name = "CorruptedQuizSetRowError";
-		this.issues = issues;
-	}
-}
-
-const requiredDate = (value: string, column: string, id: string): Date => {
-	const date = new Date(value);
-
-	if (Number.isNaN(date.getTime())) {
-		throw new CorruptedQuizSetRowError(id, [
-			`${column} must be a valid ISO timestamp`,
-		]);
-	}
-
-	return date;
-};
-
-const optionalDate = (
-	value: string | null,
-	column: string,
-	id: string,
-): Date | undefined =>
-	value === null ? undefined : requiredDate(value, column, id);
-
-const parseTags = (row: QuizSetRow): string[] => {
-	let parsed: unknown;
-
-	try {
-		parsed = JSON.parse(row.tags);
-	} catch {
-		throw new CorruptedQuizSetRowError(row.id, ["tags must be a JSON array"]);
-	}
-
-	if (
-		!Array.isArray(parsed) ||
-		!parsed.every((tag): tag is string => typeof tag === "string")
-	) {
-		throw new CorruptedQuizSetRowError(row.id, [
-			"tags must be a JSON array of strings",
-		]);
-	}
-
-	return parsed;
-};
+const { requiredDate, optionalDate, parseStringArray } = createRowValueParsers(
+	(id, issues) => new CorruptedQuizSetRowError(id, issues),
+);
 
 const toStatus = (value: string, id: string) => {
 	if (!isQuizSetStatus(value)) {
@@ -204,7 +151,7 @@ export function toQuizSet(
 				toQuestion(question, optionsByQuestion.get(question.id) ?? []),
 			),
 		),
-		tags: Object.freeze(parseTags(row)),
+		tags: Object.freeze(parseStringArray(row.tags, "tags", row.id)),
 		createdAt: requiredDate(row.createdAt, "created_at", row.id),
 		updatedAt: requiredDate(row.updatedAt, "updated_at", row.id),
 		description: row.description ?? undefined,
