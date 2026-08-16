@@ -6,6 +6,7 @@ import {
 	QuestionBatchTooLargeError,
 } from "@/application/use-cases/quiz-sets/add-questions";
 import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
+import { VocabularyItemNotFoundError } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import {
 	DuplicateFolderNameError,
 	FolderCycleError,
@@ -19,8 +20,17 @@ import {
 	QuizSetTransitionError,
 	QuizSetValidationError,
 } from "@/domain/quiz-set/quiz-set.errors";
+import { VocabularyItemValidationError } from "@/domain/vocabulary/vocabulary-item.errors";
 
 export function describeError(error: unknown): string {
+	if (error instanceof VocabularyItemValidationError) {
+		return `Invalid vocabulary item: ${error.issues.join("; ")}`;
+	}
+
+	if (error instanceof VocabularyItemNotFoundError) {
+		return `Vocabulary item ${error.itemId} does not exist. Use quiz_list_vocabulary to see the items of a set with their ids.`;
+	}
+
 	if (error instanceof QuestionValidationError) {
 		return `Invalid question: ${error.issues.join("; ")}`;
 	}

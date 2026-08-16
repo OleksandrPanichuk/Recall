@@ -6,7 +6,7 @@ import {
 import { trimmedOrUndefined } from "@/shared/utils/text";
 import { brandedId } from "../branded-id";
 import type { FolderId } from "../folder/folder";
-import type { Question } from "./question";
+import type { Question, QuestionId } from "./question";
 import { QuizSetStatus } from "./quiz-set.constants";
 import {
 	DuplicateQuestionError,
@@ -136,6 +136,47 @@ export function addQuestions(
 	);
 
 	return frozenQuizSet({ ...quizSet, questions: appended, updatedAt: at });
+}
+
+export function replaceQuestions(
+	quizSet: QuizSet,
+	replacements: readonly Question[],
+	removedIds: readonly QuestionId[],
+	at: Date,
+): QuizSet {
+	assertStatus(
+		quizSet,
+		[QuizSetStatus.Draft, QuizSetStatus.Published],
+		"modified",
+	);
+	assertTransitionDate(quizSet, at);
+
+	const byId = new Map(
+		replacements.map((question) => [question.id, question] as const),
+	);
+	const removed = new Set(removedIds);
+	const questions = quizSet.questions
+		.filter((question) => !removed.has(question.id))
+		.map((question) => byId.get(question.id) ?? question)
+		.map(
+			(question, index): Question =>
+				frozenQuestion({ ...question, position: index }),
+		);
+
+	if (questions.length === 0) {
+		throw new EmptyQuizSetError();
+	}
+
+	const duplicates = collectDuplicateFingerprints(
+		{ ...quizSet, questions: [] },
+		questions,
+	);
+
+	if (duplicates.length > 0) {
+		throw new DuplicateQuestionError(duplicates);
+	}
+
+	return frozenQuizSet({ ...quizSet, questions, updatedAt: at });
 }
 
 export function updateQuizSetMetadata(

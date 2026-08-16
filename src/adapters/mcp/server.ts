@@ -10,11 +10,13 @@ import { registerEnsureFolderPathTool } from "./tools/ensure-folder-path.tool";
 import { registerGetSetTool } from "./tools/get-set.tool";
 import { registerListFoldersTool } from "./tools/list-folders.tool";
 import { registerListSetsTool } from "./tools/list-sets.tool";
+import { registerListVocabularyTool } from "./tools/list-vocabulary.tool";
 import { registerMoveSetTool } from "./tools/move-set.tool";
 import { registerPublishSetTool } from "./tools/publish-set.tool";
 import { registerRenameFolderTool } from "./tools/rename-folder.tool";
 import { registerRepetitionSettingsTools } from "./tools/repetition-settings.tool";
 import { registerUpdateSetTool } from "./tools/update-set.tool";
+import { registerUpdateVocabularyTool } from "./tools/update-vocabulary.tool";
 import { createToolRunner } from "./utils/tool-logging";
 
 export type { McpServerOptions, McpUseCases } from "./server.types";
@@ -36,6 +38,8 @@ export function createMcpServer(
 	registerAddQuestionsTool(server, useCases, runTool);
 	registerAddVocabularyTool(server, useCases, runTool);
 	registerUpdateSetTool(server, useCases, runTool);
+	registerUpdateVocabularyTool(server, useCases, runTool);
+	registerListVocabularyTool(server, useCases, runTool);
 	registerPublishSetTool(server, useCases, runTool);
 	registerArchiveSetTool(server, useCases, runTool);
 	registerGetSetTool(server, useCases, runTool);

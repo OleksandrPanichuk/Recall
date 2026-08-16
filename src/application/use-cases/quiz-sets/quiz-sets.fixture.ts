@@ -5,10 +5,13 @@ import {
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { AddQuestions, type QuestionInput } from "./add-questions";
+import { AddVocabulary } from "./add-vocabulary";
 import { ArchiveQuizSet } from "./archive-quiz-set";
 import { CreateQuizSet } from "./create-quiz-set";
+import { ListVocabulary } from "./list-vocabulary";
 import { PublishQuizSet } from "./publish-quiz-set";
 import { UpdateQuizSet } from "./update-quiz-set";
+import { UpdateVocabulary } from "./update-vocabulary";
 
 export const aQuestionInput = (
 	overrides: Partial<QuestionInput> = {},
@@ -33,6 +36,9 @@ export interface QuizSetsHarness {
 	readonly add: AddQuestions;
 	readonly publish: PublishQuizSet;
 	readonly archive: ArchiveQuizSet;
+	readonly addVocabulary: AddVocabulary;
+	readonly updateVocabulary: UpdateVocabulary;
+	readonly listVocabulary: ListVocabulary;
 	newDraft(): Promise<QuizSetId>;
 	newPublished(): Promise<QuizSetId>;
 }
@@ -59,6 +65,9 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 		add,
 		publish,
 		archive: new ArchiveQuizSet(context),
+		addVocabulary: new AddVocabulary({ ...context, addQuestions: add }),
+		updateVocabulary: new UpdateVocabulary(context),
+		listVocabulary: new ListVocabulary(context),
 
 		newDraft,
 
