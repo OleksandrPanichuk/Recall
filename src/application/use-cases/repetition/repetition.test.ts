@@ -13,9 +13,9 @@ import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
+import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
+import { UpdateQuizSettings } from "../settings/update-quiz-settings";
 import { ListDueRepetitions } from "./list-due-repetitions";
-import { resolveRepetitionSettings } from "./resolve-repetition-settings";
-import { UpdateRepetitionSettings } from "./update-repetition-settings";
 
 const USER = 42;
 const day = 24 * 60 * 60 * 1000;
@@ -26,7 +26,7 @@ let finish: FinishQuizAttempt;
 let listDue: ListDueRepetitions;
 let answer: AnswerQuestion;
 let current: GetCurrentQuestion;
-let updateSettings: UpdateRepetitionSettings;
+let updateSettings: UpdateQuizSettings;
 
 beforeEach(() => {
 	context = createTestContext();
@@ -35,7 +35,7 @@ beforeEach(() => {
 	listDue = new ListDueRepetitions(context);
 	answer = new AnswerQuestion(context);
 	current = new GetCurrentQuestion(context);
-	updateSettings = new UpdateRepetitionSettings(context);
+	updateSettings = new UpdateQuizSettings(context);
 });
 
 afterEach(() => {
@@ -148,7 +148,7 @@ describe("finishing an attempt schedules a repetition", () => {
 		publish("set-1");
 		await updateSettings.execute({
 			quizSetId: toQuizSetId("set-1"),
-			settings: { ...defaultRepetitionSettings(), maxRepetitions: 2 },
+			repetition: { ...defaultRepetitionSettings(), maxRepetitions: 2 },
 		});
 
 		await takeAndFinish("set-1");
@@ -220,7 +220,7 @@ describe("settings resolution", () => {
 
 	test("a global setting beats the built-in default", async () => {
 		await updateSettings.execute({
-			settings: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
+			repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
 		});
 
 		expect(
@@ -233,7 +233,7 @@ describe("settings resolution", () => {
 		expect(
 			updateSettings.execute({
 				quizSetId: toQuizSetId("ghost"),
-				settings: defaultRepetitionSettings(),
+				repetition: defaultRepetitionSettings(),
 			}),
 		).rejects.toBeInstanceOf(Error);
 	});
@@ -241,11 +241,11 @@ describe("settings resolution", () => {
 	test("a per-set setting beats the global one", async () => {
 		publish("set-1");
 		await updateSettings.execute({
-			settings: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
+			repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
 		});
 		await updateSettings.execute({
 			quizSetId: toQuizSetId("set-1"),
-			settings: { ...defaultRepetitionSettings(), maxIntervalDays: 14 },
+			repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 14 },
 		});
 
 		expect(
@@ -258,7 +258,7 @@ describe("settings resolution", () => {
 		publish("set-1");
 		await updateSettings.execute({
 			quizSetId: toQuizSetId("set-1"),
-			settings: { ...defaultRepetitionSettings(), maxIntervalDays: 1 },
+			repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 1 },
 		});
 
 		await takeAndFinish("set-1");

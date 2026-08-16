@@ -105,6 +105,7 @@ export const repetitionSettings = sqliteTable("repetition_settings", {
 	intervalsDays: text("intervals_days").notNull(),
 	maxIntervalDays: integer("max_interval_days").notNull(),
 	maxRepetitions: integer("max_repetitions").notNull(),
+	shuffleOptions: integer("shuffle_options").notNull().default(0),
 	updatedAt: text("updated_at").notNull(),
 });
 
@@ -115,6 +116,7 @@ export const repetitionDefaults = sqliteTable(
 		intervalsDays: text("intervals_days").notNull(),
 		maxIntervalDays: integer("max_interval_days").notNull(),
 		maxRepetitions: integer("max_repetitions").notNull(),
+		shuffleOptions: integer("shuffle_options").notNull().default(0),
 		updatedAt: text("updated_at").notNull(),
 	},
 	(table) => [check("repetition_defaults_single_row", sql`${table.id} = 1`)],

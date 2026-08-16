@@ -14,8 +14,8 @@ import type { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-se
 import type { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
 import type { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import type { UpdateVocabulary } from "@/application/use-cases/quiz-sets/update-vocabulary";
-import type { ResolveRepetitionSettings } from "@/application/use-cases/repetition/resolve-repetition-settings";
-import type { UpdateRepetitionSettings } from "@/application/use-cases/repetition/update-repetition-settings";
+import type { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
+import type { UpdateQuizSettings } from "@/application/use-cases/settings/update-quiz-settings";
 import type { Logger } from "@/infrastructure/logging/logger.types";
 
 export interface McpUseCases {
@@ -25,8 +25,8 @@ export interface McpUseCases {
 	readonly addVocabulary: AddVocabulary;
 	readonly updateVocabulary: UpdateVocabulary;
 	readonly listVocabulary: ListVocabulary;
-	readonly resolveRepetitionSettings: ResolveRepetitionSettings;
-	readonly updateRepetitionSettings: UpdateRepetitionSettings;
+	readonly resolveQuizSettings: ResolveQuizSettings;
+	readonly updateQuizSettings: UpdateQuizSettings;
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly getQuizSet: GetQuizSet;

@@ -2,30 +2,31 @@ import type { QuizSetRepository } from "@/application/ports/repositories/quiz-se
 import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import type { RepetitionSettings } from "@/domain/repetition/repetition";
 import {
-	defaultRepetitionSettings,
-	type RepetitionSettings,
-} from "@/domain/repetition/repetition";
+	defaultQuizSettings,
+	type QuizSettings,
+} from "@/domain/settings/quiz-settings";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 
-export type RepetitionSettingsSource = "set" | "global" | "default";
+export type QuizSettingsSource = "set" | "global" | "default";
 
-export interface ResolvedRepetitionSettings {
-	readonly settings: RepetitionSettings;
-	readonly source: RepetitionSettingsSource;
+export interface ResolvedQuizSettings {
+	readonly settings: QuizSettings;
+	readonly source: QuizSettingsSource;
 }
 
 export function resolveRepetitionSettings(
 	repetition: RepetitionRepository,
 	quizSetId: QuizSetId,
 ): RepetitionSettings {
-	return resolveWithSource(repetition, quizSetId).settings;
+	return resolveWithSource(repetition, quizSetId).settings.repetition;
 }
 
 export function resolveWithSource(
 	repetition: RepetitionRepository,
 	quizSetId: QuizSetId | undefined,
-): ResolvedRepetitionSettings {
+): ResolvedQuizSettings {
 	const own =
 		quizSetId === undefined ? undefined : repetition.findSettings(quizSetId);
 
@@ -39,36 +40,32 @@ export function resolveWithSource(
 		return { settings: global, source: "global" };
 	}
 
-	return { settings: defaultRepetitionSettings(), source: "default" };
+	return { settings: defaultQuizSettings(), source: "default" };
 }
 
-export interface ResolveRepetitionSettingsCommand {
+export interface ResolveQuizSettingsCommand {
 	readonly quizSetId?: QuizSetId;
 }
 
-export interface ResolveRepetitionSettingsDependencies {
+export interface ResolveQuizSettingsDependencies {
 	readonly repetition: RepetitionRepository;
 	readonly quizSets: QuizSetRepository;
 }
 
-export class ResolveRepetitionSettings
-	implements
-		UseCase<
-			Command<ResolveRepetitionSettingsCommand>,
-			ResolvedRepetitionSettings
-		>
+export class ResolveQuizSettings
+	implements UseCase<Command<ResolveQuizSettingsCommand>, ResolvedQuizSettings>
 {
 	private readonly repetition: RepetitionRepository;
 	private readonly quizSets: QuizSetRepository;
 
-	constructor(dependencies: ResolveRepetitionSettingsDependencies) {
+	constructor(dependencies: ResolveQuizSettingsDependencies) {
 		this.repetition = dependencies.repetition;
 		this.quizSets = dependencies.quizSets;
 	}
 
 	async execute(
-		request: Command<ResolveRepetitionSettingsCommand>,
-	): Promise<ResolvedRepetitionSettings> {
+		request: Command<ResolveQuizSettingsCommand>,
+	): Promise<ResolvedQuizSettings> {
 		if (
 			request.quizSetId !== undefined &&
 			this.quizSets.findById(request.quizSetId) === undefined

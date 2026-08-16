@@ -1,5 +1,6 @@
 import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
+import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import {
 	currentQuestionId,
@@ -8,6 +9,7 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Question } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { resolveWithSource } from "../settings/resolve-quiz-settings";
 import type { AttemptOfUserCommand } from "./resume-quiz-attempt";
 
 export interface CurrentQuestionView {
@@ -19,11 +21,13 @@ export interface CurrentQuestionView {
 	readonly index: number;
 	readonly total: number;
 	readonly awaitingFinish: boolean;
+	readonly shuffleOptions: boolean;
 }
 
 export interface GetCurrentQuestionDependencies {
 	readonly quizSets: QuizSetRepository;
 	readonly attempts: QuizAttemptRepository;
+	readonly repetition: RepetitionRepository;
 }
 
 export class GetCurrentQuestion
@@ -32,10 +36,12 @@ export class GetCurrentQuestion
 {
 	private readonly quizSets: QuizSetRepository;
 	private readonly attempts: QuizAttemptRepository;
+	private readonly repetition: RepetitionRepository;
 
 	constructor(dependencies: GetCurrentQuestionDependencies) {
 		this.quizSets = dependencies.quizSets;
 		this.attempts = dependencies.attempts;
+		this.repetition = dependencies.repetition;
 	}
 
 	async execute(
@@ -63,6 +69,8 @@ export class GetCurrentQuestion
 			index: attempt.responses.length,
 			total: attempt.questionIds.length,
 			awaitingFinish: question === undefined,
+			shuffleOptions: resolveWithSource(this.repetition, attempt.quizSetId)
+				.settings.shuffleOptions,
 		};
 	}
 }

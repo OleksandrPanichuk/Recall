@@ -4,6 +4,7 @@ import {
 	type Question,
 	QuestionType,
 } from "@/domain/quiz-set/question";
+import { shuffled } from "@/shared/utils/shuffle";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import { matchingQuestionScreen } from "./matching-question.presenter";
 import { orderingQuestionScreen } from "./ordering-question.presenter";
@@ -65,8 +66,11 @@ export function questionScreen(
 	);
 	const mark = (position: number): string =>
 		isMultiple ? (selected.includes(position) ? "☑️ " : "⬜️ ") : "";
+	const shown = view.shuffleOptions
+		? shuffled(question.options, `${view.attemptId}:${question.id}`)
+		: question.options;
 
-	const optionRows = question.options.map((option) => {
+	const optionRows = shown.map((option, index) => {
 		const callback = isMultiple
 			? {
 					action: CallbackAction.Toggle,
@@ -81,7 +85,7 @@ export function questionScreen(
 
 		return button(
 			numbered
-				? `${mark(option.position)}${option.position + 1}`
+				? `${mark(option.position)}${index + 1}`
 				: `${mark(option.position)}${option.text}`,
 			callback,
 		);
@@ -105,10 +109,10 @@ export function questionScreen(
 			"",
 			question.prompt,
 			numbered
-				? `\n${question.options
+				? `\n${shown
 						.map(
-							(option) =>
-								`${mark(option.position)}${option.position + 1}. ${option.text}`,
+							(option, index) =>
+								`${mark(option.position)}${index + 1}. ${option.text}`,
 						)
 						.join("\n")}`
 				: undefined,

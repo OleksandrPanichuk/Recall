@@ -3,10 +3,8 @@ import type { RepetitionRepository } from "@/application/ports/repositories/repe
 import type { Transaction } from "@/application/ports/transaction";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import type {
-	RepetitionSchedule,
-	RepetitionSettings,
-} from "@/domain/repetition/repetition";
+import type { RepetitionSchedule } from "@/domain/repetition/repetition";
+import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import type { QuizDatabase } from "../database";
 import {
 	repetitionDefaults,
@@ -14,9 +12,9 @@ import {
 	repetitionSettings,
 } from "../schema";
 import {
+	toQuizSettings,
 	toRepetitionSchedule,
 	toRepetitionScheduleRow,
-	toRepetitionSettings,
 } from "./repetition.mapper";
 
 const DEFAULTS_ROW_ID = 1;
@@ -26,10 +24,11 @@ export function createSqliteRepetitionRepository(
 	transaction: Transaction,
 	now: () => Date,
 ): RepetitionRepository {
-	const settingsRow = (settings: RepetitionSettings, at: Date) => ({
-		intervalsDays: JSON.stringify(settings.intervalsDays),
-		maxIntervalDays: settings.maxIntervalDays,
-		maxRepetitions: settings.maxRepetitions,
+	const settingsRow = (settings: QuizSettings, at: Date) => ({
+		intervalsDays: JSON.stringify(settings.repetition.intervalsDays),
+		maxIntervalDays: settings.repetition.maxIntervalDays,
+		maxRepetitions: settings.repetition.maxRepetitions,
+		shuffleOptions: settings.shuffleOptions ? 1 : 0,
 		updatedAt: at.toISOString(),
 	});
 
@@ -121,7 +120,7 @@ export function createSqliteRepetitionRepository(
 				.map(toRepetitionSchedule);
 		},
 
-		saveSettings(quizSetId: QuizSetId, settings: RepetitionSettings): void {
+		saveSettings(quizSetId: QuizSetId, settings: QuizSettings): void {
 			const row = { quizSetId, ...settingsRow(settings, now()) };
 
 			transaction.run(() => {
@@ -136,17 +135,26 @@ export function createSqliteRepetitionRepository(
 			});
 		},
 
-		findSettings(quizSetId: QuizSetId): RepetitionSettings | undefined {
+		clearSettings(quizSetId: QuizSetId): void {
+			transaction.run(() => {
+				database
+					.delete(repetitionSettings)
+					.where(eq(repetitionSettings.quizSetId, quizSetId))
+					.run();
+			});
+		},
+
+		findSettings(quizSetId: QuizSetId): QuizSettings | undefined {
 			const row = database
 				.select()
 				.from(repetitionSettings)
 				.where(eq(repetitionSettings.quizSetId, quizSetId))
 				.get();
 
-			return row ? toRepetitionSettings(row, quizSetId) : undefined;
+			return row ? toQuizSettings(row, quizSetId) : undefined;
 		},
 
-		saveDefaults(settings: RepetitionSettings): void {
+		saveDefaults(settings: QuizSettings): void {
 			const row = { id: DEFAULTS_ROW_ID, ...settingsRow(settings, now()) };
 
 			transaction.run(() => {
@@ -158,14 +166,14 @@ export function createSqliteRepetitionRepository(
 			});
 		},
 
-		findDefaults(): RepetitionSettings | undefined {
+		findDefaults(): QuizSettings | undefined {
 			const row = database
 				.select()
 				.from(repetitionDefaults)
 				.where(eq(repetitionDefaults.id, DEFAULTS_ROW_ID))
 				.get();
 
-			return row ? toRepetitionSettings(row, "defaults") : undefined;
+			return row ? toQuizSettings(row, "defaults") : undefined;
 		},
 	};
 }

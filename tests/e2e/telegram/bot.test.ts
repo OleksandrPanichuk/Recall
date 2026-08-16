@@ -1736,3 +1736,105 @@ describe("words that keep being forgotten (§3.18)", () => {
 		expect(harness.lastText()).toContain("забуто 5 р.");
 	});
 });
+
+describe("shuffled answer options (§3.9)", () => {
+	const fourOptions = (prompt: string) =>
+		aQuestionInput(prompt, {
+			options: [
+				{ text: "Alpha", isCorrect: true },
+				{ text: "Bravo", isCorrect: false },
+				{ text: "Charlie", isCorrect: false },
+				{ text: "Delta", isCorrect: false },
+			],
+		});
+
+	const optionLabels = (): string[] =>
+		harness
+			.lastButtons()
+			.map((entry) => entry.text)
+			.filter((text) => !text.includes("Меню"));
+
+	const enableShuffle = async (): Promise<void> => {
+		const sets = await harness.application.listQuizSets.execute({
+			includeUnpublished: true,
+		});
+		const quizSetId = sets[0]?.id;
+
+		if (quizSetId === undefined) throw new Error("no set was seeded");
+
+		await harness.application.updateQuizSettings.execute({
+			quizSetId,
+			shuffleOptions: true,
+		});
+	};
+
+	test("keeps the authored order while the toggle is off", async () => {
+		await seedPublishedSet(harness, "Bun", [fourOptions("One")]);
+		await openSet("Bun");
+
+		expect(optionLabels()).toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
+	});
+
+	test("shows a different order once the toggle is on", async () => {
+		await seedPublishedSet(harness, "Bun", [fourOptions("One")]);
+		await enableShuffle();
+		await openSet("Bun");
+
+		expect(optionLabels()).not.toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
+		expect(optionLabels().toSorted()).toEqual([
+			"Alpha",
+			"Bravo",
+			"Charlie",
+			"Delta",
+		]);
+	});
+
+	test("a whole set answered by name still scores full marks", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			fourOptions("One"),
+			fourOptions("Two"),
+			fourOptions("Three"),
+			fourOptions("Four"),
+		]);
+		await enableShuffle();
+		await openSet("Bun");
+
+		for (let answered = 0; answered < 4; answered += 1) {
+			await harness.tap(buttonFor("Alpha"));
+
+			if (answered < 3) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		await harness.tap(buttonFor("Завершити"));
+
+		expect(harness.lastText()).toContain("4/4");
+	});
+
+	test("a wrong option stays wrong after the shuffle", async () => {
+		await seedPublishedSet(harness, "Bun", [fourOptions("One")]);
+		await enableShuffle();
+		await openSet("Bun");
+
+		await harness.tap(buttonFor("Charlie"));
+
+		expect(harness.lastText()).not.toContain("Правильно");
+	});
+
+	test("does not reshuffle under the finger while a question is open", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			fourOptions("One"),
+			fourOptions("Two"),
+		]);
+		await enableShuffle();
+		await openSet("Bun");
+
+		const first = optionLabels();
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Продовжити навчання"));
+
+		expect(optionLabels()).toEqual(first);
+	});
+});

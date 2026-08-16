@@ -42,8 +42,8 @@ import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set
 import { UpdateVocabulary } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
-import { ResolveRepetitionSettings } from "@/application/use-cases/repetition/resolve-repetition-settings";
-import { UpdateRepetitionSettings } from "@/application/use-cases/repetition/update-repetition-settings";
+import { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
+import { UpdateQuizSettings } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { silentLogger } from "@/infrastructure/logging/logger";
@@ -94,8 +94,8 @@ export interface Application {
 	readonly getAttemptDetail: GetAttemptDetail;
 	readonly listDueRepetitions: ListDueRepetitions;
 	readonly listLeeches: ListLeeches;
-	readonly resolveRepetitionSettings: ResolveRepetitionSettings;
-	readonly updateRepetitionSettings: UpdateRepetitionSettings;
+	readonly resolveQuizSettings: ResolveQuizSettings;
+	readonly updateQuizSettings: UpdateQuizSettings;
 	close(): void;
 }
 
@@ -167,8 +167,8 @@ export function createApplication(options: ApplicationOptions): Application {
 		getAttemptDetail: new GetAttemptDetail(dependencies),
 		listDueRepetitions: new ListDueRepetitions(dependencies),
 		listLeeches: new ListLeeches(dependencies),
-		resolveRepetitionSettings: new ResolveRepetitionSettings(dependencies),
-		updateRepetitionSettings: new UpdateRepetitionSettings(dependencies),
+		resolveQuizSettings: new ResolveQuizSettings(dependencies),
+		updateQuizSettings: new UpdateQuizSettings(dependencies),
 		close: () => {
 			closeDatabase(database);
 			logger.debug("database closed", { path: database.filename });

@@ -12,7 +12,7 @@ import type { Score } from "@/domain/quiz-attempt/score";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { scheduleAfter } from "@/domain/repetition/repetition";
 import { startOfDayIn } from "@/shared/utils/timezone";
-import { resolveRepetitionSettings } from "../repetition/resolve-repetition-settings";
+import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
 import {
 	type AttemptOfUserCommand,
 	NoActiveAttemptError,
