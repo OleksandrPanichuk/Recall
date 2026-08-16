@@ -19,14 +19,19 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Repetitions]: "repetitions",
 	[CallbackAction.AttemptDetail]: "attempt-detail",
 	[CallbackAction.StartDue]: "start-due",
-	[CallbackAction.Unavailable]: "unavailable",
+	[CallbackAction.Settings]: "settings",
+	[CallbackAction.SettingsFor]: "settings-for",
+	[CallbackAction.SettingsEdit]: "settings-edit",
 };
 
 function describeCallback(callback: Callback): LogFields {
 	switch (callback.action) {
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
+		case CallbackAction.SettingsFor:
 			return { quizSetId: callback.quizSetId };
+		case CallbackAction.SettingsEdit:
+			return { quizSetId: callback.quizSetId, change: callback.change };
 		case CallbackAction.Answer:
 		case CallbackAction.Toggle:
 			return {
@@ -35,8 +40,6 @@ function describeCallback(callback: Callback): LogFields {
 			};
 		case CallbackAction.Browse:
 			return { folderId: callback.folderId, page: callback.page };
-		case CallbackAction.Unavailable:
-			return { feature: callback.feature };
 		default:
 			return {};
 	}

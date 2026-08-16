@@ -1,6 +1,7 @@
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Command, UseCase } from "@/application/use-case";
+import type { FolderId } from "@/domain/folder/folder";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSettings } from "@/domain/repetition/repetition";
 import {
@@ -14,6 +15,9 @@ export type QuizSettingsSource = "set" | "global" | "default";
 export interface ResolvedQuizSettings {
 	readonly settings: QuizSettings;
 	readonly source: QuizSettingsSource;
+	readonly quizSetId?: QuizSetId;
+	readonly title?: string;
+	readonly folderId?: FolderId;
 }
 
 export function resolveRepetitionSettings(
@@ -66,13 +70,21 @@ export class ResolveQuizSettings
 	async execute(
 		request: Command<ResolveQuizSettingsCommand>,
 	): Promise<ResolvedQuizSettings> {
-		if (
-			request.quizSetId !== undefined &&
-			this.quizSets.findById(request.quizSetId) === undefined
-		) {
+		if (request.quizSetId === undefined) {
+			return resolveWithSource(this.repetition, undefined);
+		}
+
+		const quizSet = this.quizSets.findById(request.quizSetId);
+
+		if (quizSet === undefined) {
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
-		return resolveWithSource(this.repetition, request.quizSetId);
+		return {
+			...resolveWithSource(this.repetition, request.quizSetId),
+			quizSetId: quizSet.id,
+			title: quizSet.title,
+			folderId: quizSet.folderId,
+		};
 	}
 }

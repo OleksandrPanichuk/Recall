@@ -26,12 +26,7 @@ export function mainMenu(state: MenuState): Screen {
 			[button("📚 Мої набори", { action: CallbackAction.Sets })],
 			[button("🔁 Повторення", { action: CallbackAction.Repetitions })],
 			[button("📊 Статистика", { action: CallbackAction.Statistics })],
-			[
-				button("⚙️ Налаштування", {
-					action: CallbackAction.Unavailable,
-					feature: "settings",
-				}),
-			],
+			[button("⚙️ Налаштування", { action: CallbackAction.Settings })],
 		],
 	};
 }
@@ -49,7 +44,3 @@ export function finishPrompt(): Screen {
 export function notice(text: string): Screen {
 	return { text, keyboard: [backToMenu()] };
 }
-
-export const UNAVAILABLE_FEATURES: Readonly<Record<string, string>> = {
-	settings: "Налаштування з'являться у Phase 6.",
-};

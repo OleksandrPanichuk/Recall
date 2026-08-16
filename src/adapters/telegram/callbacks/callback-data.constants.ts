@@ -13,7 +13,22 @@ export const CallbackAction = {
 	Repetitions: "p",
 	AttemptDetail: "d",
 	StartDue: "e",
-	Unavailable: "u",
+	Settings: "n",
+	SettingsFor: "o",
+	SettingsEdit: "j",
 } as const;
+export const SettingsChange = {
+	Preset: "p",
+	CeilingUp: "c",
+	CeilingDown: "C",
+	RepetitionsUp: "r",
+	RepetitionsDown: "R",
+	Shuffle: "s",
+	InheritGlobal: "g",
+	Nothing: "n",
+} as const;
+export type SettingsChange =
+	(typeof SettingsChange)[keyof typeof SettingsChange];
+
 export type CallbackAction =
 	(typeof CallbackAction)[keyof typeof CallbackAction];

@@ -1,4 +1,4 @@
-import { CallbackAction } from "./callback-data.constants";
+import { CallbackAction, SettingsChange } from "./callback-data.constants";
 import type { Callback } from "./callback-data.types";
 
 export const CALLBACK_DATA_LIMIT = 64;
@@ -13,6 +13,9 @@ export class CallbackTooLongError extends Error {
 }
 
 const SEPARATOR = ":";
+
+const isSettingsChange = (value: string): value is SettingsChange =>
+	Object.values(SettingsChange).some((change) => change === value);
 
 export function encodeCallback(callback: Callback): string {
 	const data = serialise(callback);
@@ -32,7 +35,16 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
 		case CallbackAction.Repetitions:
+		case CallbackAction.Settings:
 			return callback.action;
+		case CallbackAction.SettingsFor:
+			return [callback.action, callback.quizSetId ?? ""].join(SEPARATOR);
+		case CallbackAction.SettingsEdit:
+			return [
+				callback.action,
+				callback.quizSetId ?? "",
+				`${callback.change}${callback.presetKey ?? ""}`,
+			].join(SEPARATOR);
 		case CallbackAction.StartSet:
 		case CallbackAction.StartDue:
 		case CallbackAction.StatisticsFor:
@@ -41,8 +53,6 @@ function serialise(callback: Callback): string {
 			return [callback.action, callback.questionId].join(SEPARATOR);
 		case CallbackAction.AttemptDetail:
 			return [callback.action, callback.attemptId].join(SEPARATOR);
-		case CallbackAction.Unavailable:
-			return [callback.action, callback.feature].join(SEPARATOR);
 		case CallbackAction.Browse:
 			return [
 				callback.action,
@@ -88,7 +98,32 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Finish:
 		case CallbackAction.Statistics:
 		case CallbackAction.Repetitions:
+		case CallbackAction.Settings:
 			return { action };
+		case CallbackAction.SettingsFor:
+			return {
+				action,
+				quizSetId:
+					first === undefined || first.length === 0 ? undefined : first,
+			};
+		case CallbackAction.SettingsEdit: {
+			const change = second?.slice(0, 1);
+
+			if (change === undefined || !isSettingsChange(change)) {
+				return undefined;
+			}
+
+			return {
+				action,
+				quizSetId:
+					first === undefined || first.length === 0 ? undefined : first,
+				change,
+				presetKey:
+					second !== undefined && second.length > 1
+						? second.slice(1)
+						: undefined,
+			};
+		}
 		case CallbackAction.StartSet:
 		case CallbackAction.StartDue:
 		case CallbackAction.StatisticsFor:
@@ -103,14 +138,11 @@ export function decodeCallback(data: string): Callback | undefined {
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, attemptId: first };
-		case CallbackAction.Unavailable:
-			return first === undefined || first.length === 0
-				? undefined
-				: { action, feature: first };
 		case CallbackAction.Browse: {
 			if (
 				first !== CallbackAction.StartSet &&
-				first !== CallbackAction.StatisticsFor
+				first !== CallbackAction.StatisticsFor &&
+				first !== CallbackAction.SettingsFor
 			) {
 				return undefined;
 			}

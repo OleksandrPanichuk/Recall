@@ -9,7 +9,8 @@ export const BROWSE_PAGE_SIZE = 8;
 
 export type LeafAction =
 	| typeof CallbackAction.StartSet
-	| typeof CallbackAction.StatisticsFor;
+	| typeof CallbackAction.StatisticsFor
+	| typeof CallbackAction.SettingsFor;
 
 interface Entry {
 	readonly label: string;
@@ -34,8 +35,12 @@ const headingOf = (view: BrowseView, leaf: LeafAction): string => {
 		return breadcrumbOf(view);
 	}
 
-	return leaf === Action.StatisticsFor
-		? "Статистика — оберіть набір:"
+	if (leaf === Action.StatisticsFor) {
+		return "Статистика — оберіть набір:";
+	}
+
+	return leaf === Action.SettingsFor
+		? "Налаштування — оберіть набір:"
 		: "Оберіть набір:";
 };
 
