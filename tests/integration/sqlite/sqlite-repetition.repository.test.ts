@@ -6,6 +6,7 @@ import { createSqliteRepetitionRepository } from "@/adapters/persistence/sqlite/
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
+import { toQuestionId } from "@/domain/quiz-set/question";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	defaultRepetitionSettings,
@@ -36,102 +37,148 @@ afterEach(() => {
 	database.close();
 });
 
-const seedSet = (id: string): void => {
-	const draft = aQuizSet({ id, questions: [aQuestion({ id: `${id}-q` })] });
-
-	quizSets.save({
-		...draft,
-		status: QuizSetStatus.Published,
-		publishedAt: now,
-	});
-};
-
-const schedule = (
-	id: string,
-	dueAt: Date | undefined,
-	count = 1,
-): RepetitionSchedule => ({
-	quizSetId: toQuizSetId(id),
-	telegramUserId: user,
-	repetitionCount: count,
-	lastCompletedAt: now,
-	dueAt,
-});
-
 describe("schedules", () => {
-	test("round-trips a schedule", () => {
-		seedSet("set-1");
-		repetition.saveSchedule(schedule("set-1", at("2026-08-16T09:00:00.000Z")));
+	const seedQuestions = (setId: string, count: number): string[] => {
+		const ids = Array.from({ length: count }, (_v, i) => `${setId}-q${i}`);
+		const draft = aQuizSet({
+			id: setId,
+			questions: ids.map((id) => aQuestion({ id })),
+		});
 
-		const stored = repetition.findSchedule(toQuizSetId("set-1"), user);
+		quizSets.save({
+			...draft,
+			status: QuizSetStatus.Published,
+			publishedAt: now,
+		});
+
+		return ids;
+	};
+
+	const schedule = (
+		questionId: string,
+		dueAt: Date | undefined,
+		overrides: Partial<RepetitionSchedule> = {},
+	): RepetitionSchedule => ({
+		questionId: toQuestionId(questionId),
+		telegramUserId: user,
+		repetitionCount: 1,
+		lapses: 0,
+		lastCompletedAt: now,
+		dueAt,
+		...overrides,
+	});
+
+	test("round-trips a schedule", () => {
+		seedQuestions("set-1", 1);
+		repetition.saveSchedules([
+			schedule("set-1-q0", at("2026-08-16T09:00:00.000Z")),
+		]);
+
+		const [stored] = repetition.findSchedules([toQuestionId("set-1-q0")], user);
 
 		expect(stored?.repetitionCount).toBe(1);
 		expect(stored?.dueAt).toEqual(at("2026-08-16T09:00:00.000Z"));
 	});
 
 	test("round-trips a retired schedule", () => {
-		seedSet("set-1");
-		repetition.saveSchedule(schedule("set-1", undefined, 10));
+		seedQuestions("set-1", 1);
+		repetition.saveSchedules([
+			schedule("set-1-q0", undefined, { repetitionCount: 10 }),
+		]);
 
 		expect(
-			repetition.findSchedule(toQuizSetId("set-1"), user)?.dueAt,
+			repetition.findSchedules([toQuestionId("set-1-q0")], user)[0]?.dueAt,
 		).toBeUndefined();
 	});
 
 	test("saving twice updates rather than duplicating", () => {
-		seedSet("set-1");
-		repetition.saveSchedule(schedule("set-1", at("2026-08-16T09:00:00.000Z")));
-		repetition.saveSchedule(
-			schedule("set-1", at("2026-08-20T09:00:00.000Z"), 2),
-		);
+		seedQuestions("set-1", 1);
+		repetition.saveSchedules([
+			schedule("set-1-q0", at("2026-08-16T09:00:00.000Z")),
+		]);
+		repetition.saveSchedules([
+			schedule("set-1-q0", at("2026-08-20T09:00:00.000Z"), {
+				repetitionCount: 2,
+			}),
+		]);
 
-		const stored = repetition.findSchedule(toQuizSetId("set-1"), user);
+		const [stored] = repetition.findSchedules([toQuestionId("set-1-q0")], user);
 
 		expect(stored?.repetitionCount).toBe(2);
 		expect(stored?.dueAt).toEqual(at("2026-08-20T09:00:00.000Z"));
 	});
 
 	test("lists what is due, most overdue first", () => {
-		seedSet("set-1");
-		seedSet("set-2");
-		seedSet("set-3");
-		repetition.saveSchedule(schedule("set-1", at("2026-08-14T09:00:00.000Z")));
-		repetition.saveSchedule(schedule("set-2", at("2026-08-10T09:00:00.000Z")));
-		repetition.saveSchedule(schedule("set-3", at("2026-08-20T09:00:00.000Z")));
+		const ids = seedQuestions("set-1", 3);
+
+		repetition.saveSchedules([
+			schedule(ids[0] as string, at("2026-08-14T09:00:00.000Z")),
+			schedule(ids[1] as string, at("2026-08-10T09:00:00.000Z")),
+			schedule(ids[2] as string, at("2026-08-20T09:00:00.000Z")),
+		]);
 
 		expect(
-			repetition.listDue(user, now).map((entry) => String(entry.quizSetId)),
-		).toEqual(["set-2", "set-1"]);
+			repetition.listDue(user, now).map((entry) => String(entry.questionId)),
+		).toEqual([ids[1] as string, ids[0] as string]);
 	});
 
 	test("never lists a retired schedule", () => {
-		seedSet("set-1");
-		repetition.saveSchedule(schedule("set-1", undefined));
+		seedQuestions("set-1", 1);
+		repetition.saveSchedules([schedule("set-1-q0", undefined)]);
 
 		expect(repetition.listDue(user, now)).toEqual([]);
 	});
 
 	test("keeps another user's schedules out", () => {
-		seedSet("set-1");
-		repetition.saveSchedule({
-			...schedule("set-1", at("2026-08-10T09:00:00.000Z")),
-			telegramUserId: 7,
-		});
+		seedQuestions("set-1", 1);
+		repetition.saveSchedules([
+			schedule("set-1-q0", at("2026-08-10T09:00:00.000Z"), {
+				telegramUserId: 7,
+			}),
+		]);
 
 		expect(repetition.listDue(user, now)).toEqual([]);
 	});
 
-	test("goes away with its quiz set", () => {
-		seedSet("set-1");
-		repetition.saveSchedule(schedule("set-1", at("2026-08-14T09:00:00.000Z")));
+	test("goes away with its question", () => {
+		seedQuestions("set-1", 1);
+		repetition.saveSchedules([
+			schedule("set-1-q0", at("2026-08-14T09:00:00.000Z")),
+		]);
 
 		database.run("DELETE FROM quiz_sets WHERE id = 'set-1'");
 
-		expect(repetition.findSchedule(toQuizSetId("set-1"), user)).toBeUndefined();
+		expect(repetition.findSchedules([toQuestionId("set-1-q0")], user)).toEqual(
+			[],
+		);
+	});
+
+	test("lists the questions that keep being forgotten", () => {
+		const ids = seedQuestions("set-1", 3);
+
+		repetition.saveSchedules([
+			schedule(ids[0] as string, at("2026-08-20T00:00:00.000Z"), { lapses: 7 }),
+			schedule(ids[1] as string, at("2026-08-20T00:00:00.000Z"), { lapses: 5 }),
+			schedule(ids[2] as string, at("2026-08-20T00:00:00.000Z"), { lapses: 1 }),
+		]);
+
+		expect(
+			repetition.listLeeches(user, 5).map((entry) => String(entry.questionId)),
+		).toEqual([ids[0] as string, ids[1] as string]);
 	});
 });
 
 describe("settings", () => {
+	const seedSet = (id: string): void => {
+		const draft = aQuizSet({ id, questions: [aQuestion({ id: `${id}-q` })] });
+
+		quizSets.save({
+			...draft,
+			status: QuizSetStatus.Published,
+			publishedAt: now,
+		});
+	};
+
 	const custom = { ...defaultRepetitionSettings(), maxIntervalDays: 7 };
 
 	test("round-trips per-set settings", () => {

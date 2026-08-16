@@ -64,23 +64,37 @@ export class FinishQuizAttempt
 			this.attempts.save(finished);
 
 			// An attempt abandoned without answering is not a repetition: advancing
-			// on it would push the interval out and, repeated, retire a set the
+			// on it would push the interval out and, repeated, retire a question the
 			// owner never actually answered.
 			if (finished.responses.length === 0) {
 				return;
 			}
 
-			this.repetition.saveSchedule(
-				scheduleAfter(
-					this.repetition.findSchedule(
-						finished.quizSetId,
+			const settings = resolveRepetitionSettings(
+				this.repetition,
+				finished.quizSetId,
+			);
+			const dayStart = startOfDayIn(at, this.timezone);
+			const answeredIds = finished.responses.map(
+				(response) => response.questionId,
+			);
+			const existing = new Map(
+				this.repetition
+					.findSchedules(answeredIds, finished.telegramUserId)
+					.map((schedule) => [schedule.questionId, schedule]),
+			);
+
+			this.repetition.saveSchedules(
+				finished.responses.map((response) =>
+					scheduleAfter(
+						existing.get(response.questionId),
+						response.questionId,
 						finished.telegramUserId,
+						settings,
+						at,
+						dayStart,
+						response.isCorrect,
 					),
-					finished.quizSetId,
-					finished.telegramUserId,
-					resolveRepetitionSettings(this.repetition, finished.quizSetId),
-					at,
-					startOfDayIn(at, this.timezone),
 				),
 			);
 		});

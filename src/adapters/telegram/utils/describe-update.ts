@@ -18,6 +18,7 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Reveal]: "reveal",
 	[CallbackAction.Repetitions]: "repetitions",
 	[CallbackAction.AttemptDetail]: "attempt-detail",
+	[CallbackAction.StartDue]: "start-due",
 	[CallbackAction.Unavailable]: "unavailable",
 };
 

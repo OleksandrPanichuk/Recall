@@ -1,4 +1,5 @@
-import type { DueRepetitionView } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { DueSet } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { Screen } from "./screen.types";
 import { button } from "./utils/button";
@@ -16,10 +17,27 @@ export const overdueLabel = (overdueDays: number): string => {
 	return `${overdueDays} дн. тому`;
 };
 
-export function repetitionsScreen(due: readonly DueRepetitionView[]): Screen {
+const leechLines = (leeches: readonly LeechView[]): readonly string[] =>
+	leeches.length === 0
+		? []
+		: [
+				"",
+				`⚠️ Не даються (${leeches.length}) — варто переписати картку:`,
+				...leeches
+					.slice(0, 5)
+					.map((leech) => `• ${leech.prompt} — забуто ${leech.lapses} р.`),
+			];
+
+export function repetitionsScreen(
+	due: readonly DueSet[],
+	leeches: readonly LeechView[] = [],
+): Screen {
 	if (due.length === 0) {
 		return {
-			text: "Нічого повторювати — усе за розкладом. Загляньте пізніше.",
+			text: [
+				"Нічого повторювати — усе за розкладом. Загляньте пізніше.",
+				...leechLines(leeches),
+			].join("\n"),
 			keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
 		};
 	}
@@ -29,15 +47,17 @@ export function repetitionsScreen(due: readonly DueRepetitionView[]): Screen {
 			`🔁 На повторення: ${due.length}`,
 			"",
 			...due.map(
-				(entry) => `• ${entry.title} — ${overdueLabel(entry.overdueDays)}`,
+				(entry) =>
+					`• ${entry.title} — ${entry.dueCount} сл., ${overdueLabel(entry.overdueDays)}`,
 			),
+			...leechLines(leeches),
 		].join("\n"),
 		keyboard: [
 			...due.map((entry) => [
-				button(
-					truncated(`🔁 ${entry.title} (${overdueLabel(entry.overdueDays)})`),
-					{ action: CallbackAction.StartSet, quizSetId: entry.quizSetId },
-				),
+				button(truncated(`🔁 ${entry.title} (${entry.dueCount})`), {
+					action: CallbackAction.StartDue,
+					quizSetId: entry.quizSetId,
+				}),
 			]),
 			[button("« Меню", { action: CallbackAction.Menu })],
 		],

@@ -41,6 +41,10 @@ export interface BrowseCallback {
 	readonly folderId?: string;
 	readonly page?: number;
 }
+export interface StartDueCallback {
+	readonly action: typeof CallbackAction.StartDue;
+	readonly quizSetId: string;
+}
 export interface AttemptDetailCallback {
 	readonly action: typeof CallbackAction.AttemptDetail;
 	readonly attemptId: string;
@@ -68,6 +72,7 @@ export type Callback =
 	| AnswerCallback
 	| ToggleCallback
 	| BrowseCallback
+	| StartDueCallback
 	| AttemptDetailCallback
 	| RepetitionsCallback
 	| RevealCallback

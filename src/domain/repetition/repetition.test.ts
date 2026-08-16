@@ -1,19 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import { toQuizSetId } from "../quiz-set/quiz-set";
+import { toQuestionId } from "../quiz-set/question";
 import {
 	createRepetitionSettings,
 	defaultRepetitionSettings,
-	dueRepetitionOf,
 	intervalDaysFor,
 	isDue,
+	isLeech,
 	isRetired,
+	leechOf,
 	overdueDaysOf,
 	type RepetitionSchedule,
 	RepetitionSettingsValidationError,
 	scheduleAfter,
 } from "./repetition";
 
-const setId = toQuizSetId("set-1");
+const questionId = toQuestionId("question-1");
 const user = 42;
 const day = 24 * 60 * 60 * 1000;
 const at = (iso: string): Date => new Date(iso);
@@ -31,7 +32,7 @@ const complete = (
 ): RepetitionSchedule =>
 	scheduleAfter(
 		previous,
-		setId,
+		questionId,
 		user,
 		createRepetitionSettings({ ...settings, ...overrides }),
 		completedAt,
@@ -168,23 +169,6 @@ describe("isDue and overdueDaysOf", () => {
 	});
 });
 
-describe("dueRepetitionOf", () => {
-	test("describes an overdue set", () => {
-		const schedule = complete(undefined, start);
-		const today = at("2026-08-21T09:00:00.000Z");
-		const due = dueRepetitionOf(schedule, today, startOfDay(today));
-
-		expect(due?.overdueDays).toBe(5);
-		expect(due?.repetitionCount).toBe(1);
-	});
-
-	test("is nothing when the set is not due yet", () => {
-		expect(
-			dueRepetitionOf(complete(undefined, start), start, startOfDay(start)),
-		).toBeUndefined();
-	});
-});
-
 describe("createRepetitionSettings", () => {
 	test.each([
 		["no intervals", { intervalsDays: [] }],
@@ -203,5 +187,76 @@ describe("createRepetitionSettings", () => {
 		expect(createRepetitionSettings(settings).intervalsDays).toEqual([
 			1, 3, 7, 14, 30,
 		]);
+	});
+});
+
+describe("a wrong answer", () => {
+	test("sends the question back to the start of the ladder", () => {
+		let schedule = complete(undefined, start);
+
+		schedule = complete(schedule, start);
+		schedule = complete(schedule, start);
+
+		expect(schedule.repetitionCount).toBe(3);
+
+		const forgotten = scheduleAfter(
+			schedule,
+			questionId,
+			user,
+			settings,
+			start,
+			startOfDay(start),
+			false,
+		);
+
+		expect(forgotten.repetitionCount).toBe(1);
+		expect(daysBetween(startOfDay(start), forgotten.dueAt as Date)).toBe(1);
+	});
+
+	test("counts a lapse", () => {
+		const forgotten = scheduleAfter(
+			complete(undefined, start),
+			questionId,
+			user,
+			settings,
+			start,
+			startOfDay(start),
+			false,
+		);
+
+		expect(forgotten.lapses).toBe(1);
+	});
+
+	test("cannot retire a question", () => {
+		let schedule = complete(undefined, start, { maxRepetitions: 1 });
+
+		schedule = scheduleAfter(
+			schedule,
+			questionId,
+			user,
+			createRepetitionSettings({ ...settings, maxRepetitions: 1 }),
+			start,
+			startOfDay(start),
+			false,
+		);
+
+		expect(isRetired(schedule)).toBe(false);
+	});
+});
+
+describe("leeches", () => {
+	const withLapses = (lapses: number) => ({
+		...complete(undefined, start),
+		lapses,
+	});
+
+	test("flags a question forgotten as often as the threshold", () => {
+		expect(isLeech(withLapses(5), 5)).toBe(true);
+		expect(isLeech(withLapses(4), 5)).toBe(false);
+	});
+
+	test("describes it", () => {
+		expect(leechOf(withLapses(7), 5)?.lapses).toBe(7);
+		expect(leechOf(withLapses(1), 5)).toBeUndefined();
 	});
 });

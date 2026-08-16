@@ -34,6 +34,7 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Repetitions:
 			return callback.action;
 		case CallbackAction.StartSet:
+		case CallbackAction.StartDue:
 		case CallbackAction.StatisticsFor:
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
 		case CallbackAction.Reveal:
@@ -89,6 +90,7 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Repetitions:
 			return { action };
 		case CallbackAction.StartSet:
+		case CallbackAction.StartDue:
 		case CallbackAction.StatisticsFor:
 			return first === undefined || first.length === 0
 				? undefined

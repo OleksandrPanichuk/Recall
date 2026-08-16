@@ -1,3 +1,4 @@
+import type { QuestionId } from "../quiz-set/question";
 import type { QuizSetId } from "../quiz-set/quiz-set";
 
 export interface RepetitionSettings {
@@ -7,16 +8,23 @@ export interface RepetitionSettings {
 }
 
 export interface RepetitionSchedule {
-	readonly quizSetId: QuizSetId;
+	readonly questionId: QuestionId;
 	readonly telegramUserId: number;
 	readonly repetitionCount: number;
+	readonly lapses: number;
 	readonly lastCompletedAt: Date;
 	readonly dueAt?: Date;
 }
 
-export interface DueRepetition {
+export interface DueSet {
 	readonly quizSetId: QuizSetId;
-	readonly dueAt: Date;
+	readonly title: string;
+	readonly dueCount: number;
 	readonly overdueDays: number;
-	readonly repetitionCount: number;
+	readonly dueQuestionIds: readonly QuestionId[];
+}
+
+export interface Leech {
+	readonly questionId: QuestionId;
+	readonly lapses: number;
 }

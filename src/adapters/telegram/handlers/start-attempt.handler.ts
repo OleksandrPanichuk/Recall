@@ -8,6 +8,7 @@ import { render } from "../screen";
 export interface StartAttemptRequest {
 	readonly telegramUserId: number;
 	readonly quizSetId: QuizSetId;
+	readonly onlyDue?: boolean;
 }
 
 export function startAttemptHandler(useCases: TelegramUseCases) {

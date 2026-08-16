@@ -1,5 +1,5 @@
 import { copiedDate, isValidDate } from "@/shared/utils/date";
-import type { QuizSetId } from "../quiz-set/quiz-set";
+import type { QuestionId } from "../quiz-set/question";
 import {
 	DEFAULT_INTERVALS_DAYS,
 	DEFAULT_MAX_INTERVAL_DAYS,
@@ -10,13 +10,14 @@ import {
 } from "./repetition.constants";
 import { RepetitionSettingsValidationError } from "./repetition.errors";
 import type {
-	DueRepetition,
+	Leech,
 	RepetitionSchedule,
 	RepetitionSettings,
 } from "./repetition.types";
 
 export {
 	DEFAULT_INTERVALS_DAYS,
+	DEFAULT_LEECH_THRESHOLD,
 	DEFAULT_MAX_INTERVAL_DAYS,
 	DEFAULT_MAX_REPETITIONS,
 	MAX_INTERVAL_LIMIT_DAYS,
@@ -25,7 +26,8 @@ export {
 } from "./repetition.constants";
 export { RepetitionSettingsValidationError } from "./repetition.errors";
 export type {
-	DueRepetition,
+	DueSet,
+	Leech,
 	RepetitionSchedule,
 	RepetitionSettings,
 } from "./repetition.types";
@@ -101,11 +103,12 @@ export function intervalDaysFor(
 
 export function scheduleAfter(
 	previous: RepetitionSchedule | undefined,
-	quizSetId: QuizSetId,
+	questionId: QuestionId,
 	telegramUserId: number,
 	settings: RepetitionSettings,
 	completedAt: Date,
 	completedDayStart: Date,
+	answeredCorrectly = true,
 ): RepetitionSchedule {
 	if (!isValidDate(completedAt)) {
 		throw new RepetitionSettingsValidationError([
@@ -113,13 +116,20 @@ export function scheduleAfter(
 		]);
 	}
 
-	const repetitionCount = (previous?.repetitionCount ?? 0) + 1;
-	const retired = repetitionCount > settings.maxRepetitions;
+	// A wrong answer sends the question back to the start of the ladder: the
+	// point of the interval is that you remembered, and you did not.
+	const repetitionCount = answeredCorrectly
+		? (previous?.repetitionCount ?? 0) + 1
+		: 1;
+	const lapses = (previous?.lapses ?? 0) + (answeredCorrectly ? 0 : 1);
+	const retired =
+		answeredCorrectly && repetitionCount > settings.maxRepetitions;
 
 	return Object.freeze({
-		quizSetId,
+		questionId,
 		telegramUserId,
 		repetitionCount,
+		lapses,
 		lastCompletedAt: copiedDate(completedAt),
 		dueAt: retired
 			? undefined
@@ -154,19 +164,21 @@ export function overdueDaysOf(
 	);
 }
 
-export function dueRepetitionOf(
+export function isLeech(
 	schedule: RepetitionSchedule,
-	at: Date,
-	todayStart: Date,
-): DueRepetition | undefined {
-	if (schedule.dueAt === undefined || !isDue(schedule, at)) {
-		return undefined;
-	}
+	threshold: number,
+): boolean {
+	return schedule.lapses >= threshold;
+}
 
-	return Object.freeze({
-		quizSetId: schedule.quizSetId,
-		dueAt: copiedDate(schedule.dueAt),
-		overdueDays: overdueDaysOf(schedule, todayStart),
-		repetitionCount: schedule.repetitionCount,
-	});
+export function leechOf(
+	schedule: RepetitionSchedule,
+	threshold: number,
+): Leech | undefined {
+	return isLeech(schedule, threshold)
+		? Object.freeze({
+				questionId: schedule.questionId,
+				lapses: schedule.lapses,
+			})
+		: undefined;
 }

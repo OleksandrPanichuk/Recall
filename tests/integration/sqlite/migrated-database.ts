@@ -5,12 +5,12 @@ import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 export const applicationTables = [
 	"folders",
 	"question_options",
+	"question_repetition_schedules",
 	"question_responses",
 	"questions",
 	"quiz_attempts",
 	"quiz_sets",
 	"repetition_defaults",
-	"repetition_schedules",
 	"repetition_settings",
 	"vocabulary_items",
 ] as const;

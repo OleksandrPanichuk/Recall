@@ -1562,3 +1562,135 @@ describe("attempt details stay inside Telegram's limit (§3.16)", () => {
 		expect(text).not.toContain("(скорочено)");
 	});
 });
+
+describe("a repetition drills only what is due (§3.17)", () => {
+	const day = 24 * 60 * 60 * 1000;
+
+	const seedThree = async (): Promise<string> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Words",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: ["Перше", "Друге", "Третє"].map((prompt) => ({
+				type: QuestionType.TrueFalse,
+				prompt: `${prompt}?`,
+				difficulty: "easy" as const,
+				options: [
+					{ text: "Так", isCorrect: true },
+					{ text: "Ні", isCorrect: false },
+				],
+			})),
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		return String(quizSetId);
+	};
+
+	test("the menu counts the words due, not the sets", async () => {
+		await seedThree();
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Words"));
+		await harness.tap(buttonFor("Так"));
+		await harness.tap(buttonFor("Далі"));
+		await harness.tap(buttonFor("Ні"));
+		await harness.tap(buttonFor("Далі"));
+		await harness.tap(buttonFor("Так"));
+		await harness.tap(buttonFor("Завершити"));
+
+		harness.clock.advance(day);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+
+		expect(harness.lastText()).toContain("Words");
+		expect(harness.lastText()).toContain("сл.");
+	});
+
+	const answerAll = async (verdicts: readonly boolean[]): Promise<void> => {
+		for (const [index, correct] of verdicts.entries()) {
+			await harness.tap(buttonFor(correct ? "Так" : "Ні"));
+
+			if (index < verdicts.length - 1) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		await harness.tap(buttonFor("Завершити"));
+	};
+
+	test("a forgotten word comes back sooner than a remembered one", async () => {
+		await seedThree();
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Words"));
+		await answerAll([true, true, true]);
+
+		harness.clock.advance(day);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+		await harness.tap(buttonFor("Words"));
+
+		expect(harness.lastText()).toContain("питання 1/3");
+
+		await answerAll([true, false, true]);
+
+		harness.clock.advance(day);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Повторення"));
+		await harness.tap(buttonFor("Words"));
+
+		expect(harness.lastText()).toContain("питання 1/1");
+		expect(harness.lastText()).toContain("Друге?");
+	});
+});
+
+describe("words that keep being forgotten (§3.18)", () => {
+	const day = 24 * 60 * 60 * 1000;
+
+	test("are surfaced once they pass the threshold", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Hard",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: QuestionType.TrueFalse,
+					prompt: "Уперте питання?",
+					difficulty: "easy",
+					options: [
+						{ text: "Так", isCorrect: true },
+						{ text: "Ні", isCorrect: false },
+					],
+				},
+			],
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Hard"));
+
+		for (let round = 0; round < 5; round += 1) {
+			await harness.tap(buttonFor("Ні"));
+			await harness.tap(buttonFor("Завершити"));
+
+			harness.clock.advance(day);
+			await harness.send("/start");
+			await harness.tap(buttonFor("Повторення"));
+
+			if (round < 4) {
+				await harness.tap(buttonFor("Hard"));
+			}
+		}
+
+		expect(harness.lastText()).toContain("Не даються");
+		expect(harness.lastText()).toContain("Уперте питання?");
+		expect(harness.lastText()).toContain("забуто 5 р.");
+	});
+});
