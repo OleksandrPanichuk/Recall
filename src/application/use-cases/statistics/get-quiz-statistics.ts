@@ -4,6 +4,7 @@ import type {
 } from "@/application/ports/repositories/quiz-attempt.repository";
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { Command, UseCase } from "@/application/use-case";
+import type { FolderId } from "@/domain/folder/folder";
 import type { QuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { percentageOf, type Score } from "@/domain/quiz-attempt/score";
 import type { QuestionId } from "@/domain/quiz-set/question";
@@ -23,6 +24,9 @@ export interface Improvement {
 }
 
 export interface QuizStatistics {
+	readonly quizSetId: QuizSetId;
+	readonly title: string;
+	readonly folderId?: FolderId;
 	readonly attempts: readonly AttemptSummary[];
 	readonly setAccuracy: Score;
 	readonly topics: readonly TopicAccuracy[];
@@ -60,7 +64,9 @@ export class GetQuizStatistics
 	async execute(
 		request: Command<GetQuizStatisticsCommand>,
 	): Promise<QuizStatistics> {
-		if (this.quizSets.findById(request.quizSetId) === undefined) {
+		const quizSet = this.quizSets.findById(request.quizSetId);
+
+		if (quizSet === undefined) {
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
@@ -77,6 +83,9 @@ export class GetQuizStatistics
 		);
 
 		return {
+			quizSetId: quizSet.id,
+			title: quizSet.title,
+			folderId: quizSet.folderId,
 			attempts,
 			setAccuracy: scoreOf(
 				completed.reduce((sum, entry) => sum + entry.correct, 0),

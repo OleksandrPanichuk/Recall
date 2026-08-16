@@ -98,6 +98,14 @@ export function attemptDetailScreen(detail: AttemptDetail): Screen {
 		]
 			.filter((line) => line !== undefined)
 			.join("\n"),
-		keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
+		keyboard: [
+			[
+				button("« До статистики", {
+					action: CallbackAction.StatisticsFor,
+					quizSetId: detail.quizSetId,
+				}),
+			],
+			[button("« Меню", { action: CallbackAction.Menu })],
+		],
 	};
 }

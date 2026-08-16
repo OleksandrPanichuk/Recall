@@ -9,6 +9,7 @@ import {
 	type QuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Score } from "@/domain/quiz-attempt/score";
+import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { scheduleAfter } from "@/domain/repetition/repetition";
 import { startOfDayIn } from "@/shared/utils/timezone";
 import { resolveRepetitionSettings } from "../repetition/resolve-repetition-settings";
@@ -19,6 +20,7 @@ import {
 
 export interface FinishQuizAttemptResult {
 	readonly attemptId: QuizAttemptId;
+	readonly quizSetId: QuizSetId;
 	readonly score: Score;
 	readonly unansweredCount: number;
 }
@@ -101,6 +103,7 @@ export class FinishQuizAttempt
 
 		return {
 			attemptId: finished.id,
+			quizSetId: finished.quizSetId,
 			unansweredCount: finished.questionIds.length - finished.responses.length,
 			score: attemptScore(finished),
 		};

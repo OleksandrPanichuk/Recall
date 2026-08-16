@@ -7,6 +7,7 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Score } from "@/domain/quiz-attempt/score";
 import type { Question, QuestionOptionId } from "@/domain/quiz-set/question";
+import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 
 export class AttemptNotFoundError extends Error {
 	readonly attemptId: QuizAttemptId;
@@ -31,6 +32,7 @@ export interface AnsweredQuestion {
 
 export interface AttemptDetail {
 	readonly attemptId: QuizAttemptId;
+	readonly quizSetId: QuizSetId;
 	readonly quizSetTitle: string;
 	readonly score: Score;
 	readonly completedAt?: Date;
@@ -103,6 +105,7 @@ export class GetAttemptDetail
 
 		return {
 			attemptId: attempt.id,
+			quizSetId: attempt.quizSetId,
 			quizSetTitle: quizSet?.title ?? "—",
 			score: attemptScore(attempt),
 			completedAt: attempt.completedAt,
