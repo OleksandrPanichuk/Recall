@@ -110,6 +110,7 @@ export function settingsScreen(resolved: ResolvedQuizSettings): Screen {
 			ladderLine(repetition),
 			`Стеля: ${repetition.maxIntervalDays} дн.  ·  Максимум повторень: ${repetition.maxRepetitions}`,
 			`Перемішувати варіанти: ${settings.shuffleOptions ? "так" : "ні"}`,
+			`Перемішувати питання: ${settings.shuffleQuestions ? "так" : "ні"}`,
 		].join("\n"),
 		keyboard: [
 			...presets,
@@ -126,7 +127,13 @@ export function settingsScreen(resolved: ResolvedQuizSettings): Screen {
 			[
 				button(
 					`🔀 Перемішувати варіанти: ${settings.shuffleOptions ? "так" : "ні"}`,
-					edit(SettingsChange.Shuffle),
+					edit(SettingsChange.ShuffleOptions),
+				),
+			],
+			[
+				button(
+					`🔀 Перемішувати питання: ${settings.shuffleQuestions ? "так" : "ні"}`,
+					edit(SettingsChange.ShuffleQuestions),
 				),
 			],
 			...scope,

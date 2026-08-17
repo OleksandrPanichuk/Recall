@@ -14,6 +14,7 @@ export interface UpdateQuizSettingsCommand {
 	readonly quizSetId?: QuizSetId;
 	readonly repetition?: RepetitionSettings;
 	readonly shuffleOptions?: boolean;
+	readonly shuffleQuestions?: boolean;
 	readonly inheritGlobal?: boolean;
 }
 
@@ -55,6 +56,7 @@ export class UpdateQuizSettings
 		const settings = createQuizSettings({
 			repetition: request.repetition ?? current.repetition,
 			shuffleOptions: request.shuffleOptions ?? current.shuffleOptions,
+			shuffleQuestions: request.shuffleQuestions ?? current.shuffleQuestions,
 		});
 
 		if (quizSetId === undefined) {

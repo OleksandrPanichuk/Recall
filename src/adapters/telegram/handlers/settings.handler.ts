@@ -118,10 +118,15 @@ function changeFor(
 ): {
 	repetition?: RepetitionSettings;
 	shuffleOptions?: boolean;
+	shuffleQuestions?: boolean;
 	inheritGlobal?: boolean;
 } {
-	if (callback.change === SettingsChange.Shuffle) {
+	if (callback.change === SettingsChange.ShuffleOptions) {
 		return { shuffleOptions: !current.shuffleOptions };
+	}
+
+	if (callback.change === SettingsChange.ShuffleQuestions) {
+		return { shuffleQuestions: !current.shuffleQuestions };
 	}
 
 	if (callback.change === SettingsChange.InheritGlobal) {

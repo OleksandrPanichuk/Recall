@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { QuestionType } from "@/domain/quiz-set/question";
+import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	ALLOWED_USER,
 	aQuestionInput,
@@ -1843,6 +1844,91 @@ describe("shuffled answer options (§3.9)", () => {
 	});
 });
 
+describe("shuffled question order (§3.9)", () => {
+	const PROMPTS = ["One", "Two", "Three", "Four", "Five", "Six", "Seven"];
+
+	const seedSeven = (): Promise<QuizSetId> =>
+		seedPublishedSet(
+			harness,
+			"Bun",
+			PROMPTS.map((prompt) => aQuestionInput(prompt)),
+		);
+
+	const enableQuestionShuffle = async (quizSetId: QuizSetId): Promise<void> => {
+		await harness.application.updateQuizSettings.execute({
+			quizSetId,
+			shuffleQuestions: true,
+		});
+	};
+
+	const promptOnScreen = (): string => {
+		const shown = PROMPTS.find((prompt) => harness.lastText().includes(prompt));
+
+		if (shown === undefined) {
+			throw new Error(`no question on screen: ${harness.lastText()}`);
+		}
+
+		return shown;
+	};
+
+	const answerEveryQuestion = async (): Promise<readonly string[]> => {
+		const seen: string[] = [];
+
+		for (let answered = 0; answered < PROMPTS.length; answered += 1) {
+			seen.push(promptOnScreen());
+			await harness.tap(buttonFor("Right for"));
+
+			if (answered < PROMPTS.length - 1) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		return seen;
+	};
+
+	test("asks in the authored order while the toggle is off", async () => {
+		await seedSeven();
+		await openSet("Bun");
+
+		expect(await answerEveryQuestion()).toEqual(PROMPTS);
+	});
+
+	test("asks in a different order once the toggle is on", async () => {
+		const quizSetId = await seedSeven();
+		await enableQuestionShuffle(quizSetId);
+		await openSet("Bun");
+
+		const asked = await answerEveryQuestion();
+
+		expect(asked).not.toEqual(PROMPTS);
+		expect([...asked].toSorted()).toEqual([...PROMPTS].toSorted());
+	});
+
+	test("still scores every question of a shuffled run", async () => {
+		const quizSetId = await seedSeven();
+		await enableQuestionShuffle(quizSetId);
+		await openSet("Bun");
+		await answerEveryQuestion();
+
+		await harness.tap(buttonFor("Завершити"));
+
+		expect(harness.lastText()).toContain("7/7");
+	});
+
+	test("the order survives leaving and resuming the attempt", async () => {
+		const quizSetId = await seedSeven();
+		await enableQuestionShuffle(quizSetId);
+		await openSet("Bun");
+
+		const opened = promptOnScreen();
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Продовжити навчання"));
+
+		expect(promptOnScreen()).toBe(opened);
+	});
+});
+
 describe("settings (§3.10)", () => {
 	const openGlobal = async (): Promise<void> => {
 		await harness.send("/start");
@@ -1863,6 +1949,7 @@ describe("settings (§3.10)", () => {
 		expect(harness.lastText()).toContain("Джерело: вбудовані");
 		expect(harness.lastText()).toContain("1 → 3 → 7 → 14 → 30");
 		expect(harness.lastText()).toContain("Перемішувати варіанти: ні");
+		expect(harness.lastText()).toContain("Перемішувати питання: ні");
 	});
 
 	test("a preset replaces the ladder and marks itself", async () => {
@@ -1927,7 +2014,7 @@ describe("settings (§3.10)", () => {
 	test("the shuffle toggle flips and stays flipped", async () => {
 		await openGlobal();
 
-		await harness.tap(buttonFor("Перемішувати"));
+		await harness.tap(buttonFor("Перемішувати варіанти"));
 
 		expect(harness.lastText()).toContain("Перемішувати варіанти: так");
 
@@ -1936,6 +2023,29 @@ describe("settings (§3.10)", () => {
 		await harness.tap(buttonFor("Загальні"));
 
 		expect(harness.lastText()).toContain("Перемішувати варіанти: так");
+	});
+
+	test("the question shuffle toggle flips and stays flipped", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Перемішувати питання"));
+
+		expect(harness.lastText()).toContain("Перемішувати питання: так");
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Налаштування"));
+		await harness.tap(buttonFor("Загальні"));
+
+		expect(harness.lastText()).toContain("Перемішувати питання: так");
+	});
+
+	test("the two shuffle toggles move independently", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Перемішувати питання"));
+
+		expect(harness.lastText()).toContain("Перемішувати питання: так");
+		expect(harness.lastText()).toContain("Перемішувати варіанти: ні");
 	});
 
 	test("a set follows the global settings until it is touched", async () => {

@@ -86,5 +86,6 @@ export function toQuizSettings(
 			maxRepetitions: row.maxRepetitions,
 		},
 		shuffleOptions: row.shuffleOptions === 1,
+		shuffleQuestions: row.shuffleQuestions === 1,
 	});
 }

@@ -13,6 +13,7 @@ export const quizSettingsShape = {
 	maxIntervalDays: days.optional(),
 	maxRepetitions: z.number().int().min(1).max(MAX_REPETITIONS_LIMIT).optional(),
 	shuffleOptions: z.boolean().optional(),
+	shuffleQuestions: z.boolean().optional(),
 	inheritGlobal: z.boolean().optional(),
 };
 

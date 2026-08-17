@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import { countRows } from "@tests/integration/sqlite/migrated-database";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
 import type { AddQuestions } from "../quiz-sets/add-questions";
 import type { ArchiveQuizSet } from "../quiz-sets/archive-quiz-set";
 import type { CreateQuizSet } from "../quiz-sets/create-quiz-set";
@@ -151,5 +152,109 @@ describe("StartQuizAttempt", () => {
 		await start.execute({ quizSetId, telegramUserId: 7 });
 
 		expect(countRows(context.database, "quiz_attempts")).toBe(2);
+	});
+});
+
+describe("shuffled question order", () => {
+	const PROMPTS = ["One", "Two", "Three", "Four", "Five", "Six", "Seven"];
+
+	const enableShuffle = (quizSetId: QuizSetId): void => {
+		context.repetition.saveSettings(quizSetId, {
+			...defaultQuizSettings(),
+			shuffleQuestions: true,
+		});
+	};
+
+	const plannedPrompts = (quizSetId: QuizSetId): readonly string[] => {
+		const questions = context.quizSets.findById(quizSetId)?.questions ?? [];
+		const attempt = context.attempts.findActiveByUser(USER);
+
+		return (attempt?.questionIds ?? []).map(
+			(questionId) =>
+				questions.find((candidate) => candidate.id === questionId)?.prompt ??
+				"",
+		);
+	};
+
+	test("keeps the authored order while the toggle is off", async () => {
+		const quizSetId = await seedPublishedSet(PROMPTS);
+
+		await start.execute({ quizSetId, telegramUserId: USER });
+
+		expect(plannedPrompts(quizSetId)).toEqual(PROMPTS);
+	});
+
+	test("plans a different order once the toggle is on", async () => {
+		const quizSetId = await seedPublishedSet(PROMPTS);
+		enableShuffle(quizSetId);
+
+		await start.execute({ quizSetId, telegramUserId: USER });
+
+		expect(plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
+		expect([...plannedPrompts(quizSetId)].toSorted()).toEqual(
+			[...PROMPTS].toSorted(),
+		);
+	});
+
+	test("asks the shuffled question first, not the authored one", async () => {
+		const quizSetId = await seedPublishedSet(PROMPTS);
+		enableShuffle(quizSetId);
+
+		const result = await start.execute({ quizSetId, telegramUserId: USER });
+		const attempt = context.attempts.findActiveByUser(USER);
+
+		expect(String(result.currentQuestionId)).toBe(
+			String(attempt?.questionIds[0]),
+		);
+	});
+
+	test("keeps the planned order when the attempt is resumed", async () => {
+		const quizSetId = await seedPublishedSet(PROMPTS);
+		enableShuffle(quizSetId);
+		await start.execute({ quizSetId, telegramUserId: USER });
+
+		const planned = plannedPrompts(quizSetId);
+		await pause.execute({ telegramUserId: USER });
+		await start.execute({ quizSetId, telegramUserId: USER });
+
+		expect(plannedPrompts(quizSetId)).toEqual(planned);
+	});
+
+	test("follows the global toggle when the set has no settings of its own", async () => {
+		const quizSetId = await seedPublishedSet(PROMPTS);
+		context.repetition.saveDefaults({
+			...defaultQuizSettings(),
+			shuffleQuestions: true,
+		});
+
+		await start.execute({ quizSetId, telegramUserId: USER });
+
+		expect(plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
+	});
+
+	test("shuffles a repetition run too, without letting undue questions in", async () => {
+		const quizSetId = await seedPublishedSet(PROMPTS);
+		enableShuffle(quizSetId);
+
+		const due = PROMPTS.slice(0, 6).map((_, index) =>
+			questionIdOf(quizSetId, index),
+		);
+		context.repetition.saveSchedules(
+			due.map((questionId) => ({
+				questionId,
+				telegramUserId: USER,
+				repetitionCount: 1,
+				lapses: 0,
+				lastCompletedAt: new Date("2026-07-01T09:00:00.000Z"),
+				dueAt: new Date("2026-07-02T09:00:00.000Z"),
+			})),
+		);
+
+		await start.execute({ quizSetId, telegramUserId: USER, onlyDue: true });
+
+		expect(plannedPrompts(quizSetId)).not.toEqual(PROMPTS.slice(0, 6));
+		expect([...plannedPrompts(quizSetId)].toSorted()).toEqual(
+			[...PROMPTS.slice(0, 6)].toSorted(),
+		);
 	});
 });

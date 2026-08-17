@@ -52,6 +52,7 @@ describe("applyMigrations", () => {
 			"0008_question_schedules",
 			"0009_drop_set_schedules",
 			"0010_quiz_settings_shuffle",
+			"0011_quiz_settings_shuffle_questions",
 		]);
 		expect(applyMigrations(database)).toEqual([]);
 

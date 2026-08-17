@@ -809,6 +809,46 @@ describe("quiz settings", () => {
 		).toBe("set");
 	});
 
+	test("reports both shuffles as off by default", async () => {
+		const result = await call("quiz_get_settings");
+
+		expect(result.structured.shuffleOptions).toBe(false);
+		expect(result.structured.shuffleQuestions).toBe(false);
+		expect(result.text).toContain("questions are asked");
+	});
+
+	test("turns question shuffling on without touching the option order", async () => {
+		await call("quiz_set_settings", { shuffleQuestions: true });
+
+		const result = await call("quiz_get_settings");
+
+		expect(result.structured.shuffleQuestions).toBe(true);
+		expect(result.structured.shuffleOptions).toBe(false);
+	});
+
+	test("pins question shuffling to a single set", async () => {
+		const quizSetId = await newDraft("Pinned");
+
+		await call("quiz_set_settings", { quizSetId, shuffleQuestions: true });
+
+		expect(
+			(await call("quiz_get_settings", { quizSetId })).structured
+				.shuffleQuestions,
+		).toBe(true);
+		expect((await call("quiz_get_settings")).structured.shuffleQuestions).toBe(
+			false,
+		);
+	});
+
+	test("leaves the question shuffle alone when other fields change", async () => {
+		await call("quiz_set_settings", { shuffleQuestions: true });
+		await call("quiz_set_settings", { maxRepetitions: 4 });
+
+		expect((await call("quiz_get_settings")).structured.shuffleQuestions).toBe(
+			true,
+		);
+	});
+
 	test("refuses a set that does not exist", async () => {
 		expect(
 			(await call("quiz_get_settings", { quizSetId: "ghost" })).isError,

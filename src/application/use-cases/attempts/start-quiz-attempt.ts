@@ -16,7 +16,9 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { type QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { shuffled } from "@/shared/utils/shuffle";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export class QuizSetNotPublishedError extends Error {
 	constructor(quizSetId: QuizSetId) {
@@ -126,12 +128,18 @@ export class StartQuizAttempt
 			throw new NothingDueError(request.quizSetId);
 		}
 
+		const id = toQuizAttemptId(this.idGenerator.generate());
+		const { shuffleQuestions } = resolveWithSource(
+			this.repetition,
+			quizSet.id,
+		).settings;
+
 		const attempt = startQuizAttempt({
-			id: toQuizAttemptId(this.idGenerator.generate()),
+			id,
 			quizSetId: quizSet.id,
 			telegramUserId: request.telegramUserId,
 			mode: QuizAttemptMode.Full,
-			questionIds,
+			questionIds: shuffleQuestions ? shuffled(questionIds, id) : questionIds,
 			startedAt: at,
 		});
 
