@@ -7,6 +7,7 @@ import {
 	attemptScore,
 	completeQuizAttempt,
 	type QuizAttemptId,
+	QuizAttemptMode,
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Score } from "@/domain/quiz-attempt/score";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -67,8 +68,13 @@ export class FinishQuizAttempt
 
 			// An attempt abandoned without answering is not a repetition: advancing
 			// on it would push the interval out and, repeated, retire a question the
-			// owner never actually answered.
-			if (finished.responses.length === 0) {
+			// owner never actually answered. A drill is not one either: it can be
+			// taken any number of times a day, so advancing on it would walk the
+			// interval out on massed practice.
+			if (
+				finished.responses.length === 0 ||
+				finished.mode !== QuizAttemptMode.Full
+			) {
 				return;
 			}
 

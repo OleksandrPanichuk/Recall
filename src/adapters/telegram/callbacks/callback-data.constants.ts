@@ -16,6 +16,10 @@ export const CallbackAction = {
 	Settings: "n",
 	SettingsFor: "o",
 	SettingsEdit: "j",
+	Mistakes: "k",
+	MistakesFor: "K",
+	WeakTopics: "w",
+	WeakTopicsFor: "W",
 } as const;
 export const SettingsChange = {
 	Preset: "p",

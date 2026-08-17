@@ -25,6 +25,8 @@ export function mainMenu(state: MenuState): Screen {
 			[button("▶️ Продовжити навчання", { action: CallbackAction.Resume })],
 			[button("📚 Мої набори", { action: CallbackAction.Sets })],
 			[button("🔁 Повторення", { action: CallbackAction.Repetitions })],
+			[button("🔁 Повторити помилки", { action: CallbackAction.Mistakes })],
+			[button("🧠 Слабкі теми", { action: CallbackAction.WeakTopics })],
 			[button("📊 Статистика", { action: CallbackAction.Statistics })],
 			[button("⚙️ Налаштування", { action: CallbackAction.Settings })],
 		],

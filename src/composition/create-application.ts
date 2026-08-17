@@ -29,6 +29,7 @@ import { ListFolderTree } from "@/application/use-cases/folders/list-folder-tree
 import { MoveFolder } from "@/application/use-cases/folders/move-folder";
 import { RenameFolder } from "@/application/use-cases/folders/rename-folder";
 import { ResolveFolderPath } from "@/application/use-cases/folders/resolve-folder-path";
+import { StartPracticeSession } from "@/application/use-cases/practice/start-practice-session";
 import { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
 import { AddVocabulary } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
@@ -85,6 +86,7 @@ export interface Application {
 	readonly listFolderTree: ListFolderTree;
 	readonly browseFolder: BrowseFolder;
 	readonly startQuizAttempt: StartQuizAttempt;
+	readonly startPracticeSession: StartPracticeSession;
 	readonly pauseQuizAttempt: PauseQuizAttempt;
 	readonly resumeQuizAttempt: ResumeQuizAttempt;
 	readonly getCurrentQuestion: GetCurrentQuestion;
@@ -158,6 +160,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		listFolderTree: new ListFolderTree(dependencies),
 		browseFolder: new BrowseFolder(dependencies),
 		startQuizAttempt: new StartQuizAttempt(dependencies),
+		startPracticeSession: new StartPracticeSession(dependencies),
 		pauseQuizAttempt: new PauseQuizAttempt(dependencies),
 		resumeQuizAttempt: new ResumeQuizAttempt(dependencies),
 		getCurrentQuestion: new GetCurrentQuestion(dependencies),

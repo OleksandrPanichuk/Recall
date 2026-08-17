@@ -22,6 +22,10 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Settings]: "settings",
 	[CallbackAction.SettingsFor]: "settings-for",
 	[CallbackAction.SettingsEdit]: "settings-edit",
+	[CallbackAction.Mistakes]: "mistakes",
+	[CallbackAction.MistakesFor]: "mistakes-for",
+	[CallbackAction.WeakTopics]: "weak-topics",
+	[CallbackAction.WeakTopicsFor]: "weak-topics-for",
 };
 
 function describeCallback(callback: Callback): LogFields {
@@ -29,6 +33,8 @@ function describeCallback(callback: Callback): LogFields {
 		case CallbackAction.StartSet:
 		case CallbackAction.StatisticsFor:
 		case CallbackAction.SettingsFor:
+		case CallbackAction.MistakesFor:
+		case CallbackAction.WeakTopicsFor:
 			return { quizSetId: callback.quizSetId };
 		case CallbackAction.SettingsEdit:
 			return { quizSetId: callback.quizSetId, change: callback.change };

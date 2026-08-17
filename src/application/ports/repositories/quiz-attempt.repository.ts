@@ -27,6 +27,12 @@ export interface QuizAttemptRepository {
 		telegramUserId: number,
 		quizSetId: QuizSetId,
 	): readonly AttemptStatistics[];
-	topicAccuracy(telegramUserId: number): readonly TopicAccuracy[];
-	incorrectQuestionIds(telegramUserId: number): readonly QuestionId[];
+	topicAccuracy(
+		telegramUserId: number,
+		quizSetId: QuizSetId,
+	): readonly TopicAccuracy[];
+	incorrectQuestionIds(
+		telegramUserId: number,
+		quizSetId: QuizSetId,
+	): readonly QuestionId[];
 }
