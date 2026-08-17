@@ -179,15 +179,18 @@ describe("settings", () => {
 		});
 	};
 
-	const custom = { ...defaultRepetitionSettings(), maxIntervalDays: 7 };
+	const custom = {
+		repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
+		shuffleOptions: false,
+	};
 
 	test("round-trips per-set settings", () => {
 		seedSet("set-1");
 		repetition.saveSettings(toQuizSetId("set-1"), custom);
 
-		expect(repetition.findSettings(toQuizSetId("set-1"))?.maxIntervalDays).toBe(
-			7,
-		);
+		expect(
+			repetition.findSettings(toQuizSetId("set-1"))?.repetition.maxIntervalDays,
+		).toBe(7);
 	});
 
 	test("has none until saved", () => {
@@ -197,18 +200,26 @@ describe("settings", () => {
 
 	test("round-trips defaults and keeps exactly one row", () => {
 		repetition.saveDefaults(custom);
-		repetition.saveDefaults({ ...custom, maxRepetitions: 4 });
+		repetition.saveDefaults({
+			...custom,
+			repetition: { ...custom.repetition, maxRepetitions: 4 },
+		});
 
-		expect(repetition.findDefaults()?.maxRepetitions).toBe(4);
+		expect(repetition.findDefaults()?.repetition.maxRepetitions).toBe(4);
 		expect(
 			database.query("SELECT count(*) AS total FROM repetition_defaults").get(),
 		).toEqual({ total: 1 });
 	});
 
 	test("round-trips the interval list itself", () => {
-		repetition.saveDefaults({ ...custom, intervalsDays: [1, 3, 9, 27] });
+		repetition.saveDefaults({
+			...custom,
+			repetition: { ...custom.repetition, intervalsDays: [1, 3, 9, 27] },
+		});
 
-		expect(repetition.findDefaults()?.intervalsDays).toEqual([1, 3, 9, 27]);
+		expect(repetition.findDefaults()?.repetition.intervalsDays).toEqual([
+			1, 3, 9, 27,
+		]);
 	});
 
 	test("names the row when the interval list is not JSON", () => {
@@ -216,6 +227,26 @@ describe("settings", () => {
 		database.run("UPDATE repetition_defaults SET intervals_days = 'oops'");
 
 		expect(() => repetition.findDefaults()).toThrow(/intervals_days/);
+	});
+
+	test("round-trips the shuffle toggle", () => {
+		seedSet("set-1");
+		repetition.saveSettings(toQuizSetId("set-1"), {
+			...custom,
+			shuffleOptions: true,
+		});
+
+		expect(repetition.findSettings(toQuizSetId("set-1"))?.shuffleOptions).toBe(
+			true,
+		);
+	});
+
+	test("clearing a set's settings sends it back to the global ones", () => {
+		seedSet("set-1");
+		repetition.saveSettings(toQuizSetId("set-1"), custom);
+		repetition.clearSettings(toQuizSetId("set-1"));
+
+		expect(repetition.findSettings(toQuizSetId("set-1"))).toBeUndefined();
 	});
 
 	test("refuses a second defaults row", () => {

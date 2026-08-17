@@ -1,9 +1,9 @@
 import { toQuestionId } from "@/domain/quiz-set/question";
+import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import {
-	createRepetitionSettings,
-	type RepetitionSchedule,
-	type RepetitionSettings,
-} from "@/domain/repetition/repetition";
+	createQuizSettings,
+	type QuizSettings,
+} from "@/domain/settings/quiz-settings";
 import type {
 	repetitionDefaults,
 	repetitionSchedules,
@@ -75,13 +75,16 @@ export function toRepetitionScheduleRow(
 	};
 }
 
-export function toRepetitionSettings(
+export function toQuizSettings(
 	row: RepetitionSettingsRow | RepetitionDefaultsRow,
 	id: string,
-): RepetitionSettings {
-	return createRepetitionSettings({
-		intervalsDays: parseIntervals(row.intervalsDays, id),
-		maxIntervalDays: row.maxIntervalDays,
-		maxRepetitions: row.maxRepetitions,
+): QuizSettings {
+	return createQuizSettings({
+		repetition: {
+			intervalsDays: parseIntervals(row.intervalsDays, id),
+			maxIntervalDays: row.maxIntervalDays,
+			maxRepetitions: row.maxRepetitions,
+		},
+		shuffleOptions: row.shuffleOptions === 1,
 	});
 }
