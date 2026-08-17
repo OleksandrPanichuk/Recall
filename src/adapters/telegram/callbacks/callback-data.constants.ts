@@ -23,7 +23,8 @@ export const SettingsChange = {
 	CeilingDown: "C",
 	RepetitionsUp: "r",
 	RepetitionsDown: "R",
-	Shuffle: "s",
+	ShuffleOptions: "s",
+	ShuffleQuestions: "S",
 	InheritGlobal: "g",
 	Nothing: "n",
 } as const;

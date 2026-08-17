@@ -27,14 +27,20 @@ const describeRepetition = (settings: RepetitionSettings): string => {
 	return `waits: ${effective.join(", ")} days${pinned ? ` (ceiling ${settings.maxIntervalDays} caps ${settings.intervalsDays.join(", ")})` : ""}, then ${effective.at(-1)} days each time; stops after ${settings.maxRepetitions} repetitions`;
 };
 
+const inFreshOrder = (shuffled: boolean): string =>
+	shuffled
+		? "in a fresh order every attempt"
+		: "in the order they were authored";
+
 const describe = (settings: QuizSettings): string =>
-	`${describeRepetition(settings.repetition)}; options are shown ${settings.shuffleOptions ? "in a fresh order every attempt" : "in the order they were authored"}`;
+	`${describeRepetition(settings.repetition)}; options are shown ${inFreshOrder(settings.shuffleOptions)}; questions are asked ${inFreshOrder(settings.shuffleQuestions)}`;
 
 const structured = (settings: QuizSettings) => ({
 	intervalsDays: [...settings.repetition.intervalsDays],
 	maxIntervalDays: settings.repetition.maxIntervalDays,
 	maxRepetitions: settings.repetition.maxRepetitions,
 	shuffleOptions: settings.shuffleOptions,
+	shuffleQuestions: settings.shuffleQuestions,
 });
 
 export function registerQuizSettingsTools(
@@ -47,7 +53,7 @@ export function registerQuizSettingsTools(
 		{
 			title: "Read the settings of a set",
 			description:
-				'Returns the repetition schedule and answer-order setting a set uses, and where they come from — source is "set", "global" or "default". Omit quizSetId to read the global settings.',
+				'Returns the repetition schedule and the two shuffle settings a set uses, and where they come from — source is "set", "global" or "default". Omit quizSetId to read the global settings.',
 			inputSchema: quizSettingsScopeShape,
 		},
 		async (args) =>
@@ -73,7 +79,7 @@ export function registerQuizSettingsTools(
 		{
 			title: "Change the settings of a set",
 			description:
-				"Changes only the fields it is given. intervalsDays lists the waits between repetitions and the last one repeats until the limit; maxIntervalDays caps every wait, so a set can be pinned to weekly or monthly; maxRepetitions retires the set once reached; shuffleOptions decides whether answer options keep their authored order or get a fresh one each attempt. Passing quizSetId pins that set to these settings — it stops following the global ones. Omit it to change the global settings. Pass inheritGlobal with a quizSetId to drop the set's own settings and follow the global ones again.",
+				"Changes only the fields it is given. intervalsDays lists the waits between repetitions and the last one repeats until the limit; maxIntervalDays caps every wait, so a set can be pinned to weekly or monthly; maxRepetitions retires the set once reached; shuffleOptions decides whether answer options keep their authored order or get a fresh one each attempt, and shuffleQuestions does the same for the order the questions themselves are asked in — an attempt already under way keeps the order it started with. Passing quizSetId pins that set to these settings — it stops following the global ones. Omit it to change the global settings. Pass inheritGlobal with a quizSetId to drop the set's own settings and follow the global ones again.",
 			inputSchema: quizSettingsShape,
 		},
 		async (args) =>
@@ -93,6 +99,7 @@ export function registerQuizSettingsTools(
 					quizSetId,
 					repetition,
 					shuffleOptions: args.shuffleOptions,
+					shuffleQuestions: args.shuffleQuestions,
 					inheritGlobal: args.inheritGlobal,
 				});
 

@@ -182,6 +182,7 @@ describe("settings", () => {
 	const custom = {
 		repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
 		shuffleOptions: false,
+		shuffleQuestions: false,
 	};
 
 	test("round-trips per-set settings", () => {
@@ -239,6 +240,25 @@ describe("settings", () => {
 		expect(repetition.findSettings(toQuizSetId("set-1"))?.shuffleOptions).toBe(
 			true,
 		);
+	});
+
+	test("round-trips the question shuffle toggle on its own", () => {
+		seedSet("set-1");
+		repetition.saveSettings(toQuizSetId("set-1"), {
+			...custom,
+			shuffleQuestions: true,
+		});
+
+		const stored = repetition.findSettings(toQuizSetId("set-1"));
+
+		expect(stored?.shuffleQuestions).toBe(true);
+		expect(stored?.shuffleOptions).toBe(false);
+	});
+
+	test("round-trips the question shuffle toggle on the global settings", () => {
+		repetition.saveDefaults({ ...custom, shuffleQuestions: true });
+
+		expect(repetition.findDefaults()?.shuffleQuestions).toBe(true);
 	});
 
 	test("clearing a set's settings sends it back to the global ones", () => {
