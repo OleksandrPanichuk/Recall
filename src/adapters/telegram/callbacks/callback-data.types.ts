@@ -1,4 +1,4 @@
-import type { CallbackAction } from "./callback-data.constants";
+import type { CallbackAction, SettingsChange } from "./callback-data.constants";
 
 export interface MenuCallback {
 	readonly action: typeof CallbackAction.Menu;
@@ -37,7 +37,8 @@ export interface BrowseCallback {
 	readonly action: typeof CallbackAction.Browse;
 	readonly leaf:
 		| typeof CallbackAction.StartSet
-		| typeof CallbackAction.StatisticsFor;
+		| typeof CallbackAction.StatisticsFor
+		| typeof CallbackAction.SettingsFor;
 	readonly folderId?: string;
 	readonly page?: number;
 }
@@ -56,9 +57,18 @@ export interface RevealCallback {
 	readonly action: typeof CallbackAction.Reveal;
 	readonly questionId: string;
 }
-export interface UnavailableCallback {
-	readonly action: typeof CallbackAction.Unavailable;
-	readonly feature: string;
+export interface SettingsCallback {
+	readonly action: typeof CallbackAction.Settings;
+}
+export interface SettingsForCallback {
+	readonly action: typeof CallbackAction.SettingsFor;
+	readonly quizSetId?: string;
+}
+export interface SettingsEditCallback {
+	readonly action: typeof CallbackAction.SettingsEdit;
+	readonly quizSetId?: string;
+	readonly change: SettingsChange;
+	readonly presetKey?: string;
 }
 
 export type Callback =
@@ -76,4 +86,6 @@ export type Callback =
 	| AttemptDetailCallback
 	| RepetitionsCallback
 	| RevealCallback
-	| UnavailableCallback;
+	| SettingsCallback
+	| SettingsForCallback
+	| SettingsEditCallback;

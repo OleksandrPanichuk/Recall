@@ -104,12 +104,16 @@ describe("navigation shell (§3.2)", () => {
 		expect(harness.lastButtons()[0]?.text).toBe("📘 Bun (2)");
 	});
 
-	test("Налаштування routes to a placeholder", async () => {
+	test("Налаштування opens the two scopes", async () => {
 		await harness.send("/start");
 
 		await harness.tap(buttonFor("Налаштування"));
 
-		expect(harness.lastText()).toContain("Phase 6");
+		expect(harness.lastButtons().map((entry) => entry.text)).toEqual([
+			expect.stringContaining("Загальні"),
+			expect.stringContaining("Для набору"),
+			expect.stringContaining("Меню"),
+		]);
 	});
 
 	test("resume without an attempt explains rather than failing", async () => {
@@ -1836,5 +1840,161 @@ describe("shuffled answer options (§3.9)", () => {
 		await harness.tap(buttonFor("Продовжити навчання"));
 
 		expect(optionLabels()).toEqual(first);
+	});
+});
+
+describe("settings (§3.10)", () => {
+	const openGlobal = async (): Promise<void> => {
+		await harness.send("/start");
+		await harness.tap(buttonFor("Налаштування"));
+		await harness.tap(buttonFor("Загальні"));
+	};
+
+	const openForSet = async (title: string): Promise<void> => {
+		await harness.send("/start");
+		await harness.tap(buttonFor("Налаштування"));
+		await harness.tap(buttonFor("Для набору"));
+		await harness.tap(buttonFor(title));
+	};
+
+	test("the global screen starts on the built-in settings", async () => {
+		await openGlobal();
+
+		expect(harness.lastText()).toContain("Джерело: вбудовані");
+		expect(harness.lastText()).toContain("1 → 3 → 7 → 14 → 30");
+		expect(harness.lastText()).toContain("Перемішувати варіанти: ні");
+	});
+
+	test("a preset replaces the ladder and marks itself", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Повільно"));
+
+		expect(harness.lastText()).toContain("1 → 3 → 7 → 21 → 60");
+		expect(harness.lastText()).toContain("Джерело: глобальні");
+		expect(
+			harness.lastButtons().find((entry) => entry.text.includes("Повільно"))
+				?.text,
+		).toContain("✓");
+	});
+
+	test("a preset lifts a ceiling that would have clipped it", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Повільно"));
+
+		expect(harness.lastText()).toContain("Стеля: 60 дн.");
+		expect(harness.lastText()).not.toContain("обрізана");
+	});
+
+	test("the ceiling steps one rung at a time and stops at the top", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Стеля"));
+
+		expect(harness.lastText()).toContain("Стеля: 30 дн.");
+
+		const up = harness
+			.lastButtons()
+			.find((entry) => entry.text === "+")?.callback_data;
+
+		if (up === undefined) throw new Error("no step-up button");
+
+		for (let step = 0; step < 10; step += 1) {
+			await harness.tap(up);
+		}
+
+		expect(harness.lastText()).toContain("Стеля: 365 дн.");
+	});
+
+	test("the repetition limit steps down and stops at one", async () => {
+		await openGlobal();
+
+		const down = harness
+			.lastButtons()
+			.filter((entry) => entry.text === "−")
+			.at(-1)?.callback_data;
+
+		if (down === undefined) throw new Error("no step-down button");
+
+		for (let step = 0; step < 12; step += 1) {
+			await harness.tap(down);
+		}
+
+		expect(harness.lastText()).toContain("Максимум повторень: 1");
+	});
+
+	test("the shuffle toggle flips and stays flipped", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Перемішувати"));
+
+		expect(harness.lastText()).toContain("Перемішувати варіанти: так");
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Налаштування"));
+		await harness.tap(buttonFor("Загальні"));
+
+		expect(harness.lastText()).toContain("Перемішувати варіанти: так");
+	});
+
+	test("a set follows the global settings until it is touched", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openGlobal();
+		await harness.tap(buttonFor("Швидко"));
+		await openForSet("Bun");
+
+		expect(harness.lastText()).toContain("Джерело: глобальні");
+		expect(harness.lastText()).toContain("1 → 2 → 4 → 7 → 14");
+	});
+
+	test("touching a set pins it, and the reset lets it follow again", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openForSet("Bun");
+
+		await harness.tap(buttonFor("Повільно"));
+
+		expect(harness.lastText()).toContain("Джерело: власні");
+
+		await harness.tap(buttonFor("Скинути до глобальних"));
+
+		expect(harness.lastText()).toContain("Джерело: вбудовані");
+		expect(harness.lastText()).toContain("1 → 3 → 7 → 14 → 30");
+	});
+
+	test("a set's settings do not leak into the global ones", async () => {
+		await seedPublishedSet(harness, "Bun", [aQuestionInput("One")]);
+		await openForSet("Bun");
+		await harness.tap(buttonFor("Перемішувати"));
+
+		expect(harness.lastText()).toContain("Перемішувати варіанти: так");
+
+		await openGlobal();
+
+		expect(harness.lastText()).toContain("Перемішувати варіанти: ні");
+	});
+
+	test("the label between the steppers changes nothing", async () => {
+		await openGlobal();
+		const before = harness.lastText();
+
+		await harness.tap(buttonFor("Стеля:"));
+
+		expect(harness.lastText()).toBe(before);
+	});
+
+	test("a set walks back to the folder it was opened from", async () => {
+		await seedPublishedSetIn(harness, ["English"], "A1 words", [
+			aQuestionInput("One"),
+		]);
+		await harness.send("/start");
+		await harness.tap(buttonFor("Налаштування"));
+		await harness.tap(buttonFor("Для набору"));
+		await harness.tap(buttonFor("English"));
+		await harness.tap(buttonFor("A1 words"));
+		await harness.tap(buttonFor("До наборів"));
+
+		expect(harness.lastText()).toContain("English");
+		expect(buttonFor("A1 words")).toBeDefined();
 	});
 });

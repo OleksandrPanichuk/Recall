@@ -6,6 +6,8 @@ import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-qu
 import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
 import type { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
 import type { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
+import type { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
+import type { UpdateQuizSettings } from "@/application/use-cases/settings/update-quiz-settings";
 import type { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -23,14 +25,17 @@ import { attemptDetailHandler } from "./handlers/attempt-detail.handler";
 import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
 import { repetitionsHandler } from "./handlers/repetitions.handler";
+import {
+	settingsEditHandler,
+	settingsForHandler,
+	settingsMenuHandler,
+} from "./handlers/settings.handler";
 import { menuHandler, resumeHandler } from "./handlers/start.handler";
 import { startAttemptHandler } from "./handlers/start-attempt.handler";
 import { statisticsHandler } from "./handlers/statistics.handler";
 import { allowlistMiddleware } from "./middleware/allowlist.middleware";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { loggingMiddleware } from "./middleware/logging.middleware";
-import { notice, UNAVAILABLE_FEATURES } from "./presenters/menu.presenter";
-import { render } from "./screen";
 
 export interface TelegramUseCases {
 	readonly browseFolder: BrowseFolder;
@@ -42,6 +47,8 @@ export interface TelegramUseCases {
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
 	readonly getQuizStatistics: GetQuizStatistics;
+	readonly resolveQuizSettings: ResolveQuizSettings;
+	readonly updateQuizSettings: UpdateQuizSettings;
 }
 
 export interface TelegramBotOptions {
@@ -108,6 +115,18 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				await repetitionsHandler(useCases)(ctx);
 
 				return;
+			case CallbackAction.Settings:
+				await settingsMenuHandler()(ctx);
+
+				return;
+			case CallbackAction.SettingsFor:
+				await settingsForHandler(useCases)(ctx, callback);
+
+				return;
+			case CallbackAction.SettingsEdit:
+				await settingsEditHandler(useCases)(ctx, callback);
+
+				return;
 			case CallbackAction.Statistics:
 				await browseHandler(useCases)(ctx, {
 					action: CallbackAction.Browse,
@@ -159,16 +178,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.Finish:
 				await finishHandler(useCases)(ctx);
-
-				return;
-			case CallbackAction.Unavailable:
-				await render(
-					ctx,
-					notice(
-						UNAVAILABLE_FEATURES[callback.feature] ??
-							"Ця функція ще недоступна.",
-					),
-				);
 
 				return;
 		}
