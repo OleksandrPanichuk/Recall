@@ -849,6 +849,31 @@ describe("quiz settings", () => {
 		);
 	});
 
+	test("reports the exam mode as off by default", async () => {
+		const result = await call("quiz_get_settings");
+
+		expect(result.structured.examMode).toBe(false);
+		expect(result.text).toContain("verdicts");
+	});
+
+	test("turns the exam mode on for one set only", async () => {
+		const quizSetId = await newDraft("Exam");
+
+		await call("quiz_set_settings", { quizSetId, examMode: true });
+
+		expect(
+			(await call("quiz_get_settings", { quizSetId })).structured.examMode,
+		).toBe(true);
+		expect((await call("quiz_get_settings")).structured.examMode).toBe(false);
+	});
+
+	test("leaves the exam mode alone when other fields change", async () => {
+		await call("quiz_set_settings", { examMode: true });
+		await call("quiz_set_settings", { shuffleOptions: true });
+
+		expect((await call("quiz_get_settings")).structured.examMode).toBe(true);
+	});
+
 	test("refuses a set that does not exist", async () => {
 		expect(
 			(await call("quiz_get_settings", { quizSetId: "ghost" })).isError,

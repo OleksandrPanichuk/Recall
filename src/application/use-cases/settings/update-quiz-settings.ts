@@ -15,6 +15,7 @@ export interface UpdateQuizSettingsCommand {
 	readonly repetition?: RepetitionSettings;
 	readonly shuffleOptions?: boolean;
 	readonly shuffleQuestions?: boolean;
+	readonly examMode?: boolean;
 	readonly inheritGlobal?: boolean;
 }
 
@@ -57,6 +58,7 @@ export class UpdateQuizSettings
 			repetition: request.repetition ?? current.repetition,
 			shuffleOptions: request.shuffleOptions ?? current.shuffleOptions,
 			shuffleQuestions: request.shuffleQuestions ?? current.shuffleQuestions,
+			examMode: request.examMode ?? current.examMode,
 		});
 
 		if (quizSetId === undefined) {

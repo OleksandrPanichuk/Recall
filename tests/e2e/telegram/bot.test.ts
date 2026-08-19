@@ -1931,6 +1931,118 @@ describe("shuffled question order (§3.9)", () => {
 	});
 });
 
+describe("exam mode (§3.12)", () => {
+	const enableExam = async (): Promise<void> => {
+		const sets = await harness.application.listQuizSets.execute({
+			includeUnpublished: true,
+		});
+		const quizSetId = sets[0]?.id;
+
+		if (quizSetId === undefined) throw new Error("no set was seeded");
+
+		await harness.application.updateQuizSettings.execute({
+			quizSetId,
+			examMode: true,
+		});
+	};
+
+	const seedTwo = () =>
+		seedPublishedSet(harness, "Bun", [
+			aQuestionInput("One", { explanation: "Because One" }),
+			aQuestionInput("Two", { explanation: "Because Two" }),
+		]);
+
+	test("a wrong answer says nothing about being wrong", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+
+		await harness.tap(buttonFor("Wrong for One"));
+
+		expect(harness.lastText()).not.toContain("Неправильно");
+		expect(harness.lastText()).not.toContain("Правильна відповідь");
+		expect(harness.lastText()).not.toContain("Because One");
+	});
+
+	test("the running score stays hidden", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+
+		await harness.tap(buttonFor("Right for One"));
+
+		expect(harness.lastText()).not.toContain("Рахунок");
+	});
+
+	test("the next question comes straight up, with no Далі step", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+
+		await harness.tap(buttonFor("Right for One"));
+
+		expect(harness.lastText()).toContain("Two");
+		expect(harness.lastButtons().map((entry) => entry.text)).not.toContainEqual(
+			expect.stringContaining("Далі"),
+		);
+	});
+
+	test("the last answer offers finishing instead of a verdict", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+		await harness.tap(buttonFor("Right for One"));
+
+		await harness.tap(buttonFor("Right for Two"));
+
+		expect(harness.lastText()).not.toContain("Правильно");
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("Завершити"),
+		);
+	});
+
+	test("the review after finishing does show the answers", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+		await harness.tap(buttonFor("Wrong for One"));
+		await harness.tap(buttonFor("Right for Two"));
+		await harness.tap(buttonFor("Завершити"));
+
+		expect(harness.lastText()).toContain("1/2");
+
+		await harness.tap(buttonFor("Розбір"));
+
+		expect(harness.lastText()).toContain("One");
+		expect(harness.lastText()).toContain("Two");
+	});
+
+	test("the review explains what you got wrong", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+		await harness.tap(buttonFor("Wrong for One"));
+		await harness.tap(buttonFor("Right for Two"));
+		await harness.tap(buttonFor("Завершити"));
+
+		await harness.tap(buttonFor("Розбір"));
+
+		expect(harness.lastText()).toContain("Because One");
+		expect(harness.lastText()).not.toContain("Because Two");
+	});
+
+	test("feedback still works when the mode is off", async () => {
+		await seedTwo();
+		await openSet("Bun");
+
+		await harness.tap(buttonFor("Wrong for One"));
+
+		expect(harness.lastText()).toContain("Неправильно");
+		expect(harness.lastText()).toContain("Because One");
+		expect(harness.lastText()).toContain("Рахунок");
+	});
+});
+
 describe("mistakes and weak topics (§3.11)", () => {
 	const topical = (prompt: string, topic?: string) =>
 		aQuestionInput(prompt, { topic });
@@ -2066,6 +2178,7 @@ describe("settings (§3.10)", () => {
 		expect(harness.lastText()).toContain("1 → 3 → 7 → 14 → 30");
 		expect(harness.lastText()).toContain("Перемішувати варіанти: ні");
 		expect(harness.lastText()).toContain("Перемішувати питання: ні");
+		expect(harness.lastText()).toContain("Режим екзамену: ні");
 	});
 
 	test("a preset replaces the ladder and marks itself", async () => {
@@ -2153,6 +2266,29 @@ describe("settings (§3.10)", () => {
 		await harness.tap(buttonFor("Загальні"));
 
 		expect(harness.lastText()).toContain("Перемішувати питання: так");
+	});
+
+	test("the exam toggle flips and stays flipped", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Режим екзамену"));
+
+		expect(harness.lastText()).toContain("Режим екзамену: так");
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Налаштування"));
+		await harness.tap(buttonFor("Загальні"));
+
+		expect(harness.lastText()).toContain("Режим екзамену: так");
+	});
+
+	test("the exam toggle leaves the shuffles alone", async () => {
+		await openGlobal();
+
+		await harness.tap(buttonFor("Режим екзамену"));
+
+		expect(harness.lastText()).toContain("Перемішувати варіанти: ні");
+		expect(harness.lastText()).toContain("Перемішувати питання: ні");
 	});
 
 	test("the two shuffle toggles move independently", async () => {

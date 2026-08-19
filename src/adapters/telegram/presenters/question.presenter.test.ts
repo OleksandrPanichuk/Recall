@@ -46,6 +46,7 @@ const aView = (
 	index: 0,
 	total: 1,
 	awaitingFinish: false,
+	examMode: false,
 	shuffleOptions,
 });
 

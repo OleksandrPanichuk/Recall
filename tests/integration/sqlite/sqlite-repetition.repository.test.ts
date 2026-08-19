@@ -183,6 +183,7 @@ describe("settings", () => {
 		repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
 		shuffleOptions: false,
 		shuffleQuestions: false,
+		examMode: false,
 	};
 
 	test("round-trips per-set settings", () => {
@@ -253,6 +254,26 @@ describe("settings", () => {
 
 		expect(stored?.shuffleQuestions).toBe(true);
 		expect(stored?.shuffleOptions).toBe(false);
+	});
+
+	test("round-trips the exam mode on its own", () => {
+		seedSet("set-1");
+		repetition.saveSettings(toQuizSetId("set-1"), {
+			...custom,
+			examMode: true,
+		});
+
+		const stored = repetition.findSettings(toQuizSetId("set-1"));
+
+		expect(stored?.examMode).toBe(true);
+		expect(stored?.shuffleOptions).toBe(false);
+		expect(stored?.shuffleQuestions).toBe(false);
+	});
+
+	test("round-trips the exam mode on the global settings", () => {
+		repetition.saveDefaults({ ...custom, examMode: true });
+
+		expect(repetition.findDefaults()?.examMode).toBe(true);
 	});
 
 	test("round-trips the question shuffle toggle on the global settings", () => {

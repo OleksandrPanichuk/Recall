@@ -22,6 +22,7 @@ export interface CurrentQuestionView {
 	readonly total: number;
 	readonly awaitingFinish: boolean;
 	readonly shuffleOptions: boolean;
+	readonly examMode: boolean;
 }
 
 export interface GetCurrentQuestionDependencies {
@@ -53,6 +54,8 @@ export class GetCurrentQuestion
 			return undefined;
 		}
 
+		const { settings } = resolveWithSource(this.repetition, attempt.quizSetId);
+
 		const quizSet = this.quizSets.findById(attempt.quizSetId);
 		const questionId = currentQuestionId(attempt);
 		const question =
@@ -69,8 +72,8 @@ export class GetCurrentQuestion
 			index: attempt.responses.length,
 			total: attempt.questionIds.length,
 			awaitingFinish: question === undefined,
-			shuffleOptions: resolveWithSource(this.repetition, attempt.quizSetId)
-				.settings.shuffleOptions,
+			shuffleOptions: settings.shuffleOptions,
+			examMode: settings.examMode,
 		};
 	}
 }

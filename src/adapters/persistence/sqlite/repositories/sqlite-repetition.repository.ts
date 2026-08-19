@@ -30,6 +30,7 @@ export function createSqliteRepetitionRepository(
 		maxRepetitions: settings.repetition.maxRepetitions,
 		shuffleOptions: settings.shuffleOptions ? 1 : 0,
 		shuffleQuestions: settings.shuffleQuestions ? 1 : 0,
+		examMode: settings.examMode ? 1 : 0,
 		updatedAt: at.toISOString(),
 	});
 

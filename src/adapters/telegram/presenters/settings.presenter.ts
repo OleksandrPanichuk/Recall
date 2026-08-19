@@ -111,6 +111,7 @@ export function settingsScreen(resolved: ResolvedQuizSettings): Screen {
 			`Стеля: ${repetition.maxIntervalDays} дн.  ·  Максимум повторень: ${repetition.maxRepetitions}`,
 			`Перемішувати варіанти: ${settings.shuffleOptions ? "так" : "ні"}`,
 			`Перемішувати питання: ${settings.shuffleQuestions ? "так" : "ні"}`,
+			`Режим екзамену: ${settings.examMode ? "так" : "ні"}`,
 		].join("\n"),
 		keyboard: [
 			...presets,
@@ -134,6 +135,12 @@ export function settingsScreen(resolved: ResolvedQuizSettings): Screen {
 				button(
 					`🔀 Перемішувати питання: ${settings.shuffleQuestions ? "так" : "ні"}`,
 					edit(SettingsChange.ShuffleQuestions),
+				),
+			],
+			[
+				button(
+					`📝 Режим екзамену: ${settings.examMode ? "так" : "ні"}`,
+					edit(SettingsChange.ExamMode),
 				),
 			],
 			...scope,

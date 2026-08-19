@@ -14,6 +14,7 @@ export const quizSettingsShape = {
 	maxRepetitions: z.number().int().min(1).max(MAX_REPETITIONS_LIMIT).optional(),
 	shuffleOptions: z.boolean().optional(),
 	shuffleQuestions: z.boolean().optional(),
+	examMode: z.boolean().optional(),
 	inheritGlobal: z.boolean().optional(),
 };
 

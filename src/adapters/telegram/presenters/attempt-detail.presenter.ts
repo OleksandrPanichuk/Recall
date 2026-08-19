@@ -69,8 +69,12 @@ export function attemptDetailScreen(detail: AttemptDetail): Screen {
 						.filter((option) => option.isCorrect)
 						.map((option) => option.id),
 				).replaceAll("\n", "; ")}`;
+		const why =
+			answer.isCorrect || answer.question.explanation === undefined
+				? ""
+				: `\n   💡 ${answer.question.explanation}`;
 
-		return `${mark(answer)} ${index + 1}. ${answer.question.prompt}\n   ➡️ ${givenText(answer)}${credit}${correct}`;
+		return `${mark(answer)} ${index + 1}. ${answer.question.prompt}\n   ➡️ ${givenText(answer)}${credit}${correct}${why}`;
 	};
 
 	const lines: string[] = [];

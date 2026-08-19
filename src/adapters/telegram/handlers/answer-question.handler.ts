@@ -6,7 +6,7 @@ import type {
 	RevealCallback,
 	ToggleCallback,
 } from "../callbacks/callback-data.types";
-import { notice } from "../presenters/menu.presenter";
+import { finishPrompt, notice } from "../presenters/menu.presenter";
 import { questionScreen } from "../presenters/question.presenter";
 import { answerFeedback } from "../presenters/result.presenter";
 import type { Screen } from "../presenters/screen.types";
@@ -51,22 +51,34 @@ export function answerHandler(useCases: TelegramUseCases) {
 			selectedOptionPositions: callback.optionPositions,
 		});
 
-		await render(ctx, answerFeedback(result, result.question));
+		await afterAnswer(ctx, useCases, answerFeedback(result, result.question));
 	};
 }
 
-async function renderWithNext(
+async function afterAnswer(
 	ctx: Context,
 	useCases: TelegramUseCases,
 	feedback: Screen,
+	withNext = false,
 ): Promise<void> {
 	const next = await useCases.getCurrentQuestion.execute({
 		telegramUserId: ctx.from?.id ?? 0,
 	});
 
+	if (next?.examMode === true) {
+		await render(
+			ctx,
+			next.question === undefined
+				? finishPrompt()
+				: questionScreen(next, next.question),
+		);
+
+		return;
+	}
+
 	await render(
 		ctx,
-		next?.question === undefined
+		!withNext || next?.question === undefined
 			? feedback
 			: followedBy(feedback, questionScreen(next, next.question)),
 	);
@@ -80,10 +92,11 @@ export function revealHandler(useCases: TelegramUseCases) {
 			revealed: true,
 		});
 
-		await renderWithNext(
+		await afterAnswer(
 			ctx,
 			useCases,
 			answerFeedback(result, result.question),
+			true,
 		);
 	};
 }
@@ -107,10 +120,11 @@ export function typedAnswerHandler(useCases: TelegramUseCases) {
 			typedAnswer: text,
 		});
 
-		await renderWithNext(
+		await afterAnswer(
 			ctx,
 			useCases,
 			answerFeedback(result, result.question),
+			true,
 		);
 
 		return true;
