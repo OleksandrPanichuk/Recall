@@ -168,6 +168,73 @@ describe("loadHttpEnvironment", () => {
 		}
 	});
 
+	test("leaves oauth off when neither issuer nor passphrase is given", () => {
+		const http = loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN });
+
+		expect(http.oauth).toBeUndefined();
+	});
+
+	test("turns oauth on when both the issuer and the passphrase are given", () => {
+		const http = loadHttpEnvironment({
+			MCP_HTTP_TOKEN: TOKEN,
+			MCP_OAUTH_ISSUER: "https://quiz.example.com",
+			MCP_OAUTH_PASSPHRASE: "correct horse battery",
+		});
+
+		expect(http.oauth?.issuer.href).toBe("https://quiz.example.com/");
+		expect(http.oauth?.passphrase).toBe("correct horse battery");
+	});
+
+	test("refuses an issuer without a passphrase, rather than serving it open", () => {
+		expect(() =>
+			loadHttpEnvironment({
+				MCP_HTTP_TOKEN: TOKEN,
+				MCP_OAUTH_ISSUER: "https://quiz.example.com",
+			}),
+		).toThrow(EnvironmentError);
+	});
+
+	test("refuses a passphrase without an issuer", () => {
+		expect(() =>
+			loadHttpEnvironment({
+				MCP_HTTP_TOKEN: TOKEN,
+				MCP_OAUTH_PASSPHRASE: "correct horse battery",
+			}),
+		).toThrow(EnvironmentError);
+	});
+
+	test("refuses a passphrase short enough to guess", () => {
+		expect(() =>
+			loadHttpEnvironment({
+				MCP_HTTP_TOKEN: TOKEN,
+				MCP_OAUTH_ISSUER: "https://quiz.example.com",
+				MCP_OAUTH_PASSPHRASE: "short",
+			}),
+		).toThrow(EnvironmentError);
+	});
+
+	test("refuses an issuer that is not a url", () => {
+		expect(() =>
+			loadHttpEnvironment({
+				MCP_HTTP_TOKEN: TOKEN,
+				MCP_OAUTH_ISSUER: "quiz.example.com",
+				MCP_OAUTH_PASSPHRASE: "correct horse battery",
+			}),
+		).toThrow(EnvironmentError);
+	});
+
+	test("never prints the passphrase in a failure", () => {
+		try {
+			loadHttpEnvironment({
+				MCP_HTTP_TOKEN: TOKEN,
+				MCP_OAUTH_PASSPHRASE: "sesame open up please",
+			});
+			throw new Error("expected a refusal");
+		} catch (error) {
+			expect((error as EnvironmentError).message).not.toContain("sesame");
+		}
+	});
+
 	test("refuses a port that is not a usable number", () => {
 		expect(() =>
 			loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN, MCP_HTTP_PORT: "0" }),

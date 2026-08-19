@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import type { QuizDatabase } from "@/adapters/persistence/sqlite/database";
 import {
 	closeDatabase,
 	createDatabase,
@@ -13,6 +14,7 @@ import { createSqliteVocabularyRepository } from "@/adapters/persistence/sqlite/
 import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
+import type { Transaction } from "@/application/ports/transaction";
 import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
@@ -66,6 +68,8 @@ export const shortIdGenerator: IdGenerator = {
 
 export interface Application {
 	readonly database: Database;
+	readonly client: QuizDatabase;
+	readonly transaction: Transaction;
 	readonly createQuizSet: CreateQuizSet;
 	readonly updateQuizSet: UpdateQuizSet;
 	readonly addQuestions: AddQuestions;
@@ -140,6 +144,8 @@ export function createApplication(options: ApplicationOptions): Application {
 
 	return {
 		database,
+		client,
+		transaction,
 		createQuizSet: new CreateQuizSet(dependencies),
 		updateQuizSet: new UpdateQuizSet(dependencies),
 		addQuestions,

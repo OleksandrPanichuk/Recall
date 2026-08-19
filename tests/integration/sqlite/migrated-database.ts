@@ -4,6 +4,9 @@ import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
 
 export const applicationTables = [
 	"folders",
+	"oauth_clients",
+	"oauth_codes",
+	"oauth_tokens",
 	"question_options",
 	"question_repetition_schedules",
 	"question_responses",

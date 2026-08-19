@@ -58,14 +58,21 @@ const variableNames = Object.keys(
 	issueMessages,
 ) as (keyof typeof issueMessages)[];
 
+export interface OAuthEnvironment {
+	readonly issuer: URL;
+	readonly passphrase: string;
+}
+
 export interface HttpEnvironment {
 	readonly token: string;
 	readonly host: string;
 	readonly port: number;
 	readonly allowedHosts: readonly string[];
+	readonly oauth?: OAuthEnvironment;
 }
 
 const MIN_TOKEN_LENGTH = 32;
+const MIN_PASSPHRASE_LENGTH = 16;
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 8765;
 
@@ -78,6 +85,10 @@ const httpSchema = z.object({
 		.refine((port) => port > 0 && port < 65536)
 		.optional(),
 	MCP_HTTP_ALLOWED_HOST: requiredText.optional(),
+	MCP_OAUTH_ISSUER: requiredText
+		.refine((value) => URL.canParse(value) && value.startsWith("http"))
+		.optional(),
+	MCP_OAUTH_PASSPHRASE: z.string().trim().min(MIN_PASSPHRASE_LENGTH).optional(),
 });
 
 const httpIssueMessages = {
@@ -85,6 +96,9 @@ const httpIssueMessages = {
 	MCP_HTTP_HOST: "MCP_HTTP_HOST must not be empty when set",
 	MCP_HTTP_PORT: "MCP_HTTP_PORT must be a port number between 1 and 65535",
 	MCP_HTTP_ALLOWED_HOST: "MCP_HTTP_ALLOWED_HOST must not be empty when set",
+	MCP_OAUTH_ISSUER:
+		"MCP_OAUTH_ISSUER must be the public https url the server is reached at",
+	MCP_OAUTH_PASSPHRASE: `MCP_OAUTH_PASSPHRASE must be at least ${MIN_PASSPHRASE_LENGTH} characters`,
 } as const satisfies Record<keyof z.input<typeof httpSchema>, string>;
 
 const httpVariableNames = Object.keys(
@@ -109,8 +123,20 @@ export function loadHttpEnvironment(
 	}
 
 	const allowedHost = result.data.MCP_HTTP_ALLOWED_HOST;
+	const issuer = result.data.MCP_OAUTH_ISSUER;
+	const passphrase = result.data.MCP_OAUTH_PASSPHRASE;
+
+	if ((issuer === undefined) !== (passphrase === undefined)) {
+		throw new EnvironmentError([
+			"MCP_OAUTH_ISSUER and MCP_OAUTH_PASSPHRASE must be set together, or neither",
+		]);
+	}
 
 	return {
+		oauth:
+			issuer === undefined || passphrase === undefined
+				? undefined
+				: { issuer: new URL(issuer), passphrase },
 		token: result.data.MCP_HTTP_TOKEN,
 		host: result.data.MCP_HTTP_HOST ?? DEFAULT_HOST,
 		port: result.data.MCP_HTTP_PORT ?? DEFAULT_PORT,
