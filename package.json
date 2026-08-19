@@ -9,7 +9,7 @@
 	},
 	"private": true,
 	"scripts": {
-		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts --outdir ./dist --target bun",
+		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts ./src/entrypoints/mcp-http.ts --outdir ./dist --target bun",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"db:generate": "drizzle-kit generate",
@@ -27,7 +27,8 @@
 		"backup": "bun run ./scripts/backup.ts",
 		"restore": "bun run ./scripts/restore.ts",
 		"status": "bun run ./src/entrypoints/telegram.ts --status",
-		"seed": "bun run ./scripts/seed.ts"
+		"seed": "bun run ./scripts/seed.ts",
+		"mcp:http": "bun run ./src/entrypoints/mcp-http.ts"
 	},
 	"type": "module",
 	"dependencies": {

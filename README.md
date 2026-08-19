@@ -178,7 +178,8 @@ rebuild не проїхав як звичайна migration.
 | `bun run check` | Одночасно перевірити lint, formatting та imports |
 | `bun run check:fix` | Застосувати safe Biome fixes, formatting та import sorting |
 | `bun run typecheck` | Перевірити TypeScript без генерації output |
-| `bun run build` | Зібрати `src/entrypoints/telegram.ts` у `dist/` |
+| `bun run mcp:http` | Підняти MCP через HTTP для віддаленого доступу |
+| `bun run build` | Зібрати всі три entrypoints у `dist/` |
 | `bun run start` | Запустити попередньо зібраний `dist/telegram.js` |
 | `bun test` | Запустити Bun unit і contract tests |
 | `bun run verify` | Запустити повний local gate: Biome, typecheck, tests і build |
@@ -370,6 +371,64 @@ claude mcp add recall-quiz --scope user \
 > Назви tools використовують `_`, а не `.` як у `DEVELOPMENT_PLAN.md`: MCP-клієнти
 > дозволяють у назві лише `[A-Za-z0-9_-]`.
 
+
+## Віддалений доступ до MCP
+
+`bun run mcp` говорить через stdio — його запускає сам клієнт на цій машині.
+`bun run mcp:http` піднімає **той самий** сервер, ті самі 16 tools і ту саму
+базу, але через HTTP, щоб до нього дійшов Codex чи Claude Code з іншої машини.
+
+```bash
+openssl rand -hex 32          # токен, мінімум 32 символи
+bun run mcp:http --check      # перевірити конфіг і вийти
+bun run mcp:http
+```
+
+Змінні: `MCP_HTTP_TOKEN` (обов'язково), `MCP_HTTP_HOST` (типово `127.0.0.1`),
+`MCP_HTTP_PORT` (типово `8765`), `MCP_HTTP_ALLOWED_HOST` (хост тунелю).
+
+### Токен — це весь захист
+
+Хто має токен, той **є тобою**: повний доступ на запис до твоїх наборів. Тому:
+
+- сервер слухає **лише loopback** за замовчуванням, а в інтернет його виводить
+  тунель — навіть криво налаштований firewall не відкриє його напряму;
+- токен коротший за 32 символи startup **відхиляє**, щоб слабкий не проліз;
+- порівняння токена йде через SHA-256 і `timingSafeEqual`, тому час відповіді
+  не підказує, наскільки збігся префікс;
+- задай `MCP_HTTP_ALLOWED_HOST` — і ввімкнеться захист від DNS rebinding, щоб
+  браузер на твоїй машині не дійшов до сервера через підмінене імʼя;
+- токен не потрапляє в logs: у відмові пишеться лише причина, метод і шлях.
+
+### Тунель
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8765
+```
+
+Візьми виданий домен, поклади його в `MCP_HTTP_ALLOWED_HOST` і перезапусти
+сервер.
+
+### Підключити клієнта
+
+```bash
+# Codex
+export RECALL_TOKEN=...
+codex mcp add recall-quiz --url https://<домен>/mcp \
+  --bearer-token-env-var RECALL_TOKEN
+
+# Claude Code
+claude mcp add --transport http recall-quiz https://<домен>/mcp \
+  --header "Authorization: Bearer $RECALL_TOKEN"
+```
+
+Сесії немає: кожен запит обробляється сам собою, бо всі 16 tools —
+запит-відповідь і нічого не пушать. Тому два клієнти одночасно не заважають
+одне одному, а база лишається одна, спільна з ботом.
+
+**claude.ai (web/desktop) так не підключити**: його connectors вимагають
+OAuth 2.1 — окремий authorization server з реєстрацією клієнтів, PKCE й
+екраном згоди. Це окрема робота, не цей режим.
 
 ## Типи питань
 
@@ -699,6 +758,7 @@ quiz_move_set({ quizSetId: "..." })
 | `bun run <entrypoint> --check` | перевірити конфігурацію і вийти (не відкриває database) |
 | `bun run backup [файл]` | консистентний backup через `VACUUM INTO` |
 | `bun run restore <файл>` | відновити з backup |
+| `bun run mcp:http` | віддалений MCP через HTTP (див. «Віддалений доступ до MCP») |
 
 ### Backup
 

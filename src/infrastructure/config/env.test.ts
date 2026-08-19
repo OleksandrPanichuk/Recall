@@ -3,6 +3,7 @@ import {
 	EnvironmentError,
 	type EnvironmentSource,
 	loadEnvironment,
+	loadHttpEnvironment,
 } from "./env";
 
 const validSource: EnvironmentSource = {
@@ -119,5 +120,63 @@ describe("loadEnvironment", () => {
 			expect(message).not.toContain(secret);
 			expect(message).not.toContain("AA-super-secret-token");
 		});
+	});
+});
+
+describe("loadHttpEnvironment", () => {
+	const TOKEN = "t".repeat(32);
+
+	test("reads the token and falls back to loopback and 8765", () => {
+		const http = loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN });
+
+		expect(http.token).toBe(TOKEN);
+		expect(http.host).toBe("127.0.0.1");
+		expect(http.port).toBe(8765);
+		expect(http.allowedHosts).toEqual([]);
+	});
+
+	test("takes an explicit host, port and allowed host", () => {
+		const http = loadHttpEnvironment({
+			MCP_HTTP_TOKEN: TOKEN,
+			MCP_HTTP_HOST: "0.0.0.0",
+			MCP_HTTP_PORT: "9000",
+			MCP_HTTP_ALLOWED_HOST: "quiz.example.com",
+		});
+
+		expect(http.host).toBe("0.0.0.0");
+		expect(http.port).toBe(9000);
+		expect(http.allowedHosts).toEqual(["quiz.example.com"]);
+	});
+
+	test("refuses a missing token", () => {
+		expect(() => loadHttpEnvironment({})).toThrow(EnvironmentError);
+	});
+
+	test("refuses a token short enough to guess", () => {
+		expect(() =>
+			loadHttpEnvironment({ MCP_HTTP_TOKEN: "t".repeat(31) }),
+		).toThrow(EnvironmentError);
+	});
+
+	test("names the token in the failure without printing it", () => {
+		try {
+			loadHttpEnvironment({ MCP_HTTP_TOKEN: "short" });
+			throw new Error("expected a refusal");
+		} catch (error) {
+			expect((error as EnvironmentError).message).toContain("MCP_HTTP_TOKEN");
+			expect((error as EnvironmentError).message).not.toContain("short");
+		}
+	});
+
+	test("refuses a port that is not a usable number", () => {
+		expect(() =>
+			loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN, MCP_HTTP_PORT: "0" }),
+		).toThrow(EnvironmentError);
+		expect(() =>
+			loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN, MCP_HTTP_PORT: "70000" }),
+		).toThrow(EnvironmentError);
+		expect(() =>
+			loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN, MCP_HTTP_PORT: "http" }),
+		).toThrow(EnvironmentError);
 	});
 });
