@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { makeTempDirectory, removeTempDirectory } from "../fixtures/temp-dir";
 
 const worker = Bun.fileURLToPath(
 	new URL("./concurrent-writer.ts", import.meta.url),
@@ -11,12 +10,12 @@ let directory: string;
 let databasePath: string;
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), "recall-concurrency-"));
+	directory = makeTempDirectory("recall-concurrency-");
 	databasePath = join(directory, "quiz.sqlite");
 });
 
 afterEach(() => {
-	rmSync(directory, { recursive: true, force: true });
+	removeTempDirectory(directory);
 });
 
 interface WorkerResult {

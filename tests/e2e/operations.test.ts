@@ -1,7 +1,6 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { createMutableClock } from "@tests/fixtures/application.fixture";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
@@ -18,6 +17,7 @@ import {
 	backupDatabase,
 } from "@/infrastructure/lifecycle/backup";
 import { readStatus } from "@/infrastructure/lifecycle/status";
+import { makeTempDirectory, removeTempDirectory } from "../fixtures/temp-dir";
 
 const USER = 42;
 
@@ -25,12 +25,12 @@ let directory: string;
 let databasePath: string;
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), "recall-ops-"));
+	directory = makeTempDirectory("recall-ops-");
 	databasePath = join(directory, "quiz.sqlite");
 });
 
 afterEach(() => {
-	rmSync(directory, { recursive: true, force: true });
+	removeTempDirectory(directory);
 });
 
 const clock = createMutableClock();
