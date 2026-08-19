@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { DETAIL_PAGE_SIZE } from "@/adapters/telegram/presenters/attempt-detail.presenter";
 import { QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
@@ -1680,6 +1681,51 @@ describe("attempt details stay inside Telegram's limit (§3.16)", () => {
 
 		expect(harness.lastText()).toContain("стор. 1/2");
 		expect(harness.lastText()).toContain("1. Питання 0");
+	});
+
+	test("a page keeps every answer even when they are all long", async () => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Wordy",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: Array.from({ length: DETAIL_PAGE_SIZE + 2 }, (_v, index) => ({
+				type: QuestionType.TrueFalse,
+				prompt: `Питання ${index} — ${"д".repeat(400)}`,
+				difficulty: "easy" as const,
+				explanation: `Пояснення ${"я".repeat(300)}`,
+				options: [
+					{ text: "Так", isCorrect: true },
+					{ text: "Ні", isCorrect: false },
+				],
+			})),
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Wordy"));
+
+		for (let index = 0; index < DETAIL_PAGE_SIZE + 2; index += 1) {
+			await harness.tap(buttonFor("Ні"));
+
+			if (index < DETAIL_PAGE_SIZE + 1) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		await harness.tap(buttonFor("Завершити"));
+		await openDetail("Wordy");
+
+		const text = harness.lastText();
+
+		expect(text.length).toBeLessThanOrEqual(4096);
+
+		for (let number = 1; number <= DETAIL_PAGE_SIZE; number += 1) {
+			expect(text).toContain(`${number}. Питання ${number - 1}`);
+		}
 	});
 
 	test("a short attempt shows no pager at all", async () => {

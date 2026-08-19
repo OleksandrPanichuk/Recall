@@ -88,21 +88,18 @@ export function attemptDetailScreen(detail: AttemptDetail, page = 0): Screen {
 	const shown = detail.answers.slice(first, first + DETAIL_PAGE_SIZE);
 
 	const lines: string[] = [];
-	let used = 0;
+	let left = TEXT_BUDGET;
 
 	for (const [offset, answer] of shown.entries()) {
-		const index = first + offset;
-		const line = describe(answer, index);
+		const line = describe(answer, first + offset);
+		const share = Math.floor(left / (shown.length - offset));
+		const kept =
+			line.length <= share ? line : `${line.slice(0, Math.max(share - 1, 1))}…`;
 
-		if (used + line.length > TEXT_BUDGET) {
-			break;
-		}
-
-		lines.push(line);
-		used += line.length + 2;
+		lines.push(kept);
+		left -= kept.length + 2;
 	}
 
-	const clipped = shown.length - lines.length;
 	const pager: InlineButton[] = [];
 
 	if (current > 0) {
@@ -131,7 +128,6 @@ export function attemptDetailScreen(detail: AttemptDetail, page = 0): Screen {
 			pageCount > 1 ? `стор. ${current + 1}/${pageCount}` : undefined,
 			"",
 			lines.join("\n\n"),
-			clipped > 0 ? `\n…і ще ${clipped} питань на цій сторінці` : undefined,
 		]
 			.filter((line) => line !== undefined)
 			.join("\n"),
