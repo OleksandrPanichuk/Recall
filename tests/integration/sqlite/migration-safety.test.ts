@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createDatabase } from "@/adapters/persistence/sqlite/database";
 import {
@@ -9,6 +8,10 @@ import {
 	RebuildFailedError,
 	UnsafeMigrationError,
 } from "@/adapters/persistence/sqlite/migrator";
+import {
+	makeTempDirectory,
+	removeTempDirectory,
+} from "../../fixtures/temp-dir";
 
 const baseMigration = [
 	"CREATE TABLE `parents` (",
@@ -113,7 +116,7 @@ function tableExists(table: string): boolean {
 }
 
 beforeEach(() => {
-	const directory = mkdtempSync(join(tmpdir(), "quiz-migrations-"));
+	const directory = makeTempDirectory("quiz-migrations-");
 
 	folder = join(directory, "drizzle");
 	databasePath = join(directory, "quiz.sqlite");
@@ -127,7 +130,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	database.close();
-	rmSync(join(folder, ".."), { recursive: true, force: true });
+	removeTempDirectory(join(folder, ".."));
 });
 
 describe("applyMigrations", () => {

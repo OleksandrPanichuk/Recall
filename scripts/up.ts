@@ -1,10 +1,13 @@
 import { type SupervisedProcess, superviseProcesses } from "./up.supervise";
 
 const entrypoint = (file: string): string =>
-	new URL(`../src/entrypoints/${file}`, import.meta.url).pathname;
+	Bun.fileURLToPath(new URL(`../src/entrypoints/${file}`, import.meta.url));
+
+const script = (file: string): string =>
+	Bun.fileURLToPath(new URL(file, import.meta.url));
 
 async function migrateOrExit(): Promise<void> {
-	const child = Bun.spawn([process.execPath, "./scripts/migrate.ts"], {
+	const child = Bun.spawn([process.execPath, script("./migrate.ts")], {
 		stdout: "inherit",
 		stderr: "inherit",
 	});

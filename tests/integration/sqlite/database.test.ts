@@ -1,19 +1,16 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-	existsSync,
-	mkdtempSync,
-	readdirSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
 	closeDatabase,
 	createDatabase,
 } from "@/adapters/persistence/sqlite/database";
 import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
+import {
+	makeTempDirectory,
+	removeTempDirectory,
+} from "../../fixtures/temp-dir";
 
 const projectRoot = join(import.meta.dir, "..", "..", "..");
 
@@ -29,11 +26,11 @@ const databaseModule = join(
 let directory: string;
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), "quiz-sqlite-"));
+	directory = makeTempDirectory("quiz-sqlite-");
 });
 
 afterEach(() => {
-	rmSync(directory, { recursive: true, force: true });
+	removeTempDirectory(directory);
 });
 
 describe("applyMigrations", () => {
@@ -190,13 +187,13 @@ describe("the migrate command", () => {
 
 describe("createDatabase directory handling", () => {
 	test("creates the directory the database lives in", () => {
-		const directory = mkdtempSync(join(tmpdir(), "recall-nested-"));
+		const directory = makeTempDirectory("recall-nested-");
 		const path = join(directory, "deeply", "nested", "quiz.sqlite");
 
 		const database = createDatabase({ path });
 
 		expect(existsSync(path)).toBe(true);
 		closeDatabase(database);
-		rmSync(directory, { recursive: true, force: true });
+		removeTempDirectory(directory);
 	});
 });

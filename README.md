@@ -104,12 +104,20 @@ bun run migrate
 connection команда **намагається** виконати `PRAGMA wal_checkpoint(TRUNCATE)` і
 повернути journal mode у `delete`, але це best-effort cleanup: за наявності
 іншого connection дані можуть залишитися в `-wal`. Ніколи не вважайте просту
-копію `quiz.sqlite` повним backup. Для консистентного backup використовуйте
-SQLite backup API через CLI:
+копію `quiz.sqlite` повним backup. Для консистентного backup є `bun run backup`
+— він робить `VACUUM INTO` у самому процесі, тому працює однаково на macOS,
+Linux і Windows і не потребує жодного зовнішнього бінарника:
 
 ```bash
-backup_path="${DATABASE_PATH}.backup.sqlite"
-sqlite3 "$DATABASE_PATH" ".backup '$backup_path'"
+bun run backup                        # поруч із базою, з timestamp
+bun run backup ~/backups/quiz.sqlite  # або явний шлях
+```
+
+Якщо `sqlite3` CLI усе ж під рукою, те саме робить і він — але на Windows його
+типово немає, тому в скриптах спирайтеся на `bun run backup`:
+
+```bash
+sqlite3 "$DATABASE_PATH" ".backup '${DATABASE_PATH}.backup.sqlite'"
 ```
 
 Schema описана в `src/adapters/persistence/sqlite/schema.ts`. Після її зміни

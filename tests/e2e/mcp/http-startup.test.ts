@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { EMPTY_ENV_FILE } from "../../fixtures/env-file";
 
 const entrypoint = Bun.fileURLToPath(
 	new URL("../../../src/entrypoints/mcp-http.ts", import.meta.url),
@@ -19,7 +20,7 @@ async function start(
 	args: readonly string[] = ["--check"],
 ) {
 	const child = Bun.spawn(
-		[process.execPath, "--env-file=/dev/null", entrypoint, ...args],
+		[process.execPath, `--env-file=${EMPTY_ENV_FILE}`, entrypoint, ...args],
 		{ env: environment, stdout: "pipe", stderr: "pipe" },
 	);
 
@@ -87,7 +88,7 @@ describe("mcp http entrypoint startup", () => {
 		const taken = { ...validEnvironment, MCP_HTTP_PORT: "8797" };
 
 		const first = Bun.spawn(
-			[process.execPath, "--env-file=/dev/null", entrypoint],
+			[process.execPath, `--env-file=${EMPTY_ENV_FILE}`, entrypoint],
 			{
 				env: taken,
 				stdout: "pipe",

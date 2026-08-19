@@ -1,7 +1,5 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createMutableClock } from "@tests/fixtures/application.fixture";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
@@ -18,6 +16,11 @@ import {
 	backupDatabase,
 } from "@/infrastructure/lifecycle/backup";
 import { readStatus } from "@/infrastructure/lifecycle/status";
+import {
+	makeTempDirectory,
+	removeFile,
+	removeTempDirectory,
+} from "../fixtures/temp-dir";
 
 const USER = 42;
 
@@ -25,12 +28,12 @@ let directory: string;
 let databasePath: string;
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), "recall-ops-"));
+	directory = makeTempDirectory("recall-ops-");
 	databasePath = join(directory, "quiz.sqlite");
 });
 
 afterEach(() => {
-	rmSync(directory, { recursive: true, force: true });
+	removeTempDirectory(directory);
 });
 
 const clock = createMutableClock();
@@ -84,37 +87,40 @@ async function startAndAnswerOne(
 }
 
 describe("backup and restore (§6.3)", () => {
-	test("a restored backup carries quiz sets and attempt history", async () => {
-		const application = open();
-		const quizSetId = await seed(application);
-		await startAndAnswerOne(application, quizSetId);
-		clock.advance(60_000);
-		await application.finishQuizAttempt.execute({ telegramUserId: USER });
+	test.skipIf(process.platform === "win32")(
+		"a restored backup carries quiz sets and attempt history",
+		async () => {
+			const application = open();
+			const quizSetId = await seed(application);
+			await startAndAnswerOne(application, quizSetId);
+			clock.advance(60_000);
+			await application.finishQuizAttempt.execute({ telegramUserId: USER });
 
-		const backupPath = join(directory, "backup.sqlite");
-		backupDatabase(databasePath, backupPath);
-		application.close();
+			const backupPath = join(directory, "backup.sqlite");
+			backupDatabase(databasePath, backupPath);
+			application.close();
 
-		rmSync(databasePath, { force: true });
-		rmSync(`${databasePath}-wal`, { force: true });
-		rmSync(`${databasePath}-shm`, { force: true });
+			removeFile(databasePath);
+			removeFile(`${databasePath}-wal`);
+			removeFile(`${databasePath}-shm`);
 
-		assertRestorable(backupPath);
-		await Bun.write(databasePath, Bun.file(backupPath));
+			assertRestorable(backupPath);
+			await Bun.write(databasePath, Bun.file(backupPath));
 
-		const restored = open();
-		const sets = await restored.listQuizSets.execute({});
-		const statistics = await restored.getQuizStatistics.execute({
-			telegramUserId: USER,
-			quizSetId,
-		});
+			const restored = open();
+			const sets = await restored.listQuizSets.execute({});
+			const statistics = await restored.getQuizStatistics.execute({
+				telegramUserId: USER,
+				quizSetId,
+			});
 
-		expect(sets).toHaveLength(1);
-		expect(sets[0]?.questionCount).toBe(2);
-		expect(statistics.attempts).toHaveLength(1);
-		expect(statistics.attempts[0]?.score.correct).toBe(1);
-		restored.close();
-	});
+			expect(sets).toHaveLength(1);
+			expect(sets[0]?.questionCount).toBe(2);
+			expect(statistics.attempts).toHaveLength(1);
+			expect(statistics.attempts[0]?.score.correct).toBe(1);
+			restored.close();
+		},
+	);
 
 	test("a backup can be taken while the database is open", async () => {
 		const application = open();
