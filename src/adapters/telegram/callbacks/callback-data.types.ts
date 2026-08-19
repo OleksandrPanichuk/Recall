@@ -51,6 +51,7 @@ export interface StartDueCallback {
 export interface AttemptDetailCallback {
 	readonly action: typeof CallbackAction.AttemptDetail;
 	readonly attemptId: string;
+	readonly page?: number;
 }
 export interface RepetitionsCallback {
 	readonly action: typeof CallbackAction.Repetitions;

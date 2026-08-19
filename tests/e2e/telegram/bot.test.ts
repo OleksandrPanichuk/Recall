@@ -1566,6 +1566,48 @@ describe("attempt details (§3.15)", () => {
 });
 
 describe("attempt details stay inside Telegram's limit (§3.16)", () => {
+	const playLongAttempt = async (count: number): Promise<void> => {
+		const { quizSetId } = await harness.application.createQuizSet.execute({
+			title: "Long",
+			language: "uk",
+		});
+
+		await harness.application.addQuestions.execute({
+			quizSetId,
+			questions: Array.from({ length: count }, (_value, index) => ({
+				type: QuestionType.TrueFalse,
+				prompt: `Питання ${index}`,
+				difficulty: "easy" as const,
+				options: [
+					{ text: "Так", isCorrect: true },
+					{ text: "Ні", isCorrect: false },
+				],
+			})),
+		});
+		await harness.application.publishQuizSet.execute({ quizSetId });
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Мої набори"));
+		await harness.tap(buttonFor("Long"));
+
+		for (let index = 0; index < count; index += 1) {
+			await harness.tap(buttonFor("Так"));
+
+			if (index < count - 1) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		await harness.tap(buttonFor("Завершити"));
+	};
+
+	const openDetail = async (title: string): Promise<void> => {
+		await harness.send("/start");
+		await harness.tap(buttonFor("Статистика"));
+		await harness.tap(buttonFor(title));
+		await harness.tap(buttonFor("деталі"));
+	};
+
 	test("a long attempt is trimmed with a footer, not silently cut", async () => {
 		const { quizSetId } = await harness.application.createQuizSet.execute({
 			title: "Long",
@@ -1607,8 +1649,48 @@ describe("attempt details stay inside Telegram's limit (§3.16)", () => {
 		const text = harness.lastText();
 
 		expect(text.length).toBeLessThanOrEqual(4096);
-		expect(text).toContain("і ще");
-		expect(text).not.toContain("(скорочено)");
+		expect(text).toContain("стор. 1/3");
+		expect(harness.lastButtons().map((entry) => entry.text)).toContainEqual(
+			expect.stringContaining("Наступні"),
+		);
+	});
+
+	test("every question is reachable by paging to the end", async () => {
+		await playLongAttempt(12);
+		await openDetail("Long");
+
+		expect(harness.lastText()).toContain("1. Питання 0");
+		expect(harness.lastText()).not.toContain("11. Питання 10");
+
+		await harness.tap(buttonFor("Наступні"));
+
+		expect(harness.lastText()).toContain("11. Питання 10");
+		expect(harness.lastText()).toContain("стор. 2/2");
+		expect(harness.lastButtons().map((entry) => entry.text)).not.toContainEqual(
+			expect.stringContaining("Наступні"),
+		);
+	});
+
+	test("paging walks back as well as forward", async () => {
+		await playLongAttempt(12);
+		await openDetail("Long");
+		await harness.tap(buttonFor("Наступні"));
+
+		await harness.tap(buttonFor("Попередні"));
+
+		expect(harness.lastText()).toContain("стор. 1/2");
+		expect(harness.lastText()).toContain("1. Питання 0");
+	});
+
+	test("a short attempt shows no pager at all", async () => {
+		await playLongAttempt(3);
+		await openDetail("Long");
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(harness.lastText()).not.toContain("стор.");
+		expect(labels).not.toContainEqual(expect.stringContaining("Наступні"));
+		expect(labels).not.toContainEqual(expect.stringContaining("Попередні"));
 	});
 });
 
