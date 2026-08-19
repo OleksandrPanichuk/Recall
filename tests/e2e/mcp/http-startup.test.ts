@@ -82,4 +82,35 @@ describe("mcp http entrypoint startup", () => {
 		expect(exitCode).toBe(1);
 		expect(stderr).toContain("APP_TIMEZONE");
 	});
+
+	test("says the port is taken instead of printing a stack trace", async () => {
+		const taken = { ...validEnvironment, MCP_HTTP_PORT: "8797" };
+
+		const first = Bun.spawn(
+			[process.execPath, "--env-file=/dev/null", entrypoint],
+			{
+				env: taken,
+				stdout: "pipe",
+				stderr: "pipe",
+			},
+		);
+
+		for (let attempt = 0; attempt < 100; attempt++) {
+			try {
+				await fetch("http://127.0.0.1:8797/mcp", {
+					method: "POST",
+				});
+			} catch {
+				await Bun.sleep(50);
+			}
+		}
+
+		const { stderr, exitCode } = await start(taken, []);
+
+		first.kill();
+
+		expect(exitCode).toBe(1);
+		expect(stderr).toContain("already in use");
+		expect(stderr).not.toContain("node:events");
+	});
 });
