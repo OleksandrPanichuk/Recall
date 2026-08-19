@@ -67,15 +67,27 @@ function main(): void {
 		issuer: http.oauth?.issuer,
 		passphrase: http.oauth?.passphrase,
 	});
-	const listener = app.listen(http.port, http.host);
 	const shutdown = createShutdown({ logger });
 
-	logger.info("mcp http ready", {
-		host: http.host,
-		port: http.port,
-		databasePath: resolve(environment.databasePath),
-		dnsRebindingProtection: http.allowedHosts.length > 0,
-		oauth: http.oauth !== undefined,
+	const listener = app.listen(http.port, http.host, () => {
+		logger.info("mcp http listening", {
+			host: http.host,
+			port: http.port,
+			databasePath: resolve(environment.databasePath),
+			dnsRebindingProtection: http.allowedHosts.length > 0,
+			oauth: http.oauth !== undefined,
+		});
+	});
+
+	listener.on("error", (error: Error & { code?: string }) => {
+		logger.error(
+			error.code === "EADDRINUSE"
+				? "the port is already in use, so the mcp http server could not start"
+				: "the mcp http server could not start",
+			{ host: http.host, port: http.port, error },
+		);
+		application.close();
+		process.exit(1);
 	});
 
 	shutdown.register({
