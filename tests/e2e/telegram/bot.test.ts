@@ -80,6 +80,8 @@ describe("navigation shell (§3.2)", () => {
 			expect.stringContaining("Продовжити навчання"),
 			expect.stringContaining("Мої набори"),
 			expect.stringContaining("Повторення"),
+			expect.stringContaining("Повторити помилки"),
+			expect.stringContaining("Слабкі теми"),
 			expect.stringContaining("Статистика"),
 			expect.stringContaining("Налаштування"),
 		]);
@@ -1926,6 +1928,120 @@ describe("shuffled question order (§3.9)", () => {
 		await harness.tap(buttonFor("Продовжити навчання"));
 
 		expect(promptOnScreen()).toBe(opened);
+	});
+});
+
+describe("mistakes and weak topics (§3.11)", () => {
+	const topical = (prompt: string, topic?: string) =>
+		aQuestionInput(prompt, { topic });
+
+	const playWrong = async (title: string, wrong: number): Promise<void> => {
+		await openSet(title);
+
+		for (let answered = 0; answered < wrong; answered += 1) {
+			await harness.tap(buttonFor("Wrong for"));
+
+			if (answered < wrong - 1) {
+				await harness.tap(buttonFor("Далі"));
+			}
+		}
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Завершити спробу"));
+	};
+
+	const openDrill = async (entry: string, title: string): Promise<void> => {
+		await harness.send("/start");
+		await harness.tap(buttonFor(entry));
+		await harness.tap(buttonFor(title));
+	};
+
+	test("the menu offers both drills", async () => {
+		await harness.send("/start");
+
+		const labels = harness.lastButtons().map((entry) => entry.text);
+
+		expect(labels).toContainEqual(expect.stringContaining("Повторити помилки"));
+		expect(labels).toContainEqual(expect.stringContaining("Слабкі теми"));
+	});
+
+	test("a mistakes drill asks only what is still wrong", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			topical("One"),
+			topical("Two"),
+			topical("Three"),
+		]);
+		await playWrong("Bun", 2);
+
+		await openDrill("Повторити помилки", "Bun");
+
+		expect(harness.lastText()).toContain("питання 1/2");
+	});
+
+	test("says so when nothing is outstanding", async () => {
+		await seedPublishedSet(harness, "Bun", [topical("One")]);
+		await openSet("Bun");
+		await harness.tap(buttonFor("Right for"));
+		await harness.tap(buttonFor("Завершити"));
+
+		await openDrill("Повторити помилки", "Bun");
+
+		expect(harness.lastText()).toContain("Помилок немає");
+	});
+
+	test("a weak-topic drill asks the weak topic only", async () => {
+		await seedPublishedSet(harness, "Bun", [
+			topical("W1", "Weak"),
+			topical("W2", "Weak"),
+			topical("W3", "Weak"),
+			topical("S1", "Strong"),
+		]);
+		await playWrong("Bun", 3);
+
+		await openDrill("Слабкі теми", "Bun");
+
+		expect(harness.lastText()).toContain("питання 1/3");
+	});
+
+	test("says so when no topic is weak yet", async () => {
+		await seedPublishedSet(harness, "Bun", [topical("One", "Alpha")]);
+		await openSet("Bun");
+		await harness.tap(buttonFor("Right for"));
+		await harness.tap(buttonFor("Завершити"));
+
+		await openDrill("Слабкі теми", "Bun");
+
+		expect(harness.lastText()).toContain("Слабких тем");
+	});
+
+	test("the empty state walks back to the folder the set lives in", async () => {
+		await seedPublishedSetIn(harness, ["Мова"], "Filed", [
+			topical("One", "Alpha"),
+		]);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Слабкі теми"));
+		await harness.tap(buttonFor("Мова"));
+		await harness.tap(buttonFor("Filed"));
+
+		expect(harness.lastText()).toContain("Слабких тем");
+
+		await harness.tap(buttonFor("До наборів"));
+
+		expect(harness.lastText()).toContain("Мова");
+	});
+
+	test("a drill can be played to a score", async () => {
+		await seedPublishedSet(harness, "Bun", [topical("One"), topical("Two")]);
+		await playWrong("Bun", 2);
+
+		await openDrill("Повторити помилки", "Bun");
+		await harness.tap(buttonFor("Right for"));
+		await harness.tap(buttonFor("Далі"));
+		await harness.tap(buttonFor("Right for"));
+		await harness.tap(buttonFor("Завершити"));
+
+		expect(harness.lastText()).toContain("2/2");
 	});
 });
 

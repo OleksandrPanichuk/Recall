@@ -10,7 +10,9 @@ export const BROWSE_PAGE_SIZE = 8;
 export type LeafAction =
 	| typeof CallbackAction.StartSet
 	| typeof CallbackAction.StatisticsFor
-	| typeof CallbackAction.SettingsFor;
+	| typeof CallbackAction.SettingsFor
+	| typeof CallbackAction.MistakesFor
+	| typeof CallbackAction.WeakTopicsFor;
 
 interface Entry {
 	readonly label: string;
@@ -37,6 +39,14 @@ const headingOf = (view: BrowseView, leaf: LeafAction): string => {
 
 	if (leaf === Action.StatisticsFor) {
 		return "Статистика — оберіть набір:";
+	}
+
+	if (leaf === Action.MistakesFor) {
+		return "Помилки — оберіть набір:";
+	}
+
+	if (leaf === Action.WeakTopicsFor) {
+		return "Слабкі теми — оберіть набір:";
 	}
 
 	return leaf === Action.SettingsFor

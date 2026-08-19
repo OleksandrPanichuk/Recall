@@ -36,6 +36,8 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Statistics:
 		case CallbackAction.Repetitions:
 		case CallbackAction.Settings:
+		case CallbackAction.Mistakes:
+		case CallbackAction.WeakTopics:
 			return callback.action;
 		case CallbackAction.SettingsFor:
 			return [callback.action, callback.quizSetId ?? ""].join(SEPARATOR);
@@ -48,6 +50,8 @@ function serialise(callback: Callback): string {
 		case CallbackAction.StartSet:
 		case CallbackAction.StartDue:
 		case CallbackAction.StatisticsFor:
+		case CallbackAction.MistakesFor:
+		case CallbackAction.WeakTopicsFor:
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
 		case CallbackAction.Reveal:
 			return [callback.action, callback.questionId].join(SEPARATOR);
@@ -99,6 +103,8 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Statistics:
 		case CallbackAction.Repetitions:
 		case CallbackAction.Settings:
+		case CallbackAction.Mistakes:
+		case CallbackAction.WeakTopics:
 			return { action };
 		case CallbackAction.SettingsFor:
 			return {
@@ -127,6 +133,8 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.StartSet:
 		case CallbackAction.StartDue:
 		case CallbackAction.StatisticsFor:
+		case CallbackAction.MistakesFor:
+		case CallbackAction.WeakTopicsFor:
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, quizSetId: first };
@@ -142,7 +150,9 @@ export function decodeCallback(data: string): Callback | undefined {
 			if (
 				first !== CallbackAction.StartSet &&
 				first !== CallbackAction.StatisticsFor &&
-				first !== CallbackAction.SettingsFor
+				first !== CallbackAction.SettingsFor &&
+				first !== CallbackAction.MistakesFor &&
+				first !== CallbackAction.WeakTopicsFor
 			) {
 				return undefined;
 			}

@@ -38,7 +38,9 @@ export interface BrowseCallback {
 	readonly leaf:
 		| typeof CallbackAction.StartSet
 		| typeof CallbackAction.StatisticsFor
-		| typeof CallbackAction.SettingsFor;
+		| typeof CallbackAction.SettingsFor
+		| typeof CallbackAction.MistakesFor
+		| typeof CallbackAction.WeakTopicsFor;
 	readonly folderId?: string;
 	readonly page?: number;
 }
@@ -71,6 +73,21 @@ export interface SettingsEditCallback {
 	readonly presetKey?: string;
 }
 
+export interface MistakesCallback {
+	readonly action: typeof CallbackAction.Mistakes;
+}
+export interface MistakesForCallback {
+	readonly action: typeof CallbackAction.MistakesFor;
+	readonly quizSetId: string;
+}
+export interface WeakTopicsCallback {
+	readonly action: typeof CallbackAction.WeakTopics;
+}
+export interface WeakTopicsForCallback {
+	readonly action: typeof CallbackAction.WeakTopicsFor;
+	readonly quizSetId: string;
+}
+
 export type Callback =
 	| MenuCallback
 	| SetsCallback
@@ -88,4 +105,8 @@ export type Callback =
 	| RevealCallback
 	| SettingsCallback
 	| SettingsForCallback
-	| SettingsEditCallback;
+	| SettingsEditCallback
+	| MistakesCallback
+	| MistakesForCallback
+	| WeakTopicsCallback
+	| WeakTopicsForCallback;

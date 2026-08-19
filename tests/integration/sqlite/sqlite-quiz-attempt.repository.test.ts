@@ -28,6 +28,8 @@ import {
 
 const at = (iso: string): Date => new Date(iso);
 
+const SET_1 = toQuizSetId("set-1");
+
 const firstAnswerAt = at("2026-08-01T10:05:00.000Z");
 const secondAnswerAt = at("2026-08-01T10:06:00.000Z");
 const thirdAnswerAt = at("2026-08-01T10:07:00.000Z");
@@ -323,7 +325,7 @@ describe("SqliteQuizAttemptRepository", () => {
 
 			expect(
 				repository
-					.topicAccuracy(42)
+					.topicAccuracy(42, SET_1)
 					.map((entry) => [entry.topic, entry.answered, entry.correct]),
 			).toEqual([
 				["Alpha", 2, 1],
@@ -332,7 +334,7 @@ describe("SqliteQuizAttemptRepository", () => {
 		});
 
 		test("returns an empty list for a user with no responses", () => {
-			expect(repository.topicAccuracy(7)).toEqual([]);
+			expect(repository.topicAccuracy(7, SET_1)).toEqual([]);
 		});
 	});
 
@@ -340,7 +342,7 @@ describe("SqliteQuizAttemptRepository", () => {
 		test("returns a question answered incorrectly", () => {
 			repository.save(answeredTwice());
 
-			expect(repository.incorrectQuestionIds(42).map(String)).toEqual([
+			expect(repository.incorrectQuestionIds(42, SET_1).map(String)).toEqual([
 				"question-2",
 			]);
 		});
@@ -362,13 +364,64 @@ describe("SqliteQuizAttemptRepository", () => {
 				),
 			);
 
-			expect(repository.incorrectQuestionIds(42)).toEqual([]);
+			expect(repository.incorrectQuestionIds(42, SET_1)).toEqual([]);
 		});
 
 		test("ignores another user's mistakes", () => {
 			repository.save(answeredTwice());
 
-			expect(repository.incorrectQuestionIds(7)).toEqual([]);
+			expect(repository.incorrectQuestionIds(7, SET_1)).toEqual([]);
+		});
+	});
+
+	describe("scoped to one set", () => {
+		const seedSecondSet = (): void => {
+			createSqliteQuizSetRepository(
+				createDrizzleClient(database),
+				createSqliteTransaction(createDrizzleClient(database)),
+			).save(
+				aQuizSet({
+					id: "set-2",
+					questions: [aQuestion({ id: "question-9", topic: "Beta" })],
+				}),
+			);
+
+			repository.save(
+				recordResponse(
+					anAttempt({
+						id: "attempt-9",
+						quizSetId: "set-2",
+						questionIds: ["question-9"],
+						startedAt: at("2026-08-03T10:00:00.000Z"),
+					}),
+					anAnswer("question-9", false, at("2026-08-03T10:05:00.000Z")),
+				),
+			);
+		};
+
+		test("topic accuracy leaves another set's topics out", () => {
+			seedQuizSet({ "question-1": "Alpha", "question-2": "Alpha" });
+			repository.save(answeredTwice());
+			seedSecondSet();
+
+			expect(repository.topicAccuracy(42, SET_1).map((e) => e.topic)).toEqual([
+				"Alpha",
+			]);
+			expect(
+				repository.topicAccuracy(42, toQuizSetId("set-2")).map((e) => e.topic),
+			).toEqual(["Beta"]);
+		});
+
+		test("mistakes leave another set's mistakes out", () => {
+			repository.save(answeredTwice());
+			seedSecondSet();
+
+			expect(repository.incorrectQuestionIds(42, SET_1).map(String)).toEqual([
+				"question-2",
+			]);
+			expect(
+				repository.incorrectQuestionIds(42, toQuizSetId("set-2")).map(String),
+			).toEqual(["question-9"]);
 		});
 	});
 

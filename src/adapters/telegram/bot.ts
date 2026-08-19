@@ -4,12 +4,14 @@ import type { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-
 import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
+import type { StartPracticeSession } from "@/application/use-cases/practice/start-practice-session";
 import type { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
 import type { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
 import type { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { UpdateQuizSettings } from "@/application/use-cases/settings/update-quiz-settings";
 import type { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
+import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
 import { normaliseForComparison } from "@/shared/utils/text";
@@ -24,6 +26,7 @@ import {
 import { attemptDetailHandler } from "./handlers/attempt-detail.handler";
 import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
+import { practiceHandler } from "./handlers/practice.handler";
 import { repetitionsHandler } from "./handlers/repetitions.handler";
 import {
 	settingsEditHandler,
@@ -43,6 +46,7 @@ export interface TelegramUseCases {
 	readonly listLeeches: ListLeeches;
 	readonly getAttemptDetail: GetAttemptDetail;
 	readonly startQuizAttempt: StartQuizAttempt;
+	readonly startPracticeSession: StartPracticeSession;
 	readonly getCurrentQuestion: GetCurrentQuestion;
 	readonly answerQuestion: AnswerQuestion;
 	readonly finishQuizAttempt: FinishQuizAttempt;
@@ -131,6 +135,36 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				await browseHandler(useCases)(ctx, {
 					action: CallbackAction.Browse,
 					leaf: CallbackAction.StatisticsFor,
+				});
+
+				return;
+			case CallbackAction.Mistakes:
+				await browseHandler(useCases)(ctx, {
+					action: CallbackAction.Browse,
+					leaf: CallbackAction.MistakesFor,
+				});
+
+				return;
+			case CallbackAction.WeakTopics:
+				await browseHandler(useCases)(ctx, {
+					action: CallbackAction.Browse,
+					leaf: CallbackAction.WeakTopicsFor,
+				});
+
+				return;
+			case CallbackAction.MistakesFor:
+				await practiceHandler(useCases)(ctx, {
+					telegramUserId,
+					quizSetId: toQuizSetId(callback.quizSetId),
+					mode: QuizAttemptMode.Mistakes,
+				});
+
+				return;
+			case CallbackAction.WeakTopicsFor:
+				await practiceHandler(useCases)(ctx, {
+					telegramUserId,
+					quizSetId: toQuizSetId(callback.quizSetId),
+					mode: QuizAttemptMode.WeakTopics,
 				});
 
 				return;

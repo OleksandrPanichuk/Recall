@@ -201,6 +201,22 @@ describe("GetQuizStatistics", () => {
 		).toEqual([]);
 	});
 
+	test("ignores another set's topics and mistakes", async () => {
+		const studied = await seedPublishedSet([aQuestionInput("One", "Alpha")]);
+		const other = await seedPublishedSet([aQuestionInput("Two", "Beta")]);
+
+		await playAttempt(studied, [true]);
+		await playAttempt(other, [false]);
+
+		const result = await statistics.execute({
+			telegramUserId: USER,
+			quizSetId: studied,
+		});
+
+		expect(result.topics.map((entry) => entry.topic)).toEqual(["Alpha"]);
+		expect(result.incorrectQuestionIds).toEqual([]);
+	});
+
 	test("ignores another user's attempts", async () => {
 		const quizSetId = await seedPublishedSet([aQuestionInput("One")]);
 		await playAttempt(quizSetId, [true], 7);

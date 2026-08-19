@@ -91,9 +91,13 @@ export class GetQuizStatistics
 				completed.reduce((sum, entry) => sum + entry.correct, 0),
 				completed.reduce((sum, entry) => sum + entry.total, 0),
 			),
-			topics: this.attempts.topicAccuracy(request.telegramUserId),
+			topics: this.attempts.topicAccuracy(
+				request.telegramUserId,
+				request.quizSetId,
+			),
 			incorrectQuestionIds: this.attempts.incorrectQuestionIds(
 				request.telegramUserId,
+				request.quizSetId,
 			),
 			improvement: improvementOf(attempts),
 		};

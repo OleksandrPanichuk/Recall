@@ -167,7 +167,10 @@ export function createSqliteQuizAttemptRepository(
 			});
 		},
 
-		topicAccuracy(telegramUserId: number): readonly TopicAccuracy[] {
+		topicAccuracy(
+			telegramUserId: number,
+			quizSetId: QuizSetId,
+		): readonly TopicAccuracy[] {
 			const rows = database
 				.select({
 					topic: questions.topic,
@@ -181,7 +184,12 @@ export function createSqliteQuizAttemptRepository(
 					eq(quizAttempts.id, questionResponses.attemptId),
 				)
 				.innerJoin(questions, eq(questions.id, questionResponses.questionId))
-				.where(eq(quizAttempts.telegramUserId, telegramUserId))
+				.where(
+					and(
+						eq(quizAttempts.telegramUserId, telegramUserId),
+						eq(quizAttempts.quizSetId, quizSetId),
+					),
+				)
 				.groupBy(questions.topic)
 				.orderBy(sql`${questions.topic} is null`, asc(questions.topic))
 				.all();
@@ -189,7 +197,10 @@ export function createSqliteQuizAttemptRepository(
 			return rows.map(toTopicAccuracy);
 		},
 
-		incorrectQuestionIds(telegramUserId: number): readonly QuestionId[] {
+		incorrectQuestionIds(
+			telegramUserId: number,
+			quizSetId: QuizSetId,
+		): readonly QuestionId[] {
 			const later = aliasedTable(questionResponses, "later");
 			const laterAttempt = aliasedTable(quizAttempts, "later_attempt");
 
@@ -208,6 +219,7 @@ export function createSqliteQuizAttemptRepository(
 				.where(
 					and(
 						eq(quizAttempts.telegramUserId, telegramUserId),
+						eq(quizAttempts.quizSetId, quizSetId),
 						eq(questionResponses.isCorrect, false),
 						notExists(
 							database
