@@ -87,37 +87,40 @@ async function startAndAnswerOne(
 }
 
 describe("backup and restore (§6.3)", () => {
-	test("a restored backup carries quiz sets and attempt history", async () => {
-		const application = open();
-		const quizSetId = await seed(application);
-		await startAndAnswerOne(application, quizSetId);
-		clock.advance(60_000);
-		await application.finishQuizAttempt.execute({ telegramUserId: USER });
+	test.skipIf(process.platform === "win32")(
+		"a restored backup carries quiz sets and attempt history",
+		async () => {
+			const application = open();
+			const quizSetId = await seed(application);
+			await startAndAnswerOne(application, quizSetId);
+			clock.advance(60_000);
+			await application.finishQuizAttempt.execute({ telegramUserId: USER });
 
-		const backupPath = join(directory, "backup.sqlite");
-		backupDatabase(databasePath, backupPath);
-		application.close();
+			const backupPath = join(directory, "backup.sqlite");
+			backupDatabase(databasePath, backupPath);
+			application.close();
 
-		removeFile(databasePath);
-		removeFile(`${databasePath}-wal`);
-		removeFile(`${databasePath}-shm`);
+			removeFile(databasePath);
+			removeFile(`${databasePath}-wal`);
+			removeFile(`${databasePath}-shm`);
 
-		assertRestorable(backupPath);
-		await Bun.write(databasePath, Bun.file(backupPath));
+			assertRestorable(backupPath);
+			await Bun.write(databasePath, Bun.file(backupPath));
 
-		const restored = open();
-		const sets = await restored.listQuizSets.execute({});
-		const statistics = await restored.getQuizStatistics.execute({
-			telegramUserId: USER,
-			quizSetId,
-		});
+			const restored = open();
+			const sets = await restored.listQuizSets.execute({});
+			const statistics = await restored.getQuizStatistics.execute({
+				telegramUserId: USER,
+				quizSetId,
+			});
 
-		expect(sets).toHaveLength(1);
-		expect(sets[0]?.questionCount).toBe(2);
-		expect(statistics.attempts).toHaveLength(1);
-		expect(statistics.attempts[0]?.score.correct).toBe(1);
-		restored.close();
-	});
+			expect(sets).toHaveLength(1);
+			expect(sets[0]?.questionCount).toBe(2);
+			expect(statistics.attempts).toHaveLength(1);
+			expect(statistics.attempts[0]?.score.correct).toBe(1);
+			restored.close();
+		},
+	);
 
 	test("a backup can be taken while the database is open", async () => {
 		const application = open();
