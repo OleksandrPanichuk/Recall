@@ -58,6 +58,66 @@ const variableNames = Object.keys(
 	issueMessages,
 ) as (keyof typeof issueMessages)[];
 
+export interface HttpEnvironment {
+	readonly token: string;
+	readonly host: string;
+	readonly port: number;
+	readonly allowedHosts: readonly string[];
+}
+
+const MIN_TOKEN_LENGTH = 32;
+const DEFAULT_HOST = "127.0.0.1";
+const DEFAULT_PORT = 8765;
+
+const httpSchema = z.object({
+	MCP_HTTP_TOKEN: z.string().trim().min(MIN_TOKEN_LENGTH),
+	MCP_HTTP_HOST: requiredText.optional(),
+	MCP_HTTP_PORT: requiredText
+		.regex(/^\d+$/)
+		.transform(Number)
+		.refine((port) => port > 0 && port < 65536)
+		.optional(),
+	MCP_HTTP_ALLOWED_HOST: requiredText.optional(),
+});
+
+const httpIssueMessages = {
+	MCP_HTTP_TOKEN: `MCP_HTTP_TOKEN is required and must be at least ${MIN_TOKEN_LENGTH} characters`,
+	MCP_HTTP_HOST: "MCP_HTTP_HOST must not be empty when set",
+	MCP_HTTP_PORT: "MCP_HTTP_PORT must be a port number between 1 and 65535",
+	MCP_HTTP_ALLOWED_HOST: "MCP_HTTP_ALLOWED_HOST must not be empty when set",
+} as const satisfies Record<keyof z.input<typeof httpSchema>, string>;
+
+const httpVariableNames = Object.keys(
+	httpIssueMessages,
+) as (keyof typeof httpIssueMessages)[];
+
+export function loadHttpEnvironment(
+	source: EnvironmentSource = Bun.env,
+): HttpEnvironment {
+	const result = httpSchema.safeParse(source);
+
+	if (!result.success) {
+		const invalid = new Set(
+			result.error.issues.map((issue) => String(issue.path[0])),
+		);
+
+		throw new EnvironmentError(
+			httpVariableNames
+				.filter((name) => invalid.has(name))
+				.map((name) => httpIssueMessages[name]),
+		);
+	}
+
+	const allowedHost = result.data.MCP_HTTP_ALLOWED_HOST;
+
+	return {
+		token: result.data.MCP_HTTP_TOKEN,
+		host: result.data.MCP_HTTP_HOST ?? DEFAULT_HOST,
+		port: result.data.MCP_HTTP_PORT ?? DEFAULT_PORT,
+		allowedHosts: allowedHost === undefined ? [] : [allowedHost],
+	};
+}
+
 export function loadEnvironment(
 	source: EnvironmentSource = Bun.env,
 ): Environment {
