@@ -2014,6 +2014,23 @@ describe("mistakes and weak topics (§3.11)", () => {
 		expect(harness.lastText()).toContain("Слабких тем");
 	});
 
+	test("the empty state walks back to the folder the set lives in", async () => {
+		await seedPublishedSetIn(harness, ["Мова"], "Filed", [
+			topical("One", "Alpha"),
+		]);
+
+		await harness.send("/start");
+		await harness.tap(buttonFor("Слабкі теми"));
+		await harness.tap(buttonFor("Мова"));
+		await harness.tap(buttonFor("Filed"));
+
+		expect(harness.lastText()).toContain("Слабких тем");
+
+		await harness.tap(buttonFor("До наборів"));
+
+		expect(harness.lastText()).toContain("Мова");
+	});
+
 	test("a drill can be played to a score", async () => {
 		await seedPublishedSet(harness, "Bun", [topical("One"), topical("Two")]);
 		await playWrong("Bun", 2);

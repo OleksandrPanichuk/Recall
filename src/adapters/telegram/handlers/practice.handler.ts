@@ -22,7 +22,7 @@ export function practiceHandler(useCases: TelegramUseCases) {
 			await useCases.startPracticeSession.execute(request);
 		} catch (error) {
 			if (error instanceof NothingToPracticeError) {
-				await render(ctx, nothingToPractise(error.mode));
+				await render(ctx, nothingToPractise(error.mode, error.folderId));
 
 				return;
 			}

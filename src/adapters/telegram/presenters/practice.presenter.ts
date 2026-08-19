@@ -10,7 +10,10 @@ import { button } from "./utils/button";
 
 const WEAK_PERCENT = Math.round(WEAK_TOPIC_ACCURACY * 100);
 
-export function nothingToPractise(mode: PracticeMode): Screen {
+export function nothingToPractise(
+	mode: PracticeMode,
+	folderId?: string,
+): Screen {
 	return {
 		text:
 			mode === QuizAttemptMode.Mistakes
@@ -24,6 +27,7 @@ export function nothingToPractise(mode: PracticeMode): Screen {
 						mode === QuizAttemptMode.Mistakes
 							? CallbackAction.MistakesFor
 							: CallbackAction.WeakTopicsFor,
+					folderId,
 				}),
 			],
 			[button("« Меню", { action: CallbackAction.Menu })],

@@ -4,6 +4,7 @@ import type { QuizAttemptRepository } from "@/application/ports/repositories/qui
 import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
 import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
 import type { Command, UseCase } from "@/application/use-case";
+import type { FolderId } from "@/domain/folder/folder";
 import { weakTopicsOf } from "@/domain/practice/weak-topics";
 import {
 	currentQuestionId,
@@ -33,12 +34,14 @@ export type PracticeMode =
 export class NothingToPracticeError extends Error {
 	readonly quizSetId: QuizSetId;
 	readonly mode: PracticeMode;
+	readonly folderId?: FolderId;
 
-	constructor(quizSetId: QuizSetId, mode: PracticeMode) {
+	constructor(quizSetId: QuizSetId, mode: PracticeMode, folderId?: FolderId) {
 		super(`Quiz set ${quizSetId} has nothing to practise in ${mode} mode`);
 		this.name = "NothingToPracticeError";
 		this.quizSetId = quizSetId;
 		this.mode = mode;
+		this.folderId = folderId;
 	}
 }
 
@@ -113,7 +116,11 @@ export class StartPracticeSession
 				: this.outstandingMistakes(request, quizSet);
 
 		if (selected.length === 0) {
-			throw new NothingToPracticeError(request.quizSetId, request.mode);
+			throw new NothingToPracticeError(
+				request.quizSetId,
+				request.mode,
+				quizSet.folderId,
+			);
 		}
 
 		const id = toQuizAttemptId(this.idGenerator.generate());
