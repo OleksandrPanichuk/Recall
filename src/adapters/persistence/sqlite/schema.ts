@@ -238,3 +238,31 @@ export const questionResponses = sqliteTable(
 		index("idx_question_responses_question").on(table.questionId),
 	],
 );
+
+export const oauthClients = sqliteTable("oauth_clients", {
+	clientId: text("client_id").notNull().primaryKey(),
+	document: text("document").notNull(),
+	createdAt: text("created_at").notNull(),
+});
+
+export const oauthCodes = sqliteTable("oauth_codes", {
+	codeHash: text("code_hash").notNull().primaryKey(),
+	clientId: text("client_id").notNull(),
+	codeChallenge: text("code_challenge").notNull(),
+	redirectUri: text("redirect_uri").notNull(),
+	resource: text("resource"),
+	scopes: text("scopes").notNull(),
+	expiresAt: text("expires_at").notNull(),
+	consumedAt: text("consumed_at"),
+	createdAt: text("created_at").notNull(),
+});
+
+export const oauthTokens = sqliteTable("oauth_tokens", {
+	tokenHash: text("token_hash").notNull().primaryKey(),
+	kind: text("kind").notNull(),
+	clientId: text("client_id").notNull(),
+	scopes: text("scopes").notNull(),
+	expiresAt: text("expires_at"),
+	revokedAt: text("revoked_at"),
+	createdAt: text("created_at").notNull(),
+});

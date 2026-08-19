@@ -54,6 +54,7 @@ describe("applyMigrations", () => {
 			"0010_quiz_settings_shuffle",
 			"0011_quiz_settings_shuffle_questions",
 			"0012_quiz_settings_exam_mode",
+			"0013_oauth",
 		]);
 		expect(applyMigrations(database)).toEqual([]);
 

@@ -13,7 +13,11 @@ Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITEC
 
 ## APIs
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
+- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express` —
+  with one exception, granted by the owner: `src/adapters/mcp/http/` runs on
+  Express because the MCP SDK's OAuth endpoints (`mcpAuthRouter`,
+  `requireBearerAuth`) are Express middleware, and hand-rolling an authorization
+  server is not worth it. Do not "fix" that by removing Express.
 - `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
 - `Bun.redis` for Redis. Don't use `ioredis`.
 - `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.

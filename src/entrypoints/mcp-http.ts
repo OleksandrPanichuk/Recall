@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
-import { createMcpHttpHandler } from "@/adapters/mcp/http/handler";
+import { createMcpHttpApp } from "@/adapters/mcp/http/app";
+import { createOAuthProvider } from "@/adapters/mcp/http/oauth/provider";
+import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
 import { createApplication } from "@/composition/create-application";
 import {
 	type Environment,
@@ -35,7 +37,7 @@ function main(): void {
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${resolve(environment.databasePath)} host=${http.host} port=${http.port}`,
+			`Configuration is valid. database=${resolve(environment.databasePath)} host=${http.host} port=${http.port} oauth=${http.oauth === undefined ? "off" : http.oauth.issuer.href}`,
 		);
 
 		return;
@@ -48,16 +50,24 @@ function main(): void {
 		databasePath: environment.databasePath,
 		logger,
 	});
-	const server = Bun.serve({
-		hostname: http.host,
-		port: http.port,
-		fetch: createMcpHttpHandler({
-			application,
-			logger,
-			token: http.token,
-			allowedHosts: http.allowedHosts,
-		}),
+	const oauth = createOAuthProvider({
+		store: createSqliteOAuthStore(
+			application.client,
+			application.transaction,
+			() => new Date(),
+		),
+		staticToken: http.token,
+		now: () => new Date(),
 	});
+	const app = createMcpHttpApp({
+		application,
+		logger,
+		oauth,
+		allowedHosts: http.allowedHosts,
+		issuer: http.oauth?.issuer,
+		passphrase: http.oauth?.passphrase,
+	});
+	const listener = app.listen(http.port, http.host);
 	const shutdown = createShutdown({ logger });
 
 	logger.info("mcp http ready", {
@@ -65,13 +75,15 @@ function main(): void {
 		port: http.port,
 		databasePath: resolve(environment.databasePath),
 		dnsRebindingProtection: http.allowedHosts.length > 0,
+		oauth: http.oauth !== undefined,
 	});
 
 	shutdown.register({
 		name: "http",
-		run: async () => {
-			await server.stop();
-		},
+		run: () =>
+			new Promise<void>((done) => {
+				listener.close(() => done());
+			}),
 	});
 	shutdown.register({
 		name: "database",
