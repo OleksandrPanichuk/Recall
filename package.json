@@ -29,7 +29,8 @@
 		"restore": "bun run ./scripts/restore.ts",
 		"status": "bun run ./src/entrypoints/telegram.ts --status",
 		"seed": "bun run ./scripts/seed.ts",
-		"mcp:http": "bun run ./src/entrypoints/mcp-http.ts"
+		"mcp:http": "bun run ./src/entrypoints/mcp-http.ts",
+		"up": "bun run ./scripts/up.ts"
 	},
 	"type": "module",
 	"dependencies": {
