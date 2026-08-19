@@ -56,7 +56,11 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Reveal:
 			return [callback.action, callback.questionId].join(SEPARATOR);
 		case CallbackAction.AttemptDetail:
-			return [callback.action, callback.attemptId].join(SEPARATOR);
+			return [
+				callback.action,
+				callback.attemptId,
+				String(callback.page ?? 0),
+			].join(SEPARATOR);
 		case CallbackAction.Browse:
 			return [
 				callback.action,
@@ -142,10 +146,19 @@ export function decodeCallback(data: string): Callback | undefined {
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, questionId: first };
-		case CallbackAction.AttemptDetail:
-			return first === undefined || first.length === 0
-				? undefined
-				: { action, attemptId: first };
+		case CallbackAction.AttemptDetail: {
+			if (first === undefined || first.length === 0) {
+				return undefined;
+			}
+
+			const page = Number(second ?? "0");
+
+			if (!Number.isSafeInteger(page) || page < 0) {
+				return undefined;
+			}
+
+			return { action, attemptId: first, page };
+		}
 		case CallbackAction.Browse: {
 			if (
 				first !== CallbackAction.StartSet &&

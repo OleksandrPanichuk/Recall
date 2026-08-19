@@ -4,11 +4,13 @@ import type {
 } from "@/application/use-cases/statistics/get-attempt-detail";
 import { expectsTypedAnswer, QuestionType } from "@/domain/quiz-set/question";
 import { CallbackAction } from "../callbacks/callback-data.constants";
-import type { Screen } from "./screen.types";
+import type { InlineButton, Screen } from "./screen.types";
 import { button } from "./utils/button";
 import { correctAnswerText } from "./utils/correct-answer";
 
 const TEXT_BUDGET = 3600;
+
+export const DETAIL_PAGE_SIZE = 10;
 
 const mark = (answer: AnsweredQuestion): string => {
 	if (!answer.answered) {
@@ -55,7 +57,7 @@ const givenText = (answer: AnsweredQuestion): string => {
 	return chosen.join(", ");
 };
 
-export function attemptDetailScreen(detail: AttemptDetail): Screen {
+export function attemptDetailScreen(detail: AttemptDetail, page = 0): Screen {
 	const describe = (answer: AnsweredQuestion, index: number): string => {
 		const credit =
 			answer.creditPossible > 1
@@ -77,32 +79,60 @@ export function attemptDetailScreen(detail: AttemptDetail): Screen {
 		return `${mark(answer)} ${index + 1}. ${answer.question.prompt}\n   ➡️ ${givenText(answer)}${credit}${correct}${why}`;
 	};
 
+	const pageCount = Math.max(
+		1,
+		Math.ceil(detail.answers.length / DETAIL_PAGE_SIZE),
+	);
+	const current = Math.min(Math.max(page, 0), pageCount - 1);
+	const first = current * DETAIL_PAGE_SIZE;
+	const shown = detail.answers.slice(first, first + DETAIL_PAGE_SIZE);
+
 	const lines: string[] = [];
-	let used = 0;
+	let left = TEXT_BUDGET;
 
-	for (const [index, answer] of detail.answers.entries()) {
-		const line = describe(answer, index);
+	for (const [offset, answer] of shown.entries()) {
+		const line = describe(answer, first + offset);
+		const share = Math.floor(left / (shown.length - offset));
+		const kept =
+			line.length <= share ? line : `${line.slice(0, Math.max(share - 1, 1))}…`;
 
-		if (used + line.length > TEXT_BUDGET) {
-			break;
-		}
-
-		lines.push(line);
-		used += line.length + 2;
+		lines.push(kept);
+		left -= kept.length + 2;
 	}
 
-	const hidden = detail.answers.length - lines.length;
+	const pager: InlineButton[] = [];
+
+	if (current > 0) {
+		pager.push(
+			button("‹ Попередні", {
+				action: CallbackAction.AttemptDetail,
+				attemptId: detail.attemptId,
+				page: current - 1,
+			}),
+		);
+	}
+
+	if (current < pageCount - 1) {
+		pager.push(
+			button("Наступні ›", {
+				action: CallbackAction.AttemptDetail,
+				attemptId: detail.attemptId,
+				page: current + 1,
+			}),
+		);
+	}
 
 	return {
 		text: [
 			`${detail.quizSetTitle} — ${detail.score.correct}/${detail.score.total} (${detail.score.percentage}%)`,
+			pageCount > 1 ? `стор. ${current + 1}/${pageCount}` : undefined,
 			"",
 			lines.join("\n\n"),
-			hidden > 0 ? `\n…і ще ${hidden} питань` : undefined,
 		]
 			.filter((line) => line !== undefined)
 			.join("\n"),
 		keyboard: [
+			...(pager.length > 0 ? [pager] : []),
 			[
 				button("« До статистики", {
 					action: CallbackAction.StatisticsFor,

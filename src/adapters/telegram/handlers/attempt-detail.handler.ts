@@ -15,6 +15,6 @@ export function attemptDetailHandler(useCases: TelegramUseCases) {
 			attemptId: toQuizAttemptId(callback.attemptId),
 		});
 
-		await render(ctx, attemptDetailScreen(detail));
+		await render(ctx, attemptDetailScreen(detail, callback.page ?? 0));
 	};
 }
