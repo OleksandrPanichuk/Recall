@@ -2017,6 +2017,20 @@ describe("exam mode (§3.12)", () => {
 		expect(harness.lastText()).toContain("Two");
 	});
 
+	test("the review explains what you got wrong", async () => {
+		await seedTwo();
+		await enableExam();
+		await openSet("Bun");
+		await harness.tap(buttonFor("Wrong for One"));
+		await harness.tap(buttonFor("Right for Two"));
+		await harness.tap(buttonFor("Завершити"));
+
+		await harness.tap(buttonFor("Розбір"));
+
+		expect(harness.lastText()).toContain("Because One");
+		expect(harness.lastText()).not.toContain("Because Two");
+	});
+
 	test("feedback still works when the mode is off", async () => {
 		await seedTwo();
 		await openSet("Bun");
