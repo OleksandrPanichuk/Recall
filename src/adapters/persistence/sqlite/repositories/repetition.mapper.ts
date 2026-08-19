@@ -87,5 +87,6 @@ export function toQuizSettings(
 		},
 		shuffleOptions: row.shuffleOptions === 1,
 		shuffleQuestions: row.shuffleQuestions === 1,
+		examMode: row.examMode === 1,
 	});
 }

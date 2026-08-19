@@ -85,6 +85,13 @@
 			"when": 1786988155948,
 			"tag": "0011_quiz_settings_shuffle_questions",
 			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "6",
+			"when": 1787164921407,
+			"tag": "0012_quiz_settings_exam_mode",
+			"breakpoints": true
 		}
 	]
 }

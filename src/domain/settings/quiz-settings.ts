@@ -8,6 +8,7 @@ export interface QuizSettings {
 	readonly repetition: RepetitionSettings;
 	readonly shuffleOptions: boolean;
 	readonly shuffleQuestions: boolean;
+	readonly examMode: boolean;
 }
 
 export const defaultQuizSettings = (): QuizSettings =>
@@ -15,6 +16,7 @@ export const defaultQuizSettings = (): QuizSettings =>
 		repetition: defaultRepetitionSettings(),
 		shuffleOptions: false,
 		shuffleQuestions: false,
+		examMode: false,
 	});
 
 export function createQuizSettings(draft: QuizSettings): QuizSettings {
@@ -22,6 +24,7 @@ export function createQuizSettings(draft: QuizSettings): QuizSettings {
 		repetition: createRepetitionSettings(draft.repetition),
 		shuffleOptions: draft.shuffleOptions === true,
 		shuffleQuestions: draft.shuffleQuestions === true,
+		examMode: draft.examMode === true,
 	});
 }
 
@@ -39,3 +42,8 @@ export const withShuffleQuestions = (
 	settings: QuizSettings,
 	shuffleQuestions: boolean,
 ): QuizSettings => createQuizSettings({ ...settings, shuffleQuestions });
+
+export const withExamMode = (
+	settings: QuizSettings,
+	examMode: boolean,
+): QuizSettings => createQuizSettings({ ...settings, examMode });

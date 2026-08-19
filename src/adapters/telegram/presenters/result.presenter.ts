@@ -63,6 +63,12 @@ export function finalResult(result: FinishQuizAttemptResult): Screen {
 		text: lines.filter((line) => line !== undefined).join("\n"),
 		keyboard: [
 			[
+				button("🔍 Розбір", {
+					action: CallbackAction.AttemptDetail,
+					attemptId: result.attemptId,
+				}),
+			],
+			[
 				button("📊 Статистика", {
 					action: CallbackAction.StatisticsFor,
 					quizSetId: result.quizSetId,

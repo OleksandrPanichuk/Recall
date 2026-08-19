@@ -119,6 +119,7 @@ function changeFor(
 	repetition?: RepetitionSettings;
 	shuffleOptions?: boolean;
 	shuffleQuestions?: boolean;
+	examMode?: boolean;
 	inheritGlobal?: boolean;
 } {
 	if (callback.change === SettingsChange.ShuffleOptions) {
@@ -127,6 +128,10 @@ function changeFor(
 
 	if (callback.change === SettingsChange.ShuffleQuestions) {
 		return { shuffleQuestions: !current.shuffleQuestions };
+	}
+
+	if (callback.change === SettingsChange.ExamMode) {
+		return { examMode: !current.examMode };
 	}
 
 	if (callback.change === SettingsChange.InheritGlobal) {
