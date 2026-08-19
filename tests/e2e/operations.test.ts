@@ -1,6 +1,5 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { createMutableClock } from "@tests/fixtures/application.fixture";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
@@ -17,7 +16,11 @@ import {
 	backupDatabase,
 } from "@/infrastructure/lifecycle/backup";
 import { readStatus } from "@/infrastructure/lifecycle/status";
-import { makeTempDirectory, removeTempDirectory } from "../fixtures/temp-dir";
+import {
+	makeTempDirectory,
+	removeFile,
+	removeTempDirectory,
+} from "../fixtures/temp-dir";
 
 const USER = 42;
 
@@ -95,9 +98,9 @@ describe("backup and restore (§6.3)", () => {
 		backupDatabase(databasePath, backupPath);
 		application.close();
 
-		rmSync(databasePath, { force: true });
-		rmSync(`${databasePath}-wal`, { force: true });
-		rmSync(`${databasePath}-shm`, { force: true });
+		removeFile(databasePath);
+		removeFile(`${databasePath}-wal`);
+		removeFile(`${databasePath}-shm`);
 
 		assertRestorable(backupPath);
 		await Bun.write(databasePath, Bun.file(backupPath));
