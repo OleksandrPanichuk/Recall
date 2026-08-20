@@ -139,3 +139,68 @@ describe("questionScreen option order", () => {
 		expect(orders.size).toBeGreaterThan(1);
 	});
 });
+
+describe("options that do not fit a button", () => {
+	const withOption = (
+		text: string,
+		type: QuestionType = QuestionType.SingleChoice,
+	) =>
+		createQuestion({
+			id: toQuestionId("q-long"),
+			type,
+			prompt: "Pick one",
+			difficulty: Difficulty.Medium,
+			position: 0,
+			options: [
+				{
+					id: toQuestionOptionId("q-long-0"),
+					text,
+					isCorrect: true,
+					position: 0,
+				},
+				{
+					id: toQuestionOptionId("q-long-1"),
+					text: "No",
+					isCorrect: false,
+					position: 1,
+				},
+			],
+		});
+
+	const labelsOf = (
+		text: string,
+		type: QuestionType = QuestionType.SingleChoice,
+	) => {
+		const question = withOption(text, type);
+
+		return questionScreen(aView(false), question)
+			.keyboard.flat()
+			.map((entry) => entry.text);
+	};
+
+	test("moves a 24 character option into the message and numbers the buttons", () => {
+		const text = "Every query scans a row";
+
+		expect(text.length).toBeLessThan(32);
+		expect(labelsOf(text)).toContainEqual("1");
+		expect(labelsOf(text)).not.toContainEqual(text);
+	});
+
+	test("lists the full text of a numbered option in the message", () => {
+		const text = "Every query scans a row";
+		const screen = questionScreen(aView(false), withOption(text));
+
+		expect(screen.text).toContain(`1. ${text}`);
+	});
+
+	test("keeps a short option on its own button", () => {
+		expect(labelsOf("Yes")).toContainEqual("Yes");
+	});
+
+	test("counts the checkbox a multiple choice adds in front", () => {
+		const text = "Nineteen characters";
+
+		expect([...text].length).toBe(19);
+		expect(labelsOf(text, QuestionType.MultipleChoice)).toContainEqual("⬜️ 1");
+	});
+});

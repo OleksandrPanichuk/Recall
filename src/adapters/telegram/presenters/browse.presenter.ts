@@ -1,9 +1,9 @@
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
 import type { CallbackAction } from "../callbacks/callback-data.constants";
 import { CallbackAction as Action } from "../callbacks/callback-data.constants";
-import { MAX_BUTTON_TEXT } from "./question.presenter";
 import type { InlineButton, Screen } from "./screen.types";
 import { button } from "./utils/button";
+import { truncated } from "./utils/truncate";
 
 export const BROWSE_PAGE_SIZE = 8;
 
@@ -18,14 +18,6 @@ interface Entry {
 	readonly label: string;
 	readonly button: InlineButton;
 }
-
-const truncate = (text: string): string => {
-	const characters = [...text];
-
-	return characters.length <= MAX_BUTTON_TEXT
-		? text
-		: `${characters.slice(0, MAX_BUTTON_TEXT - 1).join("")}…`;
-};
 
 const breadcrumbOf = (view: BrowseView): string =>
 	[...view.breadcrumb.map((crumb) => crumb.name), view.name]
@@ -65,7 +57,7 @@ export function browseScreen(
 
 			return {
 				label,
-				button: button(truncate(label), {
+				button: button(truncated(label), {
 					action: Action.Browse,
 					leaf,
 					folderId: child.id,
@@ -77,7 +69,7 @@ export function browseScreen(
 
 			return {
 				label,
-				button: button(truncate(label), { action: leaf, quizSetId: set.id }),
+				button: button(truncated(label), { action: leaf, quizSetId: set.id }),
 			};
 		}),
 	];

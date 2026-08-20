@@ -13,8 +13,6 @@ import { typedQuestionScreen } from "./typed-question.presenter";
 import { button } from "./utils/button";
 import { heading, hintLine } from "./utils/question-heading";
 
-export const MAX_BUTTON_TEXT = 32;
-
 const BUTTONS_PER_ROW = 5;
 
 const toggled = (
@@ -43,6 +41,8 @@ const chunk = (
 	return rows;
 };
 
+export const MAX_OPTION_LABEL = 20;
+
 export function questionScreen(
 	view: CurrentQuestionView,
 	question: Question,
@@ -61,8 +61,9 @@ export function questionScreen(
 	}
 
 	const isMultiple = question.type === QuestionType.MultipleChoice;
+	const markWidth = isMultiple ? [..."⬜️ "].length : 0;
 	const numbered = question.options.some(
-		(option) => option.text.length > MAX_BUTTON_TEXT,
+		(option) => [...option.text].length + markWidth > MAX_OPTION_LABEL,
 	);
 	const mark = (position: number): string =>
 		isMultiple ? (selected.includes(position) ? "☑️ " : "⬜️ ") : "";
