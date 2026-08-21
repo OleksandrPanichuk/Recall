@@ -67,9 +67,18 @@ await migrateOrExit();
 const children: SupervisedProcess[] = [start("bot", "telegram.ts")];
 
 if ((Bun.env.MCP_HTTP_TOKEN ?? "").trim().length === 0) {
-	console.log("[up] MCP_HTTP_TOKEN is not set, so only the bot is running");
+	console.log("[up] MCP_HTTP_TOKEN is not set, so the MCP server stays down");
 } else {
 	children.push(start("mcp", "mcp-http.ts"));
+}
+
+if (
+	(Bun.env.ADMIN_PASSPHRASE ?? Bun.env.MCP_OAUTH_PASSPHRASE ?? "").trim()
+		.length === 0
+) {
+	console.log("[up] no admin passphrase is set, so the admin stays down");
+} else {
+	children.push(start("admin", "admin.ts"));
 }
 
 const stop = (): void => {
