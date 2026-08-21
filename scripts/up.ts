@@ -41,12 +41,12 @@ function pump(
 	stream: ReadableStream<Uint8Array> | null,
 	render: (line: string) => string,
 	write: (line: string) => void,
-): void {
+): Promise<void> {
 	if (stream === null) {
-		return;
+		return Promise.resolve();
 	}
 
-	void (async () => {
+	return (async () => {
 		const decoder = new TextDecoder();
 		let rest = "";
 
@@ -67,6 +67,8 @@ function pump(
 	})();
 }
 
+const drains: Promise<void>[] = [];
+
 function start(
 	service: PlannedService,
 	width: number,
@@ -81,8 +83,8 @@ function start(
 			? `${service.name.padEnd(width)}  ${line}`
 			: renderLine(service.name, width, line, { colour, index });
 
-	pump(child.stdout, render, say);
-	pump(child.stderr, render, complain);
+	drains.push(pump(child.stdout, render, say));
+	drains.push(pump(child.stderr, render, complain));
 
 	return {
 		name: service.name,
@@ -103,10 +105,13 @@ async function migrateOrExit(): Promise<void> {
 		}
 	};
 
-	pump(child.stdout, (line) => line, collect);
-	pump(child.stderr, (line) => line, collect);
-
+	const drained = Promise.all([
+		pump(child.stdout, (line) => line, collect),
+		pump(child.stderr, (line) => line, collect),
+	]);
 	const code = await child.exited;
+
+	await drained;
 
 	if (code !== 0) {
 		for (const line of output) {
@@ -264,6 +269,8 @@ process.on("SIGTERM", stop);
 void announceReady(services, startedAt);
 
 const first = await superviseProcesses(children);
+
+await Promise.all(drains);
 
 if (stopping) {
 	say("stopped");
