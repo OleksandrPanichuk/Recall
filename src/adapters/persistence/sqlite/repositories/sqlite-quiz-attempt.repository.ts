@@ -197,6 +197,16 @@ export function createSqliteQuizAttemptRepository(
 			return rows.map(toTopicAccuracy);
 		},
 
+		answerCount(questionId: QuestionId): number {
+			const row = database
+				.select({ answers: count() })
+				.from(questionResponses)
+				.where(eq(questionResponses.questionId, questionId))
+				.get();
+
+			return row?.answers ?? 0;
+		},
+
 		incorrectQuestionIds(
 			telegramUserId: number,
 			quizSetId: QuizSetId,

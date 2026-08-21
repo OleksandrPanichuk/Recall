@@ -6,6 +6,7 @@ import { registerAddVocabularyTool } from "./tools/add-vocabulary.tool";
 import { registerArchiveSetTool } from "./tools/archive-set.tool";
 import { registerCreateSetTool } from "./tools/create-set.tool";
 import { registerDeleteFolderTool } from "./tools/delete-folder.tool";
+import { registerEditQuestionTools } from "./tools/edit-question.tool";
 import { registerEnsureFolderPathTool } from "./tools/ensure-folder-path.tool";
 import { registerGetSetTool } from "./tools/get-set.tool";
 import { registerListFoldersTool } from "./tools/list-folders.tool";
@@ -50,6 +51,7 @@ export function createMcpServer(
 	registerRenameFolderTool(server, useCases, runTool);
 	registerQuizSettingsTools(server, useCases, runTool);
 	registerDeleteFolderTool(server, useCases, runTool);
+	registerEditQuestionTools(server, useCases, runTool);
 
 	return server;
 }

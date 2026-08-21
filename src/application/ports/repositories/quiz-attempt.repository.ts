@@ -35,4 +35,5 @@ export interface QuizAttemptRepository {
 		telegramUserId: number,
 		quizSetId: QuizSetId,
 	): readonly QuestionId[];
+	answerCount(questionId: QuestionId): number;
 }

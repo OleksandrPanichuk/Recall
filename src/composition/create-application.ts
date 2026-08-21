@@ -36,11 +36,13 @@ import { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
 import { AddVocabulary } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
+import { DeleteQuestion } from "@/application/use-cases/quiz-sets/delete-question";
 import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { ListVocabulary } from "@/application/use-cases/quiz-sets/list-vocabulary";
 import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
+import { UpdateQuestion } from "@/application/use-cases/quiz-sets/update-question";
 import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { UpdateVocabulary } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
@@ -91,6 +93,8 @@ export interface Application {
 	readonly browseFolder: BrowseFolder;
 	readonly startQuizAttempt: StartQuizAttempt;
 	readonly startPracticeSession: StartPracticeSession;
+	readonly updateQuestion: UpdateQuestion;
+	readonly deleteQuestion: DeleteQuestion;
 	readonly pauseQuizAttempt: PauseQuizAttempt;
 	readonly resumeQuizAttempt: ResumeQuizAttempt;
 	readonly getCurrentQuestion: GetCurrentQuestion;
@@ -167,6 +171,8 @@ export function createApplication(options: ApplicationOptions): Application {
 		browseFolder: new BrowseFolder(dependencies),
 		startQuizAttempt: new StartQuizAttempt(dependencies),
 		startPracticeSession: new StartPracticeSession(dependencies),
+		updateQuestion: new UpdateQuestion(dependencies),
+		deleteQuestion: new DeleteQuestion(dependencies),
 		pauseQuizAttempt: new PauseQuizAttempt(dependencies),
 		resumeQuizAttempt: new ResumeQuizAttempt(dependencies),
 		getCurrentQuestion: new GetCurrentQuestion(dependencies),

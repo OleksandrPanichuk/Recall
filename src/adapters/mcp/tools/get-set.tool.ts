@@ -28,6 +28,11 @@ export function registerGetSetTool(
 					quizSetId: quizSet.id,
 					status: quizSet.status,
 					questionCount: quizSet.questions.length,
+					questions: quizSet.questions.map((question) => ({
+						id: String(question.id),
+						type: question.type,
+						prompt: question.prompt,
+					})),
 				});
 			}),
 	);

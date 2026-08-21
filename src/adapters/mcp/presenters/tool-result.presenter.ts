@@ -27,7 +27,7 @@ export function describeQuizSet(quizSet: QuizSet): string {
 	const questions = quizSet.questions
 		.map(
 			(question, index) =>
-				`${index + 1}. [${question.type}/${question.difficulty}${question.topic === undefined ? "" : `/${question.topic}`}] ${question.prompt}\n   ${question.options
+				`${index + 1}. ${question.id} [${question.type}/${question.difficulty}${question.topic === undefined ? "" : `/${question.topic}`}] ${question.prompt}\n   ${question.options
 					.map((option) => `${option.isCorrect ? "*" : "-"} ${option.text}`)
 					.join("\n   ")}`,
 		)
