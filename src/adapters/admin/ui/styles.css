@@ -1,0 +1,142 @@
+:root {
+	color-scheme: dark;
+	--bg: #111;
+	--card: #1c1c1c;
+	--line: #333;
+	--text: #eee;
+	--muted: #999;
+	--accent: #4f8cff;
+	--bad: #ff8a80;
+	--ok: #8ce99a;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font:
+		15px / 1.55 system-ui,
+		sans-serif;
+}
+a {
+	color: var(--accent);
+}
+button {
+	font: inherit;
+	border: 0;
+	border-radius: 0.35rem;
+	padding: 0.45rem 0.9rem;
+	background: var(--accent);
+	color: #fff;
+	cursor: pointer;
+}
+button.ghost {
+	background: transparent;
+	border: 1px solid var(--line);
+	color: var(--text);
+}
+button.danger {
+	background: #7a2f2f;
+}
+button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+input,
+select,
+textarea {
+	font: inherit;
+	width: 100%;
+	padding: 0.45rem;
+	border-radius: 0.35rem;
+	border: 1px solid var(--line);
+	background: #0d0d0d;
+	color: var(--text);
+}
+textarea {
+	min-height: 4rem;
+}
+label {
+	display: block;
+	font-size: 0.8rem;
+	color: var(--muted);
+	margin: 0.6rem 0 0.2rem;
+}
+.shell {
+	display: grid;
+	grid-template-columns: 15rem 1fr;
+	min-height: 100vh;
+}
+.side {
+	border-right: 1px solid var(--line);
+	padding: 1rem;
+}
+.side h1 {
+	font-size: 1rem;
+	margin: 0 0 1rem;
+}
+.side nav a {
+	display: block;
+	padding: 0.35rem 0;
+	text-decoration: none;
+}
+.side nav a.on {
+	font-weight: 600;
+}
+.main {
+	padding: 1.25rem 1.5rem;
+	max-width: 60rem;
+}
+.card {
+	background: var(--card);
+	border-radius: 0.55rem;
+	padding: 0.9rem 1rem;
+	margin-bottom: 0.7rem;
+}
+.row {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: space-between;
+}
+.muted {
+	color: var(--muted);
+	font-size: 0.85rem;
+}
+.bad {
+	color: var(--bad);
+}
+.ok {
+	color: var(--ok);
+}
+.pairs {
+	display: grid;
+	gap: 0.4rem;
+}
+.pair {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto;
+	gap: 0.4rem;
+	align-items: center;
+}
+.opt {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 0.5rem;
+	align-items: center;
+}
+.login {
+	max-width: 22rem;
+	margin: 12vh auto;
+}
+h2 {
+	font-size: 1.05rem;
+	margin: 0 0 0.8rem;
+}
+h3 {
+	font-size: 0.95rem;
+	margin: 1.2rem 0 0.5rem;
+	color: var(--muted);
+}

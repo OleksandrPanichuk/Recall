@@ -5,12 +5,14 @@
 		"@biomejs/biome": "2.4.11",
 		"@types/bun": "latest",
 		"@types/express": "^5.0.6",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.4",
 		"drizzle-kit": "^0.31.10",
 		"typescript": "^7.0.2"
 	},
 	"private": true,
 	"scripts": {
-		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts ./src/entrypoints/mcp-http.ts --outdir ./dist --target bun",
+		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts ./src/entrypoints/mcp-http.ts ./src/entrypoints/admin.ts --outdir ./dist --target bun",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"db:generate": "drizzle-kit generate",
@@ -30,6 +32,7 @@
 		"status": "bun run ./src/entrypoints/telegram.ts --status",
 		"seed": "bun run ./scripts/seed.ts",
 		"mcp:http": "bun run ./src/entrypoints/mcp-http.ts",
+		"admin": "bun run ./src/entrypoints/admin.ts",
 		"up": "bun run ./scripts/up.ts"
 	},
 	"type": "module",
@@ -37,6 +40,8 @@
 		"@modelcontextprotocol/sdk": "^1.30.0",
 		"drizzle-orm": "^0.45.2",
 		"express": "^5",
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8",
 		"telegraf": "^4.16.3",
 		"zod": "^4.4.3"
 	}

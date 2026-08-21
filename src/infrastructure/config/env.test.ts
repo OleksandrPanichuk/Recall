@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	EnvironmentError,
 	type EnvironmentSource,
+	loadAdminEnvironment,
 	loadEnvironment,
 	loadHttpEnvironment,
 } from "./env";
@@ -245,5 +246,64 @@ describe("loadHttpEnvironment", () => {
 		expect(() =>
 			loadHttpEnvironment({ MCP_HTTP_TOKEN: TOKEN, MCP_HTTP_PORT: "http" }),
 		).toThrow(EnvironmentError);
+	});
+});
+
+describe("loadAdminEnvironment", () => {
+	const PASSPHRASE = "correct horse battery staple";
+
+	test("falls back to loopback and 8766", () => {
+		const admin = loadAdminEnvironment({ ADMIN_PASSPHRASE: PASSPHRASE });
+
+		expect(admin.host).toBe("127.0.0.1");
+		expect(admin.port).toBe(8766);
+		expect(admin.passphrase).toBe(PASSPHRASE);
+	});
+
+	test("takes an explicit host and port", () => {
+		const admin = loadAdminEnvironment({
+			ADMIN_PASSPHRASE: PASSPHRASE,
+			ADMIN_HOST: "0.0.0.0",
+			ADMIN_PORT: "9100",
+		});
+
+		expect(admin.host).toBe("0.0.0.0");
+		expect(admin.port).toBe(9100);
+	});
+
+	test("borrows the OAuth passphrase when no admin one is set", () => {
+		const admin = loadAdminEnvironment({ MCP_OAUTH_PASSPHRASE: PASSPHRASE });
+
+		expect(admin.passphrase).toBe(PASSPHRASE);
+	});
+
+	test("prefers its own passphrase over the OAuth one", () => {
+		const admin = loadAdminEnvironment({
+			ADMIN_PASSPHRASE: PASSPHRASE,
+			MCP_OAUTH_PASSPHRASE: "another passphrase entirely",
+		});
+
+		expect(admin.passphrase).toBe(PASSPHRASE);
+	});
+
+	test("refuses a short passphrase", () => {
+		expect(() => loadAdminEnvironment({ ADMIN_PASSPHRASE: "short" })).toThrow(
+			EnvironmentError,
+		);
+	});
+
+	test("refuses to run without any passphrase", () => {
+		expect(() => loadAdminEnvironment({})).toThrow(EnvironmentError);
+	});
+
+	test("keeps the passphrase out of the error message", () => {
+		const secret = "s".repeat(8);
+
+		try {
+			loadAdminEnvironment({ ADMIN_PASSPHRASE: secret });
+			expect.unreachable();
+		} catch (error) {
+			expect((error as Error).message).not.toContain(secret);
+		}
 	});
 });

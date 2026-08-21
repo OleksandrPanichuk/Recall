@@ -168,3 +168,57 @@ export function loadEnvironment(
 		appTimezone: result.data.APP_TIMEZONE,
 	};
 }
+
+export interface AdminEnvironment {
+	readonly host: string;
+	readonly port: number;
+	readonly passphrase: string;
+}
+
+const DEFAULT_ADMIN_HOST = "127.0.0.1";
+const DEFAULT_ADMIN_PORT = 8766;
+
+const adminSchema = z.object({
+	ADMIN_PASSPHRASE: z.string().trim().min(MIN_PASSPHRASE_LENGTH),
+	ADMIN_HOST: requiredText.optional(),
+	ADMIN_PORT: requiredText
+		.regex(/^\d+$/)
+		.transform(Number)
+		.refine((port) => port > 0 && port < 65536)
+		.optional(),
+});
+
+const adminIssueMessages = {
+	ADMIN_PASSPHRASE: `ADMIN_PASSPHRASE (or MCP_OAUTH_PASSPHRASE) must be at least ${MIN_PASSPHRASE_LENGTH} characters`,
+	ADMIN_HOST: "ADMIN_HOST must not be empty when it is set",
+	ADMIN_PORT: "ADMIN_PORT must be a port number between 1 and 65535",
+} as const satisfies Record<keyof z.input<typeof adminSchema>, string>;
+
+export function loadAdminEnvironment(
+	source: EnvironmentSource = Bun.env,
+): AdminEnvironment {
+	const result = adminSchema.safeParse({
+		ADMIN_PASSPHRASE:
+			source.ADMIN_PASSPHRASE ?? source.MCP_OAUTH_PASSPHRASE ?? "",
+		ADMIN_HOST: source.ADMIN_HOST,
+		ADMIN_PORT: source.ADMIN_PORT,
+	});
+
+	if (!result.success) {
+		const invalid = new Set(
+			result.error.issues.map((issue) => String(issue.path[0])),
+		);
+
+		throw new EnvironmentError(
+			(Object.keys(adminIssueMessages) as (keyof typeof adminIssueMessages)[])
+				.filter((name) => invalid.has(name))
+				.map((name) => adminIssueMessages[name]),
+		);
+	}
+
+	return {
+		host: result.data.ADMIN_HOST ?? DEFAULT_ADMIN_HOST,
+		port: result.data.ADMIN_PORT ?? DEFAULT_ADMIN_PORT,
+		passphrase: result.data.ADMIN_PASSPHRASE,
+	};
+}
