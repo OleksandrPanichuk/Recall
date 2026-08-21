@@ -7,11 +7,13 @@ import type { AddQuestions } from "@/application/use-cases/quiz-sets/add-questio
 import type { AddVocabulary } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import type { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
 import type { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
+import type { DeleteQuestion } from "@/application/use-cases/quiz-sets/delete-question";
 import type { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import type { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import type { ListVocabulary } from "@/application/use-cases/quiz-sets/list-vocabulary";
 import type { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
 import type { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
+import type { UpdateQuestion } from "@/application/use-cases/quiz-sets/update-question";
 import type { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import type { UpdateVocabulary } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import type { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
@@ -37,6 +39,8 @@ export interface McpUseCases {
 	readonly renameFolder: RenameFolder;
 	readonly deleteFolder: DeleteFolder;
 	readonly listFolderTree: ListFolderTree;
+	readonly updateQuestion: UpdateQuestion;
+	readonly deleteQuestion: DeleteQuestion;
 }
 
 export interface McpServerOptions {

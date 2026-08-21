@@ -97,6 +97,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_archive_set",
 			"quiz_create_set",
 			"quiz_delete_folder",
+			"quiz_delete_question",
 			"quiz_ensure_folder_path",
 			"quiz_get_set",
 			"quiz_get_settings",
@@ -107,6 +108,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_publish_set",
 			"quiz_rename_folder",
 			"quiz_set_settings",
+			"quiz_update_question",
 			"quiz_update_set",
 			"quiz_update_vocabulary",
 		]);
@@ -735,6 +737,113 @@ describe("vocabulary authoring", () => {
 
 		expect(
 			(await addPairs(quizSetId, [{ term: "", translation: "кіт" }])).isError,
+		).toBe(true);
+	});
+});
+
+describe("editing one question (§4.5)", () => {
+	const seededSet = async (): Promise<{ setId: string; ids: string[] }> => {
+		const setId = await newDraft("Editable");
+
+		await call("quiz_add_questions", {
+			quizSetId: setId,
+			questions: [
+				aQuestion("Keep me"),
+				{
+					type: "typed_answer",
+					prompt: "zip",
+					difficulty: "easy",
+					acceptedAnswers: ["блискавка"],
+				},
+			],
+		});
+
+		const read = await call("quiz_get_set", { quizSetId: setId });
+		const ids = (read.structured.questions as { id: string }[]).map(
+			(question) => question.id,
+		);
+
+		return { setId, ids };
+	};
+
+	test("adds a synonym to a typed answer", async () => {
+		const { setId, ids } = await seededSet();
+
+		const result = await call("quiz_update_question", {
+			quizSetId: setId,
+			questionId: ids[1],
+			acceptedAnswers: ["блискавка", "змійка", "повзунок"],
+		});
+
+		expect(result.isError).toBe(false);
+		expect(result.structured.optionCount).toBe(3);
+	});
+
+	test("keeps the question id, so history would survive", async () => {
+		const { setId, ids } = await seededSet();
+
+		const result = await call("quiz_update_question", {
+			quizSetId: setId,
+			questionId: ids[1],
+			prompt: "zip (clothing)",
+		});
+
+		expect(result.structured.questionId).toBe(ids[1]);
+	});
+
+	test("refuses answers the type does not allow", async () => {
+		const { setId, ids } = await seededSet();
+
+		const result = await call("quiz_update_question", {
+			quizSetId: setId,
+			questionId: ids[0],
+			acceptedAnswers: ["one", "two"],
+		});
+
+		expect(result.isError).toBe(true);
+	});
+
+	test("refuses a question that is not there", async () => {
+		const { setId } = await seededSet();
+
+		expect(
+			(
+				await call("quiz_update_question", {
+					quizSetId: setId,
+					questionId: "ghost",
+					prompt: "Nope",
+				})
+			).isError,
+		).toBe(true);
+	});
+
+	test("removes a question nobody answered", async () => {
+		const { setId, ids } = await seededSet();
+
+		const result = await call("quiz_delete_question", {
+			quizSetId: setId,
+			questionId: ids[1],
+		});
+
+		expect(result.isError).toBe(false);
+		expect(result.structured.remaining).toBe(1);
+	});
+
+	test("refuses to empty a set", async () => {
+		const { setId, ids } = await seededSet();
+
+		await call("quiz_delete_question", {
+			quizSetId: setId,
+			questionId: ids[1],
+		});
+
+		expect(
+			(
+				await call("quiz_delete_question", {
+					quizSetId: setId,
+					questionId: ids[0],
+				})
+			).isError,
 		).toBe(true);
 	});
 });
