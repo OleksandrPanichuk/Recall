@@ -6,7 +6,7 @@ import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
 import { matchesToken } from "../mcp/http/bearer";
-import { issueSession, readSession } from "./session";
+import { clearSession, issueSession, readSession } from "./session";
 
 export interface AdminApiDependencies {
 	readonly application: Application;
@@ -136,7 +136,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 			DELETE: () =>
 				new Response(null, {
 					status: 204,
-					headers: { "set-cookie": `admin=; Path=/; Max-Age=0` },
+					headers: { "set-cookie": clearSession() },
 				}),
 		},
 

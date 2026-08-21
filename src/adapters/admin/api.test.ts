@@ -411,3 +411,70 @@ describe("insights", () => {
 		expect(response).toHaveProperty("leeches");
 	});
 });
+
+describe("what a published set still allows", () => {
+	const publish = async (): Promise<string> => {
+		const quizSetId = await createSet();
+
+		await addQuestion(quizSetId);
+		await post(`/api/sets/${quizSetId}/publish`);
+
+		return quizSetId;
+	};
+
+	test("refuses to edit its metadata", async () => {
+		const quizSetId = await publish();
+		const response = await call(`/api/sets/${quizSetId}`, {
+			method: "PATCH",
+			body: JSON.stringify({ title: "Another title" }),
+		});
+
+		expect(response.status).toBe(400);
+	});
+
+	test("refuses new questions", async () => {
+		const quizSetId = await publish();
+		const response = await addQuestion(quizSetId, "She ___ already left.");
+
+		expect(response.status).toBe(400);
+	});
+
+	test("refuses new vocabulary", async () => {
+		const quizSetId = await publish();
+		const response = await post(`/api/sets/${quizSetId}/vocabulary`, {
+			pairs: [{ term: ["das Brot"], translation: ["хліб"] }],
+			directions: ["term_to_translation"],
+		});
+
+		expect(response.status).toBe(400);
+	});
+
+	test("still allows editing a question in place", async () => {
+		const quizSetId = await publish();
+		const before = (await (await call(`/api/sets/${quizSetId}`)).json()) as {
+			questions: readonly { id: string }[];
+		};
+		const response = await call(
+			`/api/sets/${quizSetId}/questions/${before.questions[0]?.id}`,
+			{ method: "PATCH", body: JSON.stringify({ hint: "perfect" }) },
+		);
+		const after = (await response.json()) as {
+			questions: readonly { hint?: string }[];
+		};
+
+		expect(response.status).toBe(200);
+		expect(after.questions[0]?.hint).toBe("perfect");
+	});
+
+	test("still allows moving it to another folder", async () => {
+		const quizSetId = await publish();
+		const created = (await (
+			await post("/api/folders", { name: "Grammar" })
+		).json()) as { folderId: string };
+		const response = await post(`/api/sets/${quizSetId}/move`, {
+			folderId: created.folderId,
+		});
+
+		expect(response.status).toBe(200);
+	});
+});

@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import type { FolderView, QuizSettings, SetSummary } from "../client";
 import { FoldersPage } from "./folders-view";
 import { emptyDraft, QuestionEditor } from "./question-editor";
-import { SetPage } from "./set-view";
+import { permissionsFor, SetPage } from "./set-view";
 import { SetsPage } from "./sets-view";
 import { SettingsPage } from "./settings-view";
 
@@ -103,5 +103,40 @@ describe("the admin pages", () => {
 
 		expect(html).toContain("Варіанти");
 		expect(html).toContain("single_choice");
+	});
+});
+
+describe("what each set status allows", () => {
+	test("a draft allows everything", () => {
+		expect(permissionsFor("draft")).toEqual({
+			editMetadata: true,
+			addQuestions: true,
+			addVocabulary: true,
+			editQuestions: true,
+			publish: true,
+			archive: true,
+		});
+	});
+
+	test("a published set freezes its metadata, questions and vocabulary lists", () => {
+		expect(permissionsFor("published")).toEqual({
+			editMetadata: false,
+			addQuestions: false,
+			addVocabulary: false,
+			editQuestions: true,
+			publish: false,
+			archive: true,
+		});
+	});
+
+	test("an archived set is read-only", () => {
+		expect(permissionsFor("archived")).toEqual({
+			editMetadata: false,
+			addQuestions: false,
+			addVocabulary: false,
+			editQuestions: false,
+			publish: false,
+			archive: false,
+		});
 	});
 });

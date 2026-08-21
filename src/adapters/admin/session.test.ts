@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { issueSession, readSession } from "./session";
+import { clearSession, issueSession, readSession } from "./session";
 
 const SECRET = "correct horse battery staple";
 const NOW = new Date("2026-08-20T10:00:00.000Z");
@@ -58,5 +58,19 @@ describe("readSession", () => {
 		expect(readSession(`theme=dark; admin=${value}; x=1`, SECRET, NOW)).toBe(
 			true,
 		);
+	});
+});
+
+describe("clearing the session", () => {
+	test("expires the same cookie the sign-in issued", () => {
+		const cleared = clearSession();
+
+		expect(cleared).toStartWith("admin=;");
+		expect(cleared).toContain("Path=/");
+		expect(cleared).toContain("Max-Age=0");
+	});
+
+	test("is not accepted as a session", () => {
+		expect(readSession("admin=", "secret", new Date())).toBe(false);
 	});
 });

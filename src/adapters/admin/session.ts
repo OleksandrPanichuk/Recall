@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export const ADMIN_PATH = "/admin";
 export const SESSION_COOKIE = "admin";
+const COOKIE_PATH = "/";
 
 const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1000;
 
@@ -33,8 +33,18 @@ export function issueSession(secret: string, now: Date): string {
 
 	return [
 		`${SESSION_COOKIE}=${value}`,
-		"Path=/",
+		`Path=${COOKIE_PATH}`,
 		`Max-Age=${Math.floor(SESSION_LIFETIME_MS / 1000)}`,
+		"HttpOnly",
+		"SameSite=Strict",
+	].join("; ");
+}
+
+export function clearSession(): string {
+	return [
+		`${SESSION_COOKIE}=`,
+		`Path=${COOKIE_PATH}`,
+		"Max-Age=0",
 		"HttpOnly",
 		"SameSite=Strict",
 	].join("; ");

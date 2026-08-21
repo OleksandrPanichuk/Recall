@@ -19,6 +19,34 @@ import {
 const percent = (correct: number, total: number): string =>
 	total === 0 ? "—" : `${Math.round((correct / total) * 100)}%`;
 
+const HINTS: Readonly<Record<string, string>> = {
+	published:
+		"Набір опублікований: метадані, нові питання та нова лексика заморожені. Питання можна виправляти й видаляти.",
+	archived: "Набір в архіві: він тільки для читання.",
+};
+
+export interface SetPermissions {
+	readonly editMetadata: boolean;
+	readonly addQuestions: boolean;
+	readonly editQuestions: boolean;
+	readonly addVocabulary: boolean;
+	readonly publish: boolean;
+	readonly archive: boolean;
+}
+
+export function permissionsFor(status: string): SetPermissions {
+	const draft = status === "draft";
+
+	return {
+		editMetadata: draft,
+		addQuestions: draft,
+		addVocabulary: draft,
+		editQuestions: status !== "archived",
+		publish: draft,
+		archive: status !== "archived",
+	};
+}
+
 export function SetPage({
 	quizSetId,
 	folders,
@@ -90,6 +118,8 @@ export function SetPage({
 		);
 	}
 
+	const allowed = permissionsFor(set.status);
+
 	return (
 		<div>
 			<div className="row">
@@ -103,30 +133,36 @@ export function SetPage({
 
 			<Failure error={error} />
 
+			{HINTS[set.status] === undefined ? null : (
+				<p className="muted">{HINTS[set.status]}</p>
+			)}
+
 			<Card>
-				<Field
-					label="Назва"
-					value={set.title}
-					onChange={(title) => setSet({ ...set, title })}
-				/>
-				<Field
-					label="Опис"
-					value={set.description ?? ""}
-					multiline
-					onChange={(description) => setSet({ ...set, description })}
-				/>
-				<div className="row">
+				<fieldset disabled={!allowed.editMetadata}>
 					<Field
-						label="Джерело"
-						value={set.source ?? ""}
-						onChange={(source) => setSet({ ...set, source })}
+						label="Назва"
+						value={set.title}
+						onChange={(title) => setSet({ ...set, title })}
 					/>
 					<Field
-						label="Розділи"
-						value={set.sourceChapters ?? ""}
-						onChange={(sourceChapters) => setSet({ ...set, sourceChapters })}
+						label="Опис"
+						value={set.description ?? ""}
+						multiline
+						onChange={(description) => setSet({ ...set, description })}
 					/>
-				</div>
+					<div className="row">
+						<Field
+							label="Джерело"
+							value={set.source ?? ""}
+							onChange={(source) => setSet({ ...set, source })}
+						/>
+						<Field
+							label="Розділи"
+							value={set.sourceChapters ?? ""}
+							onChange={(sourceChapters) => setSet({ ...set, sourceChapters })}
+						/>
+					</div>
+				</fieldset>
 				<label className="field">
 					<span>Папка</span>
 					<select
@@ -152,6 +188,7 @@ export function SetPage({
 				<div className="row" style={{ marginTop: ".8rem" }}>
 					<button
 						type="button"
+						disabled={!allowed.editMetadata}
 						onClick={() =>
 							void save(() =>
 								api.updateSet(set.id, {
@@ -165,15 +202,7 @@ export function SetPage({
 					>
 						Зберегти
 					</button>
-					{set.status === "published" ? (
-						<button
-							type="button"
-							className="ghost"
-							onClick={() => void save(() => api.archiveSet(set.id))}
-						>
-							В архів
-						</button>
-					) : (
+					{allowed.publish ? (
 						<button
 							type="button"
 							className="ghost"
@@ -181,7 +210,16 @@ export function SetPage({
 						>
 							Опублікувати
 						</button>
-					)}
+					) : null}
+					{allowed.archive ? (
+						<button
+							type="button"
+							className="ghost"
+							onClick={() => void save(() => api.archiveSet(set.id))}
+						>
+							В архів
+						</button>
+					) : null}
 				</div>
 			</Card>
 
@@ -309,6 +347,7 @@ export function SetPage({
 									<button
 										type="button"
 										className="ghost"
+										disabled={!allowed.editQuestions}
 										onClick={() => {
 											setDraft(draftOf(question));
 											setEditing(question.id);
@@ -319,6 +358,7 @@ export function SetPage({
 									<button
 										type="button"
 										className="danger"
+										disabled={!allowed.editQuestions}
 										onClick={() =>
 											void save(() => api.deleteQuestion(set.id, question.id))
 										}
@@ -364,11 +404,11 @@ export function SetPage({
 						</button>
 					</div>
 				</Card>
-			) : (
+			) : allowed.addQuestions ? (
 				<button type="button" className="ghost" onClick={() => setAdding(true)}>
 					+ питання
 				</button>
-			)}
+			) : null}
 
 			<h3>Словник · {vocabulary.length}</h3>
 			{vocabulary.map((item) => (
@@ -413,39 +453,41 @@ export function SetPage({
 				</Card>
 			))}
 
-			<Card>
-				<div className="pair">
-					<input
-						value={term}
-						placeholder="термін"
-						onChange={(event) => setTerm(event.target.value)}
-					/>
-					<input
-						value={translation}
-						placeholder="переклад"
-						onChange={(event) => setTranslation(event.target.value)}
-					/>
-					<button
-						type="button"
-						disabled={term.trim() === "" || translation.trim() === ""}
-						onClick={() =>
-							void save(async () => {
-								const updated = await api.addVocabulary(set.id, {
-									pairs: [{ term: [term], translation: [translation] }],
-									directions: ["term_to_translation"],
-								});
+			{allowed.addVocabulary ? (
+				<Card>
+					<div className="pair">
+						<input
+							value={term}
+							placeholder="термін"
+							onChange={(event) => setTerm(event.target.value)}
+						/>
+						<input
+							value={translation}
+							placeholder="переклад"
+							onChange={(event) => setTranslation(event.target.value)}
+						/>
+						<button
+							type="button"
+							disabled={term.trim() === "" || translation.trim() === ""}
+							onClick={() =>
+								void save(async () => {
+									const updated = await api.addVocabulary(set.id, {
+										pairs: [{ term: [term], translation: [translation] }],
+										directions: ["term_to_translation"],
+									});
 
-								setTerm("");
-								setTranslation("");
+									setTerm("");
+									setTranslation("");
 
-								return updated;
-							})
-						}
-					>
-						Додати пару
-					</button>
-				</div>
-			</Card>
+									return updated;
+								})
+							}
+						>
+							Додати пару
+						</button>
+					</div>
+				</Card>
+			) : null}
 
 			<h3>Статистика</h3>
 			{statistics === undefined ? (
