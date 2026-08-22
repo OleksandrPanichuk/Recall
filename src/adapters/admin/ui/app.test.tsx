@@ -22,6 +22,9 @@ const child = Bun.spawn(
 	{
 		env: {
 			...process.env,
+			TELEGRAM_BOT_KEY: "123456789:token-the-admin-never-uses",
+			ALLOWED_TELEGRAM_USER_ID: "42",
+			APP_TIMEZONE: "Europe/Kyiv",
 			DATABASE_PATH: `${directory}/admin-ui.sqlite`,
 			ADMIN_PASSPHRASE: PASSPHRASE,
 			ADMIN_HOST: "127.0.0.1",
@@ -83,10 +86,29 @@ const post = (path: string, body: unknown) =>
 const put = (path: string, body: unknown) =>
 	api(path, { method: "PUT", body: JSON.stringify(body) });
 
+const complaint = async (): Promise<string> => {
+	if (child.stderr === null || typeof child.stderr === "number") {
+		return "no output";
+	}
+
+	const said = await Promise.race([
+		new Response(child.stderr as ReadableStream<Uint8Array>).text(),
+		Bun.sleep(500).then(() => ""),
+	]);
+
+	return said.trim().length === 0 ? "no output" : said.trim();
+};
+
 const waitForServer = async (): Promise<void> => {
 	const deadline = Date.now() + 20_000;
 
 	while (Date.now() < deadline) {
+		if (child.killed || child.exitCode !== null) {
+			throw new Error(
+				`the admin exited with ${child.exitCode}: ${await complaint()}`,
+			);
+		}
+
 		try {
 			await nativeFetch(`${origin}/api/session`, {
 				signal: AbortSignal.timeout(500),
@@ -98,7 +120,9 @@ const waitForServer = async (): Promise<void> => {
 		}
 	}
 
-	throw new Error(`the admin never answered on ${origin}`);
+	throw new Error(
+		`the admin never answered on ${origin}: ${await complaint()}`,
+	);
 };
 
 const signIn = async (): Promise<void> => {
