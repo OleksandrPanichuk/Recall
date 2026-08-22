@@ -34,7 +34,7 @@ export function registerAddQuestionsTool(
 				}
 
 				return ok(
-					`Added ${result.addedQuestionIds.length} questions to ${args.quizSetId}. The set is still a DRAFT and will not appear in Telegram until you call quiz_publish_set.`,
+					`Added ${result.addedQuestionIds.length} questions to ${args.quizSetId}. A draft does not appear in Telegram until you call quiz_publish_set; a published set shows the new questions at once.`,
 					{
 						quizSetId: args.quizSetId,
 						addedQuestionIds: [...result.addedQuestionIds],

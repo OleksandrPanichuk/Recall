@@ -167,7 +167,7 @@ describe("write tools (§4.2)", () => {
 			questions: [aQuestion("One")],
 		});
 
-		expect(result.text).toContain("still a DRAFT");
+		expect(result.text).toContain("quiz_publish_set");
 		expect(result.text).toContain("quiz_publish_set");
 		expect(result.structured.nextStep).toBe("quiz_publish_set");
 	});
