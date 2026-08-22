@@ -56,7 +56,7 @@ export function registerAddVocabularyTool(
 				}
 
 				return ok(
-					`Added ${args.pairs.length} pair(s) as ${result.addedQuestionCount} questions to ${args.quizSetId}. The set is still a DRAFT — publish it with quiz_publish_set.`,
+					`Added ${args.pairs.length} pair(s) as ${result.addedQuestionCount} questions to ${args.quizSetId}. A draft needs quiz_publish_set before it appears in Telegram; a published set shows them at once.`,
 					{
 						quizSetId: args.quizSetId,
 						itemIds: [...result.itemIds],

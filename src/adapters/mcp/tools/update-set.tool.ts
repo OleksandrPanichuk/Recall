@@ -13,9 +13,9 @@ export function registerUpdateSetTool(
 	server.registerTool(
 		"quiz_update_set",
 		{
-			title: "Update draft metadata",
+			title: "Update set metadata",
 			description:
-				"Changes the metadata of a draft set. Omitted fields keep their current value. Published sets cannot be edited.",
+				"Changes the metadata of a draft or published set. Omitted fields keep their current value; an empty string clears an optional one. An archived set is read-only.",
 			inputSchema: updateSetShape,
 		},
 		async (args) =>
