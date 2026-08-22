@@ -111,7 +111,11 @@ export function addQuestions(
 	questions: readonly Question[],
 	at: Date,
 ): QuizSet {
-	assertStatus(quizSet, [QuizSetStatus.Draft], "modified");
+	assertStatus(
+		quizSet,
+		[QuizSetStatus.Draft, QuizSetStatus.Published],
+		"modified",
+	);
 	assertTransitionDate(quizSet, at);
 
 	if (questions.length === 0) {
@@ -184,7 +188,11 @@ export function updateQuizSetMetadata(
 	metadata: QuizSetMetadata,
 	at: Date,
 ): QuizSet {
-	assertStatus(quizSet, [QuizSetStatus.Draft], "modified");
+	assertStatus(
+		quizSet,
+		[QuizSetStatus.Draft, QuizSetStatus.Published],
+		"modified",
+	);
 	assertTransitionDate(quizSet, at);
 
 	const issues: string[] = [];

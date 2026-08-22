@@ -41,6 +41,7 @@ export interface QuizSetsHarness {
 	readonly listVocabulary: ListVocabulary;
 	newDraft(): Promise<QuizSetId>;
 	newPublished(): Promise<QuizSetId>;
+	newArchived(): Promise<QuizSetId>;
 }
 
 export function createQuizSetsHarness(): QuizSetsHarness {
@@ -48,6 +49,8 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 	const create = new CreateQuizSet(context);
 	const add = new AddQuestions(context);
 	const publish = new PublishQuizSet(context);
+
+	const archive = new ArchiveQuizSet(context);
 
 	const newDraft = async (): Promise<QuizSetId> => {
 		const { quizSetId } = await create.execute({
@@ -64,7 +67,7 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 		update: new UpdateQuizSet(context),
 		add,
 		publish,
-		archive: new ArchiveQuizSet(context),
+		archive,
 		addVocabulary: new AddVocabulary({ ...context, addQuestions: add }),
 		updateVocabulary: new UpdateVocabulary(context),
 		listVocabulary: new ListVocabulary(context),
@@ -76,6 +79,15 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 
 			await add.execute({ quizSetId, questions: [aQuestionInput()] });
 			await publish.execute({ quizSetId });
+
+			return quizSetId;
+		},
+
+		newArchived: async () => {
+			const quizSetId = await newDraft();
+
+			await add.execute({ quizSetId, questions: [aQuestionInput()] });
+			await archive.execute({ quizSetId });
 
 			return quizSetId;
 		},

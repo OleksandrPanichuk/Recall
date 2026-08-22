@@ -38,6 +38,7 @@ import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-s
 import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
 import { DeleteQuestion } from "@/application/use-cases/quiz-sets/delete-question";
 import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
+import { ListQuestions } from "@/application/use-cases/quiz-sets/list-questions";
 import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { ListVocabulary } from "@/application/use-cases/quiz-sets/list-vocabulary";
 import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
@@ -81,6 +82,7 @@ export interface Application {
 	readonly publishQuizSet: PublishQuizSet;
 	readonly archiveQuizSet: ArchiveQuizSet;
 	readonly listQuizSets: ListQuizSets;
+	readonly listQuestions: ListQuestions;
 	readonly getQuizSet: GetQuizSet;
 	readonly moveQuizSet: MoveQuizSet;
 	readonly createFolder: CreateFolder;
@@ -159,6 +161,7 @@ export function createApplication(options: ApplicationOptions): Application {
 		publishQuizSet: new PublishQuizSet(dependencies),
 		archiveQuizSet: new ArchiveQuizSet(dependencies),
 		listQuizSets: new ListQuizSets(dependencies),
+		listQuestions: new ListQuestions(dependencies),
 		getQuizSet: new GetQuizSet(dependencies),
 		moveQuizSet: new MoveQuizSet(dependencies),
 		createFolder: new CreateFolder(dependencies),

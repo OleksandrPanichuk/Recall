@@ -69,7 +69,7 @@ export class DuplicateQuestionIdError extends Error {
 
 export class EmptyQuizSetError extends Error {
 	constructor() {
-		super("A quiz set without questions cannot be published");
+		super("A quiz set needs at least one question");
 		this.name = "EmptyQuizSetError";
 	}
 }

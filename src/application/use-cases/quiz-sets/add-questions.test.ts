@@ -25,9 +25,11 @@ let context: TestContext;
 let add: AddQuestions;
 let newDraft: QuizSetsHarness["newDraft"];
 let newPublished: QuizSetsHarness["newPublished"];
+let newArchived: QuizSetsHarness["newArchived"];
 
 beforeEach(() => {
-	({ context, add, newDraft, newPublished } = createQuizSetsHarness());
+	({ context, add, newDraft, newPublished, newArchived } =
+		createQuizSetsHarness());
 });
 
 afterEach(() => {
@@ -160,8 +162,20 @@ describe("AddQuestions", () => {
 		).rejects.toThrow(QuizSetNotFoundError);
 	});
 
-	test("refuses to add to a published set", async () => {
+	test("adds to a published set and keeps the positions contiguous", async () => {
 		const quizSetId = await newPublished();
+
+		await add.execute({ quizSetId, questions: [anotherQuestionInput()] });
+
+		const stored = context.quizSets.findById(quizSetId);
+
+		expect(stored?.questions.map((question) => question.position)).toEqual([
+			0, 1,
+		]);
+	});
+
+	test("refuses to add to an archived set", async () => {
+		const quizSetId = await newArchived();
 
 		await expect(
 			add.execute({ quizSetId, questions: [anotherQuestionInput()] }),

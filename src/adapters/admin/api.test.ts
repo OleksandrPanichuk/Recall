@@ -34,34 +34,84 @@ const call = (
 	});
 };
 
-const post = (path: string, body?: unknown, signedIn = true) =>
+const send = <TBody>(
+	method: string,
+	path: string,
+	body?: unknown,
+): Promise<Response> =>
 	call(path, {
-		method: "POST",
-		signedIn,
-		body: body === undefined ? undefined : JSON.stringify(body),
+		method,
+		body: body === undefined ? undefined : JSON.stringify(body as TBody),
 	});
 
-const createSet = async (title = "Present Perfect"): Promise<string> => {
-	const response = await post("/api/sets", { title, language: "en" });
-	const body = (await response.json()) as { quizSetId: string };
+const read = async <TBody>(response: Response): Promise<TBody> =>
+	(await response.json()) as TBody;
 
-	return body.quizSetId;
+interface SetRow {
+	id: string;
+	title: string;
+	status: string;
+	folderId: string | null;
+	questionCount: number;
+	description: string;
+	tags: readonly string[];
+}
+
+interface QuestionRow {
+	id: string;
+	quizSetId: string;
+	setTitle: string;
+	prompt: string;
+	topic: string;
+	hint: string;
+	difficulty: string;
+	position: number;
+	answerCount: number;
+	editable: boolean;
+	options: readonly { text: string; isCorrect: boolean }[];
+}
+
+interface FolderRow {
+	id: string;
+	name: string;
+	parentId: string | null;
+	setCount: number;
+	unpublishedCount: number;
+}
+
+const createSet = async (title: string, language = "en"): Promise<string> => {
+	const created = await read<SetRow>(
+		await send("POST", "/api/sets", { title, language }),
+	);
+
+	return created.id;
 };
 
-const addQuestion = (quizSetId: string, prompt = "I ___ it already.") =>
-	post(`/api/sets/${quizSetId}/questions`, {
-		questions: [
-			{
-				type: "single_choice",
-				prompt,
-				difficulty: "medium",
-				options: [
-					{ text: "have done", isCorrect: true },
-					{ text: "did", isCorrect: false },
-				],
-			},
+const addQuestion = (
+	quizSetId: string,
+	prompt: string,
+	extra: Record<string, unknown> = {},
+) =>
+	send("POST", "/api/questions", {
+		quizSetId,
+		type: "single_choice",
+		prompt,
+		difficulty: "medium",
+		options: [
+			{ text: "have done", isCorrect: true },
+			{ text: "did", isCorrect: false },
 		],
+		...extra,
 	});
+
+const publishedSet = async (title = "Present Perfect"): Promise<string> => {
+	const quizSetId = await createSet(title);
+
+	await addQuestion(quizSetId, `${title}: I ___ it already.`);
+	await send("PUT", `/api/sets/${quizSetId}`, { status: "published" });
+
+	return quizSetId;
+};
 
 beforeEach(async () => {
 	application = createApplication({
@@ -81,7 +131,11 @@ beforeEach(async () => {
 	});
 	origin = `http://127.0.0.1:${server.port}`;
 
-	const signIn = await post("/api/session", { passphrase: PASSPHRASE }, false);
+	const signIn = await call("/api/session", {
+		method: "POST",
+		signedIn: false,
+		body: JSON.stringify({ passphrase: PASSPHRASE }),
+	});
 
 	cookie = (signIn.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
 });
@@ -91,26 +145,36 @@ afterEach(async () => {
 	application.close();
 });
 
-describe("the admin sign-in", () => {
-	test("hands back a session cookie for the right passphrase", () => {
+describe("the session", () => {
+	test("hands back a cookie for the right passphrase", () => {
 		expect(cookie).toStartWith("admin=");
 	});
 
 	test("refuses a wrong passphrase without a cookie", async () => {
-		const response = await post(
-			"/api/session",
-			{ passphrase: "not it" },
-			false,
-		);
+		const response = await call("/api/session", {
+			method: "POST",
+			signedIn: false,
+			body: JSON.stringify({ passphrase: "not it" }),
+		});
 
 		expect(response.status).toBe(401);
 		expect(response.headers.get("set-cookie")).toBeNull();
 	});
 
-	test("locks every management route behind the session", async () => {
-		const response = await call("/api/overview", { signedIn: false });
+	test("locks every resource behind the cookie", async () => {
+		for (const path of [
+			"/api/sets",
+			"/api/questions",
+			"/api/folders",
+			"/api/vocabulary",
+			"/api/settings/global",
+		]) {
+			expect((await call(path, { signedIn: false })).status).toBe(401);
+		}
+	});
 
-		expect(response.status).toBe(401);
+	test("answers a signed-in check, which is how the admin knows to show the app", async () => {
+		expect((await call("/api/session")).status).toBe(200);
 	});
 
 	test("clears the cookie on sign-out", async () => {
@@ -121,276 +185,500 @@ describe("the admin sign-in", () => {
 	});
 });
 
-describe("managing quiz sets", () => {
-	test("creates a set, adds a question and publishes it", async () => {
-		const quizSetId = await createSet();
+describe("listing, the way react-admin asks for it", () => {
+	test("reports the total in x-total-count so the pager works", async () => {
+		await createSet("First");
+		await createSet("Second");
+		await createSet("Third");
 
-		await addQuestion(quizSetId);
+		const response = await call("/api/sets?_start=0&_end=2");
+		const rows = await read<readonly SetRow[]>(response);
 
-		const response = await post(`/api/sets/${quizSetId}/publish`);
-		const set = (await response.json()) as {
-			status: string;
-			questions: readonly { prompt: string }[];
-		};
+		expect(response.headers.get("x-total-count")).toBe("3");
+		expect(rows).toHaveLength(2);
+	});
 
-		expect(set.status).toBe("published");
-		expect(set.questions.map((question) => question.prompt)).toEqual([
-			"I ___ it already.",
-		]);
+	test("sorts by the column the grid was clicked on", async () => {
+		await createSet("Banana");
+		await createSet("Apple");
+
+		const rows = await read<readonly SetRow[]>(
+			await call("/api/sets?_sort=title&_order=ASC"),
+		);
+
+		expect(rows.map((row) => row.title)).toEqual(["Apple", "Banana"]);
+	});
+
+	test("searches sets by text", async () => {
+		await createSet("A1 Food Vocabulary");
+		await createSet("DDIA chapter 2");
+
+		const rows = await read<readonly SetRow[]>(await call("/api/sets?q=food"));
+
+		expect(rows.map((row) => row.title)).toEqual(["A1 Food Vocabulary"]);
+	});
+
+	test("filters sets by status", async () => {
+		await publishedSet("Published one");
+		await createSet("Still a draft");
+
+		const rows = await read<readonly SetRow[]>(
+			await call("/api/sets?status=draft"),
+		);
+
+		expect(rows.map((row) => row.title)).toEqual(["Still a draft"]);
+	});
+
+	test("returns the exact records getMany asks for", async () => {
+		const first = await createSet("First");
+
+		await createSet("Second");
+
+		const rows = await read<readonly SetRow[]>(
+			await call(`/api/sets?id=${first}`),
+		);
+
+		expect(rows.map((row) => row.id)).toEqual([first]);
+	});
+});
+
+describe("questions across every set", () => {
+	test("lists them all with the set they belong to", async () => {
+		const first = await createSet("First");
+		const second = await createSet("Second");
+
+		await addQuestion(first, "Question in the first set");
+		await addQuestion(second, "Question in the second set");
+
+		const rows = await read<readonly QuestionRow[]>(
+			await call("/api/questions?_sort=setTitle&_order=ASC"),
+		);
+
+		expect(rows.map((row) => row.setTitle)).toEqual(["First", "Second"]);
+	});
+
+	test("searches the prompt, the topic and the options at once", async () => {
+		const quizSetId = await createSet("First");
+
+		await addQuestion(quizSetId, "Which keyword declares a constant?", {
+			topic: "syntax",
+		});
+		await addQuestion(quizSetId, "What does PRAGMA do?", { topic: "sqlite" });
+
+		const byPrompt = await read<readonly QuestionRow[]>(
+			await call("/api/questions?q=constant"),
+		);
+		const byTopic = await read<readonly QuestionRow[]>(
+			await call("/api/questions?q=sqlite"),
+		);
+		const byOption = await read<readonly QuestionRow[]>(
+			await call("/api/questions?q=have%20done"),
+		);
+
+		expect(byPrompt).toHaveLength(1);
+		expect(byTopic).toHaveLength(1);
+		expect(byOption).toHaveLength(2);
+	});
+
+	test("narrows to one set", async () => {
+		const first = await createSet("First");
+		const second = await createSet("Second");
+
+		await addQuestion(first, "In the first");
+		await addQuestion(second, "In the second");
+
+		const rows = await read<readonly QuestionRow[]>(
+			await call(`/api/questions?quizSetId=${second}`),
+		);
+
+		expect(rows.map((row) => row.prompt)).toEqual(["In the second"]);
+	});
+
+	test("filters by difficulty and by topic", async () => {
+		const quizSetId = await createSet("First");
+
+		await addQuestion(quizSetId, "Easy one", {
+			difficulty: "easy",
+			topic: "syntax",
+		});
+		await addQuestion(quizSetId, "Hard one", {
+			difficulty: "hard",
+			topic: "internals",
+		});
+
+		expect(
+			await read<readonly QuestionRow[]>(
+				await call("/api/questions?difficulty=hard"),
+			),
+		).toHaveLength(1);
+		expect(
+			await read<readonly QuestionRow[]>(
+				await call("/api/questions?topic=syntax"),
+			),
+		).toHaveLength(1);
+	});
+
+	test("creates one and answers with the created record", async () => {
+		const quizSetId = await createSet("First");
+		const response = await addQuestion(quizSetId, "Freshly added");
+		const created = await read<QuestionRow>(response);
+
+		expect(response.status).toBe(201);
+		expect(created.prompt).toBe("Freshly added");
+		expect(created.quizSetId).toBe(quizSetId);
+		expect(created.answerCount).toBe(0);
+	});
+
+	test("edits one in place, keeping its id", async () => {
+		const quizSetId = await createSet("First");
+		const created = await read<QuestionRow>(
+			await addQuestion(quizSetId, "Before"),
+		);
+		const updated = await read<QuestionRow>(
+			await send("PUT", `/api/questions/${created.id}`, {
+				prompt: "After",
+				hint: "a hint",
+			}),
+		);
+
+		expect(updated.id).toBe(created.id);
+		expect(updated.prompt).toBe("After");
+		expect(updated.hint).toBe("a hint");
+	});
+
+	test("deletes one and answers with the record that went", async () => {
+		const quizSetId = await createSet("First");
+		const created = await read<QuestionRow>(
+			await addQuestion(quizSetId, "Doomed"),
+		);
+
+		await addQuestion(quizSetId, "The survivor");
+
+		const response = await send("DELETE", `/api/questions/${created.id}`);
+		const deleted = await read<QuestionRow>(response);
+
+		expect(response.status).toBe(200);
+		expect(deleted.id).toBe(created.id);
+		expect(
+			(await read<readonly QuestionRow[]>(await call("/api/questions"))).map(
+				(row) => row.prompt,
+			),
+		).toEqual(["The survivor"]);
+	});
+
+	test("refuses to delete the only question a set has", async () => {
+		const quizSetId = await createSet("First");
+		const created = await read<QuestionRow>(
+			await addQuestion(quizSetId, "The only one"),
+		);
+		const response = await send("DELETE", `/api/questions/${created.id}`);
+		const body = await read<{ message: string }>(response);
+
+		expect(response.status).toBe(400);
+		expect(body.message).toBe("A quiz set needs at least one question");
+	});
+
+	test("reports a missing question as a client error", async () => {
+		expect((await call("/api/questions/missing")).status).toBe(400);
+	});
+});
+
+describe("the set lifecycle", () => {
+	test("publishes through the status field of the edit form", async () => {
+		const quizSetId = await createSet("Ready");
+
+		await addQuestion(quizSetId, "One question");
+
+		const updated = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { status: "published" }),
+		);
+
+		expect(updated.status).toBe("published");
 	});
 
 	test("refuses to publish a set with no questions", async () => {
-		const quizSetId = await createSet();
-		const response = await post(`/api/sets/${quizSetId}/publish`);
+		const quizSetId = await createSet("Empty");
+		const response = await send("PUT", `/api/sets/${quizSetId}`, {
+			status: "published",
+		});
+		const body = await read<{ message: string }>(response);
 
 		expect(response.status).toBe(400);
-		expect((await response.json()) as { error: string }).toHaveProperty(
-			"error",
-		);
+		expect(body.message).toContain("question");
 	});
 
-	test("edits a question in place, keeping its id", async () => {
-		const quizSetId = await createSet();
-
-		await addQuestion(quizSetId);
-
-		const before = (await (await call(`/api/sets/${quizSetId}`)).json()) as {
-			questions: readonly { id: string }[];
-		};
-		const questionId = before.questions[0]?.id ?? "";
-		const response = await call(
-			`/api/sets/${quizSetId}/questions/${questionId}`,
-			{
-				method: "PATCH",
-				body: JSON.stringify({ prompt: "I ___ it twice.", hint: "perfect" }),
-			},
-		);
-		const after = (await response.json()) as {
-			questions: readonly { id: string; prompt: string; hint?: string }[];
-		};
-
-		expect(after.questions).toHaveLength(1);
-		expect(after.questions[0]?.id).toBe(questionId);
-		expect(after.questions[0]?.prompt).toBe("I ___ it twice.");
-		expect(after.questions[0]?.hint).toBe("perfect");
-	});
-
-	test("deletes a question", async () => {
-		const quizSetId = await createSet();
-
-		await addQuestion(quizSetId);
-		await addQuestion(quizSetId, "She ___ already left.");
-
-		const before = (await (await call(`/api/sets/${quizSetId}`)).json()) as {
-			questions: readonly { id: string }[];
-		};
-		const response = await call(
-			`/api/sets/${quizSetId}/questions/${before.questions[0]?.id}`,
-			{ method: "DELETE" },
-		);
-		const after = (await response.json()) as {
-			questions: readonly { prompt: string }[];
-		};
-
-		expect(after.questions.map((question) => question.prompt)).toEqual([
-			"She ___ already left.",
-		]);
-	});
-
-	test("reports a bad set id as a client error, not a crash", async () => {
-		const response = await call("/api/sets/nope");
+	test("refuses to send a published set back to draft", async () => {
+		const quizSetId = await publishedSet();
+		const response = await send("PUT", `/api/sets/${quizSetId}`, {
+			status: "draft",
+		});
 
 		expect(response.status).toBe(400);
+	});
+
+	test("archives, and then refuses every further edit", async () => {
+		const quizSetId = await publishedSet();
+
+		expect(
+			(await send("PUT", `/api/sets/${quizSetId}`, { status: "archived" }))
+				.status,
+		).toBe(200);
+		expect(
+			(await send("PUT", `/api/sets/${quizSetId}`, { title: "Renamed" }))
+				.status,
+		).toBe(400);
+		expect((await addQuestion(quizSetId, "Too late")).status).toBe(400);
+	});
+
+	test("edits the metadata of a published set", async () => {
+		const quizSetId = await publishedSet();
+		const updated = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, {
+				title: "Renamed",
+				description: "Now with a description",
+			}),
+		);
+
+		expect(updated.title).toBe("Renamed");
+		expect(updated.description).toBe("Now with a description");
+	});
+
+	test("adds a question to a published set", async () => {
+		const quizSetId = await publishedSet();
+		const response = await addQuestion(quizSetId, "Added after publishing");
+
+		expect(response.status).toBe(201);
+		expect(
+			(await read<SetRow>(await call(`/api/sets/${quizSetId}`))).questionCount,
+		).toBe(2);
+	});
+
+	test("moves a set into a folder and out again", async () => {
+		const quizSetId = await createSet("Movable");
+		const folder = await read<FolderRow>(
+			await send("POST", "/api/folders", { name: "Grammar" }),
+		);
+
+		expect(
+			(
+				await read<SetRow>(
+					await send("PUT", `/api/sets/${quizSetId}`, {
+						folderId: folder.id,
+					}),
+				)
+			).folderId,
+		).toBe(folder.id);
+		expect(
+			(
+				await read<SetRow>(
+					await send("PUT", `/api/sets/${quizSetId}`, { folderId: null }),
+				)
+			).folderId,
+		).toBeNull();
 	});
 });
 
-describe("managing folders", () => {
-	test("creates a folder, moves a set into it and renames it", async () => {
-		const created = (await (
-			await post("/api/folders", { name: "Grammar" })
-		).json()) as { folderId: string };
-		const quizSetId = await createSet();
+describe("folders", () => {
+	test("creates, renames and re-parents", async () => {
+		const parent = await read<FolderRow>(
+			await send("POST", "/api/folders", { name: "Books" }),
+		);
+		const child = await read<FolderRow>(
+			await send("POST", "/api/folders", { name: "DDIA" }),
+		);
 
-		await post(`/api/sets/${quizSetId}/move`, { folderId: created.folderId });
+		expect(child.parentId).toBeNull();
 
-		const moved = (await (await call(`/api/sets/${quizSetId}`)).json()) as {
-			folderId: string | null;
-		};
+		const renamed = await read<FolderRow>(
+			await send("PUT", `/api/folders/${child.id}`, { name: "DDIA 2017" }),
+		);
 
-		expect(moved.folderId).toBe(created.folderId);
+		expect(renamed.name).toBe("DDIA 2017");
 
-		const renamed = (await (
-			await call(`/api/folders/${created.folderId}`, {
-				method: "PATCH",
-				body: JSON.stringify({ name: "English grammar" }),
-			})
-		).json()) as readonly {
-			id: string;
-			name: string;
-			parentId: string | null;
-			depth: number;
-			setCount: number;
-			unpublishedCount: number;
-		}[];
+		const moved = await read<FolderRow>(
+			await send("PUT", `/api/folders/${child.id}`, {
+				name: "DDIA 2017",
+				parentId: parent.id,
+			}),
+		);
 
-		expect(renamed).toEqual([
-			{
-				id: created.folderId,
-				name: "English grammar",
-				parentId: null,
-				depth: 0,
-				setCount: 0,
-				unpublishedCount: 1,
-			},
-		]);
+		expect(moved.parentId).toBe(parent.id);
 	});
 
 	test("refuses to delete a folder that still holds a set", async () => {
-		const created = (await (
-			await post("/api/folders", { name: "Grammar" })
-		).json()) as { folderId: string };
-		const quizSetId = await createSet();
+		const folder = await read<FolderRow>(
+			await send("POST", "/api/folders", { name: "Grammar" }),
+		);
+		const quizSetId = await createSet("Inside");
 
-		await post(`/api/sets/${quizSetId}/move`, { folderId: created.folderId });
+		await send("PUT", `/api/sets/${quizSetId}`, { folderId: folder.id });
 
-		const response = await call(`/api/folders/${created.folderId}`, {
-			method: "DELETE",
-		});
-
-		expect(response.status).toBe(400);
-	});
-});
-
-describe("managing settings", () => {
-	test("saves the global settings and reads them back", async () => {
-		await call("/api/settings", {
-			method: "PUT",
-			body: JSON.stringify({ shuffleQuestions: true, examMode: true }),
-		});
-
-		const response = (await (await call("/api/settings")).json()) as {
-			settings: { shuffleQuestions: boolean; examMode: boolean };
-			source: string;
-		};
-
-		expect(response.settings.shuffleQuestions).toBe(true);
-		expect(response.settings.examMode).toBe(true);
-		expect(response.source).toBe("global");
+		expect((await send("DELETE", `/api/folders/${folder.id}`)).status).toBe(
+			400,
+		);
 	});
 
-	test("answers a save with the same shape a read does", async () => {
-		const saved = (await (
-			await call("/api/settings", {
-				method: "PUT",
-				body: JSON.stringify({ examMode: true }),
-			})
-		).json()) as { settings: { examMode: boolean }; source: string };
+	test("deletes an empty folder", async () => {
+		const folder = await read<FolderRow>(
+			await send("POST", "/api/folders", { name: "Temporary" }),
+		);
 
-		expect(saved.settings.examMode).toBe(true);
-		expect(saved.source).toBe("global");
+		expect((await send("DELETE", `/api/folders/${folder.id}`)).status).toBe(
+			200,
+		);
+		expect(
+			await read<readonly FolderRow[]>(await call("/api/folders")),
+		).toEqual([]);
 	});
 
-	test("overrides one set without touching the global settings", async () => {
-		const quizSetId = await createSet();
-
-		const saved = (await (
-			await call("/api/settings", {
-				method: "PUT",
-				body: JSON.stringify({ quizSetId, shuffleQuestions: true }),
-			})
-		).json()) as { settings: { shuffleQuestions: boolean }; source: string };
-
-		expect(saved.settings.shuffleQuestions).toBe(true);
-		expect(saved.source).toBe("set");
-
-		const forSet = (await (
-			await call(`/api/settings?setId=${quizSetId}`)
-		).json()) as { settings: { shuffleQuestions: boolean }; source: string };
-		const global = (await (await call("/api/settings")).json()) as {
-			settings: { shuffleQuestions: boolean };
-			source: string;
-		};
-
-		expect(forSet.settings.shuffleQuestions).toBe(true);
-		expect(forSet.source).toBe("set");
-		expect(global.settings.shuffleQuestions).toBe(false);
-	});
-});
-
-describe("the overview", () => {
-	test("lists unpublished sets, folders and the settings source", async () => {
-		await post("/api/folders", { name: "Grammar" });
-		await createSet("Draft set");
-
-		const response = (await (await call("/api/overview")).json()) as {
-			sets: readonly { title: string; status: string }[];
-			folders: readonly { name: string }[];
-			settingsSource: string;
-		};
-
-		expect(response.sets).toEqual([
-			expect.objectContaining({ title: "Draft set", status: "draft" }),
-		]);
-		expect(response.folders).toEqual([
-			expect.objectContaining({ name: "Grammar", parentId: null }),
-		]);
-		expect(response.settingsSource).toBe("default");
+	test("reports a missing folder as not found", async () => {
+		expect((await call("/api/folders/missing")).status).toBe(404);
 	});
 });
 
 describe("vocabulary", () => {
-	test("adds a pair and edits the term", async () => {
-		const quizSetId = await createSet("Food");
+	test("adds a pair, then edits its terms", async () => {
+		const quizSetId = await createSet("Food", "de");
+		const created = await read<{ id: string; terms: readonly string[] }>(
+			await send("POST", "/api/vocabulary", {
+				quizSetId,
+				terms: ["das Brot"],
+				translations: ["хліб"],
+				directions: ["term_to_translation"],
+			}),
+		);
 
-		const added = await post(`/api/sets/${quizSetId}/vocabulary`, {
-			pairs: [{ term: ["das Brot"], translation: ["хліб"] }],
-			directions: ["term_to_translation"],
-		});
+		expect(created.terms).toEqual(["das Brot"]);
 
-		expect(added.status).toBe(200);
-
-		const listed = (await (
-			await call(`/api/sets/${quizSetId}/vocabulary`)
-		).json()) as readonly {
-			itemId: string;
+		const updated = await read<{
 			terms: readonly string[];
-			questionIds: readonly string[];
-		}[];
+			questionCount: number;
+		}>(
+			await send("PUT", `/api/vocabulary/${created.id}`, {
+				terms: "das Brötchen",
+			}),
+		);
 
-		expect(listed).toHaveLength(1);
-		expect(listed[0]?.terms).toEqual(["das Brot"]);
-		expect(listed[0]?.questionIds).toHaveLength(1);
+		expect(updated.terms).toEqual(["das Brötchen"]);
+		expect(updated.questionCount).toBe(1);
+	});
 
-		const edited = (await (
-			await call(`/api/vocabulary/${listed[0]?.itemId}`, {
-				method: "PATCH",
-				body: JSON.stringify({ term: ["das Brötchen"] }),
-			})
-		).json()) as { rebuiltQuestionCount: number };
+	test("accepts several terms as a comma separated field", async () => {
+		const quizSetId = await createSet("Food", "de");
+		const created = await read<{
+			terms: readonly string[];
+			translations: readonly string[];
+		}>(
+			await send("POST", "/api/vocabulary", {
+				quizSetId,
+				terms: "der Zug, die Bahn",
+				translations: "поїзд",
+				directions: ["term_to_translation"],
+			}),
+		);
 
-		expect(edited.rebuiltQuestionCount).toBe(1);
+		expect(created.terms).toEqual(["der Zug", "die Bahn"]);
+		expect(created.translations).toEqual(["поїзд"]);
+	});
 
-		const again = (await (
-			await call(`/api/sets/${quizSetId}/vocabulary`)
-		).json()) as readonly { terms: readonly string[] }[];
+	test("lists only the pairs of one set when asked", async () => {
+		const first = await createSet("First", "de");
+		const second = await createSet("Second", "de");
 
-		expect(again[0]?.terms).toEqual(["das Brötchen"]);
+		for (const [quizSetId, term] of [
+			[first, "das Brot"],
+			[second, "der Zug"],
+		] as const) {
+			await send("POST", "/api/vocabulary", {
+				quizSetId,
+				terms: [term],
+				translations: ["x"],
+				directions: ["term_to_translation"],
+			});
+		}
+
+		const rows = await read<readonly { terms: readonly string[] }[]>(
+			await call(`/api/vocabulary?quizSetId=${second}`),
+		);
+
+		expect(rows.map((row) => row.terms)).toEqual([["der Zug"]]);
 	});
 });
 
-describe("insights", () => {
-	test("reports the statistics shape the admin renders", async () => {
-		const quizSetId = await createSet();
+describe("settings", () => {
+	test("reads and writes the global record", async () => {
+		const saved = await read<{
+			shuffleQuestions: boolean;
+			source: string;
+			intervalsDays: readonly number[];
+		}>(
+			await send("PUT", "/api/settings/global", {
+				shuffleQuestions: true,
+				examMode: true,
+				intervalsDays: "1, 5, 20",
+				maxIntervalDays: 90,
+				maxRepetitions: 6,
+			}),
+		);
 
-		await addQuestion(quizSetId);
+		expect(saved.shuffleQuestions).toBe(true);
+		expect(saved.source).toBe("global");
+		expect(saved.intervalsDays).toEqual([1, 5, 20]);
 
-		const statistics = (await (
-			await call(`/api/sets/${quizSetId}/statistics`)
-		).json()) as {
+		const reread = await read<{ examMode: boolean }>(
+			await call("/api/settings/global"),
+		);
+
+		expect(reread.examMode).toBe(true);
+	});
+
+	test("overrides one set without touching the global record", async () => {
+		const quizSetId = await createSet("Special");
+
+		const forSet = await read<{ shuffleQuestions: boolean; source: string }>(
+			await send("PUT", `/api/settings/${quizSetId}`, {
+				shuffleQuestions: true,
+			}),
+		);
+
+		expect(forSet.shuffleQuestions).toBe(true);
+		expect(forSet.source).toBe("set");
+		expect(
+			(
+				await read<{ shuffleQuestions: boolean }>(
+					await call("/api/settings/global"),
+				)
+			).shuffleQuestions,
+		).toBe(false);
+	});
+
+	test("gives an override back to the global record", async () => {
+		const quizSetId = await createSet("Special");
+
+		await send("PUT", "/api/settings/global", { shuffleOptions: true });
+		await send("PUT", `/api/settings/${quizSetId}`, { examMode: true });
+
+		const back = await read<{
+			source: string;
+			examMode: boolean;
+			shuffleOptions: boolean;
+		}>(
+			await send("PUT", `/api/settings/${quizSetId}`, { inheritGlobal: true }),
+		);
+
+		expect(back.source).toBe("global");
+		expect(back.examMode).toBe(false);
+		expect(back.shuffleOptions).toBe(true);
+	});
+});
+
+describe("statistics", () => {
+	test("reports the statistics of one set", async () => {
+		const quizSetId = await publishedSet();
+		const statistics = await read<{
 			setAccuracy: { correct: number; total: number; percentage: number };
-			topics: readonly { topic: string; answered: number; correct: number }[];
-			attempts: readonly { attemptId: string; completedAt: string }[];
-		};
+			topics: readonly unknown[];
+		}>(await call(`/api/statistics/${quizSetId}`));
 
 		expect(statistics.setAccuracy).toEqual({
 			correct: 0,
@@ -398,83 +686,92 @@ describe("insights", () => {
 			percentage: 0,
 		});
 		expect(statistics.topics).toEqual([]);
-		expect(statistics.attempts).toEqual([]);
 	});
 
 	test("reports due repetitions and leeches", async () => {
-		const response = (await (await call("/api/repetitions")).json()) as {
-			due: unknown;
-			leeches: unknown;
-		};
+		const body = await read<Record<string, unknown>>(
+			await call("/api/repetitions"),
+		);
 
-		expect(response).toHaveProperty("due");
-		expect(response).toHaveProperty("leeches");
+		expect(body).toHaveProperty("due");
+		expect(body).toHaveProperty("leeches");
 	});
 });
 
-describe("what a published set still allows", () => {
-	const publish = async (): Promise<string> => {
-		const quizSetId = await createSet();
+describe("clearing a field, which the form does by sending it empty", () => {
+	test("clears the description of a set", async () => {
+		const quizSetId = await createSet("With a description");
 
-		await addQuestion(quizSetId);
-		await post(`/api/sets/${quizSetId}/publish`);
-
-		return quizSetId;
-	};
-
-	test("refuses to edit its metadata", async () => {
-		const quizSetId = await publish();
-		const response = await call(`/api/sets/${quizSetId}`, {
-			method: "PATCH",
-			body: JSON.stringify({ title: "Another title" }),
+		await send("PUT", `/api/sets/${quizSetId}`, {
+			description: "something to remove",
 		});
 
-		expect(response.status).toBe(400);
-	});
+		expect(
+			(await read<SetRow>(await call(`/api/sets/${quizSetId}`))).description,
+		).toBe("something to remove");
 
-	test("refuses new questions", async () => {
-		const quizSetId = await publish();
-		const response = await addQuestion(quizSetId, "She ___ already left.");
-
-		expect(response.status).toBe(400);
-	});
-
-	test("refuses new vocabulary", async () => {
-		const quizSetId = await publish();
-		const response = await post(`/api/sets/${quizSetId}/vocabulary`, {
-			pairs: [{ term: ["das Brot"], translation: ["хліб"] }],
-			directions: ["term_to_translation"],
-		});
-
-		expect(response.status).toBe(400);
-	});
-
-	test("still allows editing a question in place", async () => {
-		const quizSetId = await publish();
-		const before = (await (await call(`/api/sets/${quizSetId}`)).json()) as {
-			questions: readonly { id: string }[];
-		};
-		const response = await call(
-			`/api/sets/${quizSetId}/questions/${before.questions[0]?.id}`,
-			{ method: "PATCH", body: JSON.stringify({ hint: "perfect" }) },
+		const cleared = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { description: "" }),
 		);
-		const after = (await response.json()) as {
-			questions: readonly { hint?: string }[];
-		};
 
-		expect(response.status).toBe(200);
-		expect(after.questions[0]?.hint).toBe("perfect");
+		expect(cleared.description).toBe("");
 	});
 
-	test("still allows moving it to another folder", async () => {
-		const quizSetId = await publish();
-		const created = (await (
-			await post("/api/folders", { name: "Grammar" })
-		).json()) as { folderId: string };
-		const response = await post(`/api/sets/${quizSetId}/move`, {
-			folderId: created.folderId,
-		});
+	test("clears the hint of a question", async () => {
+		const quizSetId = await createSet("With a hint");
+		const created = await read<QuestionRow>(
+			await addQuestion(quizSetId, "Has a hint", { hint: "a hint" }),
+		);
 
-		expect(response.status).toBe(200);
+		expect(created.hint).toBe("a hint");
+
+		const cleared = await read<QuestionRow>(
+			await send("PUT", `/api/questions/${created.id}`, { hint: "" }),
+		);
+
+		expect(cleared.hint).toBe("");
+	});
+
+	test("leaves a field alone when the form does not send it at all", async () => {
+		const quizSetId = await createSet("Untouched");
+
+		await send("PUT", `/api/sets/${quizSetId}`, { description: "kept" });
+		await send("PUT", `/api/sets/${quizSetId}`, { title: "Renamed" });
+
+		const stored = await read<SetRow>(await call(`/api/sets/${quizSetId}`));
+
+		expect(stored.title).toBe("Renamed");
+		expect(stored.description).toBe("kept");
+	});
+
+	test("keeps the tags of a set that were never sent", async () => {
+		const quizSetId = await createSet("Tagged");
+
+		await send("PUT", `/api/sets/${quizSetId}`, { tags: "ddia, data-models" });
+
+		const tagged = await read<SetRow>(await call(`/api/sets/${quizSetId}`));
+
+		expect(tagged.tags).toEqual(["ddia", "data-models"]);
+
+		const renamed = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { title: "Still tagged" }),
+		);
+
+		expect(renamed.tags).toEqual(["ddia", "data-models"]);
+
+		const cleared = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { tags: "" }),
+		);
+
+		expect(cleared.tags).toEqual([]);
+	});
+
+	test("refuses to clear a required field instead of ignoring it", async () => {
+		const quizSetId = await createSet("Needs a title");
+		const response = await send("PUT", `/api/sets/${quizSetId}`, { title: "" });
+		const body = await read<{ message: string }>(response);
+
+		expect(response.status).toBe(400);
+		expect(body.message).toContain("title");
 	});
 });

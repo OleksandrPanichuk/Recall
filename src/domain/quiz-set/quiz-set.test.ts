@@ -472,18 +472,30 @@ describe("QuizSet", () => {
 			throw new Error("expected addQuestions to throw");
 		});
 
-		test("rejects adding to a published set", () => {
+		test("appends to a published set, keeping the positions in order", () => {
+			const published = publishQuizSet(
+				draftWith(question("first", 0)),
+				laterAt,
+			);
+			const grown = addQuestions(published, [question("second", 9)], laterAt);
+
+			expect(grown.status).toBe(QuizSetStatus.Published);
+			expect(grown.questions.map((entry) => entry.position)).toEqual([0, 1]);
+			expect(grown.questions.map((entry) => String(entry.id))).toEqual([
+				"question-first-0",
+				"question-second-9",
+			]);
+		});
+
+		test("still refuses a duplicate in a published set", () => {
 			const published = publishQuizSet(
 				draftWith(question("first", 0)),
 				laterAt,
 			);
 
 			expect(() =>
-				addQuestions(published, [question("second", 1)], laterAt),
-			).toThrow(QuizSetTransitionError);
-			expect(() =>
-				addQuestions(published, [question("second", 1)], laterAt),
-			).toThrow("A published quiz set cannot be modified");
+				addQuestions(published, [question("first", 5)], laterAt),
+			).toThrow(DuplicateQuestionError);
 		});
 
 		test("rejects adding to an archived set", () => {
@@ -503,13 +515,10 @@ describe("QuizSet", () => {
 			expect(Object.isFrozen(updated)).toBe(true);
 		});
 
-		test("still refuses an empty batch when the set is not a draft", () => {
-			const published = publishQuizSet(
-				draftWith(question("first", 0)),
-				laterAt,
-			);
+		test("still refuses an empty batch when the set is archived", () => {
+			const archived = archiveQuizSet(draftWith(question("first", 0)), laterAt);
 
-			expect(() => addQuestions(published, [], laterAt)).toThrow(
+			expect(() => addQuestions(archived, [], laterAt)).toThrow(
 				QuizSetTransitionError,
 			);
 		});
@@ -609,7 +618,7 @@ describe("QuizSet", () => {
 
 			expect(() => publishQuizSet(draft, laterAt)).toThrow(EmptyQuizSetError);
 			expect(() => publishQuizSet(draft, laterAt)).toThrow(
-				"A quiz set without questions cannot be published",
+				"A quiz set needs at least one question",
 			);
 		});
 
