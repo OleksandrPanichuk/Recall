@@ -60,15 +60,6 @@ export interface VocabularyRecord {
 	readonly questionCount: number;
 }
 
-export interface AttemptRecord {
-	readonly id: string;
-	readonly quizSetId: string;
-	readonly completedAt: string;
-	readonly correct: number;
-	readonly total: number;
-	readonly percentage: number;
-}
-
 export interface SettingsRecord {
 	readonly id: string;
 	readonly quizSetId: string | null;
@@ -183,9 +174,5 @@ export const VOCABULARY_SHAPE: ListShape<VocabularyRecord> = {
 		row.example,
 		row.topic,
 	],
-	value: field,
-};
-
-export const ATTEMPT_SHAPE: ListShape<AttemptRecord> = {
 	value: field,
 };

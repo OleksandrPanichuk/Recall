@@ -1,6 +1,5 @@
 import type { Application } from "@/composition/create-application";
 import { toFolderId } from "@/domain/folder/folder";
-import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -8,8 +7,6 @@ import type { Logger } from "@/infrastructure/logging/logger.types";
 import { matchesToken } from "../mcp/http/bearer";
 import { listPage, listQueryOf } from "./query";
 import {
-	ATTEMPT_SHAPE,
-	type AttemptRecord,
 	FOLDER_SHAPE,
 	folderRecordOf,
 	QUESTION_SHAPE,
@@ -55,6 +52,12 @@ const paramOf = (request: Request, name: string): string =>
 
 const bodyOf = async <TBody>(request: Request): Promise<TBody> =>
 	(await request.json()) as TBody;
+
+const given = (
+	body: Record<string, unknown>,
+	key: string,
+): string | undefined =>
+	Object.hasOwn(body, key) ? String(body[key] ?? "") : undefined;
 
 const trimmed = (value: unknown): string | undefined => {
 	const text = typeof value === "string" ? value.trim() : "";
@@ -187,24 +190,6 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 		return records;
 	};
 
-	const attemptRecords = async (quizSetId: string) => {
-		const statistics = await application.getQuizStatistics.execute({
-			telegramUserId,
-			quizSetId: toQuizSetId(quizSetId),
-		});
-
-		return statistics.attempts.map(
-			(attempt): AttemptRecord => ({
-				id: String(attempt.attemptId),
-				quizSetId,
-				completedAt: attempt.completedAt?.toISOString() ?? "",
-				correct: attempt.score.correct,
-				total: attempt.score.total,
-				percentage: attempt.score.percentage,
-			}),
-		);
-	};
-
 	const settingsRecord = async (id: string): Promise<SettingsRecord> => {
 		const quizSetId = id === "global" ? undefined : toQuizSetId(id);
 		const resolved = await application.resolveQuizSettings.execute(
@@ -299,20 +284,26 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 				const body = await bodyOf<Record<string, unknown>>(request);
 				const current = await setRecord(id);
 
-				if (
-					body.title !== undefined ||
-					body.language !== undefined ||
-					body.description !== undefined ||
-					body.source !== undefined ||
-					body.sourceChapters !== undefined
-				) {
+				const metadataKeys = [
+					"title",
+					"language",
+					"description",
+					"source",
+					"sourceChapters",
+					"tags",
+				];
+
+				if (metadataKeys.some((key) => Object.hasOwn(body, key))) {
 					await application.updateQuizSet.execute({
 						quizSetId,
-						title: trimmed(body.title),
-						language: trimmed(body.language),
-						description: trimmed(body.description),
-						source: trimmed(body.source),
-						sourceChapters: trimmed(body.sourceChapters),
+						title: given(body, "title"),
+						language: given(body, "language"),
+						description: given(body, "description"),
+						source: given(body, "source"),
+						sourceChapters: given(body, "sourceChapters"),
+						tags: Object.hasOwn(body, "tags")
+							? (words(body.tags) ?? [])
+							: undefined,
 					});
 				}
 
@@ -394,11 +385,11 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 				await application.updateQuestion.execute({
 					quizSetId: found.quizSetId,
 					questionId: toQuestionId(questionId),
-					prompt: trimmed(body.prompt),
+					prompt: given(body, "prompt"),
 					difficulty: body.difficulty as Difficulty | undefined,
-					topic: trimmed(body.topic),
-					hint: trimmed(body.hint),
-					explanation: trimmed(body.explanation),
+					topic: given(body, "topic"),
+					hint: given(body, "hint"),
+					explanation: given(body, "explanation"),
 					options: Object.hasOwn(body, "options")
 						? (optionsOf(body.options) as never)
 						: undefined,
@@ -546,44 +537,14 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 					itemId: id as never,
 					term: words(body.terms) as never,
 					translation: words(body.translations) as never,
-					transcription: trimmed(body.transcription),
-					example: trimmed(body.example),
+					transcription: given(body, "transcription"),
+					example: given(body, "example"),
 				});
 
 				return json(
 					(await vocabularyRecords()).find((entry) => entry.id === id),
 				);
 			}),
-		},
-
-		"/api/attempts": {
-			GET: guarded(async (request) => {
-				const url = new URL(request.url);
-				const scope = url.searchParams.get("quizSetId");
-
-				if (scope === null) {
-					return page([], 0);
-				}
-
-				const found = listPage(
-					await attemptRecords(scope),
-					listQueryOf(url),
-					ATTEMPT_SHAPE,
-				);
-
-				return page(found.rows, found.total);
-			}),
-		},
-
-		"/api/attempts/:id": {
-			GET: guarded(async (request) =>
-				json(
-					await application.getAttemptDetail.execute({
-						telegramUserId,
-						attemptId: toQuizAttemptId(paramOf(request, "id")),
-					}),
-				),
-			),
 		},
 
 		"/api/settings/:id": {

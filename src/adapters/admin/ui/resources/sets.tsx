@@ -129,6 +129,8 @@ function SetStatistics() {
 				{statistics.setAccuracy.correct} з {statistics.setAccuracy.total}) ·
 				спроб: {statistics.attempts.length}
 			</p>
+
+			<h4>За темами</h4>
 			<table>
 				<thead>
 					<tr>
@@ -143,6 +145,28 @@ function SetStatistics() {
 							<td>{topic.topic}</td>
 							<td align="right">{topic.correct}</td>
 							<td align="right">{topic.answered}</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+
+			<h4>Спроби</h4>
+			<table>
+				<thead>
+					<tr>
+						<th align="left">Коли</th>
+						<th align="right">Результат</th>
+					</tr>
+				</thead>
+				<tbody>
+					{statistics.attempts.map((attempt) => (
+						<tr key={attempt.attemptId}>
+							<td>
+								{attempt.completedAt === undefined
+									? "не завершена"
+									: new Date(attempt.completedAt).toLocaleString()}
+							</td>
+							<td align="right">{attempt.score.percentage}%</td>
 						</tr>
 					))}
 				</tbody>
@@ -203,6 +227,14 @@ export function SetEdit() {
 					<TextInput source="description" label="Опис" multiline fullWidth />
 					<TextInput source="source" label="Джерело" fullWidth />
 					<TextInput source="sourceChapters" label="Розділи" fullWidth />
+					<TextInput
+						source="tags"
+						label="Теги (через кому)"
+						format={(value: unknown) =>
+							Array.isArray(value) ? value.join(", ") : String(value ?? "")
+						}
+						fullWidth
+					/>
 					<SelectInput source="status" choices={STATUSES} label="Стан" />
 					<ReferenceInput source="folderId" reference="folders">
 						<SelectInput label="Папка" fullWidth />

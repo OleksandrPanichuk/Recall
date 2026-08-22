@@ -54,6 +54,7 @@ interface SetRow {
 	folderId: string | null;
 	questionCount: number;
 	description: string;
+	tags: readonly string[];
 }
 
 interface QuestionRow {
@@ -671,14 +672,7 @@ describe("settings", () => {
 	});
 });
 
-describe("attempts and statistics", () => {
-	test("answers an empty page when no set is selected", async () => {
-		const response = await call("/api/attempts");
-
-		expect(response.headers.get("x-total-count")).toBe("0");
-		expect(await read<readonly unknown[]>(response)).toEqual([]);
-	});
-
+describe("statistics", () => {
 	test("reports the statistics of one set", async () => {
 		const quizSetId = await publishedSet();
 		const statistics = await read<{
@@ -701,5 +695,83 @@ describe("attempts and statistics", () => {
 
 		expect(body).toHaveProperty("due");
 		expect(body).toHaveProperty("leeches");
+	});
+});
+
+describe("clearing a field, which the form does by sending it empty", () => {
+	test("clears the description of a set", async () => {
+		const quizSetId = await createSet("With a description");
+
+		await send("PUT", `/api/sets/${quizSetId}`, {
+			description: "something to remove",
+		});
+
+		expect(
+			(await read<SetRow>(await call(`/api/sets/${quizSetId}`))).description,
+		).toBe("something to remove");
+
+		const cleared = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { description: "" }),
+		);
+
+		expect(cleared.description).toBe("");
+	});
+
+	test("clears the hint of a question", async () => {
+		const quizSetId = await createSet("With a hint");
+		const created = await read<QuestionRow>(
+			await addQuestion(quizSetId, "Has a hint", { hint: "a hint" }),
+		);
+
+		expect(created.hint).toBe("a hint");
+
+		const cleared = await read<QuestionRow>(
+			await send("PUT", `/api/questions/${created.id}`, { hint: "" }),
+		);
+
+		expect(cleared.hint).toBe("");
+	});
+
+	test("leaves a field alone when the form does not send it at all", async () => {
+		const quizSetId = await createSet("Untouched");
+
+		await send("PUT", `/api/sets/${quizSetId}`, { description: "kept" });
+		await send("PUT", `/api/sets/${quizSetId}`, { title: "Renamed" });
+
+		const stored = await read<SetRow>(await call(`/api/sets/${quizSetId}`));
+
+		expect(stored.title).toBe("Renamed");
+		expect(stored.description).toBe("kept");
+	});
+
+	test("keeps the tags of a set that were never sent", async () => {
+		const quizSetId = await createSet("Tagged");
+
+		await send("PUT", `/api/sets/${quizSetId}`, { tags: "ddia, data-models" });
+
+		const tagged = await read<SetRow>(await call(`/api/sets/${quizSetId}`));
+
+		expect(tagged.tags).toEqual(["ddia", "data-models"]);
+
+		const renamed = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { title: "Still tagged" }),
+		);
+
+		expect(renamed.tags).toEqual(["ddia", "data-models"]);
+
+		const cleared = await read<SetRow>(
+			await send("PUT", `/api/sets/${quizSetId}`, { tags: "" }),
+		);
+
+		expect(cleared.tags).toEqual([]);
+	});
+
+	test("refuses to clear a required field instead of ignoring it", async () => {
+		const quizSetId = await createSet("Needs a title");
+		const response = await send("PUT", `/api/sets/${quizSetId}`, { title: "" });
+		const body = await read<{ message: string }>(response);
+
+		expect(response.status).toBe(400);
+		expect(body.message).toContain("title");
 	});
 });

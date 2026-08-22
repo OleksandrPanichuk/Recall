@@ -89,7 +89,6 @@ export function AdminApp() {
 				recordRepresentation="name"
 			/>
 			<Resource name="settings" edit={SettingsEdit} />
-			<Resource name="attempts" />
 		</Admin>
 	);
 }
