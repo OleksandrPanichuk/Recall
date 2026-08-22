@@ -12,9 +12,11 @@ let context: TestContext;
 let update: UpdateQuizSet;
 let newDraft: QuizSetsHarness["newDraft"];
 let newPublished: QuizSetsHarness["newPublished"];
+let newArchived: QuizSetsHarness["newArchived"];
 
 beforeEach(() => {
-	({ context, update, newDraft, newPublished } = createQuizSetsHarness());
+	({ context, update, newDraft, newPublished, newArchived } =
+		createQuizSetsHarness());
 });
 
 afterEach(() => {
@@ -40,8 +42,17 @@ describe("UpdateQuizSet", () => {
 		).rejects.toThrow(QuizSetNotFoundError);
 	});
 
-	test("refuses to edit published content", async () => {
+	test("edits a published set, because a title is not part of the history", async () => {
 		const quizSetId = await newPublished();
+		context.clock.advance(60_000);
+
+		await update.execute({ quizSetId, title: "Renamed" });
+
+		expect(context.quizSets.findById(quizSetId)?.title).toBe("Renamed");
+	});
+
+	test("refuses to edit an archived set", async () => {
+		const quizSetId = await newArchived();
 		context.clock.advance(60_000);
 
 		await expect(

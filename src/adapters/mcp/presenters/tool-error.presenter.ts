@@ -48,7 +48,7 @@ export function describeError(error: unknown): string {
 	}
 
 	if (error instanceof QuizSetTransitionError) {
-		return `${error.message}. Published content is immutable; create a new set instead.`;
+		return `${error.message}. An archived set is read-only; publish a new set instead.`;
 	}
 
 	if (error instanceof QuizSetNotFoundError) {

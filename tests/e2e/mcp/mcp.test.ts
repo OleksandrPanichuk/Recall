@@ -232,7 +232,7 @@ describe("write tools (§4.2)", () => {
 		expect(result.text).toContain("needs at least one question");
 	});
 
-	test("editing a published set is refused with a reason", async () => {
+	test("a published set still takes edits and new questions", async () => {
 		const quizSetId = await newDraft();
 		await call("quiz_add_questions", {
 			quizSetId,
@@ -240,10 +240,33 @@ describe("write tools (§4.2)", () => {
 		});
 		await call("quiz_publish_set", { quizSetId });
 
+		const renamed = await call("quiz_update_set", { quizSetId, title: "New" });
+		const grown = await call("quiz_add_questions", {
+			quizSetId,
+			questions: [aQuestion("Two")],
+		});
+
+		expect(renamed.isError).toBeFalsy();
+		expect(grown.isError).toBeFalsy();
+
+		const reread = await call("quiz_get_set", { quizSetId });
+
+		expect(reread.text).toContain("New");
+		expect(reread.text).toContain("Two");
+	});
+
+	test("editing an archived set is refused with a reason", async () => {
+		const quizSetId = await newDraft();
+		await call("quiz_add_questions", {
+			quizSetId,
+			questions: [aQuestion("One")],
+		});
+		await call("quiz_archive_set", { quizSetId });
+
 		const result = await call("quiz_update_set", { quizSetId, title: "New" });
 
 		expect(result.isError).toBe(true);
-		expect(result.text).toContain("immutable");
+		expect(result.text).toContain("read-only");
 	});
 
 	test("an unknown set id points at the listing tool", async () => {
