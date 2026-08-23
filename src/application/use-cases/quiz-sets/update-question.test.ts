@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
+import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import { QuestionType, toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { QuestionValidationError } from "@/domain/quiz-set/quiz-set.errors";
@@ -183,5 +187,76 @@ describe("UpdateQuestion", () => {
 		});
 
 		expect(firstQuestionOf(quizSetId).type).toBe(QuestionType.SingleChoice);
+	});
+	test("keeps option ids stable when the options are rewritten", async () => {
+		const quizSetId = await harness.newPublished();
+		const before = firstQuestionOf(quizSetId);
+
+		await update.execute({
+			quizSetId,
+			questionId: before.id,
+			options: [
+				{ text: "Write-ahead logging", isCorrect: true },
+				{ text: "Weekly audit log", isCorrect: false },
+			],
+		});
+
+		const after = firstQuestionOf(quizSetId);
+
+		expect(after.options.map((option) => String(option.id))).toEqual(
+			before.options.map((option) => String(option.id)),
+		);
+		expect(after.options[0]?.text).toBe("Write-ahead logging");
+	});
+
+	test("leaves a finished attempt still able to name what was chosen", async () => {
+		const user = 42;
+		const quizSetId = await harness.newPublished();
+		const question = firstQuestionOf(quizSetId);
+		const wrong = question.options.find((option) => !option.isCorrect);
+
+		if (wrong === undefined) {
+			throw new Error("the fixture has no incorrect option");
+		}
+
+		const start = new StartQuizAttempt(harness.context);
+		const answer = new AnswerQuestion(harness.context);
+		const finish = new FinishQuizAttempt(harness.context);
+		const detail = new GetAttemptDetail(harness.context);
+
+		const { attemptId } = await start.execute({
+			quizSetId,
+			telegramUserId: user,
+		});
+
+		await answer.execute({
+			telegramUserId: user,
+			questionId: question.id,
+			selectedOptionPositions: [wrong.position],
+		});
+
+		await finish.execute({ telegramUserId: user });
+
+		await update.execute({
+			quizSetId,
+			questionId: question.id,
+			options: [
+				{ text: "Write-ahead logging", isCorrect: true },
+				{ text: "Weekly audit log", isCorrect: false },
+			],
+		});
+
+		const reviewed = await detail.execute({ attemptId, telegramUserId: user });
+		const answered = reviewed.answers.find(
+			(entry) => String(entry.question.id) === String(question.id),
+		);
+
+		expect(answered?.selectedOptionIds.length).toBe(1);
+
+		const resolved = answered?.selectedOptionIds.map((id) =>
+			answered.question.options.find((option) => option.id === id),
+		);
+
+		expect(resolved?.every((option) => option !== undefined)).toBe(true);
 	});
 });

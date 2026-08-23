@@ -105,7 +105,9 @@ export class UpdateQuestion
 			request.options === undefined
 				? current.options
 				: request.options.map((option, index) => ({
-						id: toQuestionOptionId(this.idGenerator.generate()),
+						id:
+							current.options[index]?.id ??
+							toQuestionOptionId(this.idGenerator.generate()),
 						text: option.text,
 						isCorrect: option.isCorrect,
 						position: index,
