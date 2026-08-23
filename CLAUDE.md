@@ -23,6 +23,10 @@ The dependency direction is now **enforced, not just documented**: `biome.json` 
 `application` imports adapters. Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md` has been deleted — its role is
 taken by the Sequencing section of `REWRITE_PLAN.md`.
 
+**If you are picking this up mid-rewrite, read `HANDOFF.md` first** — it says which branch to
+work on, what is already done, and what is left. The Postgres cutover is in progress on
+`wip/postgres-cutover`.
+
 Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `REWRITE_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, and folder ownership in v1 code, and `REWRITE_PLAN.md` as binding for the same questions in v2 code. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
