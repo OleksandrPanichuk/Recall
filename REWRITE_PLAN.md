@@ -27,6 +27,10 @@
 >     migration is now **lossless**: r9's decision to leave ownership out took the legacy
 >     `telegram_user_id` with it, which the domain still requires. Three of five repositories
 >     paired.
+>   - r15 — **all five repositories paired**, and phases 5 and 6 are **merged**: the use-case
+>     port cannot be incremental, because the first ported use case forces the whole app onto
+>     Postgres. Attempted, measured, and stashed rather than half-landed. The remaining work is
+>     one atomic cutover, specified below.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1195,7 +1199,7 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
 | 4 | ~~**Minimal Nest API shell**~~ — **done** (r7). Nest 11 + Express, `apps/api/src/modules/{shared,content}`, factory-provided use cases, `GET /quizzes`, `GET /quizzes/:id`, health, Swagger at `/docs`, domain-error→HTTP filter. Runs on Bun. | 2 | M |
 | 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines. **Started (r8)**: infrastructure and transaction contract done; repositories not ported. | 4 | L |
-| 6 | Rehearsed cutover: ETL + verification + rollback deadline (below) | 5 | M |
+| 6 | ~~Rehearsed cutover~~ — **merged into phase 5** (r15): the use-case port forces the engine switch, so they land together. | 5 | L |
 | 7 | Identity, ownership, sessions, bot login link (§3, §5) | 6 | L |
 | 8 | Bot, MCP, and admin become API clients; MCP OAuth gains its user dimension (§1, §5) | 7 | L |
 | 9 | Web MVP: auth, browse, practice, attempt review (§4) | 8 | L |
@@ -1210,6 +1214,54 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5 and 6 are one landing (r15)
+
+All five repositories are now paired behind shared contracts — `pages`, `quizzes`, `attempts`,
+`reviews`, `termPairs`, 87 contract tests across both engines. Everything a ported use case
+needs exists.
+
+Then I ported the eight folder use cases to `UnitOfWork<RepositoryScope>` to start the switch,
+and hit a wall that is structural rather than incidental:
+
+1. Once a use case takes a `UnitOfWork`, **the composition root must supply one.**
+2. A SQLite-backed async `UnitOfWork` **cannot be atomic**. `db.transaction(fn)` with an async
+   `fn` commits at the first `await` (measured in r8: an unawaited write survived a rollback
+   8/8), and `bun:sqlite`'s own `Synchronous<T>` guard exists for exactly this. There is no
+   honest SQLite implementation of the async port.
+3. Therefore the only real implementation is Postgres — so **the first ported use case moves
+   the entire running application onto Postgres.**
+
+Which means phase 5's remaining step *is* phase 6. They are the same landing, and the plan was
+wrong to separate them. Nothing incremental is left: 34 files still reference the synchronous
+ports and 8 adapter/entrypoint files build from `create-application.ts`.
+
+I stopped rather than half-land it. The folder port is preserved on the stash
+(`wip: folder use cases ported to async scope`) and the tree is green at 1469 tests. A large
+non-compiling diff would have been worse than a clean boundary.
+
+**What the cutover requires, as a checklist.** This is one piece of work, and it changes how the
+app boots:
+
+- port the remaining 26 use cases to `UnitOfWork<RepositoryScope>` + `RepositoryScope`
+  (attempts 5, quiz-sets 14, statistics 2, settings 2, repetition 2, practice 1);
+- repoint ~25 use-case test fixtures at `createMemoryContext()` — the in-memory scope exists and
+  is contract-verified, so these keep running in milliseconds with no Docker;
+- rewrite `create-application.ts` to build a Postgres connection and scope, which makes
+  `DATABASE_URL` a required environment variable and Postgres a hard startup dependency for the
+  bot, the MCP server, and the admin app;
+- switch the runtime for `apps/api` from Bun to Node once `bun:sqlite` is gone (§1);
+- delete the SQLite adapter, the five synchronous ports, the sync `Transaction` port, and the 9
+  SQLite integration test files;
+- run the ETL against the live database and keep the SQLite file read-only as the escape hatch,
+  per the cutover section.
+
+Two things that make this safe rather than reckless when it is done: the ETL is idempotent and
+self-verifying against the real data, and every ported use case can be tested against the
+in-memory scope, so the suite does not become conditional on a container.
+
+**Estimate:** Large — a full session on its own, and the one step in this plan where the running
+app changes engine. It wants a reviewed diff, not a fast one.
 
 ### Phase 5, seventh slice: attempts, and a lossy migration caught (r14)
 
