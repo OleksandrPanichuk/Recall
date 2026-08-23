@@ -9,6 +9,11 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+> - r9 — the **§6 schema exists** as one Postgres migration with the approved names
+>   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
+>   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
+>   its constraints tested. A pre-migration backup of the live database was taken and verified
+>   against it. Repositories and the ETL are still not written.
 > - r8 — **phase 5 started, not finished.** Postgres 17 in Docker, drizzle over postgres.js,
 >   an isolated-schema test harness, and the transaction semantics the whole phase depends on
 >   now pinned by tests. One measured finding changes the design: on Postgres an unawaited
@@ -1187,6 +1192,75 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, second slice: the schema (r9)
+
+**Backup first, as asked.** `data/quiz.before-postgres-20260823-170412.sqlite`, taken with
+`VACUUM INTO` (consistent under load, no `-wal` sidecar) and validated by `assertRestorable`.
+Then verified table by table against the live database — **all 13 tables match, 0 orphan
+responses** — and the counts written to `data/etl-baseline.json` as the ETL's verification
+baseline:
+
+| | rows | | rows |
+| --- | --- | --- | --- |
+| quiz_sets | 9 | question_repetition_schedules | 227 |
+| questions | 306 | vocabulary_items | 32 |
+| question_options | 915 | folders | 13 |
+| quiz_attempts | 38 | repetition_settings | 6 |
+| question_responses | 312 | oauth_* | 12 |
+
+312 answers, 234 correct. That is the corpus the ETL has to reproduce exactly.
+
+**One thing I got wrong on the way.** I reported `applicationTables` (5 entries against 13
+real tables) as a latent bug in the restore guard. It is not: there is a test named
+*"restores a backup taken before the newer tables existed"* which deliberately strips
+`folders`, `vocabulary_items` and the repetition tables from a backup and asserts it still
+restores, with a comment saying `applicationTables` is the *signature*, not the live list. The
+real gap was in my own manifest, which under-counted the baseline until I enumerated tables
+from `sqlite_master` instead. Third time this session I inferred a defect from a mechanism
+without checking intent.
+
+**Schema.** `apps/api/src/persistence/postgres/schema.ts`, 12 tables, one migration
+(`drizzle-postgres/0000_long_micromax.sql`), applied to the Docker instance. `timestamptz`
+throughout, real `boolean`, real `text[]`/`integer[]` instead of JSON-in-TEXT, `uuid` primary
+keys with a `legacy_id` column so the old ids stay resolvable for a release after the ETL,
+`version` for optimistic concurrency, `deleted_at` on every content table, `visibility`
+reserved for the marketplace.
+
+Ownership is deliberately **not** in this migration. `owner_id` arrives in phase 7 with
+identity, because `ADD COLUMN` + backfill + `SET NOT NULL` is cheap on Postgres in a way it
+never was on SQLite — which is exactly the kind of thing moving engine first buys.
+
+**Constraints proven, not assumed** (`tests/integration/postgres/schema-constraints.test.ts`):
+
+- `pages_parent_slug_unique … NULLS NOT DISTINCT` really does reject two root pages with the
+  same slug, while allowing the same slug under different parents. This was the specific trap
+  flagged in §7 — Postgres treats NULLs as distinct by default, and the SQLite schema needed a
+  separate partial index for it. Verified in both directions.
+- `study_settings_scope_unique … NULLS NOT DISTINCT` rejects a second owner-wide row, which is
+  what replaces the `check (id = 1)` singleton.
+- `questions → responses` is `ON DELETE RESTRICT`, so **the database now refuses to delete a
+  question that has answers.** In v1 that was an application guard (`AnsweredQuestionError`).
+  It is now structural, and soft deletion via `deleted_at` is the supported path. That closes
+  most of what was left of finding 11.
+- `responses.selected_option_ids` is a real `uuid[]`; `attempts.started_at` is
+  `timestamp with time zone`.
+
+**Two tooling findings worth knowing before writing more Postgres tests.**
+
+1. **drizzle-kit hardcodes `REFERENCES "public"."…"`** — 15 times in this migration. So the
+   obvious test-isolation trick, a schema per run, silently leaves every foreign key pointing
+   at an empty `public`: parent rows insert fine and children fail with a confusing FK
+   violation. Cost me a while. The harness now creates a **database** per run, where `public`
+   is the right answer. This also matters for Supabase if a non-`public` schema is ever
+   wanted: it is a drizzle-kit output setting, not a runtime choice.
+2. **`expect(query).rejects` never settles against a postgres.js query** under `bun test` —
+   they are lazy thenables, and the test hangs to timeout rather than failing. Tests use an
+   explicit `failureOf(() => …)` helper that forces execution through `catch`. Worth
+   remembering; it looks like a database hang and is not one.
+
+**Still not done in phase 5:** every repository, every use case, the transaction-topology
+change, the ETL, and the Node switch.
 
 ### Phase 5, first slice (r8)
 

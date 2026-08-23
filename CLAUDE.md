@@ -73,6 +73,15 @@ port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it 
 so `bun run verify` passes without Docker. Setting `TEST_DATABASE_URL` makes them mandatory
 instead: if it is set and Postgres is missing, the suite fails rather than skipping.
 
+**Postgres tests get a database per run, not a schema.** drizzle-kit writes
+`REFERENCES "public"."…"` into every foreign key, so tables created in a custom schema end up
+with constraints pointing at an empty `public` — parents insert, children fail on a confusing
+FK violation. `tests/fixtures/postgres.ts` creates and drops a database per run.
+
+**`expect(query).rejects` does not work on postgres.js queries.** They are lazy thenables and
+the assertion never settles, so the test hangs to timeout instead of failing. Force execution
+through `catch` — see `failureOf` in `tests/integration/postgres/schema-constraints.test.ts`.
+
 **Never leave a promise unawaited inside a transaction.** Measured, not theoretical: on
 Postgres an unawaited write inside a `db.transaction(...)` callback survives when that
 transaction rolls back — 8/8 runs. It commits on its own connection while the boundary is

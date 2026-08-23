@@ -9,6 +9,14 @@ export const postgresUrl = (): string =>
 	process.env.DATABASE_URL ??
 	DEFAULT_POSTGRES_URL;
 
+const withDatabase = (url: string, database: string): string => {
+	const parsed = new URL(url);
+
+	parsed.pathname = `/${database}`;
+
+	return parsed.toString();
+};
+
 export async function postgresAvailable(): Promise<boolean> {
 	const client = postgres(postgresUrl(), {
 		max: 1,
@@ -31,39 +39,57 @@ export async function postgresAvailable(): Promise<boolean> {
 export interface PostgresHarness {
 	readonly client: postgres.Sql;
 	readonly db: PostgresJsDatabase;
+	readonly database: string;
 	readonly schema: string;
 	close(): Promise<void>;
 }
 
 let counter = 0;
 
+// drizzle-kit writes REFERENCES "public"."…" into every foreign key, so a
+// per-run schema leaves the constraints pointing at an empty public. Each run
+// gets its own database instead, where public is the right answer.
 export async function openPostgres(prefix: string): Promise<PostgresHarness> {
 	counter += 1;
-	const schema = `${prefix}_${process.pid}_${counter}`;
-	const client = postgres(postgresUrl(), {
-		max: 4,
+
+	const database = `recall_${prefix}_${process.pid}_${counter}`.toLowerCase();
+	const base = postgresUrl();
+
+	const admin = () =>
+		postgres(base, { max: 1, prepare: false, onnotice: () => {} });
+
+	const creator = admin();
+
+	try {
+		await creator.unsafe(`drop database if exists "${database}" with (force)`);
+		await creator.unsafe(`create database "${database}"`);
+	} finally {
+		await creator.end({ timeout: 5 });
+	}
+
+	const client = postgres(withDatabase(base, database), {
+		max: 1,
 		prepare: false,
 		onnotice: () => {},
-	});
-
-	await client.unsafe(`create schema "${schema}"`);
-	await client.unsafe(`set search_path to "${schema}"`);
-
-	const scoped = postgres(postgresUrl(), {
-		max: 4,
-		prepare: false,
-		onnotice: () => {},
-		connection: { search_path: schema },
 	});
 
 	return {
-		client: scoped,
-		db: drizzle({ client: scoped }),
-		schema,
+		client,
+		db: drizzle({ client }),
+		database,
+		schema: "public",
 		close: async () => {
-			await scoped.end({ timeout: 5 });
-			await client.unsafe(`drop schema if exists "${schema}" cascade`);
 			await client.end({ timeout: 5 });
+
+			const dropper = admin();
+
+			try {
+				await dropper.unsafe(
+					`drop database if exists "${database}" with (force)`,
+				);
+			} finally {
+				await dropper.end({ timeout: 5 });
+			}
 		},
 	};
 }
