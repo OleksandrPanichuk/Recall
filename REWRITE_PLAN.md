@@ -9,6 +9,11 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+> - r4 — phase 1 implemented, and **finding 11 corrected**: the question-delete path was
+>   already guarded (`AnsweredQuestionError`, commit `73a414e`), so r2's "history is being
+>   destroyed" was overstated. The real defect was option-id re-minting on edit, now fixed
+>   in three lines following the convention `UpdateVocabulary` already used.
+>   `question_revisions` is downgraded to optional. Telegram **webhook** decided.
 > - r3 — owner decisions applied (see "Decisions"): TanStack Start + TanStack Query on Bun,
 >   Better Auth, `CLAUDE.md` amended, bot as API client, uuidv7, renames approved,
 >   private-v1-then-marketplace, `DEVELOPMENT_PLAN.md` replaced. Also: **Express not
@@ -78,23 +83,43 @@ What is genuinely blocking, with evidence:
 9. **MCP OAuth has no user dimension.** `oauth_clients`, `oauth_codes`, `oauth_tokens` bind to a client id, never to a person. After multi-user, a token must name its owner.
 10. **Docs have drifted.** `DEVELOPMENT_PLAN.md` is deleted in the working tree but still referenced by `CLAUDE.md`, `AGENTS.md`, and `DESCRIPTION.md`. `docs/` is gitignored, so all implementation plans are untracked. `README.md` is 60 KB / ~1000 lines of Ukrainian operator manual — valuable, but it will need splitting per app.
 
-11. **Completed attempt history is already being destroyed by edits.** Two independent
-    paths, both verified:
-    - `question_responses.question_id` references `questions.id` with
-      `onDelete: "cascade"` (`schema.ts:224-226`). Deleting a question **deletes the
-      answers people gave it in finished attempts.** `GetAttemptDetail` then silently
-      `continue`s over the hole (`get-attempt-detail.ts:84-88`), so a past attempt
-      quietly shrinks instead of erroring.
-    - `UpdateQuestion.rebuilt()` mints **brand-new option ids** whenever options are
-      supplied (`update-question.ts:104-112`). The `selected_option_ids` already stored
-      in `question_responses` then point at ids that no longer exist, so "what you
-      selected" in a past attempt review becomes unresolvable.
+11. **One real hole in attempt history — narrower than r2 claimed. Now fixed.**
 
-    Today this is nearly invisible because one person authors and practices, usually not
-    in that order. The moment a web UI and an MCP-driven AI both edit quizzes, it becomes
-    the platform's most visible defect — and **§7's "open an attempt and see where you
-    failed" is exactly the feature it breaks.** Fix before migrating data, or the ETL
-    faithfully copies corrupted history.
+    > **Correction (r4).** r2 asserted that completed attempt history "is already being
+    > destroyed" by two paths. I verified that both code paths *exist* but not that either
+    > was *reachable*, which is the wrong bar. One was already guarded. The claim was
+    > overstated and is corrected here.
+
+    - **Question deletes: already guarded, no bug.** `question_responses.question_id` does
+      cascade (`schema.ts:224-226`), but `DeleteQuestion` refuses to delete any question
+      with recorded answers — `AnsweredQuestionError`, *"deleting it would take them with
+      it. Edit it instead."* Commit `73a414e` documents the cascade, counts the exposure in
+      the author's own database ("145 questions carry answers and 127 carry a schedule"),
+      and adds the guard on purpose. This was known and handled before I looked at it.
+    - **Option-id re-minting on edit: real, unguarded, and now fixed.**
+      `UpdateQuestion.rebuilt()` minted brand-new option ids whenever `options` were
+      supplied, so the `selected_option_ids` already stored in `question_responses` pointed
+      at ids that no longer existed. `attempt-detail.presenter.ts:40-44` resolves each
+      stored id against the question's current options and falls back to `"?"`, so a past
+      attempt review literally displayed **"?" instead of what you had chosen.** Reproduced
+      end to end (start → answer → finish → edit options → review) before fixing.
+
+      The fix follows a convention this codebase had already established elsewhere:
+      `UpdateVocabulary` builds option ids deterministically as `${question.id}-${index}`
+      (`update-vocabulary.ts:83`), making position the option's identity. `UpdateQuestion`
+      now reuses the existing option id at the same position and mints one only for a
+      genuinely new position. Three lines, two regression tests, no new table.
+
+      Caveat worth knowing: position-as-identity means *reordering* options re-points a
+      stored selection at whatever now sits in that slot. That is the same trade-off the
+      vocabulary path already accepts, and the alternative (identity by text) would re-mint
+      on every typo fix, which is the bug we just removed.
+
+    - **Remaining minor hole, not fixed.** `answerCount()` is global, so a question that was
+      *presented but never answered* can still be deleted; `GetAttemptDetail` then silently
+      `continue`s over it (`get-attempt-detail.ts:84-88`) and a completed attempt quietly
+      loses an item, changing its denominator. Narrow, and it needs the revision model or a
+      per-attempt presence check to close properly — see §6.
 
 12. **Telegram callback data is hard-capped at 64 bytes** and enforced
     (`callback-data.ts:4`, `CallbackTooLongError`). Ids travel inside composite callback
@@ -523,7 +548,20 @@ per-kind Strategy map — the shape `ARCHITECTURE.md` already prescribes for ans
 evaluation. Additive, no backfill. If `question_sources` ever needs many sources per
 question, widen the primary key then; assuming it now buys nothing.
 
-**Immutable question revisions — this is the baseline-finding-11 bug fix, and it belongs here.**
+**Immutable question revisions — optional, and no longer urgent (r4).**
+
+The acute defect finding 11 described is fixed without any of this: option ids are now stable
+across edits, so stored responses keep resolving. What revisions would additionally buy is
+*textual* fidelity — showing the prompt and option wording **as they were when answered**,
+rather than as they read today — plus a clean way to close the deleted-but-unanswered hole.
+
+Whether that is worth a table is a product call, and it cuts both ways: commit `65dba08`
+("Correct a word without losing what it taught you") argues that when you fix a wrong
+translation you *want* the corrected wording everywhere, including in past reviews. Revisions
+would show the old, wrong wording forever. **Recommendation: skip revisions for now**, and
+revisit only if the marketplace makes it matter (a quiz you practised being rewritten by
+someone else is a different situation from you fixing your own typo). The sketch is kept
+below because the schema is cheaper to design now than to retrofit.
 
 ```text
 question_revisions(
@@ -1025,7 +1063,7 @@ agent findings are not taken on trust.
 
 | # | Finding | Verified against | Where it landed |
 | --- | --- | --- | --- |
-| 1 | Completed attempt history is destroyed by question deletes (FK cascade) and by option-id re-minting on edit. `attempt_questions` alone does not fix it; you need immutable revisions. | `schema.ts:224-226`, `get-attempt-detail.ts:84-88`, `update-question.ts:104-112` | finding 11; §6 `question_revisions`; phase 1 |
+| 1 | Completed attempt history is destroyed by question deletes (FK cascade) and by option-id re-minting on edit. `attempt_questions` alone does not fix it; you need immutable revisions. | `schema.ts:224-226`, `get-attempt-detail.ts:84-88`, `update-question.ts:104-112` | **half right — see below**; finding 11, phase 1 |
 | 2 | An async transaction callback on `bun:sqlite` **is not atomic** — the transaction commits when the callback returns, i.e. at its first `await`. r1's "trivially correct async wrap" was wrong. | `transaction.ts:1-7`, `sqlite-transaction.ts:8-15`, `finish-quiz-attempt.ts:66` | §2, rewritten |
 | 3 | r1's phase order put Postgres and identity **before** the API that is supposed to be the only database owner, leaving either nothing runnable or three direct database clients. | `src/entrypoints/telegram.ts:45` | roadmap, rewritten |
 | 4 | "ETL + keep the SQLite file" is not a migration plan; row counts catch none of the real failure modes, and there was no maintenance mode, deploy order, or rollback deadline. | `scripts/up.ts:246` (migrate-on-every-start) | new cutover section |
@@ -1035,6 +1073,28 @@ agent findings are not taken on trust.
 | 8 | uuidv7 remapping is a real risk for no gain: ids ride inside Telegram callback payloads under a hard 64-byte cap. | `callback-data.ts:4` | §6, finding 12 |
 | 9 | `study_items(kind, payload jsonb)` invents three kinds whose invariants do not exist and trades real constraints for speculative JSON. | — (design judgement) | §6, now `term_pairs` |
 | 10 | Webhook-vs-single-poller and connection-pool limits are phase-3-to-5 correctness concerns, not post-launch ops details. | `src/entrypoints/telegram.ts:110` | new deployment section |
+
+#### Correction to finding 1 (r4)
+
+Accepting this one at face value was a mistake on my part, and worth recording as a lesson
+rather than quietly editing away.
+
+- **Right about the edit path.** Option-id re-minting was real, unguarded, and produced a
+  visible `"?"` in past attempt reviews. Fixed.
+- **Wrong about the delete path.** `DeleteQuestion` already refuses to delete a question with
+  answers. Commit `73a414e` names the cascade, counts the exposure, and adds the guard
+  deliberately. The review inferred a live bug from the schema plus the use case without
+  checking whether anything guarded the call.
+- **Wrong about the remedy.** It concluded "you need immutable `question_revisions`". The
+  actual defect needed three lines and the codebase's own existing convention
+  (`UpdateVocabulary`'s deterministic `${question.id}-${index}` option ids). A revisions
+  table would have been a large answer to a small question.
+
+My own error was subtler and worse: I reported these as "verified against the code" when what
+I had verified was that the *code paths existed*, not that they were *reachable*. A cascade in
+a schema is not a bug until something can actually trigger it. The lesson for the rest of this
+plan: for any claim of the form "X destroys data", find the caller and check the guard before
+believing it — and check `git log` for whether the author already solved it.
 
 ### Where I did not simply defer
 
@@ -1084,7 +1144,7 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | # | Phase | Depends on | Size |
 | --- | --- | --- | --- |
 | 0 | Decisions below; ADRs; freeze feature work | — | S |
-| 1 | **Fix attempt history** (baseline finding 11): `question_revisions`, stop cascading answer deletes, stop re-minting option ids. Still SQLite, still one package. Shippable on its own. | — | M |
+| 1 | ~~**Fix attempt history**~~ — **done** (r4). Option ids are now stable across edits; the delete path turned out to be already guarded, and `question_revisions` is deferred as optional (§6). Shipped on `fix/stable-option-ids`. | — | S |
 | 2 | Monorepo split, **zero behaviour change**, test count unchanged | 1 | M |
 | 3 | Async call sites: `Promise`-returning ports, transaction callback stays sync-typed (§2) | 2 | M |
 | 4 | **Minimal Nest API shell** + composition root, still on SQLite, with one vertical slice served end to end (list quizzes) | 3 | M |
@@ -1097,8 +1157,10 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | 11 | Analytics views and dashboards (§4) | 9 | M |
 | 12 | Email/password auth, sharing, FSRS (§5, §3, §6) | 9 | M |
 
-Phase 1 is deliberately first and standalone: it is a real bug, it is cheap now, and
-migrating data before fixing it means the ETL faithfully copies corrupted history.
+Phase 1 was deliberately first and standalone: a real bug, cheap to fix, and fixing it before
+the ETL means the migration does not carry the defect forward. It came in far smaller than
+estimated — three lines and two tests — because most of the damage r2 predicted was already
+guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
@@ -1157,6 +1219,8 @@ catch none of the failure modes that actually happen. The rehearsed procedure:
 | — | HTTP adapter | **Express, not Fastify** | §1 |
 | — | Use-case naming | **`AnswerQuestionUseCase`** | §8 |
 | — | Package layout | **`domain`/`application`/`persistence` inside `apps/api`**; only `contracts` + `tooling` are packages | §1, §8, Appendix B |
+| — | Telegram delivery | **Webhook**, with the secret-token header and `update_id` idempotency | Sequencing → deployment |
+| — | Phase 1 | **Shipped** — option ids stable across edits; `question_revisions` deferred | finding 11, §6 |
 
 Settled in r2 and not reopened: the transaction callback stays synchronous until Postgres
 (§2); events fire after commit only, and analytics starts as SQL views (§8).
@@ -1170,16 +1234,21 @@ tree and is referenced the same way; if that deletion was not deliberate, restor
 
 ### Still open
 
-1. **Ship the attempt-history fix first?** (phase 1, baseline finding 11.) It is a real bug,
-   independent of everything else, and cheapest before the data migration. My recommendation
-   is yes — and it is the only item on this list that is losing data while undecided.
-2. **Telegram: webhook or exactly one poller?** Needed by phase 8. Recommendation: **webhook**,
-   with Telegram's secret-token header and `update_id` idempotency. It removes the
-   double-poller hazard during rolling deploys, it is the only option that scales past one
-   replica, and it means the bot no longer needs an always-on outbound connection. The cost
-   is a public HTTPS endpoint, which the API already needs for MCP and the web app. Reversible
-   either way — `bot.launch()` vs `bot.createWebhook()` is a few lines — so this can be
-   deferred, but not past phase 8.
+Nothing blocking. The next action is phase 2 — the monorepo split, as a pure file move with
+the suite green.
+
+Two things to carry into the phases that need them:
+
+- **Webhook migration (phase 8).** `bot.launch({ dropPendingUpdates: true })` becomes
+  `bot.createWebhook(...)` behind the API's public HTTPS endpoint, with Telegram's
+  `secret_token` header verified on every request and `update_id` recorded for idempotency.
+  Drop `dropPendingUpdates` at the same time: with a webhook there is no replay backlog to
+  discard, and the reason it exists (24 h of queued updates acting on stale screens) goes
+  away. Keep the polling path behind a config flag for local development, where a public URL
+  is a nuisance.
+- **The deleted-but-unanswered hole** (finding 11, third bullet) stays open by choice. Closing
+  it needs either the deferred revision model or a per-attempt presence check. Revisit when
+  §6's revisions question is revisited.
 
 ## Appendix A: file-level evidence
 
@@ -1200,8 +1269,10 @@ tree and is referenced the same way; if that deletion was not deliberate, restor
 | Statistics already exist | `src/application/use-cases/statistics/get-quiz-statistics.ts` |
 | Reusable process supervisor | `scripts/up.ts` + `up.plan.ts` / `up.ports.ts` / `up.supervise.ts` |
 | Answer rows cascade-deleted with their question | `schema.ts:224-226` |
+| …but that delete is refused when answers exist | `delete-question.ts:11-23` (`AnsweredQuestionError`) |
 | Attempt review silently skips missing questions | `get-attempt-detail.ts:84-88` |
-| Editing options re-mints their ids | `update-question.ts:104-112` |
+| Unresolvable selection renders as `"?"` | `attempt-detail.presenter.ts:40-44` |
+| Deterministic option ids, the pattern to follow | `update-vocabulary.ts:83` |
 | Telegram callback data capped at 64 bytes | `src/adapters/telegram/callbacks/callback-data.ts:4` |
 | Long polling with dropped pending updates | `src/entrypoints/telegram.ts:110` |
 | Migrate-on-every-start (dev only) | `scripts/up.ts:246` |
