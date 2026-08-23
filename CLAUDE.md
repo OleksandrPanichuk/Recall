@@ -1,7 +1,23 @@
 
 Default to using Bun instead of Node.js.
 
-Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `DEVELOPMENT_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, folder ownership, and the distinction between the removed prototype and the target quiz-bot structure. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
+## A rewrite is in progress — know which code you are touching
+
+This branch (`rewrite`) is where the v2 platform is built. `main` is frozen at v1 and stays
+that way until the rewrite lands. Every pull request targets `rewrite`, never `main`.
+
+| | v1 | v2 |
+| --- | --- | --- |
+| Lives in | `src/`, `scripts/`, `tests/` | `apps/`, `packages/` |
+| Binding doc | `ARCHITECTURE.md` | **`REWRITE_PLAN.md`** |
+| Runtime | Bun everywhere, `bun:sqlite` | Bun everywhere **except `apps/api`** (Node + NestJS) |
+| Status | works, 1375 tests green — do not break it | under construction |
+
+Where the two conflict **on this branch, `REWRITE_PLAN.md` wins**; `ARCHITECTURE.md` stays
+binding for anything still under `src/`. `DEVELOPMENT_PLAN.md` has been deleted — its role is
+taken by the Sequencing section of `REWRITE_PLAN.md`.
+
+Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `REWRITE_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, and folder ownership in v1 code, and `REWRITE_PLAN.md` as binding for the same questions in v2 code. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
 - Use `bun test` instead of `jest` or `vitest`
@@ -13,6 +29,8 @@ Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITEC
 
 ## APIs
 
+These rules hold everywhere **except** the two v2 exemptions below.
+
 - `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express` —
   with one exception, granted by the owner: `src/adapters/mcp/http/` runs on
   Express because the MCP SDK's OAuth endpoints (`mcpAuthRouter`,
@@ -20,10 +38,32 @@ Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITEC
   server is not worth it. Do not "fix" that by removing Express.
 - `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
 - `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
+- `Bun.sql` for Postgres in v1 code. Don't use `pg` or `postgres.js`.
 - `WebSocket` is built-in. Don't use `ws`.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
 - Bun.$`ls` instead of execa.
+
+### v2 exemptions (owner-granted, `REWRITE_PLAN.md` §1)
+
+Two apps are exempt because the owner chose frameworks that cannot honour the rules above.
+Both exemptions are **scoped to their directory** — do not let them spread.
+
+1. **`apps/api` — NestJS on Node, with the Express adapter.**
+   `@nestjs/platform-express`, not Fastify: the MCP SDK's OAuth pieces are Express
+   middleware, Better Auth documents the Express handler, and Express is Nest's
+   best-supported adapter. Persistence is drizzle-orm over a Postgres driver
+   (`postgres`/`pg`), not `Bun.sql`, because this app runs on Node. Everything else here —
+   `bun install`, `bun test`, `bun run` — stays Bun.
+2. **`apps/web` — TanStack Start, which requires Vite** (plus Nitro for deployment, `bun`
+   preset). This overrides the "Don't use `vite`" rule in the Frontend section below, for
+   `apps/web` only.
+
+`apps/bot`, `apps/mcp`, `apps/admin`, `packages/*`, `scripts/`, and all of `src/` stay on
+plain Bun with no exemption.
+
+One hard rule that outranks convenience: **only `apps/api` talks to the database.**
+`apps/web` has a server (TanStack Start server functions) and must still reach data over
+HTTP — it must not depend on drizzle or a Postgres driver at all.
 
 ## Testing
 
@@ -38,6 +78,8 @@ test("hello world", () => {
 ```
 
 ## Frontend
+
+Applies to `apps/admin` and any v1 UI. `apps/web` is exempt — see the v2 exemptions above.
 
 Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
 
@@ -110,6 +152,15 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Naming
+
+Beyond the conventions in `ARCHITECTURE.md`:
+
+- Application use cases carry their role in the name: `AnswerQuestionUseCase`, not
+  `AnswerQuestion`. The class name is its NestJS injection token, and it has to be
+  distinguishable from `AnswerQuestionCommand` and `AnswerQuestionController` at a glance.
+  Files follow: `answer-question.use-case.ts`.
 
 ## Code comments
 
