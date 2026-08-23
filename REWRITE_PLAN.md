@@ -1240,6 +1240,31 @@ I stopped rather than half-land it. The folder port is preserved on the stash
 (`wip: folder use cases ported to async scope`) and the tree is green at 1469 tests. A large
 non-compiling diff would have been worse than a clean boundary.
 
+**Progress on the cutover (r16).** 25 of 34 use cases are ported to
+`UnitOfWork<RepositoryScope>`, each type-checked as it landed, and stashed as
+`wip: 24 of 34 use cases ported to the async RepositoryScope`. Ported: all 8 folder use cases,
+both settings, `StartQuizAttempt`, `Resume`/`Pause`, `GetCurrentQuestion`, `GetQuizSet`,
+`ListQuizSets`, `ListQuestions`, both repetition, both statistics, `Archive`, `Publish`,
+`UpdateQuizSet`, `MoveQuizSet`, `CreateQuizSet`.
+
+Nine remain, and they are the intricate ones: `AddQuestions`, `AddVocabulary`,
+`UpdateVocabulary`, `UpdateQuestion`, `DeleteQuestion`, `ListVocabulary`, `AnswerQuestion`,
+`FinishQuizAttempt`, `StartPracticeSession` — the last three being the cross-context cases from
+r12.
+
+Three findings from doing it:
+
+- **Scripting this refactor does not work.** A regex pass over 20 files inserted repository
+  fields into an error class's constructor and produced 186 errors. Reverted and hand-ported
+  since. Anything touching class bodies here needs to be anchored per file.
+- **No adapter bypasses a use case.** `admin/api.ts` touches nothing but the 24 use cases it
+  calls, and no adapter reaches for the drizzle client. So the bot, the MCP server, and the
+  admin app need **no changes at all** for the engine switch — the layering held.
+- **One exception, and it blocks the Node switch.** `mcp-http.ts` builds the OAuth store from
+  `application.client` and `application.transaction`, i.e. straight off the SQLite handle. So
+  the three `oauth_*` tables have to move to Postgres as part of the cutover after all, not in
+  phase 7 — otherwise `bun:sqlite` stays in the tree and `apps/api` cannot move to Node.
+
 **What the cutover requires, as a checklist.** This is one piece of work, and it changes how the
 app boots:
 
@@ -1254,7 +1279,9 @@ app boots:
 - delete the SQLite adapter, the five synchronous ports, the sync `Transaction` port, and the 9
   SQLite integration test files;
 - run the ETL against the live database and keep the SQLite file read-only as the escape hatch,
-  per the cutover section.
+  per the cutover section;
+- **move the three `oauth_*` tables to Postgres** and port `sqlite-oauth.store.ts`, which r16
+  found is the one place an adapter reaches past the use cases into the database handle.
 
 Two things that make this safe rather than reckless when it is done: the ETL is idempotent and
 self-verifying against the real data, and every ported use case can be tested against the
