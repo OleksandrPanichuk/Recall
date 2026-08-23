@@ -15,6 +15,11 @@
 >   - r11 — the **transaction topology exists and works**: an async `UnitOfWork` that hands
 >     repositories to the operation, the first Postgres repository behind it, and a rollback
 >     test proving the boundary. No use case has moved yet.
+>   - r12 — **"per bounded context" is retracted.** The repositories are welded together by SQL:
+>     the attempt repository joins `questions`, and the folder repository reads `quiz_sets`, so
+>     no context can sit on a different engine from its neighbour. Phase 5 is a single cutover.
+>     Added the enabler that makes that safe: one contract suite, run against both a Postgres
+>     and an in-memory implementation of the same async port.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1198,6 +1203,53 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, fifth slice: retracting "per bounded context" (r12)
+
+**The strategy this plan has carried since r2 does not survive the repositories.** I checked
+before porting anything, and the contexts are joined at the SQL level:
+
+- `sqlite-quiz-attempt.repository.ts:186` — `topicAccuracy` **inner joins `questions`**. So
+  `study` cannot read from Postgres while `content` is still on SQLite, or the join has nothing
+  to join to.
+- `sqlite-folder.repository.ts:90` — `countSetsIn` reads **`quiz_sets`**. So `folders` cannot
+  move without quizzes; `delete-folder` depends on that count.
+- The repetition repository *is* self-contained — but `FinishQuizAttemptUseCase` writes an
+  attempt and a schedule in **one transaction**, so scheduling cannot straddle engines either.
+
+A cross-engine join is not something a shim papers over; it is a query that cannot run. So the
+five repositories and the use cases above them move **together, in one cutover**, not context
+by context. The Codex review recommended per-context, I endorsed it twice, and the code says
+otherwise. That is the third strategy correction in this plan and the reason for all of them is
+the same: the recommendation was reasoned about rather than checked.
+
+The user's decision to land the schema as **one migration** now applies to the code as well,
+which at least makes the two halves consistent.
+
+**What makes a single cutover survivable.** A big-bang port is only safe if the use cases can
+be tested without the database they are being ported onto. So the async ports now have **two
+implementations behind one contract suite**:
+
+```text
+tests/contracts/page.repository.contract.ts   9 tests, engine-agnostic
+  ├─ tests/unit/memory-page.repository.test.ts        in-memory, 18 ms, always runs
+  └─ tests/integration/postgres/page.repository.test.ts  Postgres, skipped without Docker
+```
+
+Both bindings pass the same nine tests, including the rollback property: the in-memory unit of
+work snapshots the store and restores it when the operation throws, so a double that quietly
+committed on failure would fail the contract. That is the difference between a double and a
+fake, and it is why the contract is shared rather than duplicated.
+
+The payoff: when the use cases port, their tests bind to the in-memory scope and keep running
+in milliseconds with no Docker, while the Postgres adapters stay honest against the same
+assertions. Without this, porting 34 use cases would have made a third of the suite
+conditional on a container.
+
+**Pattern for the rest of the phase**, one repository at a time: async port → contract suite →
+in-memory implementation → Postgres implementation → both bound. Four repositories left
+(`quizzes`, `questions` inside the quiz aggregate, `attempts`, `repetition`), then the use cases
+and the composition root in a single switch.
 
 ### Phase 5, fourth slice: the transaction topology (r11)
 
