@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
 import {
@@ -18,8 +18,20 @@ if (sqlitePath === undefined || url === undefined) {
 
 const migrationsDirectory = join(import.meta.dir, "..", "drizzle-postgres");
 
-const statements = (file: string): readonly string[] =>
-	readFileSync(join(migrationsDirectory, file), "utf8")
+const migrationFile = (): string => {
+	const [name] = readdirSync(migrationsDirectory)
+		.filter((entry) => entry.endsWith(".sql"))
+		.sort();
+
+	if (name === undefined) {
+		throw new Error(`no migration found in ${migrationsDirectory}`);
+	}
+
+	return join(migrationsDirectory, name);
+};
+
+const statements = (): readonly string[] =>
+	readFileSync(migrationFile(), "utf8")
 		.split("--> statement-breakpoint")
 		.map((statement) => statement.trim())
 		.filter((statement) => statement.length > 0);
@@ -28,7 +40,7 @@ const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
 
 try {
 	if (process.env.APPLY_SCHEMA === "1") {
-		for (const statement of statements("0000_tan_power_man.sql")) {
+		for (const statement of statements()) {
 			await client.unsafe(statement);
 		}
 

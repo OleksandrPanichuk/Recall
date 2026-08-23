@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
+	applyMigration,
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
@@ -10,16 +9,6 @@ import {
 const available = await postgresAvailable();
 
 let harness: PostgresHarness;
-
-const migration = (): readonly string[] => {
-	const directory = join(import.meta.dir, "..", "..", "..", "drizzle-postgres");
-	const file = readFileSync(join(directory, "0000_tan_power_man.sql"), "utf8");
-
-	return file
-		.split("--> statement-breakpoint")
-		.map((statement) => statement.trim())
-		.filter((statement) => statement.length > 0);
-};
 
 const uuid = (): string => crypto.randomUUID();
 
@@ -30,9 +19,7 @@ beforeAll(async () => {
 
 	harness = await openPostgres("schema");
 
-	for (const statement of migration()) {
-		await harness.client.unsafe(statement);
-	}
+	await applyMigration(harness);
 });
 
 afterAll(async () => {

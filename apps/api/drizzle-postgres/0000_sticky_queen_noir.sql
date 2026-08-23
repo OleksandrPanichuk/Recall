@@ -11,6 +11,7 @@ CREATE TABLE "attempts" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"legacy_id" text,
 	"quiz_id" uuid NOT NULL,
+	"telegram_user_id" integer,
 	"mode" text NOT NULL,
 	"status" text NOT NULL,
 	"started_at" timestamp with time zone NOT NULL,
@@ -125,6 +126,7 @@ CREATE TABLE "responses" (
 --> statement-breakpoint
 CREATE TABLE "review_states" (
 	"question_id" uuid PRIMARY KEY NOT NULL,
+	"telegram_user_id" integer,
 	"repetition_count" integer DEFAULT 0 NOT NULL,
 	"lapses" integer DEFAULT 0 NOT NULL,
 	"interval_days" integer,

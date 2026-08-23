@@ -141,6 +141,7 @@ interface OptionRow {
 interface AttemptRow {
 	id: string;
 	quiz_set_id: string;
+	telegram_user_id: number;
 	mode: string;
 	status: string;
 	question_ids: string;
@@ -163,6 +164,7 @@ interface ResponseRow {
 
 interface ScheduleRow {
 	question_id: string;
+	telegram_user_id: number;
 	repetition_count: number;
 	lapses: number;
 	last_completed_at: string;
@@ -401,10 +403,12 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into attempts (
-					id, legacy_id, quiz_id, mode, status, started_at, updated_at, completed_at
+					id, legacy_id, quiz_id, telegram_user_id, mode, status,
+					started_at, updated_at, completed_at
 				) values (
 					${uuidFor("attempt", id)}::uuid, ${id}::text,
 					${uuidFor("quiz", attempt.quiz_set_id)}::uuid,
+					${attempt.telegram_user_id}::int,
 					${attempt.mode}::text, ${attempt.status}::text,
 					${date(attempt.started_at)}::timestamptz,
 					${date(attempt.updated_at)}::timestamptz,
@@ -484,10 +488,11 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into review_states (
-					question_id, repetition_count, lapses, last_reviewed_at, due_at,
-					created_at, updated_at
+					question_id, telegram_user_id, repetition_count, lapses,
+					last_reviewed_at, due_at, created_at, updated_at
 				) values (
 					${uuidFor("question", questionId)}::uuid,
+					${schedule.telegram_user_id}::int,
 					${schedule.repetition_count}::int, ${schedule.lapses}::int,
 					${date(schedule.last_completed_at)}::timestamptz,
 					${date(schedule.due_at)}::timestamptz,
@@ -556,7 +561,9 @@ export async function migrateSqliteToPostgres(options: {
 		notes.push(
 			"oauth tables are not migrated: phase 7 replaces them with Better Auth",
 		);
-		notes.push("telegram_user_id is dropped: ownership arrives in phase 7");
+		notes.push(
+			"telegram_user_id is carried as a legacy identifier; phase 7 turns it into owner_id",
+		);
 	} finally {
 		source.close();
 	}
@@ -643,6 +650,19 @@ export async function verifyMigration(options: {
 				check: "correct answers preserved",
 				expected: expectedCorrect,
 				actual: actualCorrect,
+			});
+		}
+
+		const attemptsWithoutUser = await single(
+			options.client,
+			"select count(*) as n from attempts where telegram_user_id is null",
+		);
+
+		if (attemptsWithoutUser !== 0) {
+			issues.push({
+				check: "attempt owner identifier survived",
+				expected: 0,
+				actual: attemptsWithoutUser,
 			});
 		}
 

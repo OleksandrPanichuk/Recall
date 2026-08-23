@@ -1,5 +1,5 @@
 {
-	"id": "3a10169e-3640-4268-8462-3f96c7656b0f",
+	"id": "6299971d-f641-42a6-b88f-ea7ed6b60713",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -92,6 +92,12 @@
 					"type": "uuid",
 					"primaryKey": false,
 					"notNull": true
+				},
+				"telegram_user_id": {
+					"name": "telegram_user_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
 				},
 				"mode": {
 					"name": "mode",
@@ -954,6 +960,12 @@
 					"type": "uuid",
 					"primaryKey": true,
 					"notNull": true
+				},
+				"telegram_user_id": {
+					"name": "telegram_user_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
 				},
 				"repetition_count": {
 					"name": "repetition_count",

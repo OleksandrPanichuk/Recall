@@ -211,6 +211,7 @@ export const attempts = pgTable(
 		quizId: uuid("quiz_id")
 			.notNull()
 			.references(() => quizzes.id, { onDelete: "cascade" }),
+		telegramUserId: integer("telegram_user_id"),
 		mode: text("mode").notNull(),
 		status: text("status").notNull(),
 		startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
@@ -277,6 +278,7 @@ export const reviewStates = pgTable(
 		questionId: uuid("question_id")
 			.primaryKey()
 			.references(() => questions.id, { onDelete: "cascade" }),
+		telegramUserId: integer("telegram_user_id"),
 		repetitionCount: integer("repetition_count").notNull().default(0),
 		lapses: integer("lapses").notNull().default(0),
 		intervalDays: integer("interval_days"),

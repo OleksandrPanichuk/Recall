@@ -23,6 +23,10 @@
 >   - r13 — the **quiz repository is ported, and the delete-and-reinsert pattern is gone**:
 >     diffing upsert, `version` for optimistic concurrency, survivors keeping their ids. Two of
 >     five repositories now have both implementations behind a shared contract.
+>   - r14 — the **attempts repository is ported**, statistics queries included, and the
+>     migration is now **lossless**: r9's decision to leave ownership out took the legacy
+>     `telegram_user_id` with it, which the domain still requires. Three of five repositories
+>     paired.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1206,6 +1210,51 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, seventh slice: attempts, and a lossy migration caught (r14)
+
+**Correction to r9.** "Ownership is deliberately not in this migration" was right about the
+`owner_id` foreign key and wrong about the column it took with it. `QuizAttempt` and the
+repetition schedule both carry `telegramUserId` as a **required** domain field, so a Postgres
+attempts repository could not reconstruct an attempt at all — it would have to invent the
+value. Worse, phase 7 needs that number to map existing data onto Better Auth's `account`
+row: it *is* the Telegram account id.
+
+Checked before changing anything: all 38 attempts and all 227 schedules carry the same id
+(`797736131`), so nothing was lost in practice yet — but the ETL was discarding information the
+running app requires and calling it a note. `attempts` and `review_states` now keep a nullable
+`telegram_user_id`, the ETL carries it, and `verifyMigration` fails the run if any attempt
+arrives without one. Re-run against the real backup: 38 and 227 rows, all with the id intact.
+
+Ownership proper still arrives in phase 7, which turns this column into `owner_id`. The
+distinction that matters: **defer the model, never the data.**
+
+**`AttemptRepository`, ported with its read models.** Nine contract tests against both engines,
+first time green on Postgres. The interesting ones are the queries that are not aggregate
+persistence at all:
+
+- `topicAccuracy` — the `responses → attempts → questions` join that forced the single-cutover
+  decision in r12, now running on Postgres;
+- `listCompletedForQuiz`, `incorrectQuestionIds` (distinct, once per question), `answerCount`;
+- `findActiveFor`, which must not return another user's attempt — asserted in both directions.
+
+One v1 behaviour deliberately preserved: `save` **ignores a copy whose `updatedAt` predates the
+stored row**. The SQLite version explains why — responses are append-only, so applying a stale
+attempt would rewind `updated_at` past answers already written and leave a row
+`restoreQuizAttempt` rejects, making the attempt permanently unreadable. That guard is now in
+the contract, so neither implementation can lose it.
+
+Also: `ContentScope` became `RepositoryScope`. With the cutover single, one scope carrying every
+repository is the honest shape; a per-context scope would imply an independence that r12 showed
+does not exist.
+
+Migration files are no longer named in code. `drizzle-kit` renames the file on every
+regeneration (`0000_long_micromax` → `0000_tan_power_man` → `0000_sticky_queen_noir` across
+three slices), and each rename broke two hardcoded references. Tests and the ETL CLI now read
+the newest `.sql` from the directory.
+
+**Three of five repositories paired:** `pages`, `quizzes`, `attempts`. Remaining: `repetition`
+and `term_pairs` — both small, and neither carries a read model.
 
 ### Phase 5, sixth slice: the quiz repository, without the old save (r13)
 

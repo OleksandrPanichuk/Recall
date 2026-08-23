@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { ContentScope } from "@/application/ports/repositories/page.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
@@ -16,8 +16,8 @@ import {
 } from "@/domain/quiz-set/quiz-set";
 
 export interface QuizRepositoryHarness {
-	readonly unitOfWork: UnitOfWork<ContentScope>;
-	readonly scope: ContentScope;
+	readonly unitOfWork: UnitOfWork<RepositoryScope>;
+	readonly scope: RepositoryScope;
 	reset(): Promise<void>;
 	markAnswered(questionId: string): Promise<void>;
 }

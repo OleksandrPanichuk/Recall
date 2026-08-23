@@ -1,5 +1,6 @@
 import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import type { AttemptRepository } from "./attempt.repository";
 import type { QuizRepository } from "./quiz.repository";
 
 export interface PageRepository {
@@ -16,7 +17,8 @@ export interface PageRepository {
 	delete(id: FolderId): Promise<void>;
 }
 
-export interface ContentScope {
+export interface RepositoryScope {
 	readonly pages: PageRepository;
 	readonly quizzes: QuizRepository;
+	readonly attempts: AttemptRepository;
 }

@@ -94,16 +94,21 @@ export async function openPostgres(prefix: string): Promise<PostgresHarness> {
 	};
 }
 
+export const migrationsDirectory = (from: string): string => from;
+
 export async function applyMigration(harness: PostgresHarness): Promise<void> {
-	const { readFileSync } = await import("node:fs");
+	const { readdirSync, readFileSync } = await import("node:fs");
 	const { join } = await import("node:path");
-	const file = join(
-		import.meta.dir,
-		"..",
-		"..",
-		"drizzle-postgres",
-		"0000_tan_power_man.sql",
-	);
+	const directory = join(import.meta.dir, "..", "..", "drizzle-postgres");
+	const [name] = readdirSync(directory)
+		.filter((entry) => entry.endsWith(".sql"))
+		.sort();
+
+	if (name === undefined) {
+		throw new Error(`no migration found in ${directory}`);
+	}
+
+	const file = join(directory, name);
 
 	for (const statement of readFileSync(file, "utf8")
 		.split("--> statement-breakpoint")

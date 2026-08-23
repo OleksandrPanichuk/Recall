@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createApplication } from "@/composition/create-application";
 import {
@@ -8,6 +7,7 @@ import {
 	verifyMigration,
 } from "@/persistence/postgres/etl";
 import {
+	applyMigration,
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
@@ -107,23 +107,7 @@ const seed = async (): Promise<string> => {
 	}
 };
 
-const applySchema = async (): Promise<void> => {
-	const file = join(
-		import.meta.dir,
-		"..",
-		"..",
-		"..",
-		"drizzle-postgres",
-		"0000_tan_power_man.sql",
-	);
-
-	for (const statement of readFileSync(file, "utf8")
-		.split("--> statement-breakpoint")
-		.map((entry) => entry.trim())
-		.filter((entry) => entry.length > 0)) {
-		await harness.client.unsafe(statement);
-	}
-};
+const applySchema = (): Promise<void> => applyMigration(harness);
 
 beforeAll(async () => {
 	if (!available) {
