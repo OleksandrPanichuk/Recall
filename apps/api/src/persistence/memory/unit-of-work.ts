@@ -3,7 +3,9 @@ import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { createMemoryAttemptRepository } from "./attempt.repository";
 import { createMemoryPageRepository } from "./page.repository";
 import { createMemoryQuizRepository } from "./quiz.repository";
+import { createMemoryReviewRepository } from "./review.repository";
 import { type MemoryStore, restoreInto, snapshotOf } from "./store";
+import { createMemoryTermPairRepository } from "./term-pair.repository";
 
 export interface MemoryPersistence {
 	readonly store: MemoryStore;
@@ -18,6 +20,8 @@ export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
 		pages: createMemoryPageRepository(store),
 		quizzes: createMemoryQuizRepository(store),
 		attempts: createMemoryAttemptRepository(store),
+		reviews: createMemoryReviewRepository(store),
+		termPairs: createMemoryTermPairRepository(store),
 	};
 
 	return {

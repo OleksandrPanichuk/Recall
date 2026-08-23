@@ -4,6 +4,8 @@ import type { RecallDatabase } from "./client";
 import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
 import { createPagePostgresRepository } from "./repositories/page.repository";
 import { createQuizPostgresRepository } from "./repositories/quiz.repository";
+import { createReviewPostgresRepository } from "./repositories/review.repository";
+import { createTermPairPostgresRepository } from "./repositories/term-pair.repository";
 
 export type Executor =
 	| RecallDatabase
@@ -13,6 +15,8 @@ export const scopeFor = (executor: Executor): RepositoryScope => ({
 	pages: createPagePostgresRepository(executor),
 	quizzes: createQuizPostgresRepository(executor),
 	attempts: createAttemptPostgresRepository(executor),
+	reviews: createReviewPostgresRepository(executor),
+	termPairs: createTermPairPostgresRepository(executor),
 });
 
 export function createPostgresUnitOfWork(

@@ -1,6 +1,9 @@
 import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuizSet, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import type { RepetitionSchedule } from "@/domain/repetition/repetition";
+import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import type { VocabularyItem } from "@/domain/vocabulary/vocabulary-item";
 
 export interface MemoryQuiz {
 	readonly id: string;
@@ -15,6 +18,9 @@ export interface MemoryStore {
 	quizVersions: Map<string, number>;
 	answeredQuestionIds: Set<string>;
 	attempts: Map<string, QuizAttempt>;
+	schedules: Map<string, RepetitionSchedule>;
+	settings: Map<string, QuizSettings>;
+	termPairs: Map<string, VocabularyItem>;
 }
 
 export const emptyStore = (): MemoryStore => ({
@@ -24,6 +30,9 @@ export const emptyStore = (): MemoryStore => ({
 	quizVersions: new Map(),
 	answeredQuestionIds: new Set(),
 	attempts: new Map(),
+	schedules: new Map(),
+	settings: new Map(),
+	termPairs: new Map(),
 });
 
 export const snapshotOf = (store: MemoryStore): MemoryStore => ({
@@ -33,6 +42,9 @@ export const snapshotOf = (store: MemoryStore): MemoryStore => ({
 	quizVersions: new Map(store.quizVersions),
 	answeredQuestionIds: new Set(store.answeredQuestionIds),
 	attempts: new Map(store.attempts),
+	schedules: new Map(store.schedules),
+	settings: new Map(store.settings),
+	termPairs: new Map(store.termPairs),
 });
 
 export const restoreInto = (
@@ -45,6 +57,9 @@ export const restoreInto = (
 	store.quizVersions = new Map(snapshot.quizVersions);
 	store.answeredQuestionIds = new Set(snapshot.answeredQuestionIds);
 	store.attempts = new Map(snapshot.attempts);
+	store.schedules = new Map(snapshot.schedules);
+	store.settings = new Map(snapshot.settings);
+	store.termPairs = new Map(snapshot.termPairs);
 };
 
 export const pageIdsOf = (store: MemoryStore): readonly FolderId[] =>

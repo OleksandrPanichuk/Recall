@@ -2,6 +2,8 @@ import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import type { AttemptRepository } from "./attempt.repository";
 import type { QuizRepository } from "./quiz.repository";
+import type { ReviewRepository } from "./review.repository";
+import type { TermPairRepository } from "./term-pair.repository";
 
 export interface PageRepository {
 	save(page: Folder): Promise<void>;
@@ -21,4 +23,6 @@ export interface RepositoryScope {
 	readonly pages: PageRepository;
 	readonly quizzes: QuizRepository;
 	readonly attempts: AttemptRepository;
+	readonly reviews: ReviewRepository;
+	readonly termPairs: TermPairRepository;
 }
