@@ -43,6 +43,7 @@ export const pages = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
+		unique("pages_legacy_unique").on(table.legacyId),
 		unique("pages_parent_slug_unique")
 			.on(table.parentId, table.slug)
 			.nullsNotDistinct(),
@@ -78,6 +79,7 @@ export const quizzes = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
+		unique("quizzes_legacy_unique").on(table.legacyId),
 		check(
 			"quizzes_status_check",
 			sql`${table.status} in ('draft', 'published', 'archived')`,
@@ -128,7 +130,10 @@ export const termPairs = pgTable(
 		updatedAt: updatedAt(),
 		deletedAt: deletedAt(),
 	},
-	(table) => [index("term_pairs_quiz_idx").on(table.quizId)],
+	(table) => [
+		unique("term_pairs_legacy_unique").on(table.legacyId),
+		index("term_pairs_quiz_idx").on(table.quizId),
+	],
 );
 
 export const questions = pgTable(
@@ -153,6 +158,7 @@ export const questions = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
+		unique("questions_legacy_unique").on(table.legacyId),
 		check(
 			"questions_difficulty_check",
 			sql`${table.difficulty} in ('easy', 'medium', 'hard')`,
@@ -189,6 +195,7 @@ export const questionOptions = pgTable(
 		position: integer("position").notNull(),
 	},
 	(table) => [
+		unique("question_options_legacy_unique").on(table.legacyId),
 		unique("question_options_question_position_unique").on(
 			table.questionId,
 			table.position,
@@ -211,6 +218,7 @@ export const attempts = pgTable(
 		completedAt: timestamp("completed_at", { withTimezone: true }),
 	},
 	(table) => [
+		unique("attempts_legacy_unique").on(table.legacyId),
 		check(
 			"attempts_status_check",
 			sql`${table.status} in ('active', 'paused', 'completed')`,

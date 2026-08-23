@@ -9,6 +9,9 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+>   - r10 — the **ETL exists and verifies itself**. It migrates the real backup into the new
+>     schema with every count matching and a `verifyMigration` pass, is idempotent, and is
+>     covered by tests. One postgres.js encoding trap cost most of the time: see below.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1192,6 +1195,69 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, third slice: the ETL (r10)
+
+`apps/api/src/persistence/postgres/etl.ts` plus `apps/api/scripts/migrate-to-postgres.ts`
+(`bun run etl <sqlite> <url>`). Run against the real backup it writes:
+
+| target | rows | from |
+| --- | --- | --- |
+| pages | 13 | folders |
+| quizzes | 9 | quiz_sets |
+| term_pairs | 32 | vocabulary_items |
+| questions | 306 | questions |
+| question_options | 915 | question_options |
+| attempts | 38 | quiz_attempts |
+| responses | 312 | question_responses |
+| review_states | 227 | question_repetition_schedules |
+| study_settings | 7 | repetition_settings + defaults |
+| question_sources | 64 | 32 pairs × 2 directions |
+| attempt_questions | 504 | the `question_ids` JSON, normalised |
+
+`verifyMigration` then checks every mapped count, that all 234 correct answers survive, that no
+options or attempt timestamps were orphaned, and that the root-page count matches — and the CLI
+exits non-zero if any check fails. It passes on the real data.
+
+Design points worth keeping:
+
+- **Ids are derived, not random.** `uuidFor(kind, legacyId)` is sha256 over
+  `recall-v2:kind:legacyId` with the version and variant bits set, so re-running the ETL
+  produces the same uuids. That plus `legacy_id` unique constraints and `on conflict do
+  nothing` makes it **idempotent** — proven by a test that runs it twice and asserts the
+  question count is unchanged.
+- **Folders need a topological walk.** `order by parent_id` does not put ancestors first past
+  the first level; the real data has 3 roots and 10 nested folders, so a naive order fails on
+  a foreign key. The ETL inserts by readiness and reports anything unreachable.
+- **`question_sources` reconstructs a direction that was never stored.** v1 inferred it by
+  comparing the question prompt to the term; the ETL does the same and records it explicitly,
+  which is the point of the table.
+- **Not migrated, deliberately:** the `oauth_*` tables (phase 7 replaces them with Better
+  Auth) and `telegram_user_id` (ownership arrives in phase 7). Both are reported as notes
+  rather than dropped silently.
+
+**The postgres.js trap that cost the most time here.** postgres.js chooses parameter encoders
+from the **first execution of a given query string** and reuses them. So an insert whose first
+row has `null` in a column and whose second row has a value binds the second row against the
+first row's inferred types. Two distinct symptoms, both misleading:
+
+- a `uuid` arriving in `parent_id` as a *different* uuid than the one passed, surfacing as
+  `violates foreign key constraint` on a parent that plainly exists;
+- `TypeError: The "string" argument must be … Received an instance of Date`, thrown from deep
+  inside postgres.js's byte writer.
+
+Casting every placeholder (`${x}::uuid`, `::text`, `::timestamptz`, `::boolean`, `::int`,
+`::text[]`) fixes the first. The second needs more: **timestamps are passed as ISO strings, not
+`Date` objects**, because a `Date` reaching the text encoder throws regardless of the cast. The
+failure is order-dependent, which is why the 13-folder real backup passed while a 2-folder
+seeded fixture did not — a difference that looked like a harness bug and was not.
+
+Also fixed while verifying: `verifyMigration` compared `sum(is_correct)` without `coalesce`, so
+a source database with no answers reported "expected -1" instead of 0.
+
+**Still not done in phase 5:** every repository, every use case, the transaction-topology
+change, and the Node switch. The ETL is the piece that can now be rehearsed against production
+data as often as wanted.
 
 ### Phase 5, second slice: the schema (r9)
 

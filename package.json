@@ -37,6 +37,7 @@
 		"api": "bun run ./apps/api/src/entrypoints/api.ts",
 		"db:up": "docker compose up -d --wait",
 		"db:down": "docker compose down",
-		"db:reset": "docker compose down -v && docker compose up -d --wait"
+		"db:reset": "docker compose down -v && docker compose up -d --wait",
+		"etl": "bun run --filter '@recall/api' etl --"
 	}
 }

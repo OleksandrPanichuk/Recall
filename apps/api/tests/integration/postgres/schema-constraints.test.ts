@@ -13,7 +13,7 @@ let harness: PostgresHarness;
 
 const migration = (): readonly string[] => {
 	const directory = join(import.meta.dir, "..", "..", "..", "drizzle-postgres");
-	const file = readFileSync(join(directory, "0000_long_micromax.sql"), "utf8");
+	const file = readFileSync(join(directory, "0000_tan_power_man.sql"), "utf8");
 
 	return file
 		.split("--> statement-breakpoint")

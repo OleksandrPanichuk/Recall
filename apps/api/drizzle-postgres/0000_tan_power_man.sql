@@ -16,6 +16,7 @@ CREATE TABLE "attempts" (
 	"started_at" timestamp with time zone NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"completed_at" timestamp with time zone,
+	CONSTRAINT "attempts_legacy_unique" UNIQUE("legacy_id"),
 	CONSTRAINT "attempts_status_check" CHECK ("attempts"."status" in ('active', 'paused', 'completed'))
 );
 --> statement-breakpoint
@@ -33,6 +34,7 @@ CREATE TABLE "pages" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
+	CONSTRAINT "pages_legacy_unique" UNIQUE("legacy_id"),
 	CONSTRAINT "pages_parent_slug_unique" UNIQUE NULLS NOT DISTINCT("parent_id","slug"),
 	CONSTRAINT "pages_visibility_check" CHECK ("pages"."visibility" in ('private', 'unlisted', 'public'))
 );
@@ -45,6 +47,7 @@ CREATE TABLE "question_options" (
 	"is_correct" boolean NOT NULL,
 	"match_key" text,
 	"position" integer NOT NULL,
+	CONSTRAINT "question_options_legacy_unique" UNIQUE("legacy_id"),
 	CONSTRAINT "question_options_question_position_unique" UNIQUE("question_id","position")
 );
 --> statement-breakpoint
@@ -70,6 +73,7 @@ CREATE TABLE "questions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
+	CONSTRAINT "questions_legacy_unique" UNIQUE("legacy_id"),
 	CONSTRAINT "questions_quiz_position_unique" UNIQUE("quiz_id","position"),
 	CONSTRAINT "questions_quiz_fingerprint_unique" UNIQUE("quiz_id","fingerprint"),
 	CONSTRAINT "questions_difficulty_check" CHECK ("questions"."difficulty" in ('easy', 'medium', 'hard'))
@@ -101,6 +105,7 @@ CREATE TABLE "quizzes" (
 	"published_at" timestamp with time zone,
 	"archived_at" timestamp with time zone,
 	"deleted_at" timestamp with time zone,
+	CONSTRAINT "quizzes_legacy_unique" UNIQUE("legacy_id"),
 	CONSTRAINT "quizzes_status_check" CHECK ("quizzes"."status" in ('draft', 'published', 'archived')),
 	CONSTRAINT "quizzes_visibility_check" CHECK ("quizzes"."visibility" in ('private', 'unlisted', 'public'))
 );
@@ -157,7 +162,8 @@ CREATE TABLE "term_pairs" (
 	"topic" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "term_pairs_legacy_unique" UNIQUE("legacy_id")
 );
 --> statement-breakpoint
 ALTER TABLE "attempt_questions" ADD CONSTRAINT "attempt_questions_attempt_id_attempts_id_fk" FOREIGN KEY ("attempt_id") REFERENCES "public"."attempts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

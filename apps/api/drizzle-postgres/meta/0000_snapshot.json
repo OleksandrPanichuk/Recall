@@ -1,5 +1,5 @@
 {
-	"id": "1e18851a-32f8-4487-b70f-52927975150c",
+	"id": "3a10169e-3640-4268-8462-3f96c7656b0f",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -160,7 +160,13 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
+			"uniqueConstraints": {
+				"attempts_legacy_unique": {
+					"name": "attempts_legacy_unique",
+					"nullsNotDistinct": false,
+					"columns": ["legacy_id"]
+				}
+			},
 			"policies": {},
 			"checkConstraints": {
 				"attempts_status_check": {
@@ -288,6 +294,11 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
+				"pages_legacy_unique": {
+					"name": "pages_legacy_unique",
+					"nullsNotDistinct": false,
+					"columns": ["legacy_id"]
+				},
 				"pages_parent_slug_unique": {
 					"name": "pages_parent_slug_unique",
 					"nullsNotDistinct": true,
@@ -364,6 +375,11 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
+				"question_options_legacy_unique": {
+					"name": "question_options_legacy_unique",
+					"nullsNotDistinct": false,
+					"columns": ["legacy_id"]
+				},
 				"question_options_question_position_unique": {
 					"name": "question_options_question_position_unique",
 					"nullsNotDistinct": false,
@@ -535,6 +551,11 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
+				"questions_legacy_unique": {
+					"name": "questions_legacy_unique",
+					"nullsNotDistinct": false,
+					"columns": ["legacy_id"]
+				},
 				"questions_quiz_position_unique": {
 					"name": "questions_quiz_position_unique",
 					"nullsNotDistinct": false,
@@ -796,7 +817,13 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
+			"uniqueConstraints": {
+				"quizzes_legacy_unique": {
+					"name": "quizzes_legacy_unique",
+					"nullsNotDistinct": false,
+					"columns": ["legacy_id"]
+				}
+			},
 			"policies": {},
 			"checkConstraints": {
 				"quizzes_status_check": {
@@ -1211,7 +1238,13 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
+			"uniqueConstraints": {
+				"term_pairs_legacy_unique": {
+					"name": "term_pairs_legacy_unique",
+					"nullsNotDistinct": false,
+					"columns": ["legacy_id"]
+				}
+			},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false

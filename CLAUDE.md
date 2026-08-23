@@ -73,6 +73,13 @@ port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it 
 so `bun run verify` passes without Docker. Setting `TEST_DATABASE_URL` makes them mandatory
 instead: if it is set and Postgres is missing, the suite fails rather than skipping.
 
+**Cast every postgres.js placeholder, and never pass a `Date`.** postgres.js picks parameter
+encoders from the first execution of a query string and reuses them, so an insert whose first
+row has `null` where a later row has a value binds that later row against the wrong types. It
+surfaces as a foreign key violation on a parent that exists, or as `TypeError: … Received an
+instance of Date` from inside postgres.js. Write `${x}::uuid`, `::text`, `::timestamptz`, and
+pass timestamps as ISO strings. The failure is order-dependent, so it hides in small fixtures.
+
 **Postgres tests get a database per run, not a schema.** drizzle-kit writes
 `REFERENCES "public"."…"` into every foreign key, so tables created in a custom schema end up
 with constraints pointing at an empty `public` — parents insert, children fail on a confusing
