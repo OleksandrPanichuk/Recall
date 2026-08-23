@@ -12,10 +12,11 @@ import {
 	removeTempDirectory,
 } from "../../fixtures/temp-dir";
 
-const projectRoot = join(import.meta.dir, "..", "..", "..");
+const appRoot = join(import.meta.dir, "..", "..", "..");
+const repoRoot = join(appRoot, "..", "..");
 
 const databaseModule = join(
-	projectRoot,
+	appRoot,
 	"src",
 	"adapters",
 	"persistence",
@@ -164,7 +165,7 @@ describe("the migrate command", () => {
 	test("leaves the migrated database behind", async () => {
 		const path = join(directory, "quiz.sqlite");
 		const child = Bun.spawn(["bun", "run", "./scripts/migrate.ts"], {
-			cwd: projectRoot,
+			cwd: repoRoot,
 			stdout: "pipe",
 			stderr: "pipe",
 			env: {

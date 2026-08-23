@@ -4,6 +4,15 @@
   "workspaces": {
     "": {
       "name": "op-personal-reminder-bot",
+      "devDependencies": {
+        "@biomejs/biome": "2.4.11",
+        "@types/bun": "latest",
+        "typescript": "^7.0.2",
+      },
+    },
+    "apps/api": {
+      "name": "@recall/api",
+      "version": "0.0.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.30.0",
         "drizzle-orm": "^0.45.2",
@@ -16,16 +25,17 @@
         "zod": "^4.4.3",
       },
       "devDependencies": {
-        "@biomejs/biome": "2.4.11",
         "@happy-dom/global-registrator": "^20.11.6",
         "@testing-library/react": "^16.3.2",
-        "@types/bun": "latest",
         "@types/express": "^5.0.6",
         "@types/react": "^19.2.18",
         "@types/react-dom": "^19.2.4",
         "drizzle-kit": "^0.31.10",
-        "typescript": "^7.0.2",
       },
+    },
+    "packages/tooling": {
+      "name": "@recall/tooling",
+      "version": "0.0.0",
     },
   },
   "packages": {
@@ -184,6 +194,10 @@
     "@mui/utils": ["@mui/utils@9.3.0", "", { "dependencies": { "@babel/runtime": "^7.29.7", "@mui/types": "^9.3.0", "@types/prop-types": "^15.7.15", "clsx": "^2.1.1", "prop-types": "^15.8.1", "react-is": "^19.2.8" }, "peerDependencies": { "@types/react": "^17.0.0 || ^18.0.0 || ^19.0.0", "react": "^17.0.0 || ^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react"] }, "sha512-2HZdHwWJ6eB+7lVGSOHsByGw8jeRulT4g0NZ608Wb8Q57DE2jbNqrWPFuJsvkQQiBiTmlpvQL3i+/62zsiPrkw=="],
 
     "@popperjs/core": ["@popperjs/core@2.11.8", "", {}, "sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A=="],
+
+    "@recall/api": ["@recall/api@workspace:apps/api"],
+
+    "@recall/tooling": ["@recall/tooling@workspace:packages/tooling"],
 
     "@tanstack/query-core": ["@tanstack/query-core@5.101.4", "", {}, "sha512-gNwcvOJcRbLWPOLG/2OBm+zM+Yv+MKsXKEOWC57USuZDEsI71hEErQsiEGx5wX9rzWWkfwM0fVSPoiIFSsxfiw=="],
 

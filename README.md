@@ -83,7 +83,7 @@ cp .env.example .env
 | `DATABASE_PATH` | Шлях до локального `bun:sqlite` файлу |
 | `APP_TIMEZONE` | IANA time zone для дат у звітах |
 
-Усі чотири змінні обов'язкові. `src/infrastructure/config/env.ts` валідує їх на
+Усі чотири змінні обов'язкові. `apps/api/src/infrastructure/config/env.ts` валідує їх на
 старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
 змінних і причини — секретні значення не логуються, тому токен не потрапляє в
@@ -98,7 +98,7 @@ bun run migrate
 ```
 
 Команда друкує шлях перед відкриттям файлу, застосовує pending migrations із
-`drizzle/` і виводить список застосованих версій або `database is up to date`.
+`apps/api/drizzle/` і виводить список застосованих версій або `database is up to date`.
 Повторний запуск нічого не змінює. Секретні environment variables у вивід не
 потрапляють; не-secret database path друкується навмисно. Перед закриттям
 connection команда **намагається** виконати `PRAGMA wal_checkpoint(TRUNCATE)` і
@@ -120,7 +120,7 @@ bun run backup ~/backups/quiz.sqlite  # або явний шлях
 sqlite3 "$DATABASE_PATH" ".backup '${DATABASE_PATH}.backup.sqlite'"
 ```
 
-Schema описана в `src/adapters/persistence/sqlite/schema.ts`. Після її зміни
+Schema описана в `apps/api/src/adapters/persistence/sqlite/schema.ts`. Після її зміни
 потрібно згенерувати нову migration:
 
 ```bash
@@ -248,8 +248,23 @@ Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
 
 ## Поточна структура
 
+Репозиторій — це Bun workspace. Уся поточна кодова база живе в `apps/api`; решта
+застосунків (`web`, `bot`, `mcp`, `admin`) відокремлюються від неї пізніше, коли
+стануть HTTP-клієнтами API — див. [REWRITE_PLAN.md](REWRITE_PLAN.md).
+
 ```text
-src/
+apps/api/
+  drizzle/          міграції SQLite
+  drizzle.config.ts
+packages/
+  tooling/          спільний tsconfig base
+scripts/            migrate, backup, restore, seed, up
+```
+
+Всередині `apps/api/src` структура не змінилася:
+
+```text
+apps/api/src/
   shared/
     utils/          layer-free date, text and duplicate primitives
   domain/
@@ -304,15 +319,9 @@ src/
   entrypoints/
     telegram.ts    starts the bot; --check validates configuration and exits
     mcp.ts         stdio MCP server for Claude
-drizzle/
-  0000_initial-schema.sql
-  0001_drop-review-items.sql
-  0002_folders.sql
-  meta/
-    _journal.json
 scripts/
   migrate.ts       migration command
-tests/
+apps/api/tests/
   e2e/
     startup.test.ts
   fixtures/        aggregate builders shared by the integration tests
@@ -352,7 +361,7 @@ claude mcp add recall-quiz --scope user \
   --env ALLOWED_TELEGRAM_USER_ID=... \
   --env DATABASE_PATH=/absolute/path/to/quiz.sqlite \
   --env APP_TIMEZONE=Europe/Kyiv \
-  -- bun run /absolute/path/to/repo/src/entrypoints/mcp.ts
+  -- bun run /absolute/path/to/repo/apps/api/src/entrypoints/mcp.ts
 ```
 
 Для Claude Desktop додайте той самий command у `claude_desktop_config.json`

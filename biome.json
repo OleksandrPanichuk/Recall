@@ -46,6 +46,60 @@
 			"trailingCommas": "all"
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["apps/api/src/domain/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/infrastructure/**",
+											"@/composition/**",
+											"@/modules/**",
+											"@/persistence/**"
+										],
+										"message": "domain must not import outward (ARCHITECTURE.md dependency rule 1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/application/**", "!**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/composition/**",
+											"@/modules/**",
+											"@/persistence/**"
+										],
+										"message": "application must not import adapters or the composition root (ARCHITECTURE.md dependency rule 2)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	],
 	"assist": {
 		"enabled": true,
 		"actions": {

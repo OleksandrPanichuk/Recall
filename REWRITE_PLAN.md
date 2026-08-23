@@ -9,6 +9,10 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+> - r5 — **phase 2 done**: Bun workspace, `src/` → `apps/api/src/`, `packages/tooling`, and
+>   the dependency direction now enforced by `biome.json` rather than documented. Same 1377
+>   tests. One refinement the plan had not stated: `apps/{web,bot,mcp,admin}` are **not**
+>   created yet — see the note under phase 2.
 > - r4 — phase 1 implemented, and **finding 11 corrected**: the question-delete path was
 >   already guarded (`AnsweredQuestionError`, commit `73a414e`), so r2's "history is being
 >   destroyed" was overstated. The real defect was option-id re-minting on edit, now fixed
@@ -1145,8 +1149,9 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | --- | --- | --- | --- |
 | 0 | Decisions below; ADRs; freeze feature work | — | S |
 | 1 | ~~**Fix attempt history**~~ — **done** (r4). Option ids are now stable across edits; the delete path turned out to be already guarded, and `question_revisions` is deferred as optional (§6). Shipped on `fix/stable-option-ids`. | — | S |
-| 2 | Monorepo split, **zero behaviour change**, test count unchanged | 1 | M |
+| 2 | ~~Monorepo split~~ — **done** (r5). Bun workspace; `src/`→`apps/api/src/`, `tests/`→`apps/api/tests/`, `drizzle/`→`apps/api/drizzle/`; `packages/tooling` holds the shared tsconfig base; dependency rules enforced in `biome.json`. 1377 tests, unchanged. | 1 | M |
 | 3 | Async call sites: `Promise`-returning ports, transaction callback stays sync-typed (§2) | 2 | M |
+| — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
 | 4 | **Minimal Nest API shell** + composition root, still on SQLite, with one vertical slice served end to end (list quizzes) | 3 | M |
 | 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines | 4 | L |
 | 6 | Rehearsed cutover: ETL + verification + rollback deadline (below) | 5 | M |
@@ -1164,6 +1169,33 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Why phase 2 created only one app
+
+The r3 layout lists five apps. Phase 2 created **one**, and that was deliberate — the plan had
+not spelled this out, so it is recorded here.
+
+Phase 2's contract is *zero behaviour change*. Today the bot, the MCP server, and the admin UI
+all import the composition root and run in-process against SQLite. Creating `apps/bot` now
+would mean `apps/bot` depending on `apps/api` — an app-to-app dependency that does not exist
+in the target, that the lint rules would have to be widened to permit, and that would have to
+be unwound in phase 8 anyway when those surfaces become HTTP clients.
+
+So `apps/api` currently holds everything, including `src/adapters/{telegram,mcp,admin}` in
+their v1 shape. They move out in **phase 8**, when there is an API for them to call. The
+layout the plan describes is the phase-8 end state, not the phase-2 one.
+
+What phase 2 did deliver, beyond the move: the dependency direction is **enforced** for the
+first time. `biome.json` fails the build when `domain` imports `adapters`, `application`,
+`infrastructure`, `composition`, `modules`, or `persistence`, and when `application` imports
+adapters or the composition root (tests excluded — one existing test constructs a real SQLite
+repository on purpose). Verified by injecting a violation of each rule and watching both fire
+with the rule name in the message. This is Appendix B's option C, now live.
+
+Not yet enforced: `adapters → composition`. Two files legitimately violate it today
+(`admin/api.ts` and `mcp/http/app.ts` both take the whole `Application`), and both are slated
+for deletion when Nest arrives in phase 4. Adding that rule before then would only mean
+suppressions.
 
 ### The cutover (phase 6), spelled out
 

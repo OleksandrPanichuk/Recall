@@ -14,8 +14,10 @@ This repository is a cleaned foundation for a personal learning quiz bot. The fo
 - **Every pull request targets `rewrite`.** Do not open one against `main`, and do not merge
   v2 work into `main` piecemeal.
 - Branch from `rewrite` with the existing naming (`feat/…`, `fix/…`, `refactor/…`, `docs/…`).
-- Do not break v1: `src/` must keep passing `bun run verify` for as long as it exists, even
-  while `apps/` is being built beside it.
+- Do not break v1: `apps/api` must keep passing `bun run verify` for as long as it carries the
+  v1 code, even while new apps are being built beside it.
+- The repository is a Bun workspace (`apps/*`, `packages/*`). `bun run verify` at the root
+  still runs the whole gate; per-workspace scripts go through `bun run --filter`.
 
 ## Runtime and commands
 

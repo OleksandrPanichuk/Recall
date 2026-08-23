@@ -19,7 +19,9 @@ import { type SupervisedProcess, superviseProcesses } from "./up.supervise";
 const READY_TIMEOUT_MS = 15_000;
 
 const entrypoint = (file: string): string =>
-	Bun.fileURLToPath(new URL(`../src/entrypoints/${file}`, import.meta.url));
+	Bun.fileURLToPath(
+		new URL(`../apps/api/src/entrypoints/${file}`, import.meta.url),
+	);
 
 const script = (file: string): string =>
 	Bun.fileURLToPath(new URL(file, import.meta.url));

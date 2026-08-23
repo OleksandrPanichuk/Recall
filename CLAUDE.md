@@ -8,13 +8,19 @@ that way until the rewrite lands. Every pull request targets `rewrite`, never `m
 
 | | v1 | v2 |
 | --- | --- | --- |
-| Lives in | `src/`, `scripts/`, `tests/` | `apps/`, `packages/` |
+| Lives in | `apps/api/src/**` (as re-housed in phase 2) | `apps/*`, `packages/*` |
 | Binding doc | `ARCHITECTURE.md` | **`REWRITE_PLAN.md`** |
 | Runtime | Bun everywhere, `bun:sqlite` | Bun everywhere **except `apps/api`** (Node + NestJS) |
 | Status | works, 1375 tests green — do not break it | under construction |
 
 Where the two conflict **on this branch, `REWRITE_PLAN.md` wins**; `ARCHITECTURE.md` stays
-binding for anything still under `src/`. `DEVELOPMENT_PLAN.md` has been deleted — its role is
+binding for the layering *inside* `apps/api/src` for as long as it keeps its v1 shape
+(`adapters/`, `composition/`, `entrypoints/`). Phase 2 moved that tree from `src/` to
+`apps/api/src/` without changing anything inside it.
+
+The dependency direction is now **enforced, not just documented**: `biome.json` carries
+`noRestrictedImports` overrides that fail the build when `domain` imports outward or
+`application` imports adapters. Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md` has been deleted — its role is
 taken by the Sequencing section of `REWRITE_PLAN.md`.
 
 Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `REWRITE_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, and folder ownership in v1 code, and `REWRITE_PLAN.md` as binding for the same questions in v2 code. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
