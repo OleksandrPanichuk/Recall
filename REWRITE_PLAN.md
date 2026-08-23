@@ -9,6 +9,10 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+> - r7 — **phase 4 done**: Nest shell on Express, `GET /quizzes`, `GET /quizzes/:id`,
+>   health, Swagger, domain-error filter, and the 35 `*UseCase` renames. Runs on **Bun**, not
+>   Node — see the phase-4 note. Explicit `@Inject` everywhere, `emitDecoratorMetadata` off.
+>   1382 tests.
 > - r6 — **phase 3 deleted as a standalone phase** and folded into phase 5. It is not
 >   implementable on its own: transaction boundaries nest, so widening repositories to
 >   `Promise` would leave unawaited promises inside a synchronous transaction callback.
@@ -1161,7 +1165,7 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | 2 | ~~Monorepo split~~ — **done** (r5). Bun workspace; `src/`→`apps/api/src/`, `tests/`→`apps/api/tests/`, `drizzle/`→`apps/api/drizzle/`; `packages/tooling` holds the shared tsconfig base; dependency rules enforced in `biome.json`. 1377 tests, unchanged. | 1 | M |
 | ~~3~~ | ~~Async call sites~~ — **deleted (r6)**, folded into phase 5. Not implementable standalone: see below. | — | — |
 | — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
-| 4 | **Minimal Nest API shell** + composition root, still on SQLite, with one vertical slice served end to end (list quizzes) | 3 | M |
+| 4 | ~~**Minimal Nest API shell**~~ — **done** (r7). Nest 11 + Express, `apps/api/src/modules/{shared,content}`, factory-provided use cases, `GET /quizzes`, `GET /quizzes/:id`, health, Swagger at `/docs`, domain-error→HTTP filter. Runs on Bun. | 2 | M |
 | 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines | 4 | L |
 | 6 | Rehearsed cutover: ETL + verification + rollback deadline (below) | 5 | M |
 | 7 | Identity, ownership, sessions, bot login link (§3, §5) | 6 | L |
@@ -1178,6 +1182,43 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### What phase 4 established, and one plan assumption it broke (r7)
+
+Built: `apps/api/src/modules/` with `shared/{config,database,errors,health,swagger}` and a
+`content` module, exactly the shape §8 describes. The `DatabaseModule` is `@Global()` and owns
+the SQLite lifecycle (migrations on boot, `closeDatabase` on `onApplicationShutdown`);
+`content/use-cases.providers.ts` factory-wires the existing use-case classes against a single
+`USE_CASE_DEPENDENCIES` token, which is the mechanism §8 predicted would let the application
+layer survive untouched. It did: no use case, port, or domain file was modified to serve HTTP.
+
+Three findings worth keeping:
+
+1. **The API runs on Bun, not Node — and must, for now.** §1 says `apps/api` is Node. It
+   cannot be until Postgres arrives, because persistence is still `bun:sqlite`, which is
+   Bun-only. Nest 11 runs fine under Bun once `experimentalDecorators` is on. The Node switch
+   belongs to phase 5, alongside the driver change. The plan's "Node runtime for `api`"
+   describes the end state, not phase 4.
+2. **Bun defaults to TC39 decorators; Nest needs legacy ones.** Without
+   `experimentalDecorators: true` every route decorator fails with `TypeError: undefined is
+   not an object (evaluating 'descriptor.value')` — an error that says nothing about the real
+   cause. One line in `packages/tooling/tsconfig.base.json`.
+3. **`emitDecoratorMetadata` is a trap here, and is deliberately off.** With it on, DI works
+   through constructor parameter types — until Biome's `useImportType` autofix rewrites a
+   class import to `import type`, which erases the metadata. That happened during this phase:
+   the suite passed in isolation and failed in the full run with Nest reporting a dependency
+   of type `[Function: Object]`. Every injection point now passes an explicit `@Inject(Token)`
+   and the flag is off, so a missing token fails loudly at boot instead of silently after a
+   formatter run. Recorded in `CLAUDE.md`.
+
+Also needed: `javascript.parser.unsafeParameterDecoratorsEnabled` in `biome.json` (Biome does
+not parse parameter decorators otherwise), and `correctness/useHookAtTopLevel` disabled for
+the modules tree, where `app.useGlobalFilters(...)` trips a React hooks rule.
+
+Not done in phase 4, on purpose: the four existing entrypoints are untouched and still run the
+old composition root, so the bot, MCP, and admin keep working exactly as before. `bun run api`
+starts the new one beside them. Deleting `create-application.ts` and `adapters/admin/api.ts`
+waits until the API actually serves what those surfaces need — phase 8.
 
 ### Why phase 3 was deleted (r6)
 

@@ -38,6 +38,9 @@
 		}
 	},
 	"javascript": {
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		},
 		"formatter": {
 			"arrowParentheses": "always",
 			"bracketSpacing": true,
@@ -47,6 +50,19 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": [
+				"apps/api/src/modules/**",
+				"apps/api/src/entrypoints/api.ts"
+			],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"useHookAtTopLevel": "off"
+					}
+				}
+			}
+		},
 		{
 			"includes": ["apps/api/src/domain/**"],
 			"linter": {

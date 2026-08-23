@@ -33,6 +33,7 @@
 		"status": "bun run ./apps/api/src/entrypoints/telegram.ts --status",
 		"mcp": "bun run ./apps/api/src/entrypoints/mcp.ts",
 		"mcp:http": "bun run ./apps/api/src/entrypoints/mcp-http.ts",
-		"admin": "bun run ./apps/api/src/entrypoints/admin.ts"
+		"admin": "bun run ./apps/api/src/entrypoints/admin.ts",
+		"api": "bun run ./apps/api/src/entrypoints/api.ts"
 	}
 }

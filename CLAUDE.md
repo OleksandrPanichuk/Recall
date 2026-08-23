@@ -167,6 +167,12 @@ Beyond the conventions in `ARCHITECTURE.md`:
   `AnswerQuestion`. The class name is its NestJS injection token, so it is read out of
   context and has to be distinguishable from `AnswerQuestionCommand` and
   `AnswerQuestionController` at a glance.
+- **Every NestJS injection point uses an explicit `@Inject(Token)`.** Never rely on
+  constructor parameter types for DI: `emitDecoratorMetadata` is deliberately **off**, because
+  with it on, Biome's `useImportType` autofix rewrites a class import to `import type`, erases
+  the metadata, and DI breaks at runtime with the imports still looking correct. With it off,
+  a missing `@Inject` fails loudly at startup instead. `experimentalDecorators` is on — Nest
+  needs legacy decorators, and Bun defaults to the TC39 ones.
 - **File** names do not repeat it: `use-cases/attempts/answer-question.ts`, not
   `answer-question.use-case.ts`. The directory already says `use-cases`, and a path that
   stutters is worse than one that does not. This is the opposite of `*.handler.ts` /
