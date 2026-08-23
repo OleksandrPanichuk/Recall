@@ -12,6 +12,9 @@
 >   - r10 — the **ETL exists and verifies itself**. It migrates the real backup into the new
 >     schema with every count matching and a `verifyMigration` pass, is idempotent, and is
 >     covered by tests. One postgres.js encoding trap cost most of the time: see below.
+>   - r11 — the **transaction topology exists and works**: an async `UnitOfWork` that hands
+>     repositories to the operation, the first Postgres repository behind it, and a rollback
+>     test proving the boundary. No use case has moved yet.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1195,6 +1198,53 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, fourth slice: the transaction topology (r11)
+
+This is the piece phase 3 died for, now built and tested.
+
+```ts
+// application/ports/unit-of-work.ts
+run<TResult>(operation: (scope: TScope) => Promise<TResult>): Promise<TResult>
+
+// application/ports/repositories/page.repository.ts
+interface ContentScope { readonly pages: PageRepository }
+```
+
+`createPostgresUnitOfWork(db).run(async ({ pages }) => …)` opens one Postgres transaction and
+builds the repositories **against that transaction's executor**. A repository therefore cannot
+be reached outside a boundary, and cannot end up on a different connection from the boundary it
+appears to belong to — which is precisely the failure r8 measured (an unawaited write surviving
+a rollback). `readOnlyScope(db)` gives the same repositories bound to the pool for reads.
+
+Also added: `persistence/postgres/client.ts`, which centralises the connection settings the
+deployment section calls for — `prepare: false` (Supabase's transaction pooler rejects prepared
+statements and the setting is harmless on a direct connection), a bounded pool, statement
+timeout, idle timeout, and a maximum connection lifetime.
+
+**First repository: `PageRepository` over the `pages` table.** Eight tests, including the two
+that matter:
+
+- **rollback**: an operation that saves two pages and then throws leaves the table empty;
+- **slug uniqueness**: two children of one parent named "Chapter One" and "chapter one" collide
+  on `pages_parent_slug_unique`, because the repository derives the slug rather than trusting
+  the caller.
+
+Deliberate scope choice: the repository returns the **existing `Folder` domain object**, mapping
+`title`/`slug` onto `name`. Phase 5 is an engine swap, not a domain change; the richer `Page`
+aggregate (content, icon, ordering) belongs to phase 10 when summaries are actually built.
+Introducing it here would mean changing the domain and the engine in one step, which is the
+mistake r6 was written to avoid.
+
+Small finding: **drizzle wraps driver errors**, so a constraint assertion has to read
+`error.cause`, not `error.message` — the message is a "Failed query:" dump with the SQL and
+parameters, and the constraint name is on the cause.
+
+**Where this leaves the phase.** Everything a ported use case needs now exists: the schema, the
+data, the boundary, and a repository behind it. What has not happened is the port itself — the
+eight folder use cases still take the synchronous `FolderRepository` and still run on SQLite. The
+next increment is one context's use cases moving to `ContentScope`, with the composition root
+choosing per context, and both engines live until the last one moves.
 
 ### Phase 5, third slice: the ETL (r10)
 
