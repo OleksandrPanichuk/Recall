@@ -1240,6 +1240,37 @@ I stopped rather than half-land it. The folder port is preserved on the stash
 (`wip: folder use cases ported to async scope`) and the tree is green at 1469 tests. A large
 non-compiling diff would have been worse than a clean boundary.
 
+**The cutover is written and pushed as `wip/postgres-cutover` (r17).** The source tree is
+**fully ported and type-checks clean — 0 source errors.** The branch does not pass `verify`
+because the test suite has not been repointed yet (158 type errors across ~20 files), so it
+lives on its own branch rather than on this one, which stays green at 1469 tests.
+
+What landed there:
+
+- **all 34 use cases** take `UnitOfWork<RepositoryScope>` and `ApplicationDependencies`. Every
+  write now sits inside a unit-of-work boundary — several for the first time, since v1 saved
+  outside a transaction in `ArchiveQuizSet`, `PublishQuizSet`, `MoveQuizSet`, `CreateQuizSet`,
+  `DeleteQuestion` and `UpdateQuestion`;
+- `create-application.ts` builds a Postgres connection and scope. `DATABASE_URL` replaces
+  `DATABASE_PATH`, and `close()` is async;
+- the Nest `DatabaseModule` builds the same scope, so the API and the legacy entrypoints agree;
+- `readStatus` reports off Postgres;
+- **deleted**: the five SQLite repositories, their five mappers, the five synchronous ports,
+  the nine SQLite integration test files, and the SQLite-era `backup`/`restore`/`migrate`/`seed`
+  scripts. Postgres uses `pg_dump` and `drizzle-kit`, wired as `db:generate` / `db:migrate`.
+
+**One deliberate exception, and it defers the Node switch.** The MCP OAuth store *and the SDK
+provider above it* are synchronous throughout, so pulling them into this landing would have
+meant rewriting the OAuth subsystem too. MCP client credentials now live in their own SQLite
+file (`OAUTH_DATABASE_PATH`, default `./data/oauth.sqlite`) — honest, because they are not quiz
+data and phase 7 replaces them with Better Auth. The consequence: `bun:sqlite` stays in the
+tree, so **`apps/api` moves to Node in phase 7, not here**.
+
+**What is left:** test surgery. Fixtures whose helpers are now async, tests that assert against
+the raw SQLite handle, and e2e harnesses that spawn a process against a database file. Some of
+those tests are obsolete rather than broken and should be deleted. After that: run the ETL
+against the live database, keep the SQLite file read-only, and smoke-test through the API.
+
 **Progress on the cutover (r16).** 25 of 34 use cases are ported to
 `UnitOfWork<RepositoryScope>`, each type-checked as it landed, and stashed as
 `wip: 24 of 34 use cases ported to the async RepositoryScope`. Ported: all 8 folder use cases,
