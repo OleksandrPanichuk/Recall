@@ -38,7 +38,7 @@ export interface DeleteQuestionDependencies {
 	readonly clock: Clock;
 }
 
-export class DeleteQuestion
+export class DeleteQuestionUseCase
 	implements UseCase<Command<DeleteQuestionCommand>, DeleteQuestionResult>
 {
 	private readonly quizSets: QuizSetRepository;

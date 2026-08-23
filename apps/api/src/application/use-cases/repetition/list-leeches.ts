@@ -23,7 +23,7 @@ export interface ListLeechesDependencies {
 	readonly quizSets: QuizSetRepository;
 }
 
-export class ListLeeches
+export class ListLeechesUseCase
 	implements UseCase<Command<ListLeechesCommand>, readonly LeechView[]>
 {
 	private readonly repetition: RepetitionRepository;

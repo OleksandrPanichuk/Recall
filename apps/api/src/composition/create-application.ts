@@ -15,43 +15,43 @@ import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-tr
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { Transaction } from "@/application/ports/transaction";
-import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
+import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import {
-	PauseQuizAttempt,
-	ResumeQuizAttempt,
+	PauseQuizAttemptUseCase,
+	ResumeQuizAttemptUseCase,
 } from "@/application/use-cases/attempts/resume-quiz-attempt";
-import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
-import { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
-import { CreateFolder } from "@/application/use-cases/folders/create-folder";
-import { DeleteFolder } from "@/application/use-cases/folders/delete-folder";
-import { EnsureFolderPath } from "@/application/use-cases/folders/ensure-folder-path";
-import { ListFolderTree } from "@/application/use-cases/folders/list-folder-tree";
-import { MoveFolder } from "@/application/use-cases/folders/move-folder";
-import { RenameFolder } from "@/application/use-cases/folders/rename-folder";
-import { ResolveFolderPath } from "@/application/use-cases/folders/resolve-folder-path";
-import { StartPracticeSession } from "@/application/use-cases/practice/start-practice-session";
-import { AddQuestions } from "@/application/use-cases/quiz-sets/add-questions";
-import { AddVocabulary } from "@/application/use-cases/quiz-sets/add-vocabulary";
-import { ArchiveQuizSet } from "@/application/use-cases/quiz-sets/archive-quiz-set";
-import { CreateQuizSet } from "@/application/use-cases/quiz-sets/create-quiz-set";
-import { DeleteQuestion } from "@/application/use-cases/quiz-sets/delete-question";
-import { GetQuizSet } from "@/application/use-cases/quiz-sets/get-quiz-set";
-import { ListQuestions } from "@/application/use-cases/quiz-sets/list-questions";
-import { ListQuizSets } from "@/application/use-cases/quiz-sets/list-quiz-sets";
-import { ListVocabulary } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import { MoveQuizSet } from "@/application/use-cases/quiz-sets/move-quiz-set";
-import { PublishQuizSet } from "@/application/use-cases/quiz-sets/publish-quiz-set";
-import { UpdateQuestion } from "@/application/use-cases/quiz-sets/update-question";
-import { UpdateQuizSet } from "@/application/use-cases/quiz-sets/update-quiz-set";
-import { UpdateVocabulary } from "@/application/use-cases/quiz-sets/update-vocabulary";
-import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
-import { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
-import { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
-import { UpdateQuizSettings } from "@/application/use-cases/settings/update-quiz-settings";
-import { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
-import { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
+import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
+import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
+import { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
+import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
+import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
+import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
+import { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
+import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
+import { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
+import { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
+import { ArchiveQuizSetUseCase } from "@/application/use-cases/quiz-sets/archive-quiz-set";
+import { CreateQuizSetUseCase } from "@/application/use-cases/quiz-sets/create-quiz-set";
+import { DeleteQuestionUseCase } from "@/application/use-cases/quiz-sets/delete-question";
+import { GetQuizSetUseCase } from "@/application/use-cases/quiz-sets/get-quiz-set";
+import { ListQuestionsUseCase } from "@/application/use-cases/quiz-sets/list-questions";
+import { ListQuizSetsUseCase } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import { ListVocabularyUseCase } from "@/application/use-cases/quiz-sets/list-vocabulary";
+import { MoveQuizSetUseCase } from "@/application/use-cases/quiz-sets/move-quiz-set";
+import { PublishQuizSetUseCase } from "@/application/use-cases/quiz-sets/publish-quiz-set";
+import { UpdateQuestionUseCase } from "@/application/use-cases/quiz-sets/update-question";
+import { UpdateQuizSetUseCase } from "@/application/use-cases/quiz-sets/update-quiz-set";
+import { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
+import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
+import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
+import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
+import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
+import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
+import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { silentLogger } from "@/infrastructure/logging/logger";
 import type { Logger } from "@/infrastructure/logging/logger.types";
 
@@ -73,41 +73,41 @@ export interface Application {
 	readonly database: Database;
 	readonly client: QuizDatabase;
 	readonly transaction: Transaction;
-	readonly createQuizSet: CreateQuizSet;
-	readonly updateQuizSet: UpdateQuizSet;
-	readonly addQuestions: AddQuestions;
-	readonly addVocabulary: AddVocabulary;
-	readonly updateVocabulary: UpdateVocabulary;
-	readonly listVocabulary: ListVocabulary;
-	readonly publishQuizSet: PublishQuizSet;
-	readonly archiveQuizSet: ArchiveQuizSet;
-	readonly listQuizSets: ListQuizSets;
-	readonly listQuestions: ListQuestions;
-	readonly getQuizSet: GetQuizSet;
-	readonly moveQuizSet: MoveQuizSet;
-	readonly createFolder: CreateFolder;
-	readonly renameFolder: RenameFolder;
-	readonly moveFolder: MoveFolder;
-	readonly deleteFolder: DeleteFolder;
-	readonly ensureFolderPath: EnsureFolderPath;
-	readonly resolveFolderPath: ResolveFolderPath;
-	readonly listFolderTree: ListFolderTree;
-	readonly browseFolder: BrowseFolder;
-	readonly startQuizAttempt: StartQuizAttempt;
-	readonly startPracticeSession: StartPracticeSession;
-	readonly updateQuestion: UpdateQuestion;
-	readonly deleteQuestion: DeleteQuestion;
-	readonly pauseQuizAttempt: PauseQuizAttempt;
-	readonly resumeQuizAttempt: ResumeQuizAttempt;
-	readonly getCurrentQuestion: GetCurrentQuestion;
-	readonly answerQuestion: AnswerQuestion;
-	readonly finishQuizAttempt: FinishQuizAttempt;
-	readonly getQuizStatistics: GetQuizStatistics;
-	readonly getAttemptDetail: GetAttemptDetail;
-	readonly listDueRepetitions: ListDueRepetitions;
-	readonly listLeeches: ListLeeches;
-	readonly resolveQuizSettings: ResolveQuizSettings;
-	readonly updateQuizSettings: UpdateQuizSettings;
+	readonly createQuizSet: CreateQuizSetUseCase;
+	readonly updateQuizSet: UpdateQuizSetUseCase;
+	readonly addQuestions: AddQuestionsUseCase;
+	readonly addVocabulary: AddVocabularyUseCase;
+	readonly updateVocabulary: UpdateVocabularyUseCase;
+	readonly listVocabulary: ListVocabularyUseCase;
+	readonly publishQuizSet: PublishQuizSetUseCase;
+	readonly archiveQuizSet: ArchiveQuizSetUseCase;
+	readonly listQuizSets: ListQuizSetsUseCase;
+	readonly listQuestions: ListQuestionsUseCase;
+	readonly getQuizSet: GetQuizSetUseCase;
+	readonly moveQuizSet: MoveQuizSetUseCase;
+	readonly createFolder: CreateFolderUseCase;
+	readonly renameFolder: RenameFolderUseCase;
+	readonly moveFolder: MoveFolderUseCase;
+	readonly deleteFolder: DeleteFolderUseCase;
+	readonly ensureFolderPath: EnsureFolderPathUseCase;
+	readonly resolveFolderPath: ResolveFolderPathUseCase;
+	readonly listFolderTree: ListFolderTreeUseCase;
+	readonly browseFolder: BrowseFolderUseCase;
+	readonly startQuizAttempt: StartQuizAttemptUseCase;
+	readonly startPracticeSession: StartPracticeSessionUseCase;
+	readonly updateQuestion: UpdateQuestionUseCase;
+	readonly deleteQuestion: DeleteQuestionUseCase;
+	readonly pauseQuizAttempt: PauseQuizAttemptUseCase;
+	readonly resumeQuizAttempt: ResumeQuizAttemptUseCase;
+	readonly getCurrentQuestion: GetCurrentQuestionUseCase;
+	readonly answerQuestion: AnswerQuestionUseCase;
+	readonly finishQuizAttempt: FinishQuizAttemptUseCase;
+	readonly getQuizStatistics: GetQuizStatisticsUseCase;
+	readonly getAttemptDetail: GetAttemptDetailUseCase;
+	readonly listDueRepetitions: ListDueRepetitionsUseCase;
+	readonly listLeeches: ListLeechesUseCase;
+	readonly resolveQuizSettings: ResolveQuizSettingsUseCase;
+	readonly updateQuizSettings: UpdateQuizSettingsUseCase;
 	close(): void;
 }
 
@@ -146,47 +146,47 @@ export function createApplication(options: ApplicationOptions): Application {
 		transaction,
 	};
 
-	const addQuestions = new AddQuestions(dependencies);
+	const addQuestions = new AddQuestionsUseCase(dependencies);
 
 	return {
 		database,
 		client,
 		transaction,
-		createQuizSet: new CreateQuizSet(dependencies),
-		updateQuizSet: new UpdateQuizSet(dependencies),
+		createQuizSet: new CreateQuizSetUseCase(dependencies),
+		updateQuizSet: new UpdateQuizSetUseCase(dependencies),
 		addQuestions,
-		addVocabulary: new AddVocabulary({ ...dependencies, addQuestions }),
-		updateVocabulary: new UpdateVocabulary(dependencies),
-		listVocabulary: new ListVocabulary(dependencies),
-		publishQuizSet: new PublishQuizSet(dependencies),
-		archiveQuizSet: new ArchiveQuizSet(dependencies),
-		listQuizSets: new ListQuizSets(dependencies),
-		listQuestions: new ListQuestions(dependencies),
-		getQuizSet: new GetQuizSet(dependencies),
-		moveQuizSet: new MoveQuizSet(dependencies),
-		createFolder: new CreateFolder(dependencies),
-		renameFolder: new RenameFolder(dependencies),
-		moveFolder: new MoveFolder(dependencies),
-		deleteFolder: new DeleteFolder(dependencies),
-		ensureFolderPath: new EnsureFolderPath(dependencies),
-		resolveFolderPath: new ResolveFolderPath(dependencies),
-		listFolderTree: new ListFolderTree(dependencies),
-		browseFolder: new BrowseFolder(dependencies),
-		startQuizAttempt: new StartQuizAttempt(dependencies),
-		startPracticeSession: new StartPracticeSession(dependencies),
-		updateQuestion: new UpdateQuestion(dependencies),
-		deleteQuestion: new DeleteQuestion(dependencies),
-		pauseQuizAttempt: new PauseQuizAttempt(dependencies),
-		resumeQuizAttempt: new ResumeQuizAttempt(dependencies),
-		getCurrentQuestion: new GetCurrentQuestion(dependencies),
-		answerQuestion: new AnswerQuestion(dependencies),
-		finishQuizAttempt: new FinishQuizAttempt(dependencies),
-		getQuizStatistics: new GetQuizStatistics(dependencies),
-		getAttemptDetail: new GetAttemptDetail(dependencies),
-		listDueRepetitions: new ListDueRepetitions(dependencies),
-		listLeeches: new ListLeeches(dependencies),
-		resolveQuizSettings: new ResolveQuizSettings(dependencies),
-		updateQuizSettings: new UpdateQuizSettings(dependencies),
+		addVocabulary: new AddVocabularyUseCase({ ...dependencies, addQuestions }),
+		updateVocabulary: new UpdateVocabularyUseCase(dependencies),
+		listVocabulary: new ListVocabularyUseCase(dependencies),
+		publishQuizSet: new PublishQuizSetUseCase(dependencies),
+		archiveQuizSet: new ArchiveQuizSetUseCase(dependencies),
+		listQuizSets: new ListQuizSetsUseCase(dependencies),
+		listQuestions: new ListQuestionsUseCase(dependencies),
+		getQuizSet: new GetQuizSetUseCase(dependencies),
+		moveQuizSet: new MoveQuizSetUseCase(dependencies),
+		createFolder: new CreateFolderUseCase(dependencies),
+		renameFolder: new RenameFolderUseCase(dependencies),
+		moveFolder: new MoveFolderUseCase(dependencies),
+		deleteFolder: new DeleteFolderUseCase(dependencies),
+		ensureFolderPath: new EnsureFolderPathUseCase(dependencies),
+		resolveFolderPath: new ResolveFolderPathUseCase(dependencies),
+		listFolderTree: new ListFolderTreeUseCase(dependencies),
+		browseFolder: new BrowseFolderUseCase(dependencies),
+		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
+		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
+		updateQuestion: new UpdateQuestionUseCase(dependencies),
+		deleteQuestion: new DeleteQuestionUseCase(dependencies),
+		pauseQuizAttempt: new PauseQuizAttemptUseCase(dependencies),
+		resumeQuizAttempt: new ResumeQuizAttemptUseCase(dependencies),
+		getCurrentQuestion: new GetCurrentQuestionUseCase(dependencies),
+		answerQuestion: new AnswerQuestionUseCase(dependencies),
+		finishQuizAttempt: new FinishQuizAttemptUseCase(dependencies),
+		getQuizStatistics: new GetQuizStatisticsUseCase(dependencies),
+		getAttemptDetail: new GetAttemptDetailUseCase(dependencies),
+		listDueRepetitions: new ListDueRepetitionsUseCase(dependencies),
+		listLeeches: new ListLeechesUseCase(dependencies),
+		resolveQuizSettings: new ResolveQuizSettingsUseCase(dependencies),
+		updateQuizSettings: new UpdateQuizSettingsUseCase(dependencies),
 		close: () => {
 			closeDatabase(database);
 			logger.debug("database closed", { path: database.filename });

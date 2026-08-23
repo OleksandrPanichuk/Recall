@@ -66,7 +66,7 @@ export interface StartPracticeSessionDependencies {
 	readonly idGenerator: IdGenerator;
 }
 
-export class StartPracticeSession
+export class StartPracticeSessionUseCase
 	implements
 		UseCase<Command<StartPracticeSessionCommand>, StartPracticeSessionResult>
 {

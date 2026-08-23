@@ -17,7 +17,7 @@ export interface ArchiveQuizSetDependencies {
 	readonly clock: Clock;
 }
 
-export class ArchiveQuizSet
+export class ArchiveQuizSetUseCase
 	implements UseCase<Command<ArchiveQuizSetCommand>, void>
 {
 	private readonly quizSets: QuizSetRepository;

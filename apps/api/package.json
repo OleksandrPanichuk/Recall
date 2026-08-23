@@ -10,12 +10,18 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.30.0",
+		"@nestjs/common": "^11",
+		"@nestjs/core": "^11",
+		"@nestjs/platform-express": "^11",
+		"@nestjs/swagger": "^11",
 		"drizzle-orm": "^0.45.2",
 		"express": "^5",
 		"ra-data-json-server": "^5.15.0",
 		"react": "^19.2.8",
 		"react-admin": "^5.15.1",
 		"react-dom": "^19.2.8",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.2",
 		"telegraf": "^4.16.3",
 		"zod": "^4.4.3"
 	},

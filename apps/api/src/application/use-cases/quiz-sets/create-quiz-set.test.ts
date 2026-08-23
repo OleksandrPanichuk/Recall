@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { QuizSetValidationError } from "@/domain/quiz-set/quiz-set.errors";
-import type { CreateQuizSet } from "./create-quiz-set";
+import type { CreateQuizSetUseCase } from "./create-quiz-set";
 import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
 } from "./quiz-sets.fixture";
 
 let context: TestContext;
-let create: CreateQuizSet;
+let create: CreateQuizSetUseCase;
 let newDraft: QuizSetsHarness["newDraft"];
 
 beforeEach(() => {
@@ -20,7 +20,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("CreateQuizSet", () => {
+describe("CreateQuizSetUseCase", () => {
 	test("stores a draft and returns its id", async () => {
 		const quizSetId = await newDraft();
 		const stored = context.quizSets.findById(quizSetId);

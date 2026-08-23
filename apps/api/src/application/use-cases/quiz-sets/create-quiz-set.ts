@@ -33,7 +33,7 @@ export interface CreateQuizSetDependencies {
 	readonly idGenerator: IdGenerator;
 }
 
-export class CreateQuizSet
+export class CreateQuizSetUseCase
 	implements UseCase<Command<CreateQuizSetCommand>, CreateQuizSetResult>
 {
 	private readonly quizSets: QuizSetRepository;

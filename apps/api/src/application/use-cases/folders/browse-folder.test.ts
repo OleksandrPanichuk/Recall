@@ -14,16 +14,16 @@ import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
-import { MoveQuizSet } from "../quiz-sets/move-quiz-set";
-import { BrowseFolder } from "./browse-folder";
-import { CreateFolder } from "./create-folder";
-import { DeleteFolder, FolderNotEmptyError } from "./delete-folder";
+import { MoveQuizSetUseCase } from "../quiz-sets/move-quiz-set";
+import { BrowseFolderUseCase } from "./browse-folder";
+import { CreateFolderUseCase } from "./create-folder";
+import { DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 
 let context: TestContext;
-let browseFolder: BrowseFolder;
-let createFolder: CreateFolder;
-let deleteFolder: DeleteFolder;
-let moveQuizSet: MoveQuizSet;
+let browseFolder: BrowseFolderUseCase;
+let createFolder: CreateFolderUseCase;
+let deleteFolder: DeleteFolderUseCase;
+let moveQuizSet: MoveQuizSetUseCase;
 
 beforeEach(() => {
 	context = createTestContext();
@@ -35,13 +35,13 @@ beforeEach(() => {
 		transaction: context.transaction,
 	};
 
-	createFolder = new CreateFolder(dependencies);
-	deleteFolder = new DeleteFolder(dependencies);
-	browseFolder = new BrowseFolder({
+	createFolder = new CreateFolderUseCase(dependencies);
+	deleteFolder = new DeleteFolderUseCase(dependencies);
+	browseFolder = new BrowseFolderUseCase({
 		folders: context.folders,
 		quizSets: context.quizSets,
 	});
-	moveQuizSet = new MoveQuizSet({
+	moveQuizSet = new MoveQuizSetUseCase({
 		quizSets: context.quizSets,
 		folders: context.folders,
 		clock: context.clock,
@@ -113,7 +113,7 @@ describe("list filtering", () => {
 	});
 });
 
-describe("BrowseFolder at the root", () => {
+describe("BrowseFolderUseCase at the root", () => {
 	test("returns root folders, unfiled sets and an empty breadcrumb", async () => {
 		await create("English");
 		await create("Programming");
@@ -184,7 +184,7 @@ describe("BrowseFolder at the root", () => {
 	});
 });
 
-describe("BrowseFolder inside a folder", () => {
+describe("BrowseFolderUseCase inside a folder", () => {
 	test("returns the breadcrumb, the children and its own sets", async () => {
 		const english = await create("English");
 		const vocabulary = await create("Vocabulary", english);
@@ -246,7 +246,7 @@ describe("BrowseFolder inside a folder", () => {
 	});
 });
 
-describe("DeleteFolder with sets", () => {
+describe("DeleteFolderUseCase with sets", () => {
 	test("refuses a folder that still holds a set", async () => {
 		const english = await create("English");
 		await fileInto("set-english", english);

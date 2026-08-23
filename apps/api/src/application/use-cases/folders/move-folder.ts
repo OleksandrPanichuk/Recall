@@ -46,7 +46,9 @@ export interface MoveFolderCommand {
 	readonly parentId?: FolderId;
 }
 
-export class MoveFolder implements UseCase<Command<MoveFolderCommand>, void> {
+export class MoveFolderUseCase
+	implements UseCase<Command<MoveFolderCommand>, void>
+{
 	private readonly folders: FolderRepository;
 	private readonly clock: Clock;
 	private readonly transaction: Transaction;

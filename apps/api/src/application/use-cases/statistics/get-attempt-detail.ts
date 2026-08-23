@@ -49,7 +49,7 @@ export interface GetAttemptDetailDependencies {
 	readonly quizSets: QuizSetRepository;
 }
 
-export class GetAttemptDetail
+export class GetAttemptDetailUseCase
 	implements UseCase<Command<GetAttemptDetailCommand>, AttemptDetail>
 {
 	private readonly attempts: QuizAttemptRepository;

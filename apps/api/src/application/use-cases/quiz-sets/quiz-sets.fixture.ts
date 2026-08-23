@@ -4,14 +4,14 @@ import {
 } from "@tests/fixtures/application.fixture";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { AddQuestions, type QuestionInput } from "./add-questions";
-import { AddVocabulary } from "./add-vocabulary";
-import { ArchiveQuizSet } from "./archive-quiz-set";
-import { CreateQuizSet } from "./create-quiz-set";
-import { ListVocabulary } from "./list-vocabulary";
-import { PublishQuizSet } from "./publish-quiz-set";
-import { UpdateQuizSet } from "./update-quiz-set";
-import { UpdateVocabulary } from "./update-vocabulary";
+import { AddQuestionsUseCase, type QuestionInput } from "./add-questions";
+import { AddVocabularyUseCase } from "./add-vocabulary";
+import { ArchiveQuizSetUseCase } from "./archive-quiz-set";
+import { CreateQuizSetUseCase } from "./create-quiz-set";
+import { ListVocabularyUseCase } from "./list-vocabulary";
+import { PublishQuizSetUseCase } from "./publish-quiz-set";
+import { UpdateQuizSetUseCase } from "./update-quiz-set";
+import { UpdateVocabularyUseCase } from "./update-vocabulary";
 
 export const aQuestionInput = (
 	overrides: Partial<QuestionInput> = {},
@@ -31,14 +31,14 @@ export const anotherQuestionInput = (): QuestionInput =>
 
 export interface QuizSetsHarness {
 	readonly context: TestContext;
-	readonly create: CreateQuizSet;
-	readonly update: UpdateQuizSet;
-	readonly add: AddQuestions;
-	readonly publish: PublishQuizSet;
-	readonly archive: ArchiveQuizSet;
-	readonly addVocabulary: AddVocabulary;
-	readonly updateVocabulary: UpdateVocabulary;
-	readonly listVocabulary: ListVocabulary;
+	readonly create: CreateQuizSetUseCase;
+	readonly update: UpdateQuizSetUseCase;
+	readonly add: AddQuestionsUseCase;
+	readonly publish: PublishQuizSetUseCase;
+	readonly archive: ArchiveQuizSetUseCase;
+	readonly addVocabulary: AddVocabularyUseCase;
+	readonly updateVocabulary: UpdateVocabularyUseCase;
+	readonly listVocabulary: ListVocabularyUseCase;
 	newDraft(): Promise<QuizSetId>;
 	newPublished(): Promise<QuizSetId>;
 	newArchived(): Promise<QuizSetId>;
@@ -46,11 +46,11 @@ export interface QuizSetsHarness {
 
 export function createQuizSetsHarness(): QuizSetsHarness {
 	const context = createTestContext();
-	const create = new CreateQuizSet(context);
-	const add = new AddQuestions(context);
-	const publish = new PublishQuizSet(context);
+	const create = new CreateQuizSetUseCase(context);
+	const add = new AddQuestionsUseCase(context);
+	const publish = new PublishQuizSetUseCase(context);
 
-	const archive = new ArchiveQuizSet(context);
+	const archive = new ArchiveQuizSetUseCase(context);
 
 	const newDraft = async (): Promise<QuizSetId> => {
 		const { quizSetId } = await create.execute({
@@ -64,13 +64,13 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 	return {
 		context,
 		create,
-		update: new UpdateQuizSet(context),
+		update: new UpdateQuizSetUseCase(context),
 		add,
 		publish,
 		archive,
-		addVocabulary: new AddVocabulary({ ...context, addQuestions: add }),
-		updateVocabulary: new UpdateVocabulary(context),
-		listVocabulary: new ListVocabulary(context),
+		addVocabulary: new AddVocabularyUseCase({ ...context, addQuestions: add }),
+		updateVocabulary: new UpdateVocabularyUseCase(context),
+		listVocabulary: new ListVocabularyUseCase(context),
 
 		newDraft,
 

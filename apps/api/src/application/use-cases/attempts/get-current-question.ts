@@ -31,7 +31,7 @@ export interface GetCurrentQuestionDependencies {
 	readonly repetition: RepetitionRepository;
 }
 
-export class GetCurrentQuestion
+export class GetCurrentQuestionUseCase
 	implements
 		UseCase<Command<AttemptOfUserCommand>, CurrentQuestionView | undefined>
 {

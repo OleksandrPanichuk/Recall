@@ -21,7 +21,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("CreateFolder", () => {
+describe("CreateFolderUseCase", () => {
 	test("creates a root folder", async () => {
 		const id = await create("Programming");
 

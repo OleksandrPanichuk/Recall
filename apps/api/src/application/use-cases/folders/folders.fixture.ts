@@ -3,22 +3,22 @@ import {
 	type TestContext,
 } from "@tests/fixtures/application.fixture";
 import type { FolderId } from "@/domain/folder/folder";
-import { CreateFolder } from "./create-folder";
-import { DeleteFolder } from "./delete-folder";
-import { EnsureFolderPath } from "./ensure-folder-path";
-import { ListFolderTree } from "./list-folder-tree";
-import { MoveFolder } from "./move-folder";
-import { RenameFolder } from "./rename-folder";
-import { ResolveFolderPath } from "./resolve-folder-path";
+import { CreateFolderUseCase } from "./create-folder";
+import { DeleteFolderUseCase } from "./delete-folder";
+import { EnsureFolderPathUseCase } from "./ensure-folder-path";
+import { ListFolderTreeUseCase } from "./list-folder-tree";
+import { MoveFolderUseCase } from "./move-folder";
+import { RenameFolderUseCase } from "./rename-folder";
+import { ResolveFolderPathUseCase } from "./resolve-folder-path";
 
 export interface FoldersHarness {
 	readonly context: TestContext;
-	readonly renameFolder: RenameFolder;
-	readonly moveFolder: MoveFolder;
-	readonly deleteFolder: DeleteFolder;
-	readonly ensureFolderPath: EnsureFolderPath;
-	readonly resolveFolderPath: ResolveFolderPath;
-	readonly listFolderTree: ListFolderTree;
+	readonly renameFolder: RenameFolderUseCase;
+	readonly moveFolder: MoveFolderUseCase;
+	readonly deleteFolder: DeleteFolderUseCase;
+	readonly ensureFolderPath: EnsureFolderPathUseCase;
+	readonly resolveFolderPath: ResolveFolderPathUseCase;
+	readonly listFolderTree: ListFolderTreeUseCase;
 	create(name: string, parentId?: FolderId): Promise<FolderId>;
 	chain(...names: readonly string[]): Promise<FolderId>;
 	nameOf(id: FolderId): string | undefined;
@@ -34,19 +34,19 @@ export function createFoldersHarness(): FoldersHarness {
 		transaction: context.transaction,
 	};
 
-	const createFolder = new CreateFolder(dependencies);
+	const createFolder = new CreateFolderUseCase(dependencies);
 
 	const create = async (name: string, parentId?: FolderId): Promise<FolderId> =>
 		(await createFolder.execute({ name, parentId })).folderId;
 
 	return {
 		context,
-		renameFolder: new RenameFolder(dependencies),
-		moveFolder: new MoveFolder(dependencies),
-		deleteFolder: new DeleteFolder(dependencies),
-		ensureFolderPath: new EnsureFolderPath(dependencies),
-		resolveFolderPath: new ResolveFolderPath(dependencies),
-		listFolderTree: new ListFolderTree(dependencies),
+		renameFolder: new RenameFolderUseCase(dependencies),
+		moveFolder: new MoveFolderUseCase(dependencies),
+		deleteFolder: new DeleteFolderUseCase(dependencies),
+		ensureFolderPath: new EnsureFolderPathUseCase(dependencies),
+		resolveFolderPath: new ResolveFolderPathUseCase(dependencies),
+		listFolderTree: new ListFolderTreeUseCase(dependencies),
 
 		create,
 

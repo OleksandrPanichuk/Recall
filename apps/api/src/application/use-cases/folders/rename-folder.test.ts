@@ -4,10 +4,10 @@ import type { FolderId } from "@/domain/folder/folder";
 import { DuplicateFolderNameError } from "@/domain/folder/folder.errors";
 import { FolderNotFoundError } from "./create-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import type { RenameFolder } from "./rename-folder";
+import type { RenameFolderUseCase } from "./rename-folder";
 
 let context: TestContext;
-let renameFolder: RenameFolder;
+let renameFolder: RenameFolderUseCase;
 let create: FoldersHarness["create"];
 let nameOf: FoldersHarness["nameOf"];
 
@@ -19,7 +19,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("RenameFolder", () => {
+describe("RenameFolderUseCase", () => {
 	test("renames a folder", async () => {
 		const id = await create("Programing");
 

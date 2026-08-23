@@ -10,15 +10,15 @@ import {
 } from "./attempts.fixture";
 import {
 	NoActiveAttemptError,
-	type PauseQuizAttempt,
-	type ResumeQuizAttempt,
+	type PauseQuizAttemptUseCase,
+	type ResumeQuizAttemptUseCase,
 } from "./resume-quiz-attempt";
-import type { StartQuizAttempt } from "./start-quiz-attempt";
+import type { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
 let context: TestContext;
-let start: StartQuizAttempt;
-let pause: PauseQuizAttempt;
-let resume: ResumeQuizAttempt;
+let start: StartQuizAttemptUseCase;
+let pause: PauseQuizAttemptUseCase;
+let resume: ResumeQuizAttemptUseCase;
 let seedPublishedSet: AttemptsHarness["seedPublishedSet"];
 let questionIdOf: AttemptsHarness["questionIdOf"];
 
@@ -31,7 +31,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("PauseQuizAttempt and ResumeQuizAttempt", () => {
+describe("PauseQuizAttemptUseCase and ResumeQuizAttemptUseCase", () => {
 	test("pauses and resumes", async () => {
 		const quizSetId = await seedPublishedSet();
 		const { attemptId } = await start.execute({

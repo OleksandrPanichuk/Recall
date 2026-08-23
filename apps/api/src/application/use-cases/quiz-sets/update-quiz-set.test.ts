@@ -6,10 +6,13 @@ import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
 } from "./quiz-sets.fixture";
-import { QuizSetNotFoundError, type UpdateQuizSet } from "./update-quiz-set";
+import {
+	QuizSetNotFoundError,
+	type UpdateQuizSetUseCase,
+} from "./update-quiz-set";
 
 let context: TestContext;
-let update: UpdateQuizSet;
+let update: UpdateQuizSetUseCase;
 let newDraft: QuizSetsHarness["newDraft"];
 let newPublished: QuizSetsHarness["newPublished"];
 let newArchived: QuizSetsHarness["newArchived"];
@@ -23,7 +26,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("UpdateQuizSet", () => {
+describe("UpdateQuizSetUseCase", () => {
 	test("changes only the fields it was given", async () => {
 		const quizSetId = await newDraft();
 		context.clock.advance(60_000);

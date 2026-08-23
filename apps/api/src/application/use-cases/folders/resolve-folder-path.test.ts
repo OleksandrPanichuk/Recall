@@ -3,11 +3,11 @@ import type { TestContext } from "@tests/fixtures/application.fixture";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import {
 	FolderPathNotFoundError,
-	type ResolveFolderPath,
+	type ResolveFolderPathUseCase,
 } from "./resolve-folder-path";
 
 let context: TestContext;
-let resolveFolderPath: ResolveFolderPath;
+let resolveFolderPath: ResolveFolderPathUseCase;
 let create: FoldersHarness["create"];
 let chain: FoldersHarness["chain"];
 
@@ -19,7 +19,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("ResolveFolderPath", () => {
+describe("ResolveFolderPathUseCase", () => {
 	test("returns the folder at the path", async () => {
 		const levels = await chain("English", "Vocabulary", "By levels");
 

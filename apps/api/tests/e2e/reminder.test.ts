@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { startDailyReminder } from "@/adapters/telegram/reminders";
-import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
-import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
-import { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
+import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	createMutableClock,
@@ -59,24 +59,24 @@ const publishAndTake = async (id: string, title: string): Promise<void> => {
 		publishedAt: context.clock.now(),
 	});
 
-	await new StartQuizAttempt(context).execute({
+	await new StartQuizAttemptUseCase(context).execute({
 		quizSetId: toQuizSetId(id),
 		telegramUserId: USER,
 	});
 
-	const view = await new GetCurrentQuestion(context).execute({
+	const view = await new GetCurrentQuestionUseCase(context).execute({
 		telegramUserId: USER,
 	});
 
 	if (view?.question !== undefined) {
-		await new AnswerQuestion(context).execute({
+		await new AnswerQuestionUseCase(context).execute({
 			telegramUserId: USER,
 			questionId: view.question.id,
 			selectedOptionPositions: [0],
 		});
 	}
 
-	await new FinishQuizAttempt(context).execute({ telegramUserId: USER });
+	await new FinishQuizAttemptUseCase(context).execute({ telegramUserId: USER });
 };
 
 const fireOnce = async (): Promise<void> => {
@@ -84,7 +84,7 @@ const fireOnce = async (): Promise<void> => {
 	const startedAt = Date.now();
 	const timer = startDailyReminder({
 		bot: fakeBot as never,
-		listDueRepetitions: new ListDueRepetitions(context),
+		listDueRepetitions: new ListDueRepetitionsUseCase(context),
 		telegramUserId: USER,
 		timezone: "UTC",
 		hour: new Date(target).getUTCHours(),
@@ -140,7 +140,7 @@ describe("daily reminder", () => {
 	test("stops cleanly", () => {
 		const timer = startDailyReminder({
 			bot: fakeBot as never,
-			listDueRepetitions: new ListDueRepetitions(context),
+			listDueRepetitions: new ListDueRepetitionsUseCase(context),
 			telegramUserId: USER,
 			timezone: "Europe/Kyiv",
 			hour: 9,

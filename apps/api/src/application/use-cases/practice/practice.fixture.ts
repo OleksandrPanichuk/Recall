@@ -4,14 +4,17 @@ import {
 } from "@tests/fixtures/application.fixture";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { AnswerQuestion } from "../attempts/answer-question";
-import { FinishQuizAttempt } from "../attempts/finish-quiz-attempt";
-import { StartQuizAttempt } from "../attempts/start-quiz-attempt";
-import { AddQuestions, type QuestionInput } from "../quiz-sets/add-questions";
-import { ArchiveQuizSet } from "../quiz-sets/archive-quiz-set";
-import { CreateQuizSet } from "../quiz-sets/create-quiz-set";
-import { PublishQuizSet } from "../quiz-sets/publish-quiz-set";
-import { StartPracticeSession } from "./start-practice-session";
+import { AnswerQuestionUseCase } from "../attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "../attempts/finish-quiz-attempt";
+import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
+import {
+	AddQuestionsUseCase,
+	type QuestionInput,
+} from "../quiz-sets/add-questions";
+import { ArchiveQuizSetUseCase } from "../quiz-sets/archive-quiz-set";
+import { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
+import { PublishQuizSetUseCase } from "../quiz-sets/publish-quiz-set";
+import { StartPracticeSessionUseCase } from "./start-practice-session";
 
 export const USER = 42;
 
@@ -31,9 +34,9 @@ export const aQuestionInput = (
 
 export interface PracticeHarness {
 	readonly context: TestContext;
-	readonly practice: StartPracticeSession;
-	readonly archive: ArchiveQuizSet;
-	readonly finish: FinishQuizAttempt;
+	readonly practice: StartPracticeSessionUseCase;
+	readonly archive: ArchiveQuizSetUseCase;
+	readonly finish: FinishQuizAttemptUseCase;
 	seedPublishedSet(questions: readonly QuestionInput[]): Promise<QuizSetId>;
 	seedDraftSet(questions: readonly QuestionInput[]): Promise<QuizSetId>;
 	playAttempt(quizSetId: QuizSetId, correct: readonly boolean[]): Promise<void>;
@@ -44,12 +47,12 @@ export interface PracticeHarness {
 
 export function createPracticeHarness(): PracticeHarness {
 	const context = createTestContext();
-	const create = new CreateQuizSet(context);
-	const add = new AddQuestions(context);
-	const publish = new PublishQuizSet(context);
-	const start = new StartQuizAttempt(context);
-	const answer = new AnswerQuestion(context);
-	const finish = new FinishQuizAttempt(context);
+	const create = new CreateQuizSetUseCase(context);
+	const add = new AddQuestionsUseCase(context);
+	const publish = new PublishQuizSetUseCase(context);
+	const start = new StartQuizAttemptUseCase(context);
+	const answer = new AnswerQuestionUseCase(context);
+	const finish = new FinishQuizAttemptUseCase(context);
 
 	const questionsOf = (quizSetId: QuizSetId) =>
 		context.quizSets.findById(quizSetId)?.questions ?? [];
@@ -85,8 +88,8 @@ export function createPracticeHarness(): PracticeHarness {
 
 	return {
 		context,
-		practice: new StartPracticeSession(context),
-		archive: new ArchiveQuizSet(context),
+		practice: new StartPracticeSessionUseCase(context),
+		archive: new ArchiveQuizSetUseCase(context),
 		finish,
 		seedDraftSet,
 

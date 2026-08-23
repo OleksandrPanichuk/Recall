@@ -50,7 +50,7 @@ const scoreOf = (correct: number, total: number): Score => ({
 	percentage: percentageOf(correct, total),
 });
 
-export class GetQuizStatistics
+export class GetQuizStatisticsUseCase
 	implements UseCase<Command<GetQuizStatisticsCommand>, QuizStatistics>
 {
 	private readonly quizSets: QuizSetRepository;

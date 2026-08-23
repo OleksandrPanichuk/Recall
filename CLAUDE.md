@@ -163,10 +163,14 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 Beyond the conventions in `ARCHITECTURE.md`:
 
-- Application use cases carry their role in the name: `AnswerQuestionUseCase`, not
-  `AnswerQuestion`. The class name is its NestJS injection token, and it has to be
-  distinguishable from `AnswerQuestionCommand` and `AnswerQuestionController` at a glance.
-  Files follow: `answer-question.use-case.ts`.
+- Application use cases carry their role in the **class** name: `AnswerQuestionUseCase`, not
+  `AnswerQuestion`. The class name is its NestJS injection token, so it is read out of
+  context and has to be distinguishable from `AnswerQuestionCommand` and
+  `AnswerQuestionController` at a glance.
+- **File** names do not repeat it: `use-cases/attempts/answer-question.ts`, not
+  `answer-question.use-case.ts`. The directory already says `use-cases`, and a path that
+  stutters is worse than one that does not. This is the opposite of `*.handler.ts` /
+  `*.presenter.ts` / `*.tool.ts`, which sit in directories that do **not** name their role.
 
 ## Code comments
 

@@ -5,14 +5,20 @@ import {
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { AddQuestions, type QuestionInput } from "../quiz-sets/add-questions";
-import { ArchiveQuizSet } from "../quiz-sets/archive-quiz-set";
-import { CreateQuizSet } from "../quiz-sets/create-quiz-set";
-import { PublishQuizSet } from "../quiz-sets/publish-quiz-set";
-import { AnswerQuestion } from "./answer-question";
-import { FinishQuizAttempt } from "./finish-quiz-attempt";
-import { PauseQuizAttempt, ResumeQuizAttempt } from "./resume-quiz-attempt";
-import { StartQuizAttempt } from "./start-quiz-attempt";
+import {
+	AddQuestionsUseCase,
+	type QuestionInput,
+} from "../quiz-sets/add-questions";
+import { ArchiveQuizSetUseCase } from "../quiz-sets/archive-quiz-set";
+import { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
+import { PublishQuizSetUseCase } from "../quiz-sets/publish-quiz-set";
+import { AnswerQuestionUseCase } from "./answer-question";
+import { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
+import {
+	PauseQuizAttemptUseCase,
+	ResumeQuizAttemptUseCase,
+} from "./resume-quiz-attempt";
+import { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
 export const USER = 42;
 
@@ -29,14 +35,14 @@ export const aQuestionInput = (prompt: string): QuestionInput => ({
 
 export interface AttemptsHarness {
 	readonly context: TestContext;
-	readonly create: CreateQuizSet;
-	readonly add: AddQuestions;
-	readonly archive: ArchiveQuizSet;
-	readonly start: StartQuizAttempt;
-	readonly pause: PauseQuizAttempt;
-	readonly resume: ResumeQuizAttempt;
-	readonly answer: AnswerQuestion;
-	readonly finish: FinishQuizAttempt;
+	readonly create: CreateQuizSetUseCase;
+	readonly add: AddQuestionsUseCase;
+	readonly archive: ArchiveQuizSetUseCase;
+	readonly start: StartQuizAttemptUseCase;
+	readonly pause: PauseQuizAttemptUseCase;
+	readonly resume: ResumeQuizAttemptUseCase;
+	readonly answer: AnswerQuestionUseCase;
+	readonly finish: FinishQuizAttemptUseCase;
 	seedPublishedSet(prompts?: string[]): Promise<QuizSetId>;
 	positionOf(quizSetId: QuizSetId, index: number, correct: boolean): number;
 	questionIdOf(quizSetId: QuizSetId, index: number): QuestionId;
@@ -44,9 +50,9 @@ export interface AttemptsHarness {
 
 export function createAttemptsHarness(): AttemptsHarness {
 	const context = createTestContext();
-	const create = new CreateQuizSet(context);
-	const add = new AddQuestions(context);
-	const publish = new PublishQuizSet(context);
+	const create = new CreateQuizSetUseCase(context);
+	const add = new AddQuestionsUseCase(context);
+	const publish = new PublishQuizSetUseCase(context);
 
 	const questionsOf = (quizSetId: QuizSetId) =>
 		context.quizSets.findById(quizSetId)?.questions ?? [];
@@ -55,12 +61,12 @@ export function createAttemptsHarness(): AttemptsHarness {
 		context,
 		create,
 		add,
-		archive: new ArchiveQuizSet(context),
-		start: new StartQuizAttempt(context),
-		pause: new PauseQuizAttempt(context),
-		resume: new ResumeQuizAttempt(context),
-		answer: new AnswerQuestion(context),
-		finish: new FinishQuizAttempt(context),
+		archive: new ArchiveQuizSetUseCase(context),
+		start: new StartQuizAttemptUseCase(context),
+		pause: new PauseQuizAttemptUseCase(context),
+		resume: new ResumeQuizAttemptUseCase(context),
+		answer: new AnswerQuestionUseCase(context),
+		finish: new FinishQuizAttemptUseCase(context),
 
 		seedPublishedSet: async (prompts = ["One", "Two"]) => {
 			const { quizSetId } = await create.execute({

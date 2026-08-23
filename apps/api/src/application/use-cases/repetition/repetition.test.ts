@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
-import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultRepetitionSettings } from "@/domain/repetition/repetition";
 import {
@@ -14,28 +14,28 @@ import {
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
 import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
-import { UpdateQuizSettings } from "../settings/update-quiz-settings";
-import { ListDueRepetitions } from "./list-due-repetitions";
+import { UpdateQuizSettingsUseCase } from "../settings/update-quiz-settings";
+import { ListDueRepetitionsUseCase } from "./list-due-repetitions";
 
 const USER = 42;
 const day = 24 * 60 * 60 * 1000;
 
 let context: TestContext;
-let start: StartQuizAttempt;
-let finish: FinishQuizAttempt;
-let listDue: ListDueRepetitions;
-let answer: AnswerQuestion;
-let current: GetCurrentQuestion;
-let updateSettings: UpdateQuizSettings;
+let start: StartQuizAttemptUseCase;
+let finish: FinishQuizAttemptUseCase;
+let listDue: ListDueRepetitionsUseCase;
+let answer: AnswerQuestionUseCase;
+let current: GetCurrentQuestionUseCase;
+let updateSettings: UpdateQuizSettingsUseCase;
 
 beforeEach(() => {
 	context = createTestContext();
-	start = new StartQuizAttempt(context);
-	finish = new FinishQuizAttempt(context);
-	listDue = new ListDueRepetitions(context);
-	answer = new AnswerQuestion(context);
-	current = new GetCurrentQuestion(context);
-	updateSettings = new UpdateQuizSettings(context);
+	start = new StartQuizAttemptUseCase(context);
+	finish = new FinishQuizAttemptUseCase(context);
+	listDue = new ListDueRepetitionsUseCase(context);
+	answer = new AnswerQuestionUseCase(context);
+	current = new GetCurrentQuestionUseCase(context);
+	updateSettings = new UpdateQuizSettingsUseCase(context);
 });
 
 afterEach(() => {

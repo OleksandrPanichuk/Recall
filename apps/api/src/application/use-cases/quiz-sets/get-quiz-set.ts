@@ -11,7 +11,7 @@ export interface GetQuizSetDependencies {
 	readonly quizSets: QuizSetRepository;
 }
 
-export class GetQuizSet
+export class GetQuizSetUseCase
 	implements UseCase<Command<GetQuizSetCommand>, QuizSet>
 {
 	private readonly quizSets: QuizSetRepository;

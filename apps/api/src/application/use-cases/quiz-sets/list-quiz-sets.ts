@@ -13,7 +13,7 @@ export interface ListQuizSetsDependencies {
 	readonly quizSets: QuizSetRepository;
 }
 
-export class ListQuizSets
+export class ListQuizSetsUseCase
 	implements UseCase<Command<ListQuizSetsCommand>, readonly QuizSetSummary[]>
 {
 	private readonly quizSets: QuizSetRepository;

@@ -27,7 +27,7 @@ export interface DeleteFolderCommand {
 	readonly folderId: FolderId;
 }
 
-export class DeleteFolder
+export class DeleteFolderUseCase
 	implements UseCase<Command<DeleteFolderCommand>, void>
 {
 	private readonly folders: FolderRepository;

@@ -9,6 +9,11 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+> - r6 — **phase 3 deleted as a standalone phase** and folded into phase 5. It is not
+>   implementable on its own: transaction boundaries nest, so widening repositories to
+>   `Promise` would leave unawaited promises inside a synchronous transaction callback.
+>   Codex's finding #2 was right and my r2 "middle path" was wrong — second correction to
+>   the same finding, recorded in §9. Phase 4 (Nest shell) is unblocked and next.
 > - r5 — **phase 2 done**: Bun workspace, `src/` → `apps/api/src/`, `packages/tooling`, and
 >   the dependency direction now enforced by `biome.json` rather than documented. Same 1377
 >   tests. One refinement the plan had not stated: `apps/{web,bot,mcp,admin}` are **not**
@@ -1102,14 +1107,18 @@ believing it — and check `git log` for whether the author already solved it.
 
 ### Where I did not simply defer
 
-- On #2 the review's conclusion is right but its remedy is heavier than necessary. It
-  proposed abandoning the SQLite-era async step entirely and converting each transactional
-  use case only alongside its Postgres repository. There is a safer middle path it did not
-  name: widen the **return type** to `Promise<T>` while keeping the **callback**
-  `Synchronous<T>`. That absorbs the ~200-file call-site churn on a database you trust,
-  keeps the compile-time guard against awaiting inside a transaction fully intact, and
-  leaves the semantics change for the per-context Postgres move. Its warning stands and is
-  quoted in §2; only the sequencing is softened.
+- On #2 I claimed a safer middle path than the review's: widen the **return type** to
+  `Promise<T>` while keeping the **callback** `Synchronous<T>`, absorbing the call-site churn
+  on SQLite first. **That was wrong, and r6 retracts it.** Transaction boundaries nest — ten
+  use cases wrap repository calls that themselves open a boundary — so widening the
+  repositories puts unawaited promises inside a synchronous callback. The review's original
+  remedy (convert each transactional use case together with its Postgres repository, per
+  context) was correct. See "Why phase 3 was deleted" under Sequencing.
+
+  Worth recording as a pattern: this is the *second* time on this finding that I accepted a
+  mechanism as understood without tracing its callers. First I asserted a cascade was live
+  without checking the guard; then I proposed an async widening without checking what was
+  nested inside the boundary. Both times the code answered in a minute.
 - On #9 the request explicitly asked for a model that is "not very descriptive **+ not
   general**". Renaming to `term_pairs` answers "descriptive" and defers "general", so §6 now
   also records *how* generality arrives later (an additive `kind` column with a default —
@@ -1150,7 +1159,7 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | 0 | Decisions below; ADRs; freeze feature work | — | S |
 | 1 | ~~**Fix attempt history**~~ — **done** (r4). Option ids are now stable across edits; the delete path turned out to be already guarded, and `question_revisions` is deferred as optional (§6). Shipped on `fix/stable-option-ids`. | — | S |
 | 2 | ~~Monorepo split~~ — **done** (r5). Bun workspace; `src/`→`apps/api/src/`, `tests/`→`apps/api/tests/`, `drizzle/`→`apps/api/drizzle/`; `packages/tooling` holds the shared tsconfig base; dependency rules enforced in `biome.json`. 1377 tests, unchanged. | 1 | M |
-| 3 | Async call sites: `Promise`-returning ports, transaction callback stays sync-typed (§2) | 2 | M |
+| ~~3~~ | ~~Async call sites~~ — **deleted (r6)**, folded into phase 5. Not implementable standalone: see below. | — | — |
 | — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
 | 4 | **Minimal Nest API shell** + composition root, still on SQLite, with one vertical slice served end to end (list quizzes) | 3 | M |
 | 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines | 4 | L |
@@ -1169,6 +1178,41 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Why phase 3 was deleted (r6)
+
+r2 proposed: widen every repository port to `Promise<T>` while keeping the transaction
+*callback* synchronous, so the ~200-file churn lands on SQLite before Postgres arrives. I
+described that as the safe middle path. **It does not work**, and the reason is visible in the
+code rather than arguable:
+
+Transaction boundaries **nest**. Ten use cases wrap `this.transaction.run(() => …)` around
+repository calls, and fourteen repository methods open their *own* `transaction.run` inside
+(`sqlite-quiz-set.repository.ts:63`, `sqlite-quiz-attempt.repository.ts:62`,
+`sqlite-repetition.repository.ts:45`, and so on). bun:sqlite tolerates that today through
+savepoints. `FinishQuizAttempt` is the clearest case: line 66 wraps `attempts.save(finished)`
+plus a repetition write in one boundary, and `attempts.save()` opens another inside it.
+
+Make the repository methods return `Promise` and that inner call becomes an **unawaited promise
+inside a synchronous transaction callback.** It would appear to work — an `async` function with
+no `await` runs its body synchronously before returning — so every test would pass while the
+type system asserted something the semantics forbid. That is worse than not doing it: the
+codebase even has a test pinning the contract shut
+(`application/ports/ports.test.ts:7-9`, `@ts-expect-error bun:sqlite transactions must not
+cross an await boundary`).
+
+The real work hiding under "async-ify the ports" is a **transaction-topology change**: one
+owner per boundary, with the transaction handle threaded into repositories instead of injected
+into their constructors — because a Postgres transaction is bound to a connection and cannot
+be rediscovered from a global. That is not mechanical, and it cannot be validated on SQLite,
+whose whole model is the one being replaced.
+
+So it moves into phase 5 and is done **per bounded context**, exactly as the review originally
+recommended: each transactional use case converts together with its Postgres repository, with
+the shared contract suite running against both engines during the transition.
+
+Phase 4 is unaffected — a Nest shell over synchronous repositories is fine, since controllers
+await use cases that are already `async`.
 
 ### Why phase 2 created only one app
 

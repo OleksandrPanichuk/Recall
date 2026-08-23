@@ -3,11 +3,11 @@ import type { TestContext } from "@tests/fixtures/application.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
 import type { FolderId } from "@/domain/folder/folder";
 import { FolderNotFoundError } from "./create-folder";
-import { type DeleteFolder, FolderNotEmptyError } from "./delete-folder";
+import { type DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 
 let context: TestContext;
-let deleteFolder: DeleteFolder;
+let deleteFolder: DeleteFolderUseCase;
 let create: FoldersHarness["create"];
 
 beforeEach(() => {
@@ -18,7 +18,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("DeleteFolder", () => {
+describe("DeleteFolderUseCase", () => {
 	test("deletes an empty folder", async () => {
 		const id = await create("Scratch");
 

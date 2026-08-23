@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import type { ListFolderTree } from "./list-folder-tree";
+import type { ListFolderTreeUseCase } from "./list-folder-tree";
 
 let context: TestContext;
-let listFolderTree: ListFolderTree;
+let listFolderTree: ListFolderTreeUseCase;
 let create: FoldersHarness["create"];
 
 beforeEach(() => {
@@ -16,7 +16,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("ListFolderTree", () => {
+describe("ListFolderTreeUseCase", () => {
 	test("walks depth-first, name-ordered, with the depth of each node", async () => {
 		const english = await create("English");
 		const vocabulary = await create("Vocabulary", english);

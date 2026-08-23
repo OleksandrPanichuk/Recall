@@ -1,16 +1,16 @@
 import { Telegraf } from "telegraf";
-import type { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
-import type { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import type { GetCurrentQuestion } from "@/application/use-cases/attempts/get-current-question";
-import type { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
-import type { BrowseFolder } from "@/application/use-cases/folders/browse-folder";
-import type { StartPracticeSession } from "@/application/use-cases/practice/start-practice-session";
-import type { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
-import type { ListLeeches } from "@/application/use-cases/repetition/list-leeches";
-import type { ResolveQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
-import type { UpdateQuizSettings } from "@/application/use-cases/settings/update-quiz-settings";
-import type { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
-import type { GetQuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
+import type { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import type { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import type { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import type { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import type { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
+import type { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
+import type { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
+import type { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
+import type { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
+import type { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { Logger } from "@/infrastructure/logging/logger.types";
@@ -41,18 +41,18 @@ import { errorMiddleware } from "./middleware/error.middleware";
 import { loggingMiddleware } from "./middleware/logging.middleware";
 
 export interface TelegramUseCases {
-	readonly browseFolder: BrowseFolder;
-	readonly listDueRepetitions: ListDueRepetitions;
-	readonly listLeeches: ListLeeches;
-	readonly getAttemptDetail: GetAttemptDetail;
-	readonly startQuizAttempt: StartQuizAttempt;
-	readonly startPracticeSession: StartPracticeSession;
-	readonly getCurrentQuestion: GetCurrentQuestion;
-	readonly answerQuestion: AnswerQuestion;
-	readonly finishQuizAttempt: FinishQuizAttempt;
-	readonly getQuizStatistics: GetQuizStatistics;
-	readonly resolveQuizSettings: ResolveQuizSettings;
-	readonly updateQuizSettings: UpdateQuizSettings;
+	readonly browseFolder: BrowseFolderUseCase;
+	readonly listDueRepetitions: ListDueRepetitionsUseCase;
+	readonly listLeeches: ListLeechesUseCase;
+	readonly getAttemptDetail: GetAttemptDetailUseCase;
+	readonly startQuizAttempt: StartQuizAttemptUseCase;
+	readonly startPracticeSession: StartPracticeSessionUseCase;
+	readonly getCurrentQuestion: GetCurrentQuestionUseCase;
+	readonly answerQuestion: AnswerQuestionUseCase;
+	readonly finishQuizAttempt: FinishQuizAttemptUseCase;
+	readonly getQuizStatistics: GetQuizStatisticsUseCase;
+	readonly resolveQuizSettings: ResolveQuizSettingsUseCase;
+	readonly updateQuizSettings: UpdateQuizSettingsUseCase;
 }
 
 export interface TelegramBotOptions {

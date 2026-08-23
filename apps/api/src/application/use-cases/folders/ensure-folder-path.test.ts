@@ -4,11 +4,11 @@ import {
 	FolderDepthError,
 	FolderValidationError,
 } from "@/domain/folder/folder.errors";
-import type { EnsureFolderPath } from "./ensure-folder-path";
+import type { EnsureFolderPathUseCase } from "./ensure-folder-path";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 
 let context: TestContext;
-let ensureFolderPath: EnsureFolderPath;
+let ensureFolderPath: EnsureFolderPathUseCase;
 let nameOf: FoldersHarness["nameOf"];
 
 beforeEach(() => {
@@ -19,7 +19,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("EnsureFolderPath", () => {
+describe("EnsureFolderPathUseCase", () => {
 	const path = ["English", "Vocabulary", "By levels", "A1"];
 
 	test("creates the whole chain and reports every segment", async () => {

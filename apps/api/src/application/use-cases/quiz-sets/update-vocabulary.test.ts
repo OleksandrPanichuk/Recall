@@ -16,13 +16,13 @@ import {
 	type QuizSetsHarness,
 } from "./quiz-sets.fixture";
 import {
-	type UpdateVocabulary,
+	type UpdateVocabularyUseCase,
 	VocabularyItemNotFoundError,
 } from "./update-vocabulary";
 
 let context: TestContext;
 let addVocabulary: QuizSetsHarness["addVocabulary"];
-let update: UpdateVocabulary;
+let update: UpdateVocabularyUseCase;
 let newDraft: QuizSetsHarness["newDraft"];
 let publish: QuizSetsHarness["publish"];
 let archive: QuizSetsHarness["archive"];
@@ -68,7 +68,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("UpdateVocabulary", () => {
+describe("UpdateVocabularyUseCase", () => {
 	test("keeps every question id, so the repetition history survives", async () => {
 		const quizSetId = await newDraft();
 		const itemId = await addOne(quizSetId);

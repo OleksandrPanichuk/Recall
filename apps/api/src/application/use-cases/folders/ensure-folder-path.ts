@@ -25,7 +25,7 @@ export interface EnsureFolderPathResult {
 	readonly created: readonly string[];
 }
 
-export class EnsureFolderPath
+export class EnsureFolderPathUseCase
 	implements UseCase<Command<EnsureFolderPathCommand>, EnsureFolderPathResult>
 {
 	private readonly folders: FolderRepository;

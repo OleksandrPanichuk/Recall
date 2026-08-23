@@ -24,7 +24,7 @@ export interface ResolveFolderPathDependencies {
 	readonly folders: FolderRepository;
 }
 
-export class ResolveFolderPath
+export class ResolveFolderPathUseCase
 	implements UseCase<Command<ResolveFolderPathCommand>, ResolveFolderPathResult>
 {
 	private readonly folders: FolderRepository;

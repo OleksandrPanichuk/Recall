@@ -6,10 +6,10 @@ import {
 	FolderDepthError,
 } from "@/domain/folder/folder.errors";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import type { MoveFolder } from "./move-folder";
+import type { MoveFolderUseCase } from "./move-folder";
 
 let context: TestContext;
-let moveFolder: MoveFolder;
+let moveFolder: MoveFolderUseCase;
 let create: FoldersHarness["create"];
 let chain: FoldersHarness["chain"];
 
@@ -21,7 +21,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("MoveFolder", () => {
+describe("MoveFolderUseCase", () => {
 	test("moves a folder to another parent", async () => {
 		const programming = await create("Programming");
 		const english = await create("English");

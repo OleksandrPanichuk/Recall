@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import { AnswerQuestion } from "../attempts/answer-question";
-import { StartQuizAttempt } from "../attempts/start-quiz-attempt";
-import { AnsweredQuestionError, DeleteQuestion } from "./delete-question";
+import { AnswerQuestionUseCase } from "../attempts/answer-question";
+import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
+import {
+	AnsweredQuestionError,
+	DeleteQuestionUseCase,
+} from "./delete-question";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
@@ -16,11 +19,11 @@ import { QuizSetNotFoundError } from "./update-quiz-set";
 const USER = 42;
 
 let harness: QuizSetsHarness;
-let remove: DeleteQuestion;
+let remove: DeleteQuestionUseCase;
 
 beforeEach(() => {
 	harness = createQuizSetsHarness();
-	remove = new DeleteQuestion(harness.context);
+	remove = new DeleteQuestionUseCase(harness.context);
 });
 
 afterEach(() => {
@@ -43,8 +46,8 @@ const questionsOf = (quizSetId: ReturnType<typeof toQuizSetId>) =>
 	harness.context.quizSets.findById(quizSetId)?.questions ?? [];
 
 const answerFirst = async (quizSetId: ReturnType<typeof toQuizSetId>) => {
-	const start = new StartQuizAttempt(harness.context);
-	const answer = new AnswerQuestion(harness.context);
+	const start = new StartQuizAttemptUseCase(harness.context);
+	const answer = new AnswerQuestionUseCase(harness.context);
 	const question = questionsOf(quizSetId)[0];
 
 	await start.execute({ quizSetId, telegramUserId: USER });
@@ -56,7 +59,7 @@ const answerFirst = async (quizSetId: ReturnType<typeof toQuizSetId>) => {
 	});
 };
 
-describe("DeleteQuestion", () => {
+describe("DeleteQuestionUseCase", () => {
 	test("removes a question nobody has answered", async () => {
 		const quizSetId = await twoQuestions();
 		const [, second] = questionsOf(quizSetId);

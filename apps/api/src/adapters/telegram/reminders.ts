@@ -1,5 +1,5 @@
 import type { Telegraf } from "telegraf";
-import type { ListDueRepetitions } from "@/application/use-cases/repetition/list-due-repetitions";
+import type { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import {
 	type DailyTimer,
 	startDailyTimer,
@@ -8,7 +8,7 @@ import { repetitionsScreen } from "./presenters/repetitions.presenter";
 
 export interface ReminderOptions {
 	readonly bot: Telegraf;
-	readonly listDueRepetitions: ListDueRepetitions;
+	readonly listDueRepetitions: ListDueRepetitionsUseCase;
 	readonly telegramUserId: number;
 	readonly timezone: string;
 	readonly hour: number;

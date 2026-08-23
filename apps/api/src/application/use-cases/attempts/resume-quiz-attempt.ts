@@ -31,7 +31,7 @@ export interface AttemptLifecycleDependencies {
 	readonly clock: Clock;
 }
 
-export class PauseQuizAttempt
+export class PauseQuizAttemptUseCase
 	implements UseCase<Command<AttemptOfUserCommand>, void>
 {
 	private readonly attempts: QuizAttemptRepository;
@@ -57,7 +57,7 @@ export class PauseQuizAttempt
 	}
 }
 
-export class ResumeQuizAttempt
+export class ResumeQuizAttemptUseCase
 	implements UseCase<Command<AttemptOfUserCommand>, ResumeQuizAttemptResult>
 {
 	private readonly attempts: QuizAttemptRepository;

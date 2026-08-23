@@ -21,7 +21,7 @@ export interface ListQuestionsDependencies {
 	readonly attempts: QuizAttemptRepository;
 }
 
-export class ListQuestions
+export class ListQuestionsUseCase
 	implements UseCase<Command<ListQuestionsCommand>, readonly QuestionRow[]>
 {
 	private readonly quizSets: QuizSetRepository;

@@ -21,7 +21,9 @@ export interface MoveQuizSetDependencies {
 	readonly clock: Clock;
 }
 
-export class MoveQuizSet implements UseCase<Command<MoveQuizSetCommand>, void> {
+export class MoveQuizSetUseCase
+	implements UseCase<Command<MoveQuizSetCommand>, void>
+{
 	private readonly quizSets: QuizSetRepository;
 	private readonly folders: FolderRepository;
 	private readonly clock: Clock;

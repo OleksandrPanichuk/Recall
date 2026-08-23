@@ -63,7 +63,7 @@ export interface CreateFolderResult {
 	readonly folderId: FolderId;
 }
 
-export class CreateFolder
+export class CreateFolderUseCase
 	implements UseCase<Command<CreateFolderCommand>, CreateFolderResult>
 {
 	private readonly folders: FolderRepository;

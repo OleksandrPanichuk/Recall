@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import type { ArchiveQuizSet } from "./archive-quiz-set";
+import type { ArchiveQuizSetUseCase } from "./archive-quiz-set";
 import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
@@ -9,7 +9,7 @@ import {
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 let context: TestContext;
-let archive: ArchiveQuizSet;
+let archive: ArchiveQuizSetUseCase;
 let newPublished: QuizSetsHarness["newPublished"];
 
 beforeEach(() => {
@@ -20,7 +20,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("ArchiveQuizSet", () => {
+describe("ArchiveQuizSetUseCase", () => {
 	test("archives a published set and keeps publishedAt", async () => {
 		const quizSetId = await newPublished();
 		const publishedAt = context.quizSets.findById(quizSetId)?.publishedAt;

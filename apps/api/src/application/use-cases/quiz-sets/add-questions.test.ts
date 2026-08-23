@@ -8,7 +8,7 @@ import {
 	QuizSetTransitionError,
 } from "@/domain/quiz-set/quiz-set.errors";
 import {
-	type AddQuestions,
+	type AddQuestionsUseCase,
 	EmptyQuestionBatchError,
 	MAX_QUESTIONS_PER_BATCH,
 	QuestionBatchTooLargeError,
@@ -22,7 +22,7 @@ import {
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 let context: TestContext;
-let add: AddQuestions;
+let add: AddQuestionsUseCase;
 let newDraft: QuizSetsHarness["newDraft"];
 let newPublished: QuizSetsHarness["newPublished"];
 let newArchived: QuizSetsHarness["newArchived"];
@@ -36,7 +36,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("AddQuestions", () => {
+describe("AddQuestionsUseCase", () => {
 	test("adds a batch in order with generated ids", async () => {
 		const quizSetId = await newDraft();
 

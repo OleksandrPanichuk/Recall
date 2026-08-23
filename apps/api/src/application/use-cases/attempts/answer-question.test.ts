@@ -5,7 +5,10 @@ import {
 	QuestionNotInAttemptError,
 	QuizAttemptValidationError,
 } from "@/domain/quiz-attempt/quiz-attempt.errors";
-import { type AnswerQuestion, AttemptNotActiveError } from "./answer-question";
+import {
+	type AnswerQuestionUseCase,
+	AttemptNotActiveError,
+} from "./answer-question";
 import {
 	type AttemptsHarness,
 	createAttemptsHarness,
@@ -13,14 +16,14 @@ import {
 } from "./attempts.fixture";
 import {
 	NoActiveAttemptError,
-	type PauseQuizAttempt,
+	type PauseQuizAttemptUseCase,
 } from "./resume-quiz-attempt";
-import type { StartQuizAttempt } from "./start-quiz-attempt";
+import type { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
 let context: TestContext;
-let start: StartQuizAttempt;
-let pause: PauseQuizAttempt;
-let answer: AnswerQuestion;
+let start: StartQuizAttemptUseCase;
+let pause: PauseQuizAttemptUseCase;
+let answer: AnswerQuestionUseCase;
 let seedPublishedSet: AttemptsHarness["seedPublishedSet"];
 let positionOf: AttemptsHarness["positionOf"];
 let questionIdOf: AttemptsHarness["questionIdOf"];
@@ -41,7 +44,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("AnswerQuestion", () => {
+describe("AnswerQuestionUseCase", () => {
 	test("records a correct answer and advances", async () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });

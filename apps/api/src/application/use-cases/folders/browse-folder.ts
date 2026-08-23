@@ -37,7 +37,7 @@ export interface BrowseFolderDependencies {
 
 const published = [QuizSetStatus.Published];
 
-export class BrowseFolder
+export class BrowseFolderUseCase
 	implements UseCase<Command<BrowseFolderCommand>, BrowseView>
 {
 	private readonly folders: FolderRepository;

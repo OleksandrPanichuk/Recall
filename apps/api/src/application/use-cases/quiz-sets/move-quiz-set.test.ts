@@ -13,23 +13,26 @@ import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
-import { CreateFolder, FolderNotFoundError } from "../folders/create-folder";
-import { CreateQuizSet } from "./create-quiz-set";
-import { MoveQuizSet } from "./move-quiz-set";
+import {
+	CreateFolderUseCase,
+	FolderNotFoundError,
+} from "../folders/create-folder";
+import { CreateQuizSetUseCase } from "./create-quiz-set";
+import { MoveQuizSetUseCase } from "./move-quiz-set";
 
 let context: TestContext;
-let moveQuizSet: MoveQuizSet;
-let createFolder: CreateFolder;
+let moveQuizSet: MoveQuizSetUseCase;
+let createFolder: CreateFolderUseCase;
 
 beforeEach(() => {
 	context = createTestContext();
-	createFolder = new CreateFolder({
+	createFolder = new CreateFolderUseCase({
 		folders: context.folders,
 		clock: context.clock,
 		idGenerator: context.idGenerator,
 		transaction: context.transaction,
 	});
-	moveQuizSet = new MoveQuizSet({
+	moveQuizSet = new MoveQuizSetUseCase({
 		quizSets: context.quizSets,
 		folders: context.folders,
 		clock: context.clock,
@@ -54,7 +57,7 @@ const storedSet = (published = false): QuizSetId => {
 const folderOf = (quizSetId: QuizSetId): FolderId | undefined =>
 	context.quizSets.findById(quizSetId)?.folderId;
 
-describe("MoveQuizSet", () => {
+describe("MoveQuizSetUseCase", () => {
 	test("files a set into a folder", async () => {
 		const quizSetId = storedSet();
 		const { folderId } = await createFolder.execute({ name: "English" });
@@ -95,7 +98,7 @@ describe("MoveQuizSet", () => {
 	});
 
 	test("rejects a set created into an unknown folder", () => {
-		const createQuizSet = new CreateQuizSet({
+		const createQuizSet = new CreateQuizSetUseCase({
 			quizSets: context.quizSets,
 			folders: context.folders,
 			clock: context.clock,

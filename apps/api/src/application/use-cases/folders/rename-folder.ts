@@ -14,7 +14,7 @@ export interface RenameFolderCommand {
 	readonly name: string;
 }
 
-export class RenameFolder
+export class RenameFolderUseCase
 	implements UseCase<Command<RenameFolderCommand>, void>
 {
 	private readonly folders: FolderRepository;

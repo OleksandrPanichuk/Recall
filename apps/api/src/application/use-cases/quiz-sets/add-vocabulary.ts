@@ -12,7 +12,7 @@ import {
 	type VocabularyDirection,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
-import type { AddQuestions, QuestionInput } from "./add-questions";
+import type { AddQuestionsUseCase, QuestionInput } from "./add-questions";
 
 export interface VocabularyPairInput {
 	readonly term: readonly string[];
@@ -40,17 +40,17 @@ export interface AddVocabularyDependencies {
 	readonly clock: Clock;
 	readonly idGenerator: IdGenerator;
 	readonly transaction: Transaction;
-	readonly addQuestions: AddQuestions;
+	readonly addQuestions: AddQuestionsUseCase;
 }
 
-export class AddVocabulary
+export class AddVocabularyUseCase
 	implements UseCase<Command<AddVocabularyCommand>, AddVocabularyResult>
 {
 	private readonly vocabulary: VocabularyRepository;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
 	private readonly transaction: Transaction;
-	private readonly addQuestions: AddQuestions;
+	private readonly addQuestions: AddQuestionsUseCase;
 
 	constructor(dependencies: AddVocabularyDependencies) {
 		this.vocabulary = dependencies.vocabulary;

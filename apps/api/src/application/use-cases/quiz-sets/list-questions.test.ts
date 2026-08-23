@@ -3,7 +3,7 @@ import type { TestContext } from "@tests/fixtures/application.fixture";
 import { anAnswer, anAttempt } from "@tests/fixtures/quiz-attempt.fixture";
 import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { ListQuestions } from "./list-questions";
+import { ListQuestionsUseCase } from "./list-questions";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
@@ -15,7 +15,7 @@ let context: TestContext;
 let add: QuizSetsHarness["add"];
 let create: QuizSetsHarness["create"];
 let publish: QuizSetsHarness["publish"];
-let list: ListQuestions;
+let list: ListQuestionsUseCase;
 
 const newSet = async (title: string): Promise<QuizSetId> => {
 	const { quizSetId } = await create.execute({ title, language: "uk" });
@@ -25,14 +25,14 @@ const newSet = async (title: string): Promise<QuizSetId> => {
 
 beforeEach(() => {
 	({ context, add, create, publish } = createQuizSetsHarness());
-	list = new ListQuestions(context);
+	list = new ListQuestionsUseCase(context);
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("ListQuestions", () => {
+describe("ListQuestionsUseCase", () => {
 	test("returns nothing when there are no sets", async () => {
 		expect(await list.execute({})).toEqual([]);
 	});

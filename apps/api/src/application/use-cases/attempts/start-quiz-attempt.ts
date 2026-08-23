@@ -66,7 +66,7 @@ export interface StartQuizAttemptDependencies {
 	readonly repetition: RepetitionRepository;
 }
 
-export class StartQuizAttempt
+export class StartQuizAttemptUseCase
 	implements UseCase<Command<StartQuizAttemptCommand>, StartQuizAttemptResult>
 {
 	private readonly quizSets: QuizSetRepository;

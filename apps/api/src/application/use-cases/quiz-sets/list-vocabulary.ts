@@ -24,7 +24,7 @@ export interface ListVocabularyDependencies {
 	readonly quizSets: QuizSetRepository;
 }
 
-export class ListVocabulary
+export class ListVocabularyUseCase
 	implements
 		UseCase<Command<ListVocabularyCommand>, readonly VocabularyItemView[]>
 {

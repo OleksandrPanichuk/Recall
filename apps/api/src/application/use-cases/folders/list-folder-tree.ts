@@ -20,7 +20,7 @@ export interface ListFolderTreeDependencies {
 
 const published = [QuizSetStatus.Published];
 
-export class ListFolderTree
+export class ListFolderTreeUseCase
 	implements UseCase<Command<ListFolderTreeCommand>, readonly FolderTreeNode[]>
 {
 	private readonly folders: FolderRepository;

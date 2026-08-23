@@ -26,7 +26,7 @@ export interface UpdateQuizSetDependencies {
 	readonly clock: Clock;
 }
 
-export class UpdateQuizSet
+export class UpdateQuizSetUseCase
 	implements UseCase<Command<UpdateQuizSetCommand>, void>
 {
 	private readonly quizSets: QuizSetRepository;

@@ -25,7 +25,7 @@ interface Bucket {
 	overdueDays: number;
 }
 
-export class ListDueRepetitions
+export class ListDueRepetitionsUseCase
 	implements UseCase<Command<ListDueRepetitionsCommand>, readonly DueSet[]>
 {
 	private readonly repetition: RepetitionRepository;

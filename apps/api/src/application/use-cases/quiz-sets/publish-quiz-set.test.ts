@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { EmptyQuizSetError } from "@/domain/quiz-set/quiz-set.errors";
-import type { PublishQuizSet } from "./publish-quiz-set";
+import type { PublishQuizSetUseCase } from "./publish-quiz-set";
 import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
@@ -10,7 +10,7 @@ import {
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 let context: TestContext;
-let publish: PublishQuizSet;
+let publish: PublishQuizSetUseCase;
 let newDraft: QuizSetsHarness["newDraft"];
 let newPublished: QuizSetsHarness["newPublished"];
 
@@ -22,7 +22,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("PublishQuizSet", () => {
+describe("PublishQuizSetUseCase", () => {
 	test("publishes a draft that has questions", async () => {
 		const quizSetId = await newPublished();
 		const stored = context.quizSets.findById(quizSetId);

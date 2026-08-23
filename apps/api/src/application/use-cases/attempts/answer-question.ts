@@ -76,7 +76,7 @@ export interface AnswerQuestionDependencies {
 	readonly transaction: Transaction;
 }
 
-export class AnswerQuestion
+export class AnswerQuestionUseCase
 	implements UseCase<Command<AnswerQuestionCommand>, AnswerQuestionResult>
 {
 	private readonly quizSets: QuizSetRepository;

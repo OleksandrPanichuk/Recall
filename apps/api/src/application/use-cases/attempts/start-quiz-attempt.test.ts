@@ -4,9 +4,9 @@ import { countRows } from "@tests/integration/sqlite/migrated-database";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
-import type { AddQuestions } from "../quiz-sets/add-questions";
-import type { ArchiveQuizSet } from "../quiz-sets/archive-quiz-set";
-import type { CreateQuizSet } from "../quiz-sets/create-quiz-set";
+import type { AddQuestionsUseCase } from "../quiz-sets/add-questions";
+import type { ArchiveQuizSetUseCase } from "../quiz-sets/archive-quiz-set";
+import type { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 import {
 	type AttemptsHarness,
@@ -14,21 +14,21 @@ import {
 	createAttemptsHarness,
 	USER,
 } from "./attempts.fixture";
-import type { FinishQuizAttempt } from "./finish-quiz-attempt";
-import type { PauseQuizAttempt } from "./resume-quiz-attempt";
+import type { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
+import type { PauseQuizAttemptUseCase } from "./resume-quiz-attempt";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
-	type StartQuizAttempt,
+	type StartQuizAttemptUseCase,
 } from "./start-quiz-attempt";
 
 let context: TestContext;
-let add: AddQuestions;
-let create: CreateQuizSet;
-let archive: ArchiveQuizSet;
-let start: StartQuizAttempt;
-let pause: PauseQuizAttempt;
-let finish: FinishQuizAttempt;
+let add: AddQuestionsUseCase;
+let create: CreateQuizSetUseCase;
+let archive: ArchiveQuizSetUseCase;
+let start: StartQuizAttemptUseCase;
+let pause: PauseQuizAttemptUseCase;
+let finish: FinishQuizAttemptUseCase;
 let seedPublishedSet: AttemptsHarness["seedPublishedSet"];
 let questionIdOf: AttemptsHarness["questionIdOf"];
 
@@ -50,7 +50,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("StartQuizAttempt", () => {
+describe("StartQuizAttemptUseCase", () => {
 	test("starts an attempt on a published set", async () => {
 		const quizSetId = await seedPublishedSet();
 

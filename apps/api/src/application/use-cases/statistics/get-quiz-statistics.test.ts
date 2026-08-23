@@ -5,35 +5,38 @@ import {
 } from "@tests/fixtures/application.fixture";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import { AnswerQuestion } from "../attempts/answer-question";
-import { FinishQuizAttempt } from "../attempts/finish-quiz-attempt";
-import { StartQuizAttempt } from "../attempts/start-quiz-attempt";
-import { AddQuestions, type QuestionInput } from "../quiz-sets/add-questions";
-import { CreateQuizSet } from "../quiz-sets/create-quiz-set";
-import { PublishQuizSet } from "../quiz-sets/publish-quiz-set";
+import { AnswerQuestionUseCase } from "../attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "../attempts/finish-quiz-attempt";
+import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
+import {
+	AddQuestionsUseCase,
+	type QuestionInput,
+} from "../quiz-sets/add-questions";
+import { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
+import { PublishQuizSetUseCase } from "../quiz-sets/publish-quiz-set";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
-import { GetQuizStatistics } from "./get-quiz-statistics";
+import { GetQuizStatisticsUseCase } from "./get-quiz-statistics";
 
 const USER = 42;
 
 let context: TestContext;
-let create: CreateQuizSet;
-let add: AddQuestions;
-let publish: PublishQuizSet;
-let start: StartQuizAttempt;
-let answer: AnswerQuestion;
-let finish: FinishQuizAttempt;
-let statistics: GetQuizStatistics;
+let create: CreateQuizSetUseCase;
+let add: AddQuestionsUseCase;
+let publish: PublishQuizSetUseCase;
+let start: StartQuizAttemptUseCase;
+let answer: AnswerQuestionUseCase;
+let finish: FinishQuizAttemptUseCase;
+let statistics: GetQuizStatisticsUseCase;
 
 beforeEach(() => {
 	context = createTestContext();
-	create = new CreateQuizSet(context);
-	add = new AddQuestions(context);
-	publish = new PublishQuizSet(context);
-	start = new StartQuizAttempt(context);
-	answer = new AnswerQuestion(context);
-	finish = new FinishQuizAttempt(context);
-	statistics = new GetQuizStatistics(context);
+	create = new CreateQuizSetUseCase(context);
+	add = new AddQuestionsUseCase(context);
+	publish = new PublishQuizSetUseCase(context);
+	start = new StartQuizAttemptUseCase(context);
+	answer = new AnswerQuestionUseCase(context);
+	finish = new FinishQuizAttemptUseCase(context);
+	statistics = new GetQuizStatisticsUseCase(context);
 });
 
 afterEach(() => {
@@ -91,7 +94,7 @@ async function playAttempt(
 	await finish.execute({ telegramUserId });
 }
 
-describe("GetQuizStatistics", () => {
+describe("GetQuizStatisticsUseCase", () => {
 	test("returns a zero result for a set with no attempts", async () => {
 		const quizSetId = await seedPublishedSet([aQuestionInput("One")]);
 

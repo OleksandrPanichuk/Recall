@@ -1,24 +1,24 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TestContext } from "@tests/fixtures/application.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import type { AnswerQuestion } from "./answer-question";
+import type { AnswerQuestionUseCase } from "./answer-question";
 import {
 	type AttemptsHarness,
 	createAttemptsHarness,
 	USER,
 } from "./attempts.fixture";
-import type { FinishQuizAttempt } from "./finish-quiz-attempt";
+import type { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
 import {
 	NoActiveAttemptError,
-	type PauseQuizAttempt,
+	type PauseQuizAttemptUseCase,
 } from "./resume-quiz-attempt";
-import type { StartQuizAttempt } from "./start-quiz-attempt";
+import type { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
 let context: TestContext;
-let start: StartQuizAttempt;
-let pause: PauseQuizAttempt;
-let answer: AnswerQuestion;
-let finish: FinishQuizAttempt;
+let start: StartQuizAttemptUseCase;
+let pause: PauseQuizAttemptUseCase;
+let answer: AnswerQuestionUseCase;
+let finish: FinishQuizAttemptUseCase;
 let seedPublishedSet: AttemptsHarness["seedPublishedSet"];
 let positionOf: AttemptsHarness["positionOf"];
 let questionIdOf: AttemptsHarness["questionIdOf"];
@@ -40,7 +40,7 @@ afterEach(() => {
 	context.close();
 });
 
-describe("FinishQuizAttempt", () => {
+describe("FinishQuizAttemptUseCase", () => {
 	test("completes a partially answered attempt", async () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });

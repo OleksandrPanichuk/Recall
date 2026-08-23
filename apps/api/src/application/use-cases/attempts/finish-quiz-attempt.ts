@@ -34,7 +34,7 @@ export interface FinishQuizAttemptDependencies {
 	readonly timezone: string;
 }
 
-export class FinishQuizAttempt
+export class FinishQuizAttemptUseCase
 	implements UseCase<Command<AttemptOfUserCommand>, FinishQuizAttemptResult>
 {
 	private readonly attempts: QuizAttemptRepository;

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { AnswerQuestion } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttempt } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { StartQuizAttempt } from "@/application/use-cases/attempts/start-quiz-attempt";
-import { GetAttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
+import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { QuestionType, toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { QuestionValidationError } from "@/domain/quiz-set/quiz-set.errors";
@@ -12,15 +12,18 @@ import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
 } from "./quiz-sets.fixture";
-import { QuestionNotFoundError, UpdateQuestion } from "./update-question";
+import {
+	QuestionNotFoundError,
+	UpdateQuestionUseCase,
+} from "./update-question";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 let harness: QuizSetsHarness;
-let update: UpdateQuestion;
+let update: UpdateQuestionUseCase;
 
 beforeEach(() => {
 	harness = createQuizSetsHarness();
-	update = new UpdateQuestion(harness.context);
+	update = new UpdateQuestionUseCase(harness.context);
 });
 
 afterEach(() => {
@@ -37,7 +40,7 @@ const firstQuestionOf = (quizSetId: ReturnType<typeof toQuizSetId>) => {
 	return question;
 };
 
-describe("UpdateQuestion", () => {
+describe("UpdateQuestionUseCase", () => {
 	test("fixes a prompt on a published set", async () => {
 		const quizSetId = await harness.newPublished();
 		const before = firstQuestionOf(quizSetId);
@@ -219,10 +222,10 @@ describe("UpdateQuestion", () => {
 			throw new Error("the fixture has no incorrect option");
 		}
 
-		const start = new StartQuizAttempt(harness.context);
-		const answer = new AnswerQuestion(harness.context);
-		const finish = new FinishQuizAttempt(harness.context);
-		const detail = new GetAttemptDetail(harness.context);
+		const start = new StartQuizAttemptUseCase(harness.context);
+		const answer = new AnswerQuestionUseCase(harness.context);
+		const finish = new FinishQuizAttemptUseCase(harness.context);
+		const detail = new GetAttemptDetailUseCase(harness.context);
 
 		const { attemptId } = await start.execute({
 			quizSetId,

@@ -56,7 +56,7 @@ export interface ResolveQuizSettingsDependencies {
 	readonly quizSets: QuizSetRepository;
 }
 
-export class ResolveQuizSettings
+export class ResolveQuizSettingsUseCase
 	implements UseCase<Command<ResolveQuizSettingsCommand>, ResolvedQuizSettings>
 {
 	private readonly repetition: RepetitionRepository;

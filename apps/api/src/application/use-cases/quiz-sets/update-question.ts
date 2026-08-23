@@ -50,7 +50,7 @@ export interface UpdateQuestionDependencies {
 	readonly idGenerator: IdGenerator;
 }
 
-export class UpdateQuestion
+export class UpdateQuestionUseCase
 	implements UseCase<Command<UpdateQuestionCommand>, UpdateQuestionResult>
 {
 	private readonly quizSets: QuizSetRepository;

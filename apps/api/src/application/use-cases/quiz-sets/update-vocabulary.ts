@@ -131,7 +131,7 @@ function planRebuild(
 	return { replacements, removedIds };
 }
 
-export class UpdateVocabulary
+export class UpdateVocabularyUseCase
 	implements UseCase<Command<UpdateVocabularyCommand>, UpdateVocabularyResult>
 {
 	private readonly vocabulary: VocabularyRepository;
