@@ -1,5 +1,6 @@
 import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import type { QuizRepository } from "./quiz.repository";
 
 export interface PageRepository {
 	save(page: Folder): Promise<void>;
@@ -17,4 +18,5 @@ export interface PageRepository {
 
 export interface ContentScope {
 	readonly pages: PageRepository;
+	readonly quizzes: QuizRepository;
 }

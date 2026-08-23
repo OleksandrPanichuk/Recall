@@ -2,6 +2,7 @@ import type { ContentScope } from "@/application/ports/repositories/page.reposit
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { RecallDatabase } from "./client";
 import { createPagePostgresRepository } from "./repositories/page.repository";
+import { createQuizPostgresRepository } from "./repositories/quiz.repository";
 
 export type Executor =
 	| RecallDatabase
@@ -9,6 +10,7 @@ export type Executor =
 
 export const scopeFor = (executor: Executor): ContentScope => ({
 	pages: createPagePostgresRepository(executor),
+	quizzes: createQuizPostgresRepository(executor),
 });
 
 export function createPostgresUnitOfWork(

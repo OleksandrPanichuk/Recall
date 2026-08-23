@@ -1,6 +1,4 @@
 import { afterAll, beforeAll } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { RecallDatabase } from "@/persistence/postgres/client";
 import * as schema from "@/persistence/postgres/schema";
@@ -10,6 +8,7 @@ import {
 } from "@/persistence/postgres/unit-of-work";
 import { describePageRepository } from "../../contracts/page.repository.contract";
 import {
+	applyMigration,
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
@@ -26,23 +25,7 @@ beforeAll(async () => {
 	}
 
 	harness = await openPostgres("pages");
-
-	const file = join(
-		import.meta.dir,
-		"..",
-		"..",
-		"..",
-		"drizzle-postgres",
-		"0000_tan_power_man.sql",
-	);
-
-	for (const statement of readFileSync(file, "utf8")
-		.split("--> statement-breakpoint")
-		.map((entry) => entry.trim())
-		.filter((entry) => entry.length > 0)) {
-		await harness.client.unsafe(statement);
-	}
-
+	await applyMigration(harness);
 	db = drizzle({ client: harness.client, schema });
 });
 

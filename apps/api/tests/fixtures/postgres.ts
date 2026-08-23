@@ -93,3 +93,22 @@ export async function openPostgres(prefix: string): Promise<PostgresHarness> {
 		},
 	};
 }
+
+export async function applyMigration(harness: PostgresHarness): Promise<void> {
+	const { readFileSync } = await import("node:fs");
+	const { join } = await import("node:path");
+	const file = join(
+		import.meta.dir,
+		"..",
+		"..",
+		"drizzle-postgres",
+		"0000_tan_power_man.sql",
+	);
+
+	for (const statement of readFileSync(file, "utf8")
+		.split("--> statement-breakpoint")
+		.map((entry) => entry.trim())
+		.filter((entry) => entry.length > 0)) {
+		await harness.client.unsafe(statement);
+	}
+}

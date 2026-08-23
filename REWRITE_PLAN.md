@@ -20,6 +20,9 @@
 >     no context can sit on a different engine from its neighbour. Phase 5 is a single cutover.
 >     Added the enabler that makes that safe: one contract suite, run against both a Postgres
 >     and an in-memory implementation of the same async port.
+>   - r13 — the **quiz repository is ported, and the delete-and-reinsert pattern is gone**:
+>     diffing upsert, `version` for optimistic concurrency, survivors keeping their ids. Two of
+>     five repositories now have both implementations behind a shared contract.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1203,6 +1206,47 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, sixth slice: the quiz repository, without the old save (r13)
+
+Porting `QuizRepository` was the moment to stop reproducing v1's `save()`, which deletes every
+option in the set and re-inserts it (finding 5: write amplification plus a lost-update race the
+moment a web UI and an MCP-driven AI edit the same quiz). The Postgres version instead:
+
+- **diffs the questions.** Only ids the aggregate has dropped are deleted; survivors are
+  upserted by id, so the answers and review state hanging off them stay attached. That is the
+  same property commits `65dba08` and `73a414e` were written to protect, now enforced by the
+  repository rather than by the caller's care.
+- **carries `version`.** `save(quiz, expectedVersion?)` returns the new version and throws
+  `QuizVersionConflictError` when the stored version has moved. Nothing uses it yet; the point
+  is that the column and the check exist before two writers do.
+- **replaces options per question, not per quiz.** `responses.selected_option_ids` is a
+  `uuid[]` with no foreign key, so a question's own options can be replaced without touching
+  anything else — which also sidesteps the `unique (question_id, position)` collision that
+  makes a naive reorder fail.
+- **still parks positions.** `unique (quiz_id, position)` and `unique (quiz_id, fingerprint)`
+  are checked per statement in Postgres, so surviving rows are moved outside the unique space
+  before the upserts, exactly as the SQLite version does. The trick was already right; only the
+  delete-everything part was wrong.
+
+Eight contract tests, both engines. The one that matters most: **"refuses to drop a question
+that has answers"** now passes because the database refuses it (`ON DELETE RESTRICT`), not
+because a use case remembered to check.
+
+**The shared contract earned its keep immediately.** The fixture built option ids as
+`` `${questionId}-0` `` — fine for the in-memory store, rejected by Postgres, where the column
+is `uuid`. Six tests failed on Postgres and passed in memory in the same run, which is exactly
+the drift a double hides when it has its own tests. The in-memory implementation is more
+permissive than the real one; only running the same assertions against both makes that visible.
+
+Also fixed: `restoreInto` in the memory store was missing the three new maps, so the in-memory
+rollback silently kept a failed quiz save. Caught by the contract's rollback test — and caused
+by running a patch script without asserting the replacement matched, which is the second time
+that has bitten.
+
+**Two of five repositories now paired:** `pages`, `quizzes`. Remaining: `attempts` (with the
+statistics queries), `repetition`, and `vocabulary`/`term_pairs`. Then the use cases and the
+composition root in one switch.
 
 ### Phase 5, fifth slice: retracting "per bounded context" (r12)
 

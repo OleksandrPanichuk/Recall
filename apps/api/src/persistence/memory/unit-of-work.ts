@@ -1,6 +1,7 @@
 import type { ContentScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { createMemoryPageRepository } from "./page.repository";
+import { createMemoryQuizRepository } from "./quiz.repository";
 import { type MemoryStore, restoreInto, snapshotOf } from "./store";
 
 export interface MemoryPersistence {
@@ -14,6 +15,7 @@ export interface MemoryPersistence {
 export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
 	const scope: ContentScope = {
 		pages: createMemoryPageRepository(store),
+		quizzes: createMemoryQuizRepository(store),
 	};
 
 	return {
