@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultRepetitionSettings } from "@/domain/repetition/repetition";
-import {
-	createTestContext,
-	type TestContext,
-} from "../../../../tests/fixtures/application.fixture";
 import {
 	aQuestion,
 	aQuizSet,
@@ -20,7 +20,7 @@ import { ListDueRepetitionsUseCase } from "./list-due-repetitions";
 const USER = 42;
 const day = 24 * 60 * 60 * 1000;
 
-let context: TestContext;
+let context: MemoryContext;
 let start: StartQuizAttemptUseCase;
 let finish: FinishQuizAttemptUseCase;
 let listDue: ListDueRepetitionsUseCase;
@@ -29,7 +29,7 @@ let current: GetCurrentQuestionUseCase;
 let updateSettings: UpdateQuizSettingsUseCase;
 
 beforeEach(() => {
-	context = createTestContext();
+	context = createMemoryContext();
 	start = new StartQuizAttemptUseCase(context);
 	finish = new FinishQuizAttemptUseCase(context);
 	listDue = new ListDueRepetitionsUseCase(context);

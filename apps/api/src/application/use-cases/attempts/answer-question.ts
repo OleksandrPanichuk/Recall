@@ -1,8 +1,11 @@
 import type { Clock } from "@/application/ports/clock";
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Transaction } from "@/application/ports/transaction";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	type Answer,
 	acceptedAnswers,
@@ -69,26 +72,17 @@ export interface AnswerQuestionResult {
 	readonly credit: AnswerGrade;
 }
 
-export interface AnswerQuestionDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly attempts: QuizAttemptRepository;
-	readonly clock: Clock;
-	readonly transaction: Transaction;
-}
+export type AnswerQuestionDependencies = ApplicationDependencies;
 
 export class AnswerQuestionUseCase
 	implements UseCase<Command<AnswerQuestionCommand>, AnswerQuestionResult>
 {
-	private readonly quizSets: QuizSetRepository;
-	private readonly attempts: QuizAttemptRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
-	private readonly transaction: Transaction;
 
 	constructor(dependencies: AnswerQuestionDependencies) {
-		this.quizSets = dependencies.quizSets;
-		this.attempts = dependencies.attempts;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
-		this.transaction = dependencies.transaction;
 	}
 
 	async execute(
@@ -96,8 +90,8 @@ export class AnswerQuestionUseCase
 	): Promise<AnswerQuestionResult> {
 		const at = this.clock.now();
 
-		return this.transaction.run(() => {
-			const attempt = this.attempts.findActiveByUser(request.telegramUserId);
+		return this.unitOfWork.run(async ({ quizzes, attempts }) => {
+			const attempt = await attempts.findActiveFor(request.telegramUserId);
 
 			if (attempt === undefined) {
 				throw new NoActiveAttemptError(request.telegramUserId);
@@ -107,7 +101,7 @@ export class AnswerQuestionUseCase
 				throw new AttemptNotActiveError(attempt.status);
 			}
 
-			const quizSet = this.quizSets.findById(attempt.quizSetId);
+			const quizSet = await quizzes.findById(attempt.quizSetId);
 			const question = quizSet?.questions.find(
 				(candidate) => candidate.id === request.questionId,
 			);
@@ -157,7 +151,7 @@ export class AnswerQuestionUseCase
 				creditPossible: grade.possible,
 			});
 
-			this.attempts.save(answered);
+			await attempts.save(answered);
 
 			return this.resultOf(
 				answered,

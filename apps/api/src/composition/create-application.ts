@@ -1,20 +1,7 @@
-import type { Database } from "bun:sqlite";
-import type { QuizDatabase } from "@/adapters/persistence/sqlite/database";
-import {
-	closeDatabase,
-	createDatabase,
-	createDrizzleClient,
-} from "@/adapters/persistence/sqlite/database";
-import { applyMigrations } from "@/adapters/persistence/sqlite/migrator";
-import { createSqliteFolderRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-folder.repository";
-import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
-import { createSqliteQuizSetRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-set.repository";
-import { createSqliteRepetitionRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-repetition.repository";
-import { createSqliteVocabularyRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-vocabulary.repository";
-import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { Transaction } from "@/application/ports/transaction";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -54,25 +41,25 @@ import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { silentLogger } from "@/infrastructure/logging/logger";
 import type { Logger } from "@/infrastructure/logging/logger.types";
+import {
+	createPostgresConnection,
+	type PostgresConnection,
+} from "@/persistence/postgres/client";
+import {
+	createPostgresUnitOfWork,
+	readOnlyScope,
+} from "@/persistence/postgres/unit-of-work";
 
 export const systemClock: Clock = { now: () => new Date() };
 
-export const shortIdGenerator: IdGenerator = {
-	generate: () => {
-		const bytes = new Uint8Array(9);
-
-		crypto.getRandomValues(bytes);
-
-		return Array.from(bytes, (byte) => byte.toString(36).padStart(2, "0")).join(
-			"",
-		);
-	},
+export const uuidGenerator: IdGenerator = {
+	generate: () => crypto.randomUUID(),
 };
 
 export interface Application {
-	readonly database: Database;
-	readonly client: QuizDatabase;
-	readonly transaction: Transaction;
+	readonly connection: PostgresConnection;
+	readonly unitOfWork: UnitOfWork<RepositoryScope>;
+	readonly scope: RepositoryScope;
 	readonly createQuizSet: CreateQuizSetUseCase;
 	readonly updateQuizSet: UpdateQuizSetUseCase;
 	readonly addQuestions: AddQuestionsUseCase;
@@ -108,50 +95,41 @@ export interface Application {
 	readonly listLeeches: ListLeechesUseCase;
 	readonly resolveQuizSettings: ResolveQuizSettingsUseCase;
 	readonly updateQuizSettings: UpdateQuizSettingsUseCase;
-	close(): void;
+	close(): Promise<void>;
 }
 
 export interface ApplicationOptions {
-	readonly databasePath: string;
+	readonly databaseUrl: string;
 	readonly timezone?: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
 	readonly logger?: Logger;
+	readonly maxConnections?: number;
 }
 
 export function createApplication(options: ApplicationOptions): Application {
 	const logger = options.logger ?? silentLogger;
-	const database = createDatabase({ path: options.databasePath });
-	const applied = applyMigrations(database);
-
-	logger.info("database ready", {
-		path: database.filename,
-		migrationCount: applied.length,
-		appliedMigrations: [...applied],
+	const connection = createPostgresConnection({
+		url: options.databaseUrl,
+		maxConnections: options.maxConnections,
 	});
 
-	const client = createDrizzleClient(database);
-	const transaction = createSqliteTransaction(client);
+	logger.info("database ready", { driver: "postgres" });
+
 	const dependencies = {
-		quizSets: createSqliteQuizSetRepository(client, transaction),
-		folders: createSqliteFolderRepository(client, transaction),
-		vocabulary: createSqliteVocabularyRepository(client, transaction),
-		repetition: createSqliteRepetitionRepository(client, transaction, () =>
-			(options.clock ?? systemClock).now(),
-		),
-		attempts: createSqliteQuizAttemptRepository(client, transaction),
+		unitOfWork: createPostgresUnitOfWork(connection.db),
+		scope: readOnlyScope(connection.db),
 		clock: options.clock ?? systemClock,
-		idGenerator: options.idGenerator ?? shortIdGenerator,
+		idGenerator: options.idGenerator ?? uuidGenerator,
 		timezone: options.timezone ?? "UTC",
-		transaction,
 	};
 
 	const addQuestions = new AddQuestionsUseCase(dependencies);
 
 	return {
-		database,
-		client,
-		transaction,
+		connection,
+		unitOfWork: dependencies.unitOfWork,
+		scope: dependencies.scope,
 		createQuizSet: new CreateQuizSetUseCase(dependencies),
 		updateQuizSet: new UpdateQuizSetUseCase(dependencies),
 		addQuestions,
@@ -187,9 +165,9 @@ export function createApplication(options: ApplicationOptions): Application {
 		listLeeches: new ListLeechesUseCase(dependencies),
 		resolveQuizSettings: new ResolveQuizSettingsUseCase(dependencies),
 		updateQuizSettings: new UpdateQuizSettingsUseCase(dependencies),
-		close: () => {
-			closeDatabase(database);
-			logger.debug("database closed", { path: database.filename });
+		close: async () => {
+			await connection.close();
+			logger.debug("database closed", { driver: "postgres" });
 		},
 	};
 }

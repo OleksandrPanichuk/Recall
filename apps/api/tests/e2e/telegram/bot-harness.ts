@@ -1,3 +1,8 @@
+import {
+	createMutableClock,
+	createRealisticIdGenerator,
+	type MutableClock,
+} from "@tests/fixtures/memory.fixture";
 import { type Telegraf, Telegram } from "telegraf";
 import { createBot } from "@/adapters/telegram/bot";
 import type { QuestionInput } from "@/application/use-cases/quiz-sets/add-questions";
@@ -9,11 +14,6 @@ import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { silentLogger } from "@/infrastructure/logging/logger";
 import type { Logger } from "@/infrastructure/logging/logger.types";
-import {
-	createMutableClock,
-	createRealisticIdGenerator,
-	type MutableClock,
-} from "../../fixtures/application.fixture";
 
 export const ALLOWED_USER = 42;
 export const OTHER_USER = 7;

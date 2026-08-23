@@ -1,7 +1,10 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
-import type { Transaction } from "@/application/ports/transaction";
+import type {
+	PageRepository,
+	RepositoryScope,
+} from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import {
 	assertPlacement,
@@ -22,17 +25,17 @@ export class FolderNotFoundError extends Error {
 }
 
 export interface FolderDependencies {
-	readonly folders: FolderRepository;
+	readonly unitOfWork: UnitOfWork<RepositoryScope>;
+	readonly scope: RepositoryScope;
 	readonly clock: Clock;
 	readonly idGenerator: IdGenerator;
-	readonly transaction: Transaction;
 }
 
-export function requireFolder(
-	folders: FolderRepository,
+export async function requireFolder(
+	pages: PageRepository,
 	folderId: FolderId,
-): Folder {
-	const folder = folders.findById(folderId);
+): Promise<Folder> {
+	const folder = await pages.findById(folderId);
 
 	if (folder === undefined) {
 		throw new FolderNotFoundError(folderId);
@@ -41,17 +44,17 @@ export function requireFolder(
 	return folder;
 }
 
-export function parentChain(
-	folders: FolderRepository,
+export async function parentChain(
+	pages: PageRepository,
 	parentId: FolderId | undefined,
-): readonly Folder[] {
+): Promise<readonly Folder[]> {
 	if (parentId === undefined) {
 		return [];
 	}
 
-	const parent = requireFolder(folders, parentId);
+	const parent = await requireFolder(pages, parentId);
 
-	return [...folders.listAncestors(parent.id), parent];
+	return [...(await pages.listAncestors(parent.id)), parent];
 }
 
 export interface CreateFolderCommand {
@@ -66,22 +69,18 @@ export interface CreateFolderResult {
 export class CreateFolderUseCase
 	implements UseCase<Command<CreateFolderCommand>, CreateFolderResult>
 {
-	private readonly folders: FolderRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
-	private readonly transaction: Transaction;
 
 	constructor(dependencies: FolderDependencies) {
-		this.folders = dependencies.folders;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
-		this.transaction = dependencies.transaction;
 	}
 
-	async execute(
-		request: Command<CreateFolderCommand>,
-	): Promise<CreateFolderResult> {
-		return this.transaction.run(() => {
+	execute(request: Command<CreateFolderCommand>): Promise<CreateFolderResult> {
+		return this.unitOfWork.run(async ({ pages }) => {
 			const folder = createFolder({
 				id: toFolderId(this.idGenerator.generate()),
 				name: request.name,
@@ -91,10 +90,10 @@ export class CreateFolderUseCase
 
 			assertPlacement(
 				folder,
-				parentChain(this.folders, request.parentId),
-				this.folders.listChildren(request.parentId),
+				await parentChain(pages, request.parentId),
+				await pages.listChildren(request.parentId),
 			);
-			this.folders.save(folder);
+			await pages.save(folder);
 
 			return { folderId: folder.id };
 		});

@@ -1,8 +1,11 @@
 import type { Clock } from "@/application/ports/clock";
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Transaction } from "@/application/ports/transaction";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	attemptScore,
 	completeQuizAttempt,
@@ -26,27 +29,17 @@ export interface FinishQuizAttemptResult {
 	readonly unansweredCount: number;
 }
 
-export interface FinishQuizAttemptDependencies {
-	readonly attempts: QuizAttemptRepository;
-	readonly repetition: RepetitionRepository;
-	readonly transaction: Transaction;
-	readonly clock: Clock;
-	readonly timezone: string;
-}
+export type FinishQuizAttemptDependencies = ApplicationDependencies;
 
 export class FinishQuizAttemptUseCase
 	implements UseCase<Command<AttemptOfUserCommand>, FinishQuizAttemptResult>
 {
-	private readonly attempts: QuizAttemptRepository;
-	private readonly repetition: RepetitionRepository;
-	private readonly transaction: Transaction;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly timezone: string;
 
 	constructor(dependencies: FinishQuizAttemptDependencies) {
-		this.attempts = dependencies.attempts;
-		this.repetition = dependencies.repetition;
-		this.transaction = dependencies.transaction;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.timezone = dependencies.timezone;
 	}
@@ -54,58 +47,62 @@ export class FinishQuizAttemptUseCase
 	async execute(
 		request: Command<AttemptOfUserCommand>,
 	): Promise<FinishQuizAttemptResult> {
-		const attempt = this.attempts.findActiveByUser(request.telegramUserId);
-
-		if (attempt === undefined) {
-			throw new NoActiveAttemptError(request.telegramUserId);
-		}
-
 		const at = this.clock.now();
-		const finished = completeQuizAttempt(attempt, at);
+		const finished = await this.unitOfWork.run(
+			async ({ attempts, reviews }) => {
+				const attempt = await attempts.findActiveFor(request.telegramUserId);
 
-		this.transaction.run(() => {
-			this.attempts.save(finished);
+				if (attempt === undefined) {
+					throw new NoActiveAttemptError(request.telegramUserId);
+				}
 
-			// An attempt abandoned without answering is not a repetition: advancing
-			// on it would push the interval out and, repeated, retire a question the
-			// owner never actually answered. A drill is not one either: it can be
-			// taken any number of times a day, so advancing on it would walk the
-			// interval out on massed practice.
-			if (
-				finished.responses.length === 0 ||
-				finished.mode !== QuizAttemptMode.Full
-			) {
-				return;
-			}
+				const completed = completeQuizAttempt(attempt, at);
 
-			const settings = resolveRepetitionSettings(
-				this.repetition,
-				finished.quizSetId,
-			);
-			const dayStart = startOfDayIn(at, this.timezone);
-			const answeredIds = finished.responses.map(
-				(response) => response.questionId,
-			);
-			const existing = new Map(
-				this.repetition
-					.findSchedules(answeredIds, finished.telegramUserId)
-					.map((schedule) => [schedule.questionId, schedule]),
-			);
+				await attempts.save(completed);
 
-			this.repetition.saveSchedules(
-				finished.responses.map((response) =>
-					scheduleAfter(
-						existing.get(response.questionId),
-						response.questionId,
-						finished.telegramUserId,
-						settings,
-						at,
-						dayStart,
-						response.isCorrect,
+				// An attempt abandoned without answering is not a repetition: advancing
+				// on it would push the interval out and, repeated, retire a question the
+				// owner never actually answered. A drill is not one either: it can be
+				// taken any number of times a day, so advancing on it would walk the
+				// interval out on massed practice.
+				if (
+					completed.responses.length === 0 ||
+					completed.mode !== QuizAttemptMode.Full
+				) {
+					return completed;
+				}
+
+				const settings = await resolveRepetitionSettings(
+					reviews,
+					completed.quizSetId,
+				);
+				const dayStart = startOfDayIn(at, this.timezone);
+				const answeredIds = completed.responses.map(
+					(response) => response.questionId,
+				);
+				const existing = new Map(
+					(
+						await reviews.findSchedules(answeredIds, completed.telegramUserId)
+					).map((schedule) => [schedule.questionId, schedule]),
+				);
+
+				await reviews.saveSchedules(
+					completed.responses.map((response) =>
+						scheduleAfter(
+							existing.get(response.questionId),
+							response.questionId,
+							completed.telegramUserId,
+							settings,
+							at,
+							dayStart,
+							response.isCorrect,
+						),
 					),
-				),
-			);
-		});
+				);
+
+				return completed;
+			},
+		);
 
 		return {
 			attemptId: finished.id,

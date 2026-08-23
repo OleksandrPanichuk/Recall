@@ -1,7 +1,7 @@
 import {
-	createTestContext,
-	type TestContext,
-} from "@tests/fixtures/application.fixture";
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { AnswerQuestionUseCase } from "../attempts/answer-question";
@@ -33,7 +33,7 @@ export const aQuestionInput = (
 });
 
 export interface PracticeHarness {
-	readonly context: TestContext;
+	readonly context: MemoryContext;
 	readonly practice: StartPracticeSessionUseCase;
 	readonly archive: ArchiveQuizSetUseCase;
 	readonly finish: FinishQuizAttemptUseCase;
@@ -46,7 +46,7 @@ export interface PracticeHarness {
 }
 
 export function createPracticeHarness(): PracticeHarness {
-	const context = createTestContext();
+	const context = createMemoryContext();
 	const create = new CreateQuizSetUseCase(context);
 	const add = new AddQuestionsUseCase(context);
 	const publish = new PublishQuizSetUseCase(context);
@@ -55,7 +55,7 @@ export function createPracticeHarness(): PracticeHarness {
 	const finish = new FinishQuizAttemptUseCase(context);
 
 	const questionsOf = (quizSetId: QuizSetId) =>
-		context.quizSets.findById(quizSetId)?.questions ?? [];
+		await context.scope.quizzes.findById(quizSetId)?.questions ?? [];
 
 	const seedDraftSet = async (questions: readonly QuestionInput[]) => {
 		const { quizSetId } = await create.execute({
@@ -69,7 +69,7 @@ export function createPracticeHarness(): PracticeHarness {
 	};
 
 	const answerCurrent = async (correct: boolean) => {
-		const attempt = context.attempts.findActiveByUser(USER);
+		const attempt = await context.scope.attempts.findActiveFor(USER);
 		const questionId = attempt?.questionIds[attempt.responses.length];
 		const question = questionsOf(attempt?.quizSetId as QuizSetId).find(
 			(candidate) => candidate.id === questionId,
@@ -117,7 +117,7 @@ export function createPracticeHarness(): PracticeHarness {
 
 		plannedPrompts: (quizSetId) => {
 			const questions = questionsOf(quizSetId);
-			const attempt = context.attempts.findActiveByUser(USER);
+			const attempt = await context.scope.attempts.findActiveFor(USER);
 
 			return (attempt?.questionIds ?? []).map(
 				(questionId) =>

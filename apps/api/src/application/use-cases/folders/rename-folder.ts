@@ -1,6 +1,6 @@
 import type { Clock } from "@/application/ports/clock";
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
-import type { Transaction } from "@/application/ports/transaction";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import {
 	assertPlacement,
@@ -17,27 +17,25 @@ export interface RenameFolderCommand {
 export class RenameFolderUseCase
 	implements UseCase<Command<RenameFolderCommand>, void>
 {
-	private readonly folders: FolderRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
-	private readonly transaction: Transaction;
 
 	constructor(dependencies: FolderDependencies) {
-		this.folders = dependencies.folders;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
-		this.transaction = dependencies.transaction;
 	}
 
 	async execute(request: Command<RenameFolderCommand>): Promise<void> {
-		this.transaction.run(() => {
-			const stored = requireFolder(this.folders, request.folderId);
+		await this.unitOfWork.run(async ({ pages }) => {
+			const stored = await requireFolder(pages, request.folderId);
 			const renamed = renameFolder(stored, request.name, this.clock.now());
 
 			assertPlacement(
 				renamed,
-				this.folders.listAncestors(renamed.id),
-				this.folders.listChildren(renamed.parentId),
+				await pages.listAncestors(renamed.id),
+				await pages.listChildren(renamed.parentId),
 			);
-			this.folders.save(renamed);
+			await pages.save(renamed);
 		});
 	}
 }

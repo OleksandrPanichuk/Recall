@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import type { FolderId } from "@/domain/folder/folder";
 import { DuplicateFolderNameError } from "@/domain/folder/folder.errors";
 import { FolderNotFoundError } from "./create-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import type { RenameFolderUseCase } from "./rename-folder";
 
-let context: TestContext;
+let context: MemoryContext;
 let renameFolder: RenameFolderUseCase;
 let create: FoldersHarness["create"];
 let nameOf: FoldersHarness["nameOf"];
@@ -25,7 +25,7 @@ describe("RenameFolderUseCase", () => {
 
 		await renameFolder.execute({ folderId: id, name: "Programming" });
 
-		expect(nameOf(id)).toBe("Programming");
+		expect(await nameOf(id)).toBe("Programming");
 	});
 
 	test("rejects a rename that collides with a sibling", async () => {
@@ -43,7 +43,7 @@ describe("RenameFolderUseCase", () => {
 
 		await renameFolder.execute({ folderId: id, name: "SQL" });
 
-		expect(nameOf(id)).toBe("SQL");
+		expect(await nameOf(id)).toBe("SQL");
 	});
 
 	test("rejects an unknown folder", async () => {

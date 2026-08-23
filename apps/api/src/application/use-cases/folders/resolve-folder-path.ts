@@ -1,4 +1,4 @@
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import type { FolderId } from "@/domain/folder/folder";
 
@@ -21,16 +21,16 @@ export interface ResolveFolderPathResult {
 }
 
 export interface ResolveFolderPathDependencies {
-	readonly folders: FolderRepository;
+	readonly scope: RepositoryScope;
 }
 
 export class ResolveFolderPathUseCase
 	implements UseCase<Command<ResolveFolderPathCommand>, ResolveFolderPathResult>
 {
-	private readonly folders: FolderRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: ResolveFolderPathDependencies) {
-		this.folders = dependencies.folders;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
@@ -39,13 +39,11 @@ export class ResolveFolderPathUseCase
 		let parentId: FolderId | undefined;
 
 		for (const segment of request.path) {
-			const match = this.folders
-				.listChildren(parentId)
-				.find(
-					(child) =>
-						child.name.toLocaleLowerCase() ===
-						segment.trim().toLocaleLowerCase(),
-				);
+			const children = await this.scope.pages.listChildren(parentId);
+			const match = children.find(
+				(child) =>
+					child.name.toLocaleLowerCase() === segment.trim().toLocaleLowerCase(),
+			);
 
 			if (match === undefined) {
 				throw new FolderPathNotFoundError(request.path);

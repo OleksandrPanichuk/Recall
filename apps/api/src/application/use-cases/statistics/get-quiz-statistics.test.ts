@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
-	createTestContext,
-	type TestContext,
-} from "@tests/fixtures/application.fixture";
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { AnswerQuestionUseCase } from "../attempts/answer-question";
@@ -19,7 +19,7 @@ import { GetQuizStatisticsUseCase } from "./get-quiz-statistics";
 
 const USER = 42;
 
-let context: TestContext;
+let context: MemoryContext;
 let create: CreateQuizSetUseCase;
 let add: AddQuestionsUseCase;
 let publish: PublishQuizSetUseCase;
@@ -29,7 +29,7 @@ let finish: FinishQuizAttemptUseCase;
 let statistics: GetQuizStatisticsUseCase;
 
 beforeEach(() => {
-	context = createTestContext();
+	context = createMemoryContext();
 	create = new CreateQuizSetUseCase(context);
 	add = new AddQuestionsUseCase(context);
 	publish = new PublishQuizSetUseCase(context);

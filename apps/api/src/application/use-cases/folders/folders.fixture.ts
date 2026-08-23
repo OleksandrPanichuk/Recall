@@ -1,8 +1,9 @@
 import {
-	createTestContext,
-	type TestContext,
-} from "@tests/fixtures/application.fixture";
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import type { FolderId } from "@/domain/folder/folder";
+import { BrowseFolderUseCase } from "./browse-folder";
 import { CreateFolderUseCase } from "./create-folder";
 import { DeleteFolderUseCase } from "./delete-folder";
 import { EnsureFolderPathUseCase } from "./ensure-folder-path";
@@ -12,26 +13,27 @@ import { RenameFolderUseCase } from "./rename-folder";
 import { ResolveFolderPathUseCase } from "./resolve-folder-path";
 
 export interface FoldersHarness {
-	readonly context: TestContext;
+	readonly context: MemoryContext;
 	readonly renameFolder: RenameFolderUseCase;
 	readonly moveFolder: MoveFolderUseCase;
 	readonly deleteFolder: DeleteFolderUseCase;
 	readonly ensureFolderPath: EnsureFolderPathUseCase;
 	readonly resolveFolderPath: ResolveFolderPathUseCase;
 	readonly listFolderTree: ListFolderTreeUseCase;
+	readonly browseFolder: BrowseFolderUseCase;
 	create(name: string, parentId?: FolderId): Promise<FolderId>;
 	chain(...names: readonly string[]): Promise<FolderId>;
-	nameOf(id: FolderId): string | undefined;
+	nameOf(id: FolderId): Promise<string | undefined>;
 }
 
 export function createFoldersHarness(): FoldersHarness {
-	const context = createTestContext();
+	const context = createMemoryContext();
 
 	const dependencies = {
-		folders: context.folders,
+		unitOfWork: context.unitOfWork,
+		scope: context.scope,
 		clock: context.clock,
 		idGenerator: context.idGenerator,
-		transaction: context.transaction,
 	};
 
 	const createFolder = new CreateFolderUseCase(dependencies);
@@ -47,6 +49,7 @@ export function createFoldersHarness(): FoldersHarness {
 		ensureFolderPath: new EnsureFolderPathUseCase(dependencies),
 		resolveFolderPath: new ResolveFolderPathUseCase(dependencies),
 		listFolderTree: new ListFolderTreeUseCase(dependencies),
+		browseFolder: new BrowseFolderUseCase(dependencies),
 
 		create,
 
@@ -64,6 +67,6 @@ export function createFoldersHarness(): FoldersHarness {
 			return parentId;
 		},
 
-		nameOf: (id) => context.folders.findById(id)?.name,
+		nameOf: async (id) => (await context.scope.pages.findById(id))?.name,
 	};
 }

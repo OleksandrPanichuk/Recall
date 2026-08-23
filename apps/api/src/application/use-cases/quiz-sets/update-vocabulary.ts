@@ -1,8 +1,11 @@
 import type { Clock } from "@/application/ports/clock";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { VocabularyRepository } from "@/application/ports/repositories/vocabulary.repository";
-import type { Transaction } from "@/application/ports/transaction";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	type Question,
@@ -46,12 +49,7 @@ export interface UpdateVocabularyResult {
 	readonly removedQuestionCount: number;
 }
 
-export interface UpdateVocabularyDependencies {
-	readonly vocabulary: VocabularyRepository;
-	readonly quizSets: QuizSetRepository;
-	readonly clock: Clock;
-	readonly transaction: Transaction;
-}
+export type UpdateVocabularyDependencies = ApplicationDependencies;
 
 const BOTH_WAYS = [
 	VocabularyDirection.TermToTranslation,
@@ -134,16 +132,12 @@ function planRebuild(
 export class UpdateVocabularyUseCase
 	implements UseCase<Command<UpdateVocabularyCommand>, UpdateVocabularyResult>
 {
-	private readonly vocabulary: VocabularyRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
-	private readonly transaction: Transaction;
 
 	constructor(dependencies: UpdateVocabularyDependencies) {
-		this.vocabulary = dependencies.vocabulary;
-		this.quizSets = dependencies.quizSets;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
-		this.transaction = dependencies.transaction;
 	}
 
 	async execute(
@@ -151,14 +145,14 @@ export class UpdateVocabularyUseCase
 	): Promise<UpdateVocabularyResult> {
 		const at = this.clock.now();
 
-		return this.transaction.run(() => {
-			const stored = this.vocabulary.findById(request.itemId);
+		return this.unitOfWork.run(async ({ quizzes, termPairs }) => {
+			const stored = await termPairs.findById(request.itemId);
 
 			if (stored === undefined) {
 				throw new VocabularyItemNotFoundError(request.itemId);
 			}
 
-			const quizSet = this.quizSets.findById(stored.quizSetId);
+			const quizSet = await quizzes.findById(stored.quizSetId);
 
 			if (quizSet === undefined) {
 				throw new QuizSetNotFoundError(stored.quizSetId);
@@ -181,8 +175,8 @@ export class UpdateVocabularyUseCase
 			);
 			const { replacements, removedIds } = planRebuild(owned, stored, updated);
 
-			this.vocabulary.save(updated);
-			this.quizSets.save(
+			await termPairs.save(updated);
+			await quizzes.save(
 				replaceQuestions(quizSet, replacements, removedIds, at),
 			);
 

@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	createMemoryContext,
+	createMutableClock,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { startDailyReminder } from "@/adapters/telegram/reminders";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
@@ -6,17 +11,12 @@ import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import {
-	createMutableClock,
-	createTestContext,
-	type TestContext,
-} from "../fixtures/application.fixture";
 import { aQuestion, aQuizSet } from "../fixtures/quiz-set.fixture";
 
 const USER = 42;
 const day = 24 * 60 * 60 * 1000;
 
-let context: TestContext;
+let context: MemoryContext;
 interface SentMessage {
 	readonly chat: number;
 	readonly text: string;
@@ -38,7 +38,7 @@ const fakeBot = {
 };
 
 beforeEach(() => {
-	context = createTestContext();
+	context = createMemoryContext();
 	sent = [];
 });
 

@@ -1,8 +1,12 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { VocabularyRepository } from "@/application/ports/repositories/vocabulary.repository";
-import type { Transaction } from "@/application/ports/transaction";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
@@ -35,28 +39,22 @@ export interface AddVocabularyResult {
 	readonly alreadyPresent: boolean;
 }
 
-export interface AddVocabularyDependencies {
-	readonly vocabulary: VocabularyRepository;
-	readonly clock: Clock;
-	readonly idGenerator: IdGenerator;
-	readonly transaction: Transaction;
+export interface AddVocabularyDependencies extends ApplicationDependencies {
 	readonly addQuestions: AddQuestionsUseCase;
 }
 
 export class AddVocabularyUseCase
 	implements UseCase<Command<AddVocabularyCommand>, AddVocabularyResult>
 {
-	private readonly vocabulary: VocabularyRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
-	private readonly transaction: Transaction;
 	private readonly addQuestions: AddQuestionsUseCase;
 
 	constructor(dependencies: AddVocabularyDependencies) {
-		this.vocabulary = dependencies.vocabulary;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
-		this.transaction = dependencies.transaction;
 		this.addQuestions = dependencies.addQuestions;
 	}
 
@@ -101,9 +99,9 @@ export class AddVocabularyUseCase
 		});
 
 		if (!added.alreadyPresent) {
-			this.transaction.run(() => {
+			await this.unitOfWork.run(async ({ termPairs }) => {
 				for (const item of items) {
-					this.vocabulary.save(item);
+					await termPairs.save(item);
 				}
 			});
 		}

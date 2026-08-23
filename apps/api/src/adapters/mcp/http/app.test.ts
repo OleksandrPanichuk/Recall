@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Server } from "node:http";
+import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
 import {
 	createMutableClock,
 	createSequentialIdGenerator,
-} from "@tests/fixtures/application.fixture";
-import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
+} from "@tests/fixtures/memory.fixture";
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
 import {
 	type Application,

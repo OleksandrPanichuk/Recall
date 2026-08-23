@@ -1,9 +1,12 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	currentQuestionId,
 	type QuizAttempt,
@@ -58,105 +61,100 @@ export interface StartQuizAttemptResult {
 	readonly currentQuestionId?: QuestionId;
 }
 
-export interface StartQuizAttemptDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly attempts: QuizAttemptRepository;
-	readonly clock: Clock;
-	readonly idGenerator: IdGenerator;
-	readonly repetition: RepetitionRepository;
-}
+export type StartQuizAttemptDependencies = ApplicationDependencies;
 
 export class StartQuizAttemptUseCase
 	implements UseCase<Command<StartQuizAttemptCommand>, StartQuizAttemptResult>
 {
-	private readonly quizSets: QuizSetRepository;
-	private readonly attempts: QuizAttemptRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
-	private readonly repetition: RepetitionRepository;
 
 	constructor(dependencies: StartQuizAttemptDependencies) {
-		this.quizSets = dependencies.quizSets;
-		this.attempts = dependencies.attempts;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
-		this.repetition = dependencies.repetition;
 	}
 
-	async execute(
+	execute(
 		request: Command<StartQuizAttemptCommand>,
 	): Promise<StartQuizAttemptResult> {
-		const quizSet = this.quizSets.findById(request.quizSetId);
+		return this.unitOfWork.run(async (scope) => {
+			const { quizzes, attempts, reviews } = scope;
+			const quizSet = await quizzes.findById(request.quizSetId);
 
-		if (quizSet === undefined) {
-			throw new QuizSetNotFoundError(request.quizSetId);
-		}
-
-		if (quizSet.status !== QuizSetStatus.Published) {
-			throw new QuizSetNotPublishedError(request.quizSetId);
-		}
-
-		const unfinished = this.attempts.findActiveByUser(request.telegramUserId);
-
-		if (unfinished !== undefined) {
-			if (unfinished.quizSetId !== request.quizSetId) {
-				throw new AttemptAlreadyInProgressError(
-					unfinished.id,
-					unfinished.quizSetId,
-				);
+			if (quizSet === undefined) {
+				throw new QuizSetNotFoundError(request.quizSetId);
 			}
 
-			return this.resume(unfinished);
-		}
+			if (quizSet.status !== QuizSetStatus.Published) {
+				throw new QuizSetNotPublishedError(request.quizSetId);
+			}
 
-		const at = this.clock.now();
-		const everyQuestion = quizSet.questions.map((question) => question.id);
-		const due =
-			request.onlyDue === true
-				? new Set(
-						this.repetition
-							.listDue(request.telegramUserId, at)
-							.map((schedule) => schedule.questionId),
-					)
-				: undefined;
-		const questionIds =
-			due === undefined
-				? everyQuestion
-				: everyQuestion.filter((questionId) => due.has(questionId));
+			const unfinished = await attempts.findActiveFor(request.telegramUserId);
 
-		if (questionIds.length === 0) {
-			throw new NothingDueError(request.quizSetId);
-		}
+			if (unfinished !== undefined) {
+				if (unfinished.quizSetId !== request.quizSetId) {
+					throw new AttemptAlreadyInProgressError(
+						unfinished.id,
+						unfinished.quizSetId,
+					);
+				}
 
-		const id = toQuizAttemptId(this.idGenerator.generate());
-		const { shuffleQuestions } = resolveWithSource(
-			this.repetition,
-			quizSet.id,
-		).settings;
+				return this.resume(unfinished, attempts);
+			}
 
-		const attempt = startQuizAttempt({
-			id,
-			quizSetId: quizSet.id,
-			telegramUserId: request.telegramUserId,
-			mode: QuizAttemptMode.Full,
-			questionIds: shuffleQuestions ? shuffled(questionIds, id) : questionIds,
-			startedAt: at,
+			const at = this.clock.now();
+			const everyQuestion = quizSet.questions.map((question) => question.id);
+			const due =
+				request.onlyDue === true
+					? new Set(
+							(await reviews.listDue(request.telegramUserId, at)).map(
+								(schedule) => schedule.questionId,
+							),
+						)
+					: undefined;
+			const questionIds =
+				due === undefined
+					? everyQuestion
+					: everyQuestion.filter((questionId) => due.has(questionId));
+
+			if (questionIds.length === 0) {
+				throw new NothingDueError(request.quizSetId);
+			}
+
+			const id = toQuizAttemptId(this.idGenerator.generate());
+			const { shuffleQuestions } = (
+				await resolveWithSource(reviews, quizSet.id)
+			).settings;
+
+			const attempt = startQuizAttempt({
+				id,
+				quizSetId: quizSet.id,
+				telegramUserId: request.telegramUserId,
+				mode: QuizAttemptMode.Full,
+				questionIds: shuffleQuestions ? shuffled(questionIds, id) : questionIds,
+				startedAt: at,
+			});
+
+			await attempts.save(attempt);
+
+			return {
+				attemptId: attempt.id,
+				resumed: false,
+				currentQuestionId: currentQuestionId(attempt),
+			};
 		});
-
-		this.attempts.save(attempt);
-
-		return {
-			attemptId: attempt.id,
-			resumed: false,
-			currentQuestionId: currentQuestionId(attempt),
-		};
 	}
 
-	private resume(attempt: QuizAttempt): StartQuizAttemptResult {
+	private async resume(
+		attempt: QuizAttempt,
+		attempts: RepositoryScope["attempts"],
+	): Promise<StartQuizAttemptResult> {
 		if (attempt.status === QuizAttemptStatus.Paused) {
 			const resumed = resumeQuizAttempt(attempt, this.clock.now());
 
-			this.attempts.save(resumed);
+			await attempts.save(resumed);
 
 			return {
 				attemptId: resumed.id,

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { anAnswer, anAttempt } from "@tests/fixtures/quiz-attempt.fixture";
 import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -11,7 +11,7 @@ import {
 	type QuizSetsHarness,
 } from "./quiz-sets.fixture";
 
-let context: TestContext;
+let context: MemoryContext;
 let add: QuizSetsHarness["add"];
 let create: QuizSetsHarness["create"];
 let publish: QuizSetsHarness["publish"];

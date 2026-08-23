@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
 import {
 	createMutableClock,
 	createSequentialIdGenerator,
-} from "@tests/fixtures/application.fixture";
-import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
+} from "@tests/fixtures/memory.fixture";
 import {
 	type Application,
 	createApplication,

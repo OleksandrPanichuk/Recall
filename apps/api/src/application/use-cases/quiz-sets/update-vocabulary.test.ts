@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	DuplicateQuestionError,
@@ -20,7 +20,7 @@ import {
 	VocabularyItemNotFoundError,
 } from "./update-vocabulary";
 
-let context: TestContext;
+let context: MemoryContext;
 let addVocabulary: QuizSetsHarness["addVocabulary"];
 let update: UpdateVocabularyUseCase;
 let newDraft: QuizSetsHarness["newDraft"];

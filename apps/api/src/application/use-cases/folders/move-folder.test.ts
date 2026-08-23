@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import {
 	DuplicateFolderNameError,
 	FolderCycleError,
@@ -8,7 +8,7 @@ import {
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import type { MoveFolderUseCase } from "./move-folder";
 
-let context: TestContext;
+let context: MemoryContext;
 let moveFolder: MoveFolderUseCase;
 let create: FoldersHarness["create"];
 let chain: FoldersHarness["chain"];
@@ -29,8 +29,8 @@ describe("MoveFolderUseCase", () => {
 
 		await moveFolder.execute({ folderId: id, parentId: english });
 
-		expect(context.folders.findById(id)?.parentId).toBe(english);
-		expect(context.folders.listChildren(programming)).toHaveLength(0);
+		expect((await context.scope.pages.findById(id))?.parentId).toBe(english);
+		expect(await context.scope.pages.listChildren(programming)).toHaveLength(0);
 	});
 
 	test("moves a folder to the root", async () => {
@@ -39,7 +39,7 @@ describe("MoveFolderUseCase", () => {
 
 		await moveFolder.execute({ folderId: id, parentId: undefined });
 
-		expect(context.folders.findById(id)?.parentId).toBeUndefined();
+		expect((await context.scope.pages.findById(id))?.parentId).toBeUndefined();
 	});
 
 	test("rejects moving a folder under its own descendant", async () => {
@@ -90,6 +90,8 @@ describe("MoveFolderUseCase", () => {
 
 		await moveFolder.execute({ folderId: subtreeRoot, parentId: destination });
 
-		expect(context.folders.findById(subtreeRoot)?.parentId).toBe(destination);
+		expect((await context.scope.pages.findById(subtreeRoot))?.parentId).toBe(
+			destination,
+		);
 	});
 });

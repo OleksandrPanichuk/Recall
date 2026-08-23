@@ -1,7 +1,12 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import type { Difficulty } from "@/domain/quiz-set/question";
 import {
@@ -44,21 +49,17 @@ export interface UpdateQuestionResult {
 	readonly optionCount: number;
 }
 
-export interface UpdateQuestionDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly clock: Clock;
-	readonly idGenerator: IdGenerator;
-}
+export type UpdateQuestionDependencies = ApplicationDependencies;
 
 export class UpdateQuestionUseCase
 	implements UseCase<Command<UpdateQuestionCommand>, UpdateQuestionResult>
 {
-	private readonly quizSets: QuizSetRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
 
 	constructor(dependencies: UpdateQuestionDependencies) {
-		this.quizSets = dependencies.quizSets;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
 	}
@@ -66,35 +67,37 @@ export class UpdateQuestionUseCase
 	async execute(
 		request: Command<UpdateQuestionCommand>,
 	): Promise<UpdateQuestionResult> {
-		const quizSet = this.quizSets.findById(request.quizSetId);
+		return this.unitOfWork.run(async ({ quizzes }) => {
+			const quizSet = await quizzes.findById(request.quizSetId);
 
-		if (quizSet === undefined) {
-			throw new QuizSetNotFoundError(request.quizSetId);
-		}
+			if (quizSet === undefined) {
+				throw new QuizSetNotFoundError(request.quizSetId);
+			}
 
-		const current = quizSet.questions.find(
-			(question) => String(question.id) === String(request.questionId),
-		);
+			const current = quizSet.questions.find(
+				(question) => String(question.id) === String(request.questionId),
+			);
 
-		if (current === undefined) {
-			throw new QuestionNotFoundError(request.quizSetId, request.questionId);
-		}
+			if (current === undefined) {
+				throw new QuestionNotFoundError(request.quizSetId, request.questionId);
+			}
 
-		const replacement = this.rebuilt(current, request);
-		const updated = replaceQuestions(
-			quizSet,
-			[replacement],
-			[],
-			this.clock.now(),
-		);
+			const replacement = this.rebuilt(current, request);
+			const updated = replaceQuestions(
+				quizSet,
+				[replacement],
+				[],
+				this.clock.now(),
+			);
 
-		this.quizSets.save(updated);
+			await quizzes.save(updated);
 
-		return {
-			questionId: replacement.id,
-			prompt: replacement.prompt,
-			optionCount: replacement.options.length,
-		};
+			return {
+				questionId: replacement.id,
+				prompt: replacement.prompt,
+				optionCount: replacement.options.length,
+			};
+		});
 	}
 
 	private rebuilt(

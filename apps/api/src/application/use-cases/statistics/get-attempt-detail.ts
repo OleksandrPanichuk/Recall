@@ -1,6 +1,9 @@
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	attemptScore,
 	type QuizAttemptId,
@@ -44,26 +47,22 @@ export interface GetAttemptDetailCommand {
 	readonly attemptId: QuizAttemptId;
 }
 
-export interface GetAttemptDetailDependencies {
-	readonly attempts: QuizAttemptRepository;
-	readonly quizSets: QuizSetRepository;
-}
+export type GetAttemptDetailDependencies = ApplicationDependencies;
 
 export class GetAttemptDetailUseCase
 	implements UseCase<Command<GetAttemptDetailCommand>, AttemptDetail>
 {
-	private readonly attempts: QuizAttemptRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: GetAttemptDetailDependencies) {
-		this.attempts = dependencies.attempts;
-		this.quizSets = dependencies.quizSets;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<GetAttemptDetailCommand>,
 	): Promise<AttemptDetail> {
-		const attempt = this.attempts.findById(request.attemptId);
+		const { quizzes, attempts } = this.scope;
+		const attempt = await attempts.findById(request.attemptId);
 
 		if (
 			attempt === undefined ||
@@ -72,7 +71,7 @@ export class GetAttemptDetailUseCase
 			throw new AttemptNotFoundError(request.attemptId);
 		}
 
-		const quizSet = this.quizSets.findById(attempt.quizSetId);
+		const quizSet = await quizzes.findById(attempt.quizSetId);
 		const byId = new Map(
 			(quizSet?.questions ?? []).map((question) => [question.id, question]),
 		);

@@ -1,7 +1,10 @@
 import type { Clock } from "@/application/ports/clock";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { type QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { type DueSet, overdueDaysOf } from "@/domain/repetition/repetition";
@@ -13,12 +16,7 @@ export interface ListDueRepetitionsCommand {
 	readonly telegramUserId: number;
 }
 
-export interface ListDueRepetitionsDependencies {
-	readonly repetition: RepetitionRepository;
-	readonly quizSets: QuizSetRepository;
-	readonly clock: Clock;
-	readonly timezone: string;
-}
+export type ListDueRepetitionsDependencies = ApplicationDependencies;
 
 interface Bucket {
 	readonly questionIds: QuestionId[];
@@ -28,14 +26,12 @@ interface Bucket {
 export class ListDueRepetitionsUseCase
 	implements UseCase<Command<ListDueRepetitionsCommand>, readonly DueSet[]>
 {
-	private readonly repetition: RepetitionRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly scope: RepositoryScope;
 	private readonly clock: Clock;
 	private readonly timezone: string;
 
 	constructor(dependencies: ListDueRepetitionsDependencies) {
-		this.repetition = dependencies.repetition;
-		this.quizSets = dependencies.quizSets;
+		this.scope = dependencies.scope;
 		this.clock = dependencies.clock;
 		this.timezone = dependencies.timezone;
 	}
@@ -43,9 +39,10 @@ export class ListDueRepetitionsUseCase
 	async execute(
 		request: Command<ListDueRepetitionsCommand>,
 	): Promise<readonly DueSet[]> {
+		const { quizzes, reviews } = this.scope;
 		const at = this.clock.now();
 		const todayStart = startOfDayIn(at, this.timezone);
-		const due = this.repetition.listDue(request.telegramUserId, at);
+		const due = await reviews.listDue(request.telegramUserId, at);
 
 		if (due.length === 0) {
 			return [];
@@ -54,10 +51,10 @@ export class ListDueRepetitionsUseCase
 		const setOfQuestion = new Map<QuestionId, QuizSetId>();
 		const titles = new Map<QuizSetId, string>();
 
-		for (const summary of this.quizSets.list({
+		for (const summary of await quizzes.list({
 			statuses: [QuizSetStatus.Published],
 		})) {
-			const quizSet = this.quizSets.findById(summary.id);
+			const quizSet = await quizzes.findById(summary.id);
 
 			if (quizSet === undefined) {
 				continue;

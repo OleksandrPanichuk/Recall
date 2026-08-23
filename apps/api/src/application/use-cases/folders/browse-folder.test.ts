@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import type { FolderId } from "@/domain/folder/folder";
 import {
 	archiveQuizSet,
@@ -6,10 +10,6 @@ import {
 	type QuizSet,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
-import {
-	createTestContext,
-	type TestContext,
-} from "../../../../tests/fixtures/application.fixture";
 import {
 	aQuestion,
 	aQuizSet,
@@ -19,14 +19,14 @@ import { BrowseFolderUseCase } from "./browse-folder";
 import { CreateFolderUseCase } from "./create-folder";
 import { DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 
-let context: TestContext;
+let context: MemoryContext;
 let browseFolder: BrowseFolderUseCase;
 let createFolder: CreateFolderUseCase;
 let deleteFolder: DeleteFolderUseCase;
 let moveQuizSet: MoveQuizSetUseCase;
 
 beforeEach(() => {
-	context = createTestContext();
+	context = createMemoryContext();
 
 	const dependencies = {
 		folders: context.folders,

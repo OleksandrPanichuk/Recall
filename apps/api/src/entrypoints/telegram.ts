@@ -1,5 +1,4 @@
 import { resolve } from "node:path";
-import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createBot } from "@/adapters/telegram/bot";
 import { startDailyReminder } from "@/adapters/telegram/reminders";
 import { createApplication } from "@/composition/create-application";
@@ -28,12 +27,12 @@ function loadOrExit(): Environment {
 	}
 }
 
-function main(): void {
+async function main(): Promise<void> {
 	const environment = loadOrExit();
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${resolve(environment.databasePath)} timezone=${environment.appTimezone}`,
+			`Configuration is valid. database=${environment.databaseUrl} timezone=${environment.appTimezone}`,
 		);
 
 		return;
@@ -43,20 +42,20 @@ function main(): void {
 		level: process.argv.includes("--debug") ? LogLevel.Debug : LogLevel.Info,
 	});
 	const application = createApplication({
-		databasePath: environment.databasePath,
+		databaseUrl: environment.databaseUrl,
 		logger,
 	});
 
 	if (process.argv.includes("--status")) {
 		console.log(
 			formatStatus(
-				readStatus(createDrizzleClient(application.database), {
-					databasePath: environment.databasePath,
+				await readStatus(application.connection.db, {
+					databaseUrl: environment.databaseUrl,
 					timezone: environment.appTimezone,
 				}),
 			),
 		);
-		application.close();
+		await application.close();
 
 		return;
 	}
@@ -89,7 +88,7 @@ function main(): void {
 	shutdown.register({
 		name: "database",
 		run: () => {
-			application.close();
+			void application.close();
 		},
 	});
 	shutdown.register({
@@ -101,7 +100,7 @@ function main(): void {
 	shutdown.listen();
 
 	logger.info("starting bot", {
-		databasePath: resolve(environment.databasePath),
+		databasePath: environment.databaseUrl,
 		timezone: environment.appTimezone,
 	});
 
@@ -115,4 +114,4 @@ function main(): void {
 	});
 }
 
-main();
+await main();

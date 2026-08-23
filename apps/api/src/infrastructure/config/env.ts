@@ -5,7 +5,8 @@ export type EnvironmentSource = Readonly<Record<string, string | undefined>>;
 export interface Environment {
 	readonly telegramBotKey: string;
 	readonly allowedTelegramUserId: number;
-	readonly databasePath: string;
+	readonly databaseUrl: string;
+	readonly oauthDatabasePath: string;
 	readonly appTimezone: string;
 }
 
@@ -41,7 +42,8 @@ const environmentSchema = z.object({
 		.regex(/^\d+$/)
 		.transform(Number)
 		.refine((userId) => Number.isSafeInteger(userId) && userId > 0),
-	DATABASE_PATH: requiredText,
+	DATABASE_URL: requiredText,
+	OAUTH_DATABASE_PATH: requiredText.default("./data/oauth.sqlite"),
 	APP_TIMEZONE: requiredText.refine(isSupportedTimezone),
 });
 
@@ -49,7 +51,9 @@ const issueMessages = {
 	TELEGRAM_BOT_KEY: "TELEGRAM_BOT_KEY is required and must not be empty",
 	ALLOWED_TELEGRAM_USER_ID:
 		"ALLOWED_TELEGRAM_USER_ID must be a positive integer Telegram user id",
-	DATABASE_PATH: "DATABASE_PATH is required and must not be empty",
+	DATABASE_URL:
+		"DATABASE_URL is required: the Postgres connection string for the quiz data",
+	OAUTH_DATABASE_PATH: "OAUTH_DATABASE_PATH must not be empty when it is set",
 	APP_TIMEZONE:
 		"APP_TIMEZONE must be a valid IANA time zone such as Europe/Kyiv",
 } as const satisfies Record<keyof z.input<typeof environmentSchema>, string>;
@@ -164,7 +168,8 @@ export function loadEnvironment(
 	return {
 		telegramBotKey: result.data.TELEGRAM_BOT_KEY,
 		allowedTelegramUserId: result.data.ALLOWED_TELEGRAM_USER_ID,
-		databasePath: result.data.DATABASE_PATH,
+		databaseUrl: result.data.DATABASE_URL,
+		oauthDatabasePath: result.data.OAUTH_DATABASE_PATH,
 		appTimezone: result.data.APP_TIMEZONE,
 	};
 }

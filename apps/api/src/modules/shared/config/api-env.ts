@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 export interface ApiEnvironment {
-	readonly databasePath: string;
+	readonly databaseUrl: string;
 	readonly host: string;
 	readonly port: number;
 }
 
 const schema = z.object({
-	DATABASE_PATH: z.string().trim().min(1),
+	DATABASE_URL: z.string().trim().min(1),
 	API_HOST: z.string().trim().min(1).default("127.0.0.1"),
 	API_PORT: z.coerce.number().int().positive().max(65535).default(8767),
 });
@@ -35,7 +35,7 @@ export function loadApiEnvironment(
 	}
 
 	return {
-		databasePath: parsed.data.DATABASE_PATH,
+		databaseUrl: parsed.data.DATABASE_URL,
 		host: parsed.data.API_HOST,
 		port: parsed.data.API_PORT,
 	};

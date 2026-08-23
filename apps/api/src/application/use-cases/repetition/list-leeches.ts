@@ -1,6 +1,9 @@
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { DEFAULT_LEECH_THRESHOLD } from "@/domain/repetition/repetition";
@@ -18,26 +21,22 @@ export interface ListLeechesCommand {
 	readonly threshold?: number;
 }
 
-export interface ListLeechesDependencies {
-	readonly repetition: RepetitionRepository;
-	readonly quizSets: QuizSetRepository;
-}
+export type ListLeechesDependencies = ApplicationDependencies;
 
 export class ListLeechesUseCase
 	implements UseCase<Command<ListLeechesCommand>, readonly LeechView[]>
 {
-	private readonly repetition: RepetitionRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: ListLeechesDependencies) {
-		this.repetition = dependencies.repetition;
-		this.quizSets = dependencies.quizSets;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<ListLeechesCommand>,
 	): Promise<readonly LeechView[]> {
-		const stuck = this.repetition.listLeeches(
+		const { quizzes, reviews } = this.scope;
+		const stuck = await reviews.listLeeches(
 			request.telegramUserId,
 			request.threshold ?? DEFAULT_LEECH_THRESHOLD,
 		);
@@ -51,8 +50,8 @@ export class ListLeechesUseCase
 		);
 		const views: LeechView[] = [];
 
-		for (const summary of this.quizSets.list()) {
-			const quizSet = this.quizSets.findById(summary.id);
+		for (const summary of await quizzes.list()) {
+			const quizSet = await quizzes.findById(summary.id);
 
 			if (quizSet === undefined) {
 				continue;

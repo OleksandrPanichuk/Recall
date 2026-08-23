@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import type { ListFolderTreeUseCase } from "./list-folder-tree";
 
-let context: TestContext;
+let context: MemoryContext;
 let listFolderTree: ListFolderTreeUseCase;
 let create: FoldersHarness["create"];
 

@@ -1,6 +1,11 @@
 import type { Clock } from "@/application/ports/clock";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	archiveQuizSet,
 	type QuizSetId,
@@ -12,33 +17,32 @@ export interface ArchiveQuizSetCommand {
 	readonly quizSetId: QuizSetId;
 }
 
-export interface ArchiveQuizSetDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly clock: Clock;
-}
+export type ArchiveQuizSetDependencies = ApplicationDependencies;
 
 export class ArchiveQuizSetUseCase
 	implements UseCase<Command<ArchiveQuizSetCommand>, void>
 {
-	private readonly quizSets: QuizSetRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 
 	constructor(dependencies: ArchiveQuizSetDependencies) {
-		this.quizSets = dependencies.quizSets;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 	}
 
 	async execute(request: Command<ArchiveQuizSetCommand>): Promise<void> {
-		const stored = this.quizSets.findById(request.quizSetId);
+		await this.unitOfWork.run(async ({ quizzes }) => {
+			const stored = await quizzes.findById(request.quizSetId);
 
-		if (stored === undefined) {
-			throw new QuizSetNotFoundError(request.quizSetId);
-		}
+			if (stored === undefined) {
+				throw new QuizSetNotFoundError(request.quizSetId);
+			}
 
-		if (stored.status === QuizSetStatus.Archived) {
-			return;
-		}
+			if (stored.status === QuizSetStatus.Archived) {
+				return;
+			}
 
-		this.quizSets.save(archiveQuizSet(stored, this.clock.now()));
+			await quizzes.save(archiveQuizSet(stored, this.clock.now()));
+		});
 	}
 }

@@ -1,7 +1,7 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
-import type { Transaction } from "@/application/ports/transaction";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import {
 	assertPlacement,
@@ -28,16 +28,14 @@ export interface EnsureFolderPathResult {
 export class EnsureFolderPathUseCase
 	implements UseCase<Command<EnsureFolderPathCommand>, EnsureFolderPathResult>
 {
-	private readonly folders: FolderRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
-	private readonly transaction: Transaction;
 
 	constructor(dependencies: FolderDependencies) {
-		this.folders = dependencies.folders;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
-		this.transaction = dependencies.transaction;
 	}
 
 	async execute(
@@ -53,12 +51,12 @@ export class EnsureFolderPathUseCase
 			throw new FolderDepthError(segments.length, MAX_FOLDER_DEPTH);
 		}
 
-		return this.transaction.run(() => {
+		return this.unitOfWork.run(async ({ pages }) => {
 			const created: string[] = [];
 			let parentId: FolderId | undefined;
 
 			for (const segment of segments) {
-				const siblings = this.folders.listChildren(parentId);
+				const siblings = await pages.listChildren(parentId);
 				const existing = siblings.find(
 					(sibling) =>
 						sibling.name.toLocaleLowerCase() === segment.toLocaleLowerCase(),
@@ -76,8 +74,8 @@ export class EnsureFolderPathUseCase
 					createdAt: this.clock.now(),
 				});
 
-				assertPlacement(folder, parentChain(this.folders, parentId), siblings);
-				this.folders.save(folder);
+				assertPlacement(folder, await parentChain(pages, parentId), siblings);
+				await pages.save(folder);
 				created.push(folder.name);
 				parentId = folder.id;
 			}

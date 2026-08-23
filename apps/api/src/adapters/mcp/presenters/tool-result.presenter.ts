@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { QuizSetSummary } from "@/application/ports/repositories/quiz-set.repository";
+import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { QuizSet } from "@/domain/quiz-set/quiz-set";
 import { describeError } from "./tool-error.presenter";
@@ -44,7 +44,7 @@ export function describeQuizSet(quizSet: QuizSet): string {
 		.join("\n");
 }
 
-export function describeSummaries(sets: readonly QuizSetSummary[]): string {
+export function describeSummaries(sets: readonly QuizSummary[]): string {
 	if (sets.length === 0) {
 		return "No quiz sets yet.";
 	}

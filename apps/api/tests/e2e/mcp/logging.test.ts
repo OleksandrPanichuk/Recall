@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
-	createMutableClock,
-	createSequentialIdGenerator,
-} from "@tests/fixtures/application.fixture";
-import {
 	createRecordingLogger,
 	type RecordingLogger,
 } from "@tests/fixtures/logger.fixture";
+import {
+	createMutableClock,
+	createSequentialIdGenerator,
+} from "@tests/fixtures/memory.fixture";
 import { createMcpServer } from "@/adapters/mcp/server";
 import {
 	type Application,

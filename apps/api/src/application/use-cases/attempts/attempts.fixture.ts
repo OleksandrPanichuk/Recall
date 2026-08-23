@@ -1,7 +1,7 @@
 import {
-	createTestContext,
-	type TestContext,
-} from "@tests/fixtures/application.fixture";
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -34,7 +34,7 @@ export const aQuestionInput = (prompt: string): QuestionInput => ({
 });
 
 export interface AttemptsHarness {
-	readonly context: TestContext;
+	readonly context: MemoryContext;
 	readonly create: CreateQuizSetUseCase;
 	readonly add: AddQuestionsUseCase;
 	readonly archive: ArchiveQuizSetUseCase;
@@ -49,13 +49,13 @@ export interface AttemptsHarness {
 }
 
 export function createAttemptsHarness(): AttemptsHarness {
-	const context = createTestContext();
+	const context = createMemoryContext();
 	const create = new CreateQuizSetUseCase(context);
 	const add = new AddQuestionsUseCase(context);
 	const publish = new PublishQuizSetUseCase(context);
 
 	const questionsOf = (quizSetId: QuizSetId) =>
-		context.quizSets.findById(quizSetId)?.questions ?? [];
+		await context.scope.quizzes.findById(quizSetId)?.questions ?? [];
 
 	return {
 		context,

@@ -1,6 +1,11 @@
 import type { Clock } from "@/application/ports/clock";
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	currentQuestionId,
 	pauseQuizAttempt,
@@ -26,71 +31,72 @@ export interface ResumeQuizAttemptResult {
 	readonly currentQuestionId?: QuestionId;
 }
 
-export interface AttemptLifecycleDependencies {
-	readonly attempts: QuizAttemptRepository;
-	readonly clock: Clock;
-}
+export type AttemptLifecycleDependencies = ApplicationDependencies;
 
 export class PauseQuizAttemptUseCase
 	implements UseCase<Command<AttemptOfUserCommand>, void>
 {
-	private readonly attempts: QuizAttemptRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 
 	constructor(dependencies: AttemptLifecycleDependencies) {
-		this.attempts = dependencies.attempts;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 	}
 
 	async execute(request: Command<AttemptOfUserCommand>): Promise<void> {
-		const attempt = this.attempts.findActiveByUser(request.telegramUserId);
+		await this.unitOfWork.run(async ({ attempts }) => {
+			const attempt = await attempts.findActiveFor(request.telegramUserId);
 
-		if (attempt === undefined) {
-			throw new NoActiveAttemptError(request.telegramUserId);
-		}
+			if (attempt === undefined) {
+				throw new NoActiveAttemptError(request.telegramUserId);
+			}
 
-		if (attempt.status === QuizAttemptStatus.Paused) {
-			return;
-		}
+			if (attempt.status === QuizAttemptStatus.Paused) {
+				return;
+			}
 
-		this.attempts.save(pauseQuizAttempt(attempt, this.clock.now()));
+			await attempts.save(pauseQuizAttempt(attempt, this.clock.now()));
+		});
 	}
 }
 
 export class ResumeQuizAttemptUseCase
 	implements UseCase<Command<AttemptOfUserCommand>, ResumeQuizAttemptResult>
 {
-	private readonly attempts: QuizAttemptRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 
 	constructor(dependencies: AttemptLifecycleDependencies) {
-		this.attempts = dependencies.attempts;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 	}
 
-	async execute(
+	execute(
 		request: Command<AttemptOfUserCommand>,
 	): Promise<ResumeQuizAttemptResult> {
-		const attempt = this.attempts.findActiveByUser(request.telegramUserId);
+		return this.unitOfWork.run(async ({ attempts }) => {
+			const attempt = await attempts.findActiveFor(request.telegramUserId);
 
-		if (attempt === undefined) {
-			throw new NoActiveAttemptError(request.telegramUserId);
-		}
+			if (attempt === undefined) {
+				throw new NoActiveAttemptError(request.telegramUserId);
+			}
 
-		if (attempt.status === QuizAttemptStatus.Active) {
+			if (attempt.status === QuizAttemptStatus.Active) {
+				return {
+					attemptId: attempt.id,
+					currentQuestionId: currentQuestionId(attempt),
+				};
+			}
+
+			const resumed = resumeQuizAttempt(attempt, this.clock.now());
+
+			await attempts.save(resumed);
+
 			return {
-				attemptId: attempt.id,
-				currentQuestionId: currentQuestionId(attempt),
+				attemptId: resumed.id,
+				currentQuestionId: currentQuestionId(resumed),
 			};
-		}
-
-		const resumed = resumeQuizAttempt(attempt, this.clock.now());
-
-		this.attempts.save(resumed);
-
-		return {
-			attemptId: resumed.id,
-			currentQuestionId: currentQuestionId(resumed),
-		};
+		});
 	}
 }

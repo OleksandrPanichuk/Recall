@@ -1,4 +1,4 @@
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import type { Folder, FolderId } from "@/domain/folder/folder";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
@@ -15,7 +15,7 @@ export interface FolderTreeNode {
 export type ListFolderTreeCommand = Record<string, never>;
 
 export interface ListFolderTreeDependencies {
-	readonly folders: FolderRepository;
+	readonly scope: RepositoryScope;
 }
 
 const published = [QuizSetStatus.Published];
@@ -23,16 +23,16 @@ const published = [QuizSetStatus.Published];
 export class ListFolderTreeUseCase
 	implements UseCase<Command<ListFolderTreeCommand>, readonly FolderTreeNode[]>
 {
-	private readonly folders: FolderRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: ListFolderTreeDependencies) {
-		this.folders = dependencies.folders;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		_request: Command<ListFolderTreeCommand>,
 	): Promise<readonly FolderTreeNode[]> {
-		const all = this.folders.listAll();
+		const all = await this.scope.pages.listAll();
 		const childrenByParent = new Map<string, Folder[]>();
 
 		for (const folder of all) {
@@ -42,9 +42,17 @@ export class ListFolderTreeUseCase
 		}
 
 		const nodes: FolderTreeNode[] = [];
-		const walk = (parentId: FolderId | undefined, depth: number): void => {
+
+		const walk = async (
+			parentId: FolderId | undefined,
+			depth: number,
+		): Promise<void> => {
 			for (const folder of childrenByParent.get(parentId ?? "") ?? []) {
-				const setCount = this.folders.countSetsIn(folder.id, published);
+				const setCount = await this.scope.pages.countQuizzesIn(
+					folder.id,
+					published,
+				);
+				const total = await this.scope.pages.countQuizzesIn(folder.id);
 
 				nodes.push({
 					id: folder.id,
@@ -52,13 +60,13 @@ export class ListFolderTreeUseCase
 					parentId: folder.parentId,
 					depth,
 					setCount,
-					unpublishedCount: this.folders.countSetsIn(folder.id) - setCount,
+					unpublishedCount: total - setCount,
 				});
-				walk(folder.id, depth + 1);
+				await walk(folder.id, depth + 1);
 			}
 		};
 
-		walk(undefined, 0);
+		await walk(undefined, 0);
 
 		return nodes;
 	}

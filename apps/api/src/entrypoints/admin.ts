@@ -36,7 +36,7 @@ function main(): void {
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${resolve(environment.databasePath)} host=${admin.host} port=${admin.port}`,
+			`Configuration is valid. database=${environment.databaseUrl} host=${admin.host} port=${admin.port}`,
 		);
 
 		return;
@@ -46,7 +46,7 @@ function main(): void {
 		level: process.argv.includes("--debug") ? LogLevel.Debug : LogLevel.Info,
 	});
 	const application = createApplication({
-		databasePath: environment.databasePath,
+		databaseUrl: environment.databaseUrl,
 		logger,
 	});
 	const server = Bun.serve({
@@ -69,7 +69,7 @@ function main(): void {
 	logger.info("admin ready", {
 		host: admin.host,
 		port: admin.port,
-		databasePath: resolve(environment.databasePath),
+		databasePath: environment.databaseUrl,
 	});
 
 	shutdown.register({
@@ -81,7 +81,7 @@ function main(): void {
 	shutdown.register({
 		name: "database",
 		run: () => {
-			application.close();
+			void application.close();
 		},
 	});
 	shutdown.listen();

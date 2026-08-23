@@ -1,7 +1,7 @@
 import {
-	createTestContext,
-	type TestContext,
-} from "@tests/fixtures/application.fixture";
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { AddQuestionsUseCase, type QuestionInput } from "./add-questions";
@@ -30,7 +30,7 @@ export const anotherQuestionInput = (): QuestionInput =>
 	aQuestionInput({ prompt: "What does PRAGMA foreign_keys do?" });
 
 export interface QuizSetsHarness {
-	readonly context: TestContext;
+	readonly context: MemoryContext;
 	readonly create: CreateQuizSetUseCase;
 	readonly update: UpdateQuizSetUseCase;
 	readonly add: AddQuestionsUseCase;
@@ -45,7 +45,7 @@ export interface QuizSetsHarness {
 }
 
 export function createQuizSetsHarness(): QuizSetsHarness {
-	const context = createTestContext();
+	const context = createMemoryContext();
 	const create = new CreateQuizSetUseCase(context);
 	const add = new AddQuestionsUseCase(context);
 	const publish = new PublishQuizSetUseCase(context);

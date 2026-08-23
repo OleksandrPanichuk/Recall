@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { QuizSetTransitionError } from "@/domain/quiz-set/quiz-set.errors";
 import {
@@ -11,7 +11,7 @@ import {
 	type UpdateQuizSetUseCase,
 } from "./update-quiz-set";
 
-let context: TestContext;
+let context: MemoryContext;
 let update: UpdateQuizSetUseCase;
 let newDraft: QuizSetsHarness["newDraft"];
 let newPublished: QuizSetsHarness["newPublished"];

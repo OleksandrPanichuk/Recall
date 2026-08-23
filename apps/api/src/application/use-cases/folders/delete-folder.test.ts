@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
 import type { FolderId } from "@/domain/folder/folder";
 import { FolderNotFoundError } from "./create-folder";
 import { type DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 
-let context: TestContext;
+let context: MemoryContext;
 let deleteFolder: DeleteFolderUseCase;
 let create: FoldersHarness["create"];
 
@@ -24,7 +24,7 @@ describe("DeleteFolderUseCase", () => {
 
 		await deleteFolder.execute({ folderId: id });
 
-		expect(context.folders.findById(id)).toBeUndefined();
+		expect(await context.scope.pages.findById(id)).toBeUndefined();
 	});
 
 	test("refuses a folder that still has a child", async () => {

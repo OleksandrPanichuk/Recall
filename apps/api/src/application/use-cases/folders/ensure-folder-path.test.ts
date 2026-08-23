@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import {
 	FolderDepthError,
 	FolderValidationError,
@@ -7,7 +7,7 @@ import {
 import type { EnsureFolderPathUseCase } from "./ensure-folder-path";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 
-let context: TestContext;
+let context: MemoryContext;
 let ensureFolderPath: EnsureFolderPathUseCase;
 let nameOf: FoldersHarness["nameOf"];
 
@@ -26,7 +26,7 @@ describe("EnsureFolderPathUseCase", () => {
 		const result = await ensureFolderPath.execute({ path });
 
 		expect(result.created).toEqual(path);
-		expect(nameOf(result.folderId)).toBe("A1");
+		expect(await nameOf(result.folderId)).toBe("A1");
 		expect(context.folders.listAncestors(result.folderId)).toHaveLength(3);
 	});
 
@@ -36,7 +36,7 @@ describe("EnsureFolderPathUseCase", () => {
 
 		expect(second.folderId).toBe(first.folderId);
 		expect(second.created).toEqual([]);
-		expect(context.folders.listAll()).toHaveLength(4);
+		expect(await context.scope.pages.listAll()).toHaveLength(4);
 	});
 
 	test("creates only the missing tail under an existing prefix", async () => {
@@ -52,7 +52,7 @@ describe("EnsureFolderPathUseCase", () => {
 		const second = await ensureFolderPath.execute({ path: ["english"] });
 
 		expect(second.folderId).toBe(first.folderId);
-		expect(nameOf(second.folderId)).toBe("English");
+		expect(await nameOf(second.folderId)).toBe("English");
 	});
 
 	test("rejects an empty path", () => {
@@ -66,7 +66,7 @@ describe("EnsureFolderPathUseCase", () => {
 			ensureFolderPath.execute({ path: ["New", "Deep", "z".repeat(61)] }),
 		).rejects.toBeInstanceOf(FolderValidationError);
 
-		expect(context.folders.listAll()).toEqual([]);
+		expect(await context.scope.pages.listAll()).toEqual([]);
 	});
 
 	test("rejects a path deeper than the limit", () => {

@@ -4,7 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
 	createMutableClock,
 	createSequentialIdGenerator,
-} from "@tests/fixtures/application.fixture";
+} from "@tests/fixtures/memory.fixture";
 import { createMcpServer, MCP_SERVER_NAME } from "@/adapters/mcp/server";
 import {
 	type Application,

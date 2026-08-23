@@ -1,6 +1,13 @@
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ReviewRepository,
+	SettingsScope,
+} from "@/application/ports/repositories/review.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { FolderId } from "@/domain/folder/folder";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSettings } from "@/domain/repetition/repetition";
@@ -20,25 +27,34 @@ export interface ResolvedQuizSettings {
 	readonly folderId?: FolderId;
 }
 
-export function resolveRepetitionSettings(
-	repetition: RepetitionRepository,
+export const quizScope = (quizId: QuizSetId): SettingsScope => ({
+	kind: "quiz",
+	quizId,
+});
+
+export const ownerScope: SettingsScope = { kind: "owner" };
+
+export async function resolveRepetitionSettings(
+	reviews: ReviewRepository,
 	quizSetId: QuizSetId,
-): RepetitionSettings {
-	return resolveWithSource(repetition, quizSetId).settings.repetition;
+): Promise<RepetitionSettings> {
+	return (await resolveWithSource(reviews, quizSetId)).settings.repetition;
 }
 
-export function resolveWithSource(
-	repetition: RepetitionRepository,
+export async function resolveWithSource(
+	reviews: ReviewRepository,
 	quizSetId: QuizSetId | undefined,
-): ResolvedQuizSettings {
+): Promise<ResolvedQuizSettings> {
 	const own =
-		quizSetId === undefined ? undefined : repetition.findSettings(quizSetId);
+		quizSetId === undefined
+			? undefined
+			: await reviews.findSettings(quizScope(quizSetId));
 
 	if (own !== undefined) {
 		return { settings: own, source: "set" };
 	}
 
-	const global = repetition.findDefaults();
+	const global = await reviews.findSettings(ownerScope);
 
 	if (global !== undefined) {
 		return { settings: global, source: "global" };
@@ -51,37 +67,34 @@ export interface ResolveQuizSettingsCommand {
 	readonly quizSetId?: QuizSetId;
 }
 
-export interface ResolveQuizSettingsDependencies {
-	readonly repetition: RepetitionRepository;
-	readonly quizSets: QuizSetRepository;
-}
+export type ResolveQuizSettingsDependencies = ApplicationDependencies;
 
 export class ResolveQuizSettingsUseCase
 	implements UseCase<Command<ResolveQuizSettingsCommand>, ResolvedQuizSettings>
 {
-	private readonly repetition: RepetitionRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: ResolveQuizSettingsDependencies) {
-		this.repetition = dependencies.repetition;
-		this.quizSets = dependencies.quizSets;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<ResolveQuizSettingsCommand>,
 	): Promise<ResolvedQuizSettings> {
+		const { reviews, quizzes } = this.scope;
+
 		if (request.quizSetId === undefined) {
-			return resolveWithSource(this.repetition, undefined);
+			return resolveWithSource(reviews, undefined);
 		}
 
-		const quizSet = this.quizSets.findById(request.quizSetId);
+		const quizSet = await quizzes.findById(request.quizSetId);
 
 		if (quizSet === undefined) {
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
 		return {
-			...resolveWithSource(this.repetition, request.quizSetId),
+			...(await resolveWithSource(reviews, request.quizSetId)),
 			quizSetId: quizSet.id,
 			title: quizSet.title,
 			folderId: quizSet.folderId,

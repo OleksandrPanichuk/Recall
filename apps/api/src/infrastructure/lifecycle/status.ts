@@ -1,17 +1,16 @@
-import { resolve } from "node:path";
 import { count, eq, inArray } from "drizzle-orm";
-import type { QuizDatabase } from "@/adapters/persistence/sqlite/database";
-import {
-	questionResponses,
-	questions,
-	quizAttempts,
-	quizSets,
-} from "@/adapters/persistence/sqlite/schema";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import type { RecallDatabase } from "@/persistence/postgres/client";
+import {
+	attempts,
+	questions,
+	quizzes,
+	responses,
+} from "@/persistence/postgres/schema";
 
 export interface StatusReport {
-	readonly databasePath: string;
+	readonly databaseUrl: string;
 	readonly timezone: string;
 	readonly publishedSets: number;
 	readonly draftSets: number;
@@ -22,66 +21,68 @@ export interface StatusReport {
 }
 
 export interface StatusOptions {
-	readonly databasePath: string;
+	readonly databaseUrl: string;
 	readonly timezone: string;
 }
 
-const total = (
-	database: QuizDatabase,
+const total = async (
+	database: RecallDatabase,
 	// biome-ignore lint/suspicious/noExplicitAny: any Drizzle table works here
 	table: any,
 	where?: ReturnType<typeof eq>,
-): number =>
-	database.select({ value: count() }).from(table).where(where).get()?.value ??
-	0;
+): Promise<number> => {
+	const [row] = await database
+		.select({ value: count() })
+		.from(table)
+		.where(where);
 
-export function readStatus(
-	database: QuizDatabase,
+	return Number(row?.value ?? 0);
+};
+
+export async function readStatus(
+	database: RecallDatabase,
 	options: StatusOptions,
-): StatusReport {
+): Promise<StatusReport> {
 	return {
-		databasePath: options.databasePath,
+		databaseUrl: options.databaseUrl,
 		timezone: options.timezone,
-		publishedSets: total(
+		publishedSets: await total(
 			database,
-			quizSets,
-			eq(quizSets.status, QuizSetStatus.Published),
+			quizzes,
+			eq(quizzes.status, QuizSetStatus.Published),
 		),
-		draftSets: total(
+		draftSets: await total(
 			database,
-			quizSets,
-			eq(quizSets.status, QuizSetStatus.Draft),
+			quizzes,
+			eq(quizzes.status, QuizSetStatus.Draft),
 		),
-		questions: total(database, questions),
-		completedAttempts: total(
+		questions: await total(database, questions),
+		completedAttempts: await total(
 			database,
-			quizAttempts,
-			eq(quizAttempts.status, QuizAttemptStatus.Completed),
+			attempts,
+			eq(attempts.status, QuizAttemptStatus.Completed),
 		),
-		unfinishedAttempts:
-			database
-				.select({ value: count() })
-				.from(quizAttempts)
-				.where(
-					inArray(quizAttempts.status, [
-						QuizAttemptStatus.Active,
-						QuizAttemptStatus.Paused,
-					]),
-				)
-				.get()?.value ?? 0,
-		answeredQuestions: total(database, questionResponses),
+		unfinishedAttempts: await total(
+			database,
+			attempts,
+			inArray(attempts.status, [
+				QuizAttemptStatus.Active,
+				QuizAttemptStatus.Paused,
+			]),
+		),
+		answeredQuestions: await total(database, responses),
 	};
 }
 
 export function formatStatus(report: StatusReport): string {
 	return [
-		`database:            ${resolve(report.databasePath)}`,
-		`timezone:            ${report.timezone}`,
-		`published sets:      ${report.publishedSets}`,
-		`draft sets:          ${report.draftSets}`,
-		`questions:           ${report.questions}`,
-		`completed attempts:  ${report.completedAttempts}`,
-		`unfinished attempts: ${report.unfinishedAttempts}`,
-		`answered questions:  ${report.answeredQuestions}`,
+		`database        ${report.databaseUrl}`,
+		`timezone        ${report.timezone}`,
+		`published sets  ${report.publishedSets}`,
+		`draft sets      ${report.draftSets}`,
+		`questions       ${report.questions}`,
+		`attempts done   ${report.completedAttempts}`,
+		`attempts open   ${report.unfinishedAttempts}`,
+		`answers stored  ${report.answeredQuestions}`,
 	].join("\n");
 }

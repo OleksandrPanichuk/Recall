@@ -1,8 +1,12 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Transaction } from "@/application/ports/transaction";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	type Difficulty,
@@ -60,26 +64,19 @@ export interface AddQuestionsResult {
 	readonly alreadyPresent: boolean;
 }
 
-export interface AddQuestionsDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly clock: Clock;
-	readonly idGenerator: IdGenerator;
-	readonly transaction: Transaction;
-}
+export type AddQuestionsDependencies = ApplicationDependencies;
 
 export class AddQuestionsUseCase
 	implements UseCase<Command<AddQuestionsCommand>, AddQuestionsResult>
 {
-	private readonly quizSets: QuizSetRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
-	private readonly transaction: Transaction;
 
 	constructor(dependencies: AddQuestionsDependencies) {
-		this.quizSets = dependencies.quizSets;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
-		this.transaction = dependencies.transaction;
 	}
 
 	async execute(
@@ -98,8 +95,8 @@ export class AddQuestionsUseCase
 
 		const at = this.clock.now();
 
-		return this.transaction.run(() => {
-			const stored = this.quizSets.findById(request.quizSetId);
+		return this.unitOfWork.run(async ({ quizzes }) => {
+			const stored = await quizzes.findById(request.quizSetId);
 
 			if (stored === undefined) {
 				throw new QuizSetNotFoundError(request.quizSetId);
@@ -120,7 +117,7 @@ export class AddQuestionsUseCase
 				return { addedQuestionIds: [], alreadyPresent: true };
 			}
 
-			this.quizSets.save(addQuestions(stored, questions, at));
+			await quizzes.save(addQuestions(stored, questions, at));
 
 			return {
 				addedQuestionIds: questions.map((question) => question.id),

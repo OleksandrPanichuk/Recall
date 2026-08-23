@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
-import { countRows } from "@tests/integration/sqlite/migrated-database";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+import { countRows } from "@tests/fixtures/oauth-database";
 import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import {
@@ -15,7 +15,7 @@ import {
 } from "./resume-quiz-attempt";
 import type { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
-let context: TestContext;
+let context: MemoryContext;
 let start: StartQuizAttemptUseCase;
 let pause: PauseQuizAttemptUseCase;
 let resume: ResumeQuizAttemptUseCase;

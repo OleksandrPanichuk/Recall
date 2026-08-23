@@ -1,9 +1,13 @@
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { AttemptRepository } from "@/application/ports/repositories/attempt.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { FolderId } from "@/domain/folder/folder";
 import { weakTopicsOf } from "@/domain/practice/weak-topics";
 import {
@@ -58,28 +62,18 @@ export interface StartPracticeSessionResult {
 	readonly topics: readonly string[];
 }
 
-export interface StartPracticeSessionDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly attempts: QuizAttemptRepository;
-	readonly repetition: RepetitionRepository;
-	readonly clock: Clock;
-	readonly idGenerator: IdGenerator;
-}
+export type StartPracticeSessionDependencies = ApplicationDependencies;
 
 export class StartPracticeSessionUseCase
 	implements
 		UseCase<Command<StartPracticeSessionCommand>, StartPracticeSessionResult>
 {
-	private readonly quizSets: QuizSetRepository;
-	private readonly attempts: QuizAttemptRepository;
-	private readonly repetition: RepetitionRepository;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
 	private readonly idGenerator: IdGenerator;
 
 	constructor(dependencies: StartPracticeSessionDependencies) {
-		this.quizSets = dependencies.quizSets;
-		this.attempts = dependencies.attempts;
-		this.repetition = dependencies.repetition;
+		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
 		this.idGenerator = dependencies.idGenerator;
 	}
@@ -87,86 +81,92 @@ export class StartPracticeSessionUseCase
 	async execute(
 		request: Command<StartPracticeSessionCommand>,
 	): Promise<StartPracticeSessionResult> {
-		const quizSet = this.quizSets.findById(request.quizSetId);
+		return this.unitOfWork.run(async ({ quizzes, attempts, reviews }) => {
+			const quizSet = await quizzes.findById(request.quizSetId);
 
-		if (quizSet === undefined) {
-			throw new QuizSetNotFoundError(request.quizSetId);
-		}
+			if (quizSet === undefined) {
+				throw new QuizSetNotFoundError(request.quizSetId);
+			}
 
-		if (quizSet.status !== QuizSetStatus.Published) {
-			throw new QuizSetNotPublishedError(request.quizSetId);
-		}
+			if (quizSet.status !== QuizSetStatus.Published) {
+				throw new QuizSetNotPublishedError(request.quizSetId);
+			}
 
-		const unfinished = this.attempts.findActiveByUser(request.telegramUserId);
+			const unfinished = await attempts.findActiveFor(request.telegramUserId);
 
-		if (unfinished !== undefined) {
-			throw new AttemptAlreadyInProgressError(
-				unfinished.id,
-				unfinished.quizSetId,
-			);
-		}
+			if (unfinished !== undefined) {
+				throw new AttemptAlreadyInProgressError(
+					unfinished.id,
+					unfinished.quizSetId,
+				);
+			}
 
-		const topics =
-			request.mode === QuizAttemptMode.WeakTopics
-				? this.weakTopics(request)
-				: [];
-		const selected =
-			request.mode === QuizAttemptMode.WeakTopics
-				? questionsOfTopics(quizSet, topics)
-				: this.outstandingMistakes(request, quizSet);
+			const topics =
+				request.mode === QuizAttemptMode.WeakTopics
+					? await this.weakTopics(request, attempts)
+					: [];
+			const selected =
+				request.mode === QuizAttemptMode.WeakTopics
+					? questionsOfTopics(quizSet, topics)
+					: await this.outstandingMistakes(request, quizSet, attempts);
 
-		if (selected.length === 0) {
-			throw new NothingToPracticeError(
-				request.quizSetId,
-				request.mode,
-				quizSet.folderId,
-			);
-		}
+			if (selected.length === 0) {
+				throw new NothingToPracticeError(
+					request.quizSetId,
+					request.mode,
+					quizSet.folderId,
+				);
+			}
 
-		const id = toQuizAttemptId(this.idGenerator.generate());
-		const { shuffleQuestions } = resolveWithSource(
-			this.repetition,
-			quizSet.id,
-		).settings;
+			const id = toQuizAttemptId(this.idGenerator.generate());
+			const { shuffleQuestions } = (
+				await resolveWithSource(reviews, quizSet.id)
+			).settings;
 
-		const attempt = startQuizAttempt({
-			id,
-			quizSetId: quizSet.id,
-			telegramUserId: request.telegramUserId,
-			mode: request.mode,
-			questionIds: shuffleQuestions ? shuffled(selected, id) : selected,
-			startedAt: this.clock.now(),
+			const attempt = startQuizAttempt({
+				id,
+				quizSetId: quizSet.id,
+				telegramUserId: request.telegramUserId,
+				mode: request.mode,
+				questionIds: shuffleQuestions ? shuffled(selected, id) : selected,
+				startedAt: this.clock.now(),
+			});
+
+			await attempts.save(attempt);
+
+			return {
+				attemptId: attempt.id,
+				currentQuestionId: currentQuestionId(attempt),
+				questionCount: attempt.questionIds.length,
+				topics,
+			};
 		});
-
-		this.attempts.save(attempt);
-
-		return {
-			attemptId: attempt.id,
-			currentQuestionId: currentQuestionId(attempt),
-			questionCount: attempt.questionIds.length,
-			topics,
-		};
 	}
 
-	private weakTopics(
+	private async weakTopics(
 		request: Command<StartPracticeSessionCommand>,
-	): readonly string[] {
+		attempts: AttemptRepository,
+	): Promise<readonly string[]> {
 		return weakTopicsOf(
-			this.attempts.topicAccuracy(request.telegramUserId, request.quizSetId),
+			await attempts.topicAccuracy(request.telegramUserId, request.quizSetId),
 		).map((weak) => weak.topic);
 	}
 
-	private outstandingMistakes(
+	private async outstandingMistakes(
 		request: Command<StartPracticeSessionCommand>,
 		quizSet: QuizSet,
-	): readonly QuestionId[] {
+		attempts: AttemptRepository,
+	): Promise<readonly QuestionId[]> {
 		const present = new Set<string>(
 			quizSet.questions.map((question) => String(question.id)),
 		);
 
-		return this.attempts
-			.incorrectQuestionIds(request.telegramUserId, request.quizSetId)
-			.filter((questionId) => present.has(String(questionId)));
+		return (
+			await attempts.incorrectQuestionIds(
+				request.telegramUserId,
+				request.quizSetId,
+			)
+		).filter((questionId) => present.has(String(questionId)));
 	}
 }
 

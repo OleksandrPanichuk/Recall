@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { createMcpHttpApp } from "@/adapters/mcp/http/app";
 import { createOAuthProvider } from "@/adapters/mcp/http/oauth/provider";
+import { createOAuthDatabase } from "@/adapters/persistence/sqlite/oauth-database";
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
 import { createApplication } from "@/composition/create-application";
 import {
@@ -37,7 +38,7 @@ function main(): void {
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${resolve(environment.databasePath)} host=${http.host} port=${http.port} oauth=${http.oauth === undefined ? "off" : http.oauth.issuer.href}`,
+			`Configuration is valid. database=${environment.databaseUrl} host=${http.host} port=${http.port} oauth=${http.oauth === undefined ? "off" : http.oauth.issuer.href}`,
 		);
 
 		return;
@@ -47,13 +48,14 @@ function main(): void {
 		level: process.argv.includes("--debug") ? LogLevel.Debug : LogLevel.Info,
 	});
 	const application = createApplication({
-		databasePath: environment.databasePath,
+		databaseUrl: environment.databaseUrl,
 		logger,
 	});
+	const oauthDatabase = createOAuthDatabase(environment.oauthDatabasePath);
 	const oauth = createOAuthProvider({
 		store: createSqliteOAuthStore(
-			application.client,
-			application.transaction,
+			oauthDatabase.client,
+			oauthDatabase.transaction,
 			() => new Date(),
 		),
 		staticToken: http.token,
@@ -73,7 +75,7 @@ function main(): void {
 		logger.info("mcp http listening", {
 			host: http.host,
 			port: http.port,
-			databasePath: resolve(environment.databasePath),
+			databasePath: environment.databaseUrl,
 			dnsRebindingProtection: http.allowedHosts.length > 0,
 			oauth: http.oauth !== undefined,
 		});
@@ -86,7 +88,7 @@ function main(): void {
 				: "the mcp http server could not start",
 			{ host: http.host, port: http.port, error },
 		);
-		application.close();
+		void application.close();
 		process.exit(1);
 	});
 
@@ -100,7 +102,7 @@ function main(): void {
 	shutdown.register({
 		name: "database",
 		run: () => {
-			application.close();
+			void application.close();
 		},
 	});
 	shutdown.listen();

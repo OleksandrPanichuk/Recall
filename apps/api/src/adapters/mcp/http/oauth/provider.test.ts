@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { openMigratedDatabase } from "@tests/integration/sqlite/migrated-database";
+import { openMigratedDatabase } from "@tests/fixtures/oauth-database";
 import type { Response } from "express";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";

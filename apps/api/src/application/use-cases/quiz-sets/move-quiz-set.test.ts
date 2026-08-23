@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import type { FolderId } from "@/domain/folder/folder";
 import {
 	publishQuizSet,
 	type QuizSetId,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
-import {
-	createTestContext,
-	type TestContext,
-} from "../../../../tests/fixtures/application.fixture";
 import {
 	aQuestion,
 	aQuizSet,
@@ -20,12 +20,12 @@ import {
 import { CreateQuizSetUseCase } from "./create-quiz-set";
 import { MoveQuizSetUseCase } from "./move-quiz-set";
 
-let context: TestContext;
+let context: MemoryContext;
 let moveQuizSet: MoveQuizSetUseCase;
 let createFolder: CreateFolderUseCase;
 
 beforeEach(() => {
-	context = createTestContext();
+	context = createMemoryContext();
 	createFolder = new CreateFolderUseCase({
 		folders: context.folders,
 		clock: context.clock,

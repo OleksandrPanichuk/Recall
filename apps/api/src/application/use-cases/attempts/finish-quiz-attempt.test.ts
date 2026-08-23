@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import type { AnswerQuestionUseCase } from "./answer-question";
 import {
@@ -14,7 +14,7 @@ import {
 } from "./resume-quiz-attempt";
 import type { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
-let context: TestContext;
+let context: MemoryContext;
 let start: StartQuizAttemptUseCase;
 let pause: PauseQuizAttemptUseCase;
 let answer: AnswerQuestionUseCase;

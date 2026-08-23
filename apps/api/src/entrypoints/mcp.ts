@@ -29,21 +29,21 @@ async function main(): Promise<void> {
 		level: process.argv.includes("--debug") ? LogLevel.Debug : LogLevel.Info,
 	});
 	const application = createApplication({
-		databasePath: environment.databasePath,
+		databaseUrl: environment.databaseUrl,
 		logger,
 	});
 	const server = createMcpServer(application, { logger });
 	const shutdown = createShutdown({ logger });
 
 	logger.info("mcp server ready", {
-		databasePath: resolve(environment.databasePath),
+		databasePath: environment.databaseUrl,
 		timezone: environment.appTimezone,
 	});
 
 	shutdown.register({
 		name: "database",
 		run: () => {
-			application.close();
+			void application.close();
 		},
 	});
 	shutdown.register({ name: "mcp", run: () => server.close() });

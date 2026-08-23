@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createMutableClock } from "@tests/fixtures/application.fixture";
+import { createMutableClock } from "@tests/fixtures/memory.fixture";
 import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
 import {
 	type Application,

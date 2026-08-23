@@ -1,7 +1,9 @@
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { RepetitionRepository } from "@/application/ports/repositories/repetition.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import {
 	currentQuestionId,
 	type QuizAttemptId,
@@ -25,38 +27,30 @@ export interface CurrentQuestionView {
 	readonly examMode: boolean;
 }
 
-export interface GetCurrentQuestionDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly attempts: QuizAttemptRepository;
-	readonly repetition: RepetitionRepository;
-}
+export type GetCurrentQuestionDependencies = ApplicationDependencies;
 
 export class GetCurrentQuestionUseCase
 	implements
 		UseCase<Command<AttemptOfUserCommand>, CurrentQuestionView | undefined>
 {
-	private readonly quizSets: QuizSetRepository;
-	private readonly attempts: QuizAttemptRepository;
-	private readonly repetition: RepetitionRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: GetCurrentQuestionDependencies) {
-		this.quizSets = dependencies.quizSets;
-		this.attempts = dependencies.attempts;
-		this.repetition = dependencies.repetition;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<AttemptOfUserCommand>,
 	): Promise<CurrentQuestionView | undefined> {
-		const attempt = this.attempts.findActiveByUser(request.telegramUserId);
+		const { quizzes, attempts, reviews } = this.scope;
+		const attempt = await attempts.findActiveFor(request.telegramUserId);
 
 		if (attempt === undefined) {
 			return undefined;
 		}
 
-		const { settings } = resolveWithSource(this.repetition, attempt.quizSetId);
-
-		const quizSet = this.quizSets.findById(attempt.quizSetId);
+		const { settings } = await resolveWithSource(reviews, attempt.quizSetId);
+		const quizSet = await quizzes.findById(attempt.quizSetId);
 		const questionId = currentQuestionId(attempt);
 		const question =
 			questionId === undefined

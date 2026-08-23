@@ -1,5 +1,5 @@
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
-import type { Transaction } from "@/application/ports/transaction";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import type { FolderId } from "@/domain/folder/folder";
 import { type FolderDependencies, requireFolder } from "./create-folder";
@@ -30,25 +30,23 @@ export interface DeleteFolderCommand {
 export class DeleteFolderUseCase
 	implements UseCase<Command<DeleteFolderCommand>, void>
 {
-	private readonly folders: FolderRepository;
-	private readonly transaction: Transaction;
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 
 	constructor(dependencies: FolderDependencies) {
-		this.folders = dependencies.folders;
-		this.transaction = dependencies.transaction;
+		this.unitOfWork = dependencies.unitOfWork;
 	}
 
 	async execute(request: Command<DeleteFolderCommand>): Promise<void> {
-		this.transaction.run(() => {
-			const folder = requireFolder(this.folders, request.folderId);
-			const children = this.folders.countChildFolders(folder.id);
-			const sets = this.folders.countSetsIn(folder.id);
+		await this.unitOfWork.run(async ({ pages }) => {
+			const folder = await requireFolder(pages, request.folderId);
+			const children = await pages.countChildPages(folder.id);
+			const sets = await pages.countQuizzesIn(folder.id);
 
 			if (children > 0 || sets > 0) {
 				throw new FolderNotEmptyError(folder.id, children, sets);
 			}
 
-			this.folders.delete(folder.id);
+			await pages.delete(folder.id);
 		});
 	}
 }

@@ -1,6 +1,9 @@
-import type { QuizAttemptRepository } from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { Question } from "@/domain/quiz-set/question";
 import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 
@@ -16,33 +19,29 @@ export interface ListQuestionsCommand {
 	readonly quizSetId?: QuizSetId;
 }
 
-export interface ListQuestionsDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly attempts: QuizAttemptRepository;
-}
+export type ListQuestionsDependencies = ApplicationDependencies;
 
 export class ListQuestionsUseCase
 	implements UseCase<Command<ListQuestionsCommand>, readonly QuestionRow[]>
 {
-	private readonly quizSets: QuizSetRepository;
-	private readonly attempts: QuizAttemptRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: ListQuestionsDependencies) {
-		this.quizSets = dependencies.quizSets;
-		this.attempts = dependencies.attempts;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<ListQuestionsCommand>,
 	): Promise<readonly QuestionRow[]> {
+		const { quizzes, attempts } = this.scope;
 		const ids =
 			request.quizSetId === undefined
-				? this.quizSets.list().map((summary) => summary.id)
+				? (await quizzes.list()).map((summary) => summary.id)
 				: [request.quizSetId];
 		const rows: QuestionRow[] = [];
 
 		for (const id of ids) {
-			const quizSet = this.quizSets.findById(id);
+			const quizSet = await quizzes.findById(id);
 
 			if (quizSet === undefined) {
 				continue;
@@ -54,7 +53,7 @@ export class ListQuestionsUseCase
 					quizSetId: quizSet.id,
 					setTitle: quizSet.title,
 					setStatus: quizSet.status,
-					answerCount: this.attempts.answerCount(question.id),
+					answerCount: await attempts.answerCount(question.id),
 				});
 			}
 		}

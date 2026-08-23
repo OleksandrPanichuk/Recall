@@ -1,8 +1,5 @@
-import type { FolderRepository } from "@/application/ports/repositories/folder.repository";
-import type {
-	QuizSetRepository,
-	QuizSetSummary,
-} from "@/application/ports/repositories/quiz-set.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import type { FolderId } from "@/domain/folder/folder";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
@@ -23,7 +20,7 @@ export interface BrowseView {
 	readonly parentId?: FolderId;
 	readonly breadcrumb: readonly BrowseCrumb[];
 	readonly children: readonly BrowseChild[];
-	readonly sets: readonly QuizSetSummary[];
+	readonly sets: readonly QuizSummary[];
 }
 
 export interface BrowseFolderCommand {
@@ -31,8 +28,7 @@ export interface BrowseFolderCommand {
 }
 
 export interface BrowseFolderDependencies {
-	readonly folders: FolderRepository;
-	readonly quizSets: QuizSetRepository;
+	readonly scope: RepositoryScope;
 }
 
 const published = [QuizSetStatus.Published];
@@ -40,44 +36,46 @@ const published = [QuizSetStatus.Published];
 export class BrowseFolderUseCase
 	implements UseCase<Command<BrowseFolderCommand>, BrowseView>
 {
-	private readonly folders: FolderRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: BrowseFolderDependencies) {
-		this.folders = dependencies.folders;
-		this.quizSets = dependencies.quizSets;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(request: Command<BrowseFolderCommand>): Promise<BrowseView> {
+		const { pages, quizzes } = this.scope;
 		const current =
 			request.folderId === undefined
 				? undefined
-				: requireFolder(this.folders, request.folderId);
+				: await requireFolder(pages, request.folderId);
 
-		const children = this.folders
-			.listChildren(request.folderId)
-			.map((child) => ({
+		const children: BrowseChild[] = [];
+
+		for (const child of await pages.listChildren(request.folderId)) {
+			children.push({
 				id: child.id,
 				name: child.name,
 				itemCount:
-					this.folders.countSetsIn(child.id, published) +
-					this.folders.countChildFolders(child.id),
-			}));
+					(await pages.countQuizzesIn(child.id, published)) +
+					(await pages.countChildPages(child.id)),
+			});
+		}
+
+		const ancestors =
+			current === undefined ? [] : await pages.listAncestors(current.id);
 
 		return {
 			folderId: current?.id,
 			name: current?.name,
 			parentId: current?.parentId,
-			breadcrumb:
-				current === undefined
-					? []
-					: this.folders
-							.listAncestors(current.id)
-							.map((folder) => ({ id: folder.id, name: folder.name })),
+			breadcrumb: ancestors.map((folder) => ({
+				id: folder.id,
+				name: folder.name,
+			})),
 			children,
-			sets: this.quizSets.list({
+			sets: await quizzes.list({
 				statuses: published,
-				folderId: current?.id ?? null,
+				pageId: current?.id ?? null,
 			}),
 		};
 	}

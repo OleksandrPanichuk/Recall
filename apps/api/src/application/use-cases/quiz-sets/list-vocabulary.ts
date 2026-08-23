@@ -1,6 +1,10 @@
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { VocabularyRepository } from "@/application/ports/repositories/vocabulary.repository";
-import type { Command, UseCase } from "@/application/use-case";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { VocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
 import { QuizSetNotFoundError } from "./update-quiz-set";
@@ -19,33 +23,29 @@ export interface ListVocabularyCommand {
 	readonly quizSetId: QuizSetId;
 }
 
-export interface ListVocabularyDependencies {
-	readonly vocabulary: VocabularyRepository;
-	readonly quizSets: QuizSetRepository;
-}
+export type ListVocabularyDependencies = ApplicationDependencies;
 
 export class ListVocabularyUseCase
 	implements
 		UseCase<Command<ListVocabularyCommand>, readonly VocabularyItemView[]>
 {
-	private readonly vocabulary: VocabularyRepository;
-	private readonly quizSets: QuizSetRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: ListVocabularyDependencies) {
-		this.vocabulary = dependencies.vocabulary;
-		this.quizSets = dependencies.quizSets;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<ListVocabularyCommand>,
 	): Promise<readonly VocabularyItemView[]> {
-		const quizSet = this.quizSets.findById(request.quizSetId);
+		const { quizzes, termPairs } = this.scope;
+		const quizSet = await quizzes.findById(request.quizSetId);
 
 		if (quizSet === undefined) {
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
-		return this.vocabulary.listBySet(request.quizSetId).map((item) => ({
+		return (await termPairs.listForQuiz(request.quizSetId)).map((item) => ({
 			itemId: item.id,
 			terms: item.terms,
 			translations: item.translations,

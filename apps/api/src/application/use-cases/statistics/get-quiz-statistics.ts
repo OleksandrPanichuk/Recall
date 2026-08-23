@@ -1,9 +1,10 @@
+import type { TopicAccuracy } from "@/application/ports/repositories/attempt.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type {
-	QuizAttemptRepository,
-	TopicAccuracy,
-} from "@/application/ports/repositories/quiz-attempt.repository";
-import type { QuizSetRepository } from "@/application/ports/repositories/quiz-set.repository";
-import type { Command, UseCase } from "@/application/use-case";
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
 import type { FolderId } from "@/domain/folder/folder";
 import type { QuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { percentageOf, type Score } from "@/domain/quiz-attempt/score";
@@ -39,10 +40,7 @@ export interface GetQuizStatisticsCommand {
 	readonly quizSetId: QuizSetId;
 }
 
-export interface GetQuizStatisticsDependencies {
-	readonly quizSets: QuizSetRepository;
-	readonly attempts: QuizAttemptRepository;
-}
+export type GetQuizStatisticsDependencies = ApplicationDependencies;
 
 const scoreOf = (correct: number, total: number): Score => ({
 	correct,
@@ -53,24 +51,23 @@ const scoreOf = (correct: number, total: number): Score => ({
 export class GetQuizStatisticsUseCase
 	implements UseCase<Command<GetQuizStatisticsCommand>, QuizStatistics>
 {
-	private readonly quizSets: QuizSetRepository;
-	private readonly attempts: QuizAttemptRepository;
+	private readonly scope: RepositoryScope;
 
 	constructor(dependencies: GetQuizStatisticsDependencies) {
-		this.quizSets = dependencies.quizSets;
-		this.attempts = dependencies.attempts;
+		this.scope = dependencies.scope;
 	}
 
 	async execute(
 		request: Command<GetQuizStatisticsCommand>,
 	): Promise<QuizStatistics> {
-		const quizSet = this.quizSets.findById(request.quizSetId);
+		const { quizzes, attempts: attemptRepository } = this.scope;
+		const quizSet = await quizzes.findById(request.quizSetId);
 
 		if (quizSet === undefined) {
 			throw new QuizSetNotFoundError(request.quizSetId);
 		}
 
-		const completed = this.attempts.listCompletedBySet(
+		const completed = await attemptRepository.listCompletedForQuiz(
 			request.telegramUserId,
 			request.quizSetId,
 		);
@@ -91,11 +88,11 @@ export class GetQuizStatisticsUseCase
 				completed.reduce((sum, entry) => sum + entry.correct, 0),
 				completed.reduce((sum, entry) => sum + entry.total, 0),
 			),
-			topics: this.attempts.topicAccuracy(
+			topics: await attemptRepository.topicAccuracy(
 				request.telegramUserId,
 				request.quizSetId,
 			),
-			incorrectQuestionIds: this.attempts.incorrectQuestionIds(
+			incorrectQuestionIds: await attemptRepository.incorrectQuestionIds(
 				request.telegramUserId,
 				request.quizSetId,
 			),

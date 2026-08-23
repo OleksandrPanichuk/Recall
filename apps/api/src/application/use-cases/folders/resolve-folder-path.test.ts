@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { TestContext } from "@tests/fixtures/application.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import {
 	FolderPathNotFoundError,
 	type ResolveFolderPathUseCase,
 } from "./resolve-folder-path";
 
-let context: TestContext;
+let context: MemoryContext;
 let resolveFolderPath: ResolveFolderPathUseCase;
 let create: FoldersHarness["create"];
 let chain: FoldersHarness["chain"];
@@ -68,6 +68,6 @@ describe("ResolveFolderPathUseCase", () => {
 			.execute({ path: ["English", "Missing"] })
 			.catch(() => undefined);
 
-		expect(context.folders.listAll()).toHaveLength(1);
+		expect(await context.scope.pages.listAll()).toHaveLength(1);
 	});
 });
