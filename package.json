@@ -34,6 +34,9 @@
 		"mcp": "bun run ./apps/api/src/entrypoints/mcp.ts",
 		"mcp:http": "bun run ./apps/api/src/entrypoints/mcp-http.ts",
 		"admin": "bun run ./apps/api/src/entrypoints/admin.ts",
-		"api": "bun run ./apps/api/src/entrypoints/api.ts"
+		"api": "bun run ./apps/api/src/entrypoints/api.ts",
+		"db:up": "docker compose up -d --wait",
+		"db:down": "docker compose down",
+		"db:reset": "docker compose down -v && docker compose up -d --wait"
 	}
 }

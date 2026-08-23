@@ -2,8 +2,8 @@ name: verify
 
 on:
   pull_request:
-  push: 
-    branches: [main]
+  push:
+    branches: [main, rewrite]
 
 concurrency:
   group: verify-${{ github.ref }}
@@ -23,3 +23,29 @@ jobs:
           bun-version: 1.3.11
       - run: bun install --frozen-lockfile
       - run: bun run verify
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: recall
+          POSTGRES_PASSWORD: recall
+          POSTGRES_DB: recall
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U recall -d recall"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      TEST_DATABASE_URL: postgres://recall:recall@127.0.0.1:55432/recall
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - run: bun test apps/api/tests/integration/postgres

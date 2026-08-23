@@ -9,6 +9,11 @@
 >
 > **Revision log**
 > - r1 — first investigation pass.
+> - r8 — **phase 5 started, not finished.** Postgres 17 in Docker, drizzle over postgres.js,
+>   an isolated-schema test harness, and the transaction semantics the whole phase depends on
+>   now pinned by tests. One measured finding changes the design: on Postgres an unawaited
+>   write **survives a rolled-back transaction**, 8/8 deterministic. Repository and use-case
+>   porting has not started. See "Phase 5, first slice".
 > - r7 — **phase 4 done**: Nest shell on Express, `GET /quizzes`, `GET /quizzes/:id`,
 >   health, Swagger, domain-error filter, and the 35 `*UseCase` renames. Runs on **Bun**, not
 >   Node — see the phase-4 note. Explicit `@Inject` everywhere, `emitDecoratorMetadata` off.
@@ -1166,7 +1171,7 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | ~~3~~ | ~~Async call sites~~ — **deleted (r6)**, folded into phase 5. Not implementable standalone: see below. | — | — |
 | — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
 | 4 | ~~**Minimal Nest API shell**~~ — **done** (r7). Nest 11 + Express, `apps/api/src/modules/{shared,content}`, factory-provided use cases, `GET /quizzes`, `GET /quizzes/:id`, health, Swagger at `/docs`, domain-error→HTTP filter. Runs on Bun. | 2 | M |
-| 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines | 4 | L |
+| 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines. **Started (r8)**: infrastructure and transaction contract done; repositories not ported. | 4 | L |
 | 6 | Rehearsed cutover: ETL + verification + rollback deadline (below) | 5 | M |
 | 7 | Identity, ownership, sessions, bot login link (§3, §5) | 6 | L |
 | 8 | Bot, MCP, and admin become API clients; MCP OAuth gains its user dimension (§1, §5) | 7 | L |
@@ -1182,6 +1187,55 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### Phase 5, first slice (r8)
+
+Done: `docker-compose.yml` with Postgres 17, `postgres` (postgres.js) behind
+`drizzle-orm/postgres-js`, `bun run db:up` / `db:down` / `db:reset`, a test harness that gives
+every run its own Postgres **schema** (`tests/fixtures/postgres.ts`), a CI job with a Postgres
+service, and `apps/api/src/application/ports/unit-of-work.ts`.
+
+**The finding that shapes the rest of the phase.** r6 deleted phase 3 because an unawaited
+repository call inside a synchronous transaction callback would be a lie the type system told.
+On Postgres the failure mode is worse than predicted, and it is now measured rather than
+argued: an unawaited write inside a `db.transaction(...)` callback **survives when that
+transaction rolls back** — 8 runs out of 8, deterministic. It commits on its own connection
+while the boundary it appeared to belong to is discarded.
+
+So the hazard is not "the write is lost". It is "the write outlives the rollback", which is
+silent, permanent corruption of exactly the invariant a transaction exists to protect.
+`tests/integration/postgres/transaction-semantics.test.ts` pins all five properties: commit,
+rollback-on-throw, read-your-writes, savepoint nesting, and this one.
+
+**What that forces on the design.** The `UnitOfWork` port hands repositories *to* the
+operation rather than being injected beside them:
+
+```ts
+run<TResult>(operation: (scope: TScope) => Promise<TResult>): Promise<TResult>
+```
+
+A repository reachable only from inside the boundary cannot be called outside one by accident,
+and cannot be called on the wrong connection. That is the enforcement, and it has to be
+structural, because the alternatives do not work here:
+
+- **Lint cannot do it.** Biome's `noFloatingPromises` is exactly the right rule and is
+  **inert** in this setup — a deliberate floating promise produced no diagnostic, because the
+  type-aware nursery domain needs project configuration Biome 2.4 does not do here. The rule
+  was added, tested, found silent, and removed rather than left in place looking like
+  protection. (Re-test it when Biome's type inference stabilises.)
+- **Convention cannot do it.** The current code already nests boundaries fourteen ways; the
+  next person will too.
+
+**A complication the plan did not anticipate.** "Per bounded context" is harder than it reads,
+because two use cases already cross contexts inside one transaction:
+`AddVocabularyUseCase` calls `AddQuestionsUseCase` inside its boundary, and
+`FinishQuizAttemptUseCase` writes an attempt and a repetition schedule in one. Neither can move
+while half its writes are on the other engine. So the porting order is not free: `content`
+must move before `study`, `study` before `scheduling`, and the two cross-context use cases move
+with the *later* of their two contexts. Worth settling before the first repository moves.
+
+**Not started:** the schema itself (§6's renames), any repository, any use case, the ETL, and
+the Node switch. The runtime stays Bun until `bun:sqlite` is gone.
 
 ### What phase 4 established, and one plan assumption it broke (r7)
 

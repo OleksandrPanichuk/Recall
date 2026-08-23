@@ -67,6 +67,19 @@ Both exemptions are **scoped to their directory** — do not let them spread.
 `apps/bot`, `apps/mcp`, `apps/admin`, `packages/*`, `scripts/`, and all of `src/` stay on
 plain Bun with no exemption.
 
+**Postgres, when you are working on it.** `bun run db:up` starts Postgres 17 in Docker on
+port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it discover it via
+`TEST_DATABASE_URL` (falling back to the Docker default) and **skip** when it is unreachable,
+so `bun run verify` passes without Docker. Setting `TEST_DATABASE_URL` makes them mandatory
+instead: if it is set and Postgres is missing, the suite fails rather than skipping.
+
+**Never leave a promise unawaited inside a transaction.** Measured, not theoretical: on
+Postgres an unawaited write inside a `db.transaction(...)` callback survives when that
+transaction rolls back — 8/8 runs. It commits on its own connection while the boundary is
+discarded. `apps/api/tests/integration/postgres/transaction-semantics.test.ts` pins this.
+Repositories are reached through the `UnitOfWork` scope so the mistake is hard to express;
+there is no lint rule covering it (Biome's `noFloatingPromises` is inert here).
+
 One hard rule that outranks convenience: **only `apps/api` talks to the database.**
 `apps/web` has a server (TanStack Start server functions) and must still reach data over
 HTTP — it must not depend on drizzle or a Postgres driver at all.

@@ -16,6 +16,7 @@
 		"@nestjs/swagger": "^11",
 		"drizzle-orm": "^0.45.2",
 		"express": "^5",
+		"postgres": "^3.4.9",
 		"ra-data-json-server": "^5.15.0",
 		"react": "^19.2.8",
 		"react-admin": "^5.15.1",
