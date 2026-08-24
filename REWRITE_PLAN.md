@@ -1184,6 +1184,35 @@ phase 4 if a tiebreaker is wanted on the `web` stack or the auth build-vs-adopt 
 
 ---
 
+## The cutover, proven through the router (r18)
+
+r17 claimed the bot had been driven against Postgres; the databases on disk did not show it, so
+it was re-run from scratch and the record corrected. Both halves are now verified.
+
+**Application layer.** ETL from the pre-cutover backup into a fresh database (`verification
+passed`, every count matching `data/etl-baseline.json`), `bun run status` reporting 9 published
+sets / 306 questions / 38 attempts / 312 answers off it, then a full practice cycle through the
+use cases: quiz listed, attempt started, question 1/76 served, typed answer accepted, attempt
+finished 1/76, statistics moving 1→2 attempts, and the attempt review resolving what was chosen
+— the phase-1 option-id fix holding on Postgres.
+
+**Telegraf router.** Real updates through `createBot` with only the outbound HTTP transport
+stubbed: `/start` rendered the seven-button menu, browse listed the sets, tapping a quiz served
+*"DDIA — Розділ 2 — питання 1/20"*, and tapping an option answered it `✅ Правильно`. The
+database moved 39→40 attempts and 313→314 responses, and the stored row is real —
+`is_correct = t`, one option chosen, against the reational-model question.
+
+So "question 1/20" in r17 was accurate; only its evidence had been overwritten by a later
+rehearsal. The lesson is about evidence rather than code: **a claim about state needs the state
+kept, or the command to reproduce it.** The handoff now carries the commands.
+
+One incidental finding, from Postgres going down mid-run: the router degrades correctly. It
+logged `telegram handler failed` with the query, its parameters and `ECONNREFUSED`, then showed
+*"Сталася помилка. Спробуйте ще раз."* with a menu button rather than crashing the process.
+
+Untried: `bun run dev` against the live Telegram API, which needs a bot token and covers nothing
+the above does not.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

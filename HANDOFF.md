@@ -86,10 +86,33 @@ and the database moved 38→39 attempts, 312→313 responses, 227→228 review s
 started, an answer persisted, a repetition schedule advanced, and the attempt review resolved
 what was chosen — the phase-1 fix holding on Postgres.
 
-One honest limit: that cycle exercised the **application layer**, not Telegraf itself. Nothing
-has driven a real Telegram update through the router against Postgres, and the earlier claim
-that it had is not reproducible from any database on disk. `bun run dev` with a bot token is
-still the one unproven step.
+**The router is proven too.** Real Telegram updates were fed through `createBot` — the actual
+Telegraf instance, real middleware, real handlers — with only the outbound HTTP transport
+stubbed, against the same Postgres database:
+
+```
+/start   → Головне меню.  (7 buttons: Продовжити, Мої набори, Повторення, …)
+browse   → Оберіть набір:
+tap quiz → DDIA — Розділ 2: Data Models and Query Languages — питання 1/20
+answer   → ✅ Правильно
+```
+
+and the database moved 39→40 attempts, 313→314 responses. The stored row is the real one:
+`is_correct = t`, one option chosen, question *"Хто і коли запропонував реляційну модель, на
+якій базується SQL?"*.
+
+That also settles the earlier discrepancy fairly: the first write-up said "question 1/20", which
+is exactly what the router serves for that quiz, so it had almost certainly been run as
+described — the database was simply rebuilt afterwards, which is why the numbers no longer
+matched. The claim was true; only its evidence had been overwritten.
+
+Worth knowing, observed while Postgres happened to be down mid-run: the router degrades
+correctly. It logged `telegram handler failed` with the failing query, the parameters and
+`ECONNREFUSED`, then showed the user *"Сталася помилка. Спробуйте ще раз."* with a menu button
+instead of crashing the process.
+
+The only step left untried is `bun run dev` against the live Telegram API, which needs a bot
+token and adds nothing the above does not already cover.
 
 ---
 
