@@ -29,7 +29,7 @@ bun run db:migrate     # apply the schema
 bun run verify         # biome + tsc + 1263 tests + build, all green
 ```
 
-`bun run verify` also passes with Docker down: the 65 tests that need Postgres skip. Setting
+`bun run verify` also passes with Docker down: the 61 tests that need Postgres skip. Setting
 `TEST_DATABASE_URL` makes them mandatory instead, and a guard in
 `tests/integration/postgres/transaction-semantics.test.ts` fails the suite if they skipped
 while that variable was set.
@@ -55,17 +55,57 @@ on Postgres, `DATABASE_URL` replacing `DATABASE_PATH`), the finishing session:
 - rewrote the storage, environment, migration, backup and layout sections of `README.md`, and
   `.env.example`.
 
-**Verified against real data, not only against tests.** The ETL was rehearsed from
-`data/quiz.before-postgres-20260823-170412.sqlite` into a scratch database (`verification
-passed`, every count matching `data/etl-baseline.json`), `bun run status` reported 9 published
-sets / 306 questions / 38 attempts / 312 answers off it, and the real bot router then served
-question 1/20 of a migrated quiz and recorded the answer (312 → 313 responses).
+**Verified against real data, not only against tests** — and re-verified independently
+afterwards, because the first write-up quoted numbers that no longer matched any database on
+disk. What is reproducible today, command by command:
+
+```bash
+docker exec recall-postgres psql -U recall -d recall \
+  -c 'drop database if exists recall_proof with (force)' -c 'create database recall_proof'
+cd apps/api && APPLY_SCHEMA=1 bun run ./scripts/migrate-to-postgres.ts \
+  ../../data/quiz.before-postgres-20260823-170412.sqlite \
+  postgres://recall:recall@127.0.0.1:55432/recall_proof
+# → "verification passed: every mapped table and total agrees"
+
+DATABASE_URL=postgres://recall:recall@127.0.0.1:55432/recall_proof bun run status
+# → 9 published sets, 306 questions, 38 attempts done, 312 answers stored
+```
+
+Then a full practice cycle driven through the real use cases against that database — list
+published quizzes, start an attempt, serve the current question, answer it, finish, read the
+attempt back:
+
+```
+quiz: A1 Clothes Vocabulary (76 questions)
+served 1/76 [typed_answer]: футболка      answered, correct=true
+finished: score 1/76                       attempts for this quiz: 1 -> 2
+review resolves what was chosen: true
+```
+
+and the database moved 38→39 attempts, 312→313 responses, 227→228 review states. So an attempt
+started, an answer persisted, a repetition schedule advanced, and the attempt review resolved
+what was chosen — the phase-1 fix holding on Postgres.
+
+One honest limit: that cycle exercised the **application layer**, not Telegraf itself. Nothing
+has driven a real Telegram update through the router against Postgres, and the earlier claim
+that it had is not reproducible from any database on disk. `bun run dev` with a bot token is
+still the one unproven step.
 
 ---
 
 ## 3. What is left before merging
 
 Nothing functional. Open the PR from `wip/postgres-cutover` into `refactor/monorepo-split`.
+
+**Two things actually still open, found while checking this handoff:**
+
+- **PR #76 needs retargeting to `rewrite`.** #75 was squash-merged into `rewrite`, but
+  `fix/stable-option-ids` was not deleted, so GitHub did not auto-retarget #76 — it still points
+  at a merged branch, and merging it today would land in a dead end.
+  `gh pr edit 76 --base rewrite`.
+- **The PR for this branch is not open yet.** `gh pr create --base refactor/monorepo-split
+  --head wip/postgres-cutover`. Both were attempted and failed on a network outage; the branch
+  itself is pushed (`origin/wip/postgres-cutover` = `fa98331`).
 
 Two housekeeping notes for whoever merges:
 
