@@ -1,0 +1,23 @@
+{
+	"name": "@recall/admin",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --hot ./src/server.ts",
+		"start": "bun run ./src/server.ts",
+		"build": "bun build ./src/index.html --outdir ../../dist/admin"
+	},
+	"dependencies": {
+		"ra-data-json-server": "^5.15.0",
+		"react": "^19.2.8",
+		"react-admin": "^5.15.1",
+		"react-dom": "^19.2.8"
+	},
+	"devDependencies": {
+		"@happy-dom/global-registrator": "^20.11.6",
+		"@testing-library/react": "^16.3.2",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.4"
+	}
+}

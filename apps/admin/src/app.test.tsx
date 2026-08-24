@@ -1,15 +1,15 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import {
 	applyMigration,
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
-} from "@tests/fixtures/postgres";
+} from "@api-tests/fixtures/postgres";
 import {
 	makeTempDirectory,
 	removeTempDirectory,
-} from "@tests/fixtures/temp-dir";
+} from "@api-tests/fixtures/temp-dir";
+import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 const PASSPHRASE = "correct horse battery staple";
 const nativeFetch = globalThis.fetch;
@@ -32,7 +32,7 @@ const child = available
 			[
 				process.execPath,
 				Bun.fileURLToPath(
-					new URL("../../../entrypoints/admin.ts", import.meta.url),
+					new URL("../../api/src/entrypoints/api.ts", import.meta.url),
 				),
 			],
 			{
@@ -44,8 +44,8 @@ const child = available
 					DATABASE_URL: harness?.url ?? "",
 					OAUTH_DATABASE_PATH: `${directory}/oauth.sqlite`,
 					ADMIN_PASSPHRASE: PASSPHRASE,
-					ADMIN_HOST: "127.0.0.1",
-					ADMIN_PORT: String(port),
+					API_HOST: "127.0.0.1",
+					API_PORT: String(port),
 				},
 				stdout: "ignore",
 				stderr: "pipe",
@@ -219,11 +219,16 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-	globalThis.fetch = happyFetch;
 	child?.kill("SIGTERM");
 	await child?.exited;
 	await harness?.close();
 	removeTempDirectory(directory);
+
+	// happy-dom replaces globalThis wholesale, fetch included. Leaving it
+	// registered pollutes every test file that runs after this one, and which
+	// files those are depends only on filename order.
+	globalThis.fetch = nativeFetch;
+	await GlobalRegistrator.unregister();
 });
 
 describe.skipIf(!available)("the admin", () => {

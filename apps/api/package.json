@@ -5,7 +5,7 @@
 	"type": "module",
 	"module": "src/entrypoints/telegram.ts",
 	"scripts": {
-		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts ./src/entrypoints/mcp-http.ts ./src/entrypoints/admin.ts --outdir ../../dist --target bun",
+		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts ./src/entrypoints/mcp-http.ts --outdir ../../dist --target bun",
 		"db:generate": "drizzle-kit generate",
 		"db:generate:pg": "drizzle-kit generate --config drizzle.postgres.config.ts",
 		"db:migrate:pg": "drizzle-kit migrate --config drizzle.postgres.config.ts",
@@ -20,21 +20,13 @@
 		"drizzle-orm": "^0.45.2",
 		"express": "^5",
 		"postgres": "^3.4.9",
-		"ra-data-json-server": "^5.15.0",
-		"react": "^19.2.8",
-		"react-admin": "^5.15.1",
-		"react-dom": "^19.2.8",
 		"reflect-metadata": "^0.2.2",
 		"rxjs": "^7.8.2",
 		"telegraf": "^4.16.3",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@happy-dom/global-registrator": "^20.11.6",
-		"@testing-library/react": "^16.3.2",
 		"@types/express": "^5.0.6",
-		"@types/react": "^19.2.18",
-		"@types/react-dom": "^19.2.4",
 		"drizzle-kit": "^0.31.10"
 	}
 }

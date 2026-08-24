@@ -3,7 +3,8 @@
 	"compilerOptions": {
 		"paths": {
 			"@/*": ["./apps/api/src/*"],
-			"@tests/*": ["./apps/api/tests/*"]
+			"@tests/*": ["./apps/api/tests/*"],
+			"@api-tests/*": ["./apps/api/tests/*"]
 		}
 	}
 }

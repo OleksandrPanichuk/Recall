@@ -2,11 +2,28 @@ import jsonServerProvider from "ra-data-json-server";
 import type { AuthProvider, DataProvider } from "react-admin";
 import { fetchUtils } from "react-admin";
 
+// The admin app is served from its own origin now, so every call is
+// cross-origin and must carry the session cookie explicitly.
+const loadApiUrl = async (): Promise<string> => {
+	try {
+		const response = await fetch("/config.json");
+		const config = (await response.json()) as { apiUrl?: string };
+
+		return config.apiUrl ?? "";
+	} catch {
+		return "";
+	}
+};
+
+const apiUrl = await loadApiUrl();
+
+export const apiBase = `${apiUrl}/api`;
+
 const httpClient = (url: string, options: fetchUtils.Options = {}) =>
-	fetchUtils.fetchJson(url, { ...options, credentials: "same-origin" });
+	fetchUtils.fetchJson(url, { ...options, credentials: "include" });
 
 export const dataProvider: DataProvider = jsonServerProvider(
-	"/api",
+	apiBase,
 	httpClient,
 );
 
@@ -14,8 +31,9 @@ const unauthorised = (): Error => new Error("Not signed in");
 
 export const authProvider: AuthProvider = {
 	login: async ({ password }: { password?: string }) => {
-		const response = await fetch("/api/session", {
+		const response = await fetch(`${apiBase}/session`, {
 			method: "POST",
+			credentials: "include",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({ passphrase: password ?? "" }),
 		});
@@ -26,11 +44,16 @@ export const authProvider: AuthProvider = {
 	},
 
 	logout: async () => {
-		await fetch("/api/session", { method: "DELETE" });
+		await fetch(`${apiBase}/session`, {
+			method: "DELETE",
+			credentials: "include",
+		});
 	},
 
 	checkAuth: async () => {
-		const response = await fetch("/api/session");
+		const response = await fetch(`${apiBase}/session`, {
+			credentials: "include",
+		});
 
 		if (!response.ok) {
 			throw unauthorised();

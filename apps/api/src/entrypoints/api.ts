@@ -11,6 +11,14 @@ import {
 export async function createApiApp() {
 	const app = await NestFactory.create(AppModule, { bufferLogs: false });
 
+	const environment = loadApiEnvironment();
+
+	// The admin app is served from its own origin, so it needs credentialed CORS.
+	// Without an explicit origin nothing cross-origin is allowed at all.
+	if (environment.adminOrigin !== undefined) {
+		app.enableCors({ origin: environment.adminOrigin, credentials: true });
+	}
+
 	app.useGlobalFilters(new DomainExceptionFilter());
 	app.enableShutdownHooks();
 	mountSwagger(app);

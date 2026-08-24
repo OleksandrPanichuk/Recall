@@ -12,7 +12,7 @@
 		"typescript": "^7.0.2"
 	},
 	"scripts": {
-		"build": "bun run --filter '@recall/api' build",
+		"build": "bun run --filter '@recall/api' build && bun run --filter '@recall/admin' build",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"format": "biome format --write .",
@@ -30,7 +30,7 @@
 		"status": "bun run ./apps/api/src/entrypoints/telegram.ts --status",
 		"mcp": "bun run ./apps/api/src/entrypoints/mcp.ts",
 		"mcp:http": "bun run ./apps/api/src/entrypoints/mcp-http.ts",
-		"admin": "bun run ./apps/api/src/entrypoints/admin.ts",
+		"admin": "bun run --filter '@recall/admin' start",
 		"api": "bun run ./apps/api/src/entrypoints/api.ts",
 		"db:up": "docker compose up -d --wait",
 		"db:down": "docker compose down",

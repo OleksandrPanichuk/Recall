@@ -1,4 +1,4 @@
-export const SERVICE_NAMES = ["bot", "mcp", "admin"] as const;
+export const SERVICE_NAMES = ["api", "bot", "mcp", "admin"] as const;
 
 export type ServiceName = (typeof SERVICE_NAMES)[number];
 
@@ -89,11 +89,29 @@ export function planServices(
 			? undefined
 			: "neither ADMIN_PASSPHRASE nor MCP_OAUTH_PASSPHRASE is set");
 
+	const apiHost = env.API_HOST ?? "127.0.0.1";
+	const apiPort = Number(env.API_PORT ?? 8767);
+
 	return [
-		{ name: "bot", entry: "telegram.ts", skipped: wanted("bot") },
+		{
+			name: "api",
+			entry: "apps/api/src/entrypoints/api.ts",
+			...(wanted("api") === undefined
+				? {
+						host: apiHost,
+						port: apiPort,
+						url: `http://${reachable(apiHost)}:${apiPort}/docs`,
+					}
+				: { skipped: wanted("api") }),
+		},
+		{
+			name: "bot",
+			entry: "apps/api/src/entrypoints/telegram.ts",
+			skipped: wanted("bot"),
+		},
 		{
 			name: "mcp",
-			entry: "mcp-http.ts",
+			entry: "apps/api/src/entrypoints/mcp-http.ts",
 			...(mcpSkipped === undefined
 				? {
 						host: mcpHost,
@@ -104,7 +122,7 @@ export function planServices(
 		},
 		{
 			name: "admin",
-			entry: "admin.ts",
+			entry: "apps/admin/src/server.ts",
 			...(adminSkipped === undefined
 				? {
 						host: adminHost,
