@@ -1,5 +1,4 @@
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type {
 	ApplicationDependencies,
 	Command,

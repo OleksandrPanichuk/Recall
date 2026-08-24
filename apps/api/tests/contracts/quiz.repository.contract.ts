@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import { toFolderId } from "@/domain/folder/folder";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	Difficulty,
@@ -99,6 +100,16 @@ export function describeQuizRepository(
 				expect(stored?.questions).toHaveLength(1);
 				expect(stored?.questions[0]?.prompt).toBe("Why replicate?");
 				expect(stored?.questions[0]?.options).toHaveLength(2);
+			});
+
+			test("treats an id that is not a uuid as missing, not as an error", async () => {
+				const missing = toQuizSetId("does-not-exist");
+
+				expect(await harness.scope.quizzes.findById(missing)).toBeUndefined();
+				expect(await harness.scope.quizzes.versionOf(missing)).toBeUndefined();
+				expect(
+					await harness.scope.quizzes.list({ pageId: toFolderId("nonsense") }),
+				).toEqual([]);
 			});
 
 			test("starts at version 0 and advances on every save", async () => {

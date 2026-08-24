@@ -1,9 +1,9 @@
-import { resolve } from "node:path";
 import { createMcpHttpApp } from "@/adapters/mcp/http/app";
 import { createOAuthProvider } from "@/adapters/mcp/http/oauth/provider";
 import { createOAuthDatabase } from "@/adapters/persistence/sqlite/oauth-database";
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
 import { createApplication } from "@/composition/create-application";
+import { describeDatabaseUrl } from "@/infrastructure/config/database-url";
 import {
 	type Environment,
 	EnvironmentError,
@@ -38,7 +38,7 @@ function main(): void {
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${environment.databaseUrl} host=${http.host} port=${http.port} oauth=${http.oauth === undefined ? "off" : http.oauth.issuer.href}`,
+			`Configuration is valid. database=${describeDatabaseUrl(environment.databaseUrl)} host=${http.host} port=${http.port} oauth=${http.oauth === undefined ? "off" : http.oauth.issuer.href}`,
 		);
 
 		return;
@@ -75,7 +75,7 @@ function main(): void {
 		logger.info("mcp http listening", {
 			host: http.host,
 			port: http.port,
-			databasePath: environment.databaseUrl,
+			database: describeDatabaseUrl(environment.databaseUrl),
 			dnsRebindingProtection: http.allowedHosts.length > 0,
 			oauth: http.oauth !== undefined,
 		});

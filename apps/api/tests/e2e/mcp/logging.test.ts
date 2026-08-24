@@ -2,21 +2,21 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
+	createMemoryApplication,
+	type MemoryApplication,
+} from "@tests/fixtures/application.fixture";
+import {
 	createRecordingLogger,
 	type RecordingLogger,
 } from "@tests/fixtures/logger.fixture";
 import {
-	createMutableClock,
 	createSequentialIdGenerator,
+	sequentialId,
 } from "@tests/fixtures/memory.fixture";
 import { createMcpServer } from "@/adapters/mcp/server";
-import {
-	type Application,
-	createApplication,
-} from "@/composition/create-application";
 import { QuestionType } from "@/domain/quiz-set/question";
 
-let application: Application;
+let application: MemoryApplication;
 let client: Client;
 let logger: RecordingLogger;
 
@@ -29,11 +29,8 @@ const call = (
 
 beforeEach(async () => {
 	logger = createRecordingLogger();
-	application = createApplication({
-		databasePath: ":memory:",
-		clock: createMutableClock(),
+	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("q"),
-		logger,
 	});
 
 	const server = createMcpServer(application, { logger });
@@ -50,7 +47,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
 	await client.close();
-	application.close();
+	await application.close();
 });
 
 describe("MCP tool logging (§6.2)", () => {
@@ -67,7 +64,7 @@ describe("MCP tool logging (§6.2)", () => {
 	test("records the set and the batch size of an import", async () => {
 		await call("quiz_create_set", { title: "Bun", language: "uk" });
 		await call("quiz_add_questions", {
-			quizSetId: "q-1",
+			quizSetId: sequentialId("q", 1),
 			questions: [
 				{
 					type: QuestionType.SingleChoice,
@@ -84,7 +81,7 @@ describe("MCP tool logging (§6.2)", () => {
 
 		expect(logger.of("mcp tool").at(-1)).toMatchObject({
 			tool: "quiz_add_questions",
-			quizSetId: "q-1",
+			quizSetId: sequentialId("q", 1),
 			questionCount: 1,
 			outcome: "ok",
 		});

@@ -75,7 +75,8 @@ async function playAttempt(
 ): Promise<void> {
 	await start.execute({ quizSetId, telegramUserId });
 
-	const questions = context.quizSets.findById(quizSetId)?.questions ?? [];
+	const questions =
+		(await context.scope.quizzes.findById(quizSetId))?.questions ?? [];
 
 	for (const [index, question] of questions.entries()) {
 		const option = question.options.find(

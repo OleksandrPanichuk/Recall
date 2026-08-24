@@ -1,4 +1,10 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
+import { join } from "node:path";
+import { DEFAULT_POSTGRES_URL } from "../../fixtures/postgres";
+import {
+	makeTempDirectory,
+	removeTempDirectory,
+} from "../../fixtures/temp-dir";
 
 const entrypoint = Bun.fileURLToPath(
 	new URL("../../../src/entrypoints/mcp-http.ts", import.meta.url),
@@ -9,6 +15,7 @@ const PORT = 8799;
 const URL_MCP = `http://127.0.0.1:${PORT}/mcp`;
 
 let child: ReturnType<typeof Bun.spawn> | undefined;
+let directory: string | undefined;
 
 const rpc = (method: string): string =>
 	JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: {} });
@@ -25,11 +32,13 @@ const ask = (token?: string): Promise<Response> =>
 	});
 
 beforeEach(async () => {
+	directory = makeTempDirectory("recall-mcp-serve-");
 	child = Bun.spawn([process.execPath, "--env-file=/dev/null", entrypoint], {
 		env: {
 			TELEGRAM_BOT_KEY: "123456789:AA-serve-test",
 			ALLOWED_TELEGRAM_USER_ID: "987654321",
-			DATABASE_PATH: ":memory:",
+			DATABASE_URL: DEFAULT_POSTGRES_URL,
+			OAUTH_DATABASE_PATH: join(directory, "oauth.sqlite"),
 			APP_TIMEZONE: "Europe/Kyiv",
 			MCP_HTTP_TOKEN: TOKEN,
 			MCP_HTTP_PORT: String(PORT),
@@ -53,6 +62,10 @@ beforeEach(async () => {
 
 afterEach(() => {
 	child?.kill();
+
+	if (directory !== undefined) {
+		removeTempDirectory(directory);
+	}
 });
 
 test("serves the tools over real http, but only with the token", async () => {

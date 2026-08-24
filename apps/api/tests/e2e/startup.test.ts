@@ -10,7 +10,7 @@ const botKey = "123456789:AA-startup-test-token";
 const validEnvironment = {
 	TELEGRAM_BOT_KEY: botKey,
 	ALLOWED_TELEGRAM_USER_ID: "987654321",
-	DATABASE_PATH: "./data/startup-test.sqlite",
+	DATABASE_URL: "postgres://recall:recall@127.0.0.1:55432/recall",
 	APP_TIMEZONE: "Europe/Kyiv",
 };
 
@@ -43,6 +43,7 @@ describe("telegram entrypoint startup", () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain("Configuration is valid");
 		expect(stdout).not.toContain(botKey);
+		expect(stdout).not.toContain("recall:recall");
 	});
 
 	test("refuses to start on an invalid environment", async () => {
@@ -63,7 +64,7 @@ describe("telegram entrypoint startup", () => {
 		expect(exitCode).toBe(1);
 		expect(stderr).toContain("TELEGRAM_BOT_KEY");
 		expect(stderr).toContain("ALLOWED_TELEGRAM_USER_ID");
-		expect(stderr).toContain("DATABASE_PATH");
+		expect(stderr).toContain("DATABASE_URL");
 		expect(stderr).toContain("APP_TIMEZONE");
 	});
 });

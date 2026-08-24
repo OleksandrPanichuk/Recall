@@ -42,18 +42,20 @@ afterEach(() => {
 	context.close();
 });
 
-const publish = (id: string, title = id): void => {
+const publish = async (id: string, title = id): Promise<void> => {
 	const draft = aQuizSet({
 		id,
 		title,
 		questions: [aQuestion({ id: `${id}-q` })],
 	});
 
-	context.quizSets.save({
-		...draft,
-		status: QuizSetStatus.Published,
-		publishedAt: context.clock.now(),
-	});
+	await context.unitOfWork.run(({ quizzes }) =>
+		quizzes.save({
+			...draft,
+			status: QuizSetStatus.Published,
+			publishedAt: context.clock.now(),
+		}),
+	);
 };
 
 const takeAndFinish = async (id: string): Promise<void> => {
@@ -79,7 +81,7 @@ const abandon = async (id: string): Promise<void> => {
 
 describe("finishing an attempt schedules a repetition", () => {
 	test("the set comes back the next day", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await takeAndFinish("set-1");
 
 		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
@@ -93,7 +95,7 @@ describe("finishing an attempt schedules a repetition", () => {
 	});
 
 	test("taking it again pushes it three days out", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await takeAndFinish("set-1");
 		context.clock.advance(day);
 		await takeAndFinish("set-1");
@@ -106,7 +108,7 @@ describe("finishing an attempt schedules a repetition", () => {
 	});
 
 	test("a missed repetition does not shorten the next one", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await takeAndFinish("set-1");
 
 		context.clock.advance(30 * day);
@@ -120,8 +122,8 @@ describe("finishing an attempt schedules a repetition", () => {
 	});
 
 	test("the most overdue set comes first", async () => {
-		publish("old", "Old");
-		publish("new", "New");
+		await publish("old", "Old");
+		await publish("new", "New");
 		await takeAndFinish("old");
 		context.clock.advance(10 * day);
 		await takeAndFinish("new");
@@ -135,7 +137,7 @@ describe("finishing an attempt schedules a repetition", () => {
 	});
 
 	test("reports how many days overdue", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await takeAndFinish("set-1");
 		context.clock.advance(6 * day);
 
@@ -145,7 +147,7 @@ describe("finishing an attempt schedules a repetition", () => {
 	});
 
 	test("retires a set after the configured number of repetitions", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await updateSettings.execute({
 			quizSetId: toQuizSetId("set-1"),
 			repetition: { ...defaultRepetitionSettings(), maxRepetitions: 2 },
@@ -169,7 +171,7 @@ describe("finishing an attempt schedules a repetition", () => {
 
 describe("attempts that answer nothing", () => {
 	test("do not schedule a repetition", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await abandon("set-1");
 
 		context.clock.advance(365 * day);
@@ -178,7 +180,7 @@ describe("attempts that answer nothing", () => {
 	});
 
 	test("do not advance a schedule that already exists", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await takeAndFinish("set-1");
 		context.clock.advance(day);
 		await abandon("set-1");
@@ -192,29 +194,35 @@ describe("attempts that answer nothing", () => {
 
 describe("sets that cannot be taken", () => {
 	test("an archived set is not offered", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await takeAndFinish("set-1");
 		context.clock.advance(2 * day);
 
 		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
 
-		const stored = context.quizSets.findById(toQuizSetId("set-1"));
+		const stored = await context.scope.quizzes.findById(toQuizSetId("set-1"));
 
-		context.quizSets.save({
-			...(stored as NonNullable<typeof stored>),
-			status: QuizSetStatus.Archived,
-			archivedAt: context.clock.now(),
-		});
+		await context.unitOfWork.run(({ quizzes }) =>
+			quizzes.save({
+				...(stored as NonNullable<typeof stored>),
+				status: QuizSetStatus.Archived,
+				archivedAt: context.clock.now(),
+			}),
+		);
 
 		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
 	});
 });
 
 describe("settings resolution", () => {
-	test("falls back to the built-in defaults", () => {
+	test("falls back to the built-in defaults", async () => {
 		expect(
-			resolveRepetitionSettings(context.repetition, toQuizSetId("set-1"))
-				.maxIntervalDays,
+			(
+				await resolveRepetitionSettings(
+					context.scope.reviews,
+					toQuizSetId("set-1"),
+				)
+			).maxIntervalDays,
 		).toBe(defaultRepetitionSettings().maxIntervalDays);
 	});
 
@@ -224,13 +232,17 @@ describe("settings resolution", () => {
 		});
 
 		expect(
-			resolveRepetitionSettings(context.repetition, toQuizSetId("set-1"))
-				.maxIntervalDays,
+			(
+				await resolveRepetitionSettings(
+					context.scope.reviews,
+					toQuizSetId("set-1"),
+				)
+			).maxIntervalDays,
 		).toBe(7);
 	});
 
-	test("refuses settings for a set that does not exist", () => {
-		expect(
+	test("refuses settings for a set that does not exist", async () => {
+		await expect(
 			updateSettings.execute({
 				quizSetId: toQuizSetId("ghost"),
 				repetition: defaultRepetitionSettings(),
@@ -239,7 +251,7 @@ describe("settings resolution", () => {
 	});
 
 	test("a per-set setting beats the global one", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await updateSettings.execute({
 			repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 7 },
 		});
@@ -249,13 +261,17 @@ describe("settings resolution", () => {
 		});
 
 		expect(
-			resolveRepetitionSettings(context.repetition, toQuizSetId("set-1"))
-				.maxIntervalDays,
+			(
+				await resolveRepetitionSettings(
+					context.scope.reviews,
+					toQuizSetId("set-1"),
+				)
+			).maxIntervalDays,
 		).toBe(14);
 	});
 
 	test("a per-set ceiling pins the interval", async () => {
-		publish("set-1");
+		await publish("set-1");
 		await updateSettings.execute({
 			quizSetId: toQuizSetId("set-1"),
 			repetition: { ...defaultRepetitionSettings(), maxIntervalDays: 1 },

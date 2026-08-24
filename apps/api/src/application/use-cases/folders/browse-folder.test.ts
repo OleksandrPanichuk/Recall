@@ -28,24 +28,10 @@ let moveQuizSet: MoveQuizSetUseCase;
 beforeEach(() => {
 	context = createMemoryContext();
 
-	const dependencies = {
-		folders: context.folders,
-		clock: context.clock,
-		idGenerator: context.idGenerator,
-		transaction: context.transaction,
-	};
-
-	createFolder = new CreateFolderUseCase(dependencies);
-	deleteFolder = new DeleteFolderUseCase(dependencies);
-	browseFolder = new BrowseFolderUseCase({
-		folders: context.folders,
-		quizSets: context.quizSets,
-	});
-	moveQuizSet = new MoveQuizSetUseCase({
-		quizSets: context.quizSets,
-		folders: context.folders,
-		clock: context.clock,
-	});
+	createFolder = new CreateFolderUseCase(context);
+	deleteFolder = new DeleteFolderUseCase(context);
+	browseFolder = new BrowseFolderUseCase(context);
+	moveQuizSet = new MoveQuizSetUseCase(context);
 });
 
 afterEach(() => {
@@ -55,10 +41,10 @@ afterEach(() => {
 const create = async (name: string, parentId?: FolderId): Promise<FolderId> =>
 	(await createFolder.execute({ name, parentId })).folderId;
 
-const store = (
+const store = async (
 	id: string,
 	status: QuizSetStatus = QuizSetStatus.Published,
-): QuizSet => {
+): Promise<QuizSet> => {
 	const draft = aQuizSet({ id, questions: [aQuestion({ id: `${id}-q` })] });
 	const at = context.clock.now();
 	const quizSet =
@@ -68,13 +54,13 @@ const store = (
 				? archiveQuizSet(draft, at)
 				: draft;
 
-	context.quizSets.save(quizSet);
+	await context.unitOfWork.run(({ quizzes }) => quizzes.save(quizSet));
 
 	return quizSet;
 };
 
 const fileInto = async (id: string, folderId: FolderId): Promise<void> => {
-	const quizSet = store(id);
+	const quizSet = await store(id);
 
 	await moveQuizSet.execute({ quizSetId: quizSet.id, folderId });
 };
@@ -89,17 +75,17 @@ describe("list filtering", () => {
 		await fileInto("set-english", english);
 		await fileInto("set-programming", programming);
 
-		expect(titles(context.quizSets.list({ folderId: english }))).toEqual([
-			"set-english",
-		]);
+		expect(
+			titles(await context.scope.quizzes.list({ pageId: english })),
+		).toEqual(["set-english"]);
 	});
 
 	test("returns unfiled sets when asked for null", async () => {
 		const english = await create("English");
 		await fileInto("set-english", english);
-		store("set-loose");
+		await store("set-loose");
 
-		expect(titles(context.quizSets.list({ folderId: null }))).toEqual([
+		expect(titles(await context.scope.quizzes.list({ pageId: null }))).toEqual([
 			"set-loose",
 		]);
 	});
@@ -107,9 +93,9 @@ describe("list filtering", () => {
 	test("returns every set when no folder is named", async () => {
 		const english = await create("English");
 		await fileInto("set-english", english);
-		store("set-loose");
+		await store("set-loose");
 
-		expect(context.quizSets.list()).toHaveLength(2);
+		expect(await context.scope.quizzes.list()).toHaveLength(2);
 	});
 });
 
@@ -117,7 +103,7 @@ describe("BrowseFolderUseCase at the root", () => {
 	test("returns root folders, unfiled sets and an empty breadcrumb", async () => {
 		await create("English");
 		await create("Programming");
-		store("set-loose");
+		await store("set-loose");
 
 		const view = await browseFolder.execute({ folderId: undefined });
 
@@ -143,8 +129,8 @@ describe("BrowseFolderUseCase at the root", () => {
 	test("counts only published sets on a child", async () => {
 		const english = await create("English");
 		await fileInto("set-published", english);
-		const draft = store("set-draft", QuizSetStatus.Draft);
-		const archived = store("set-archived", QuizSetStatus.Archived);
+		const draft = await store("set-draft", QuizSetStatus.Draft);
+		const archived = await store("set-archived", QuizSetStatus.Archived);
 		await moveQuizSet.execute({ quizSetId: draft.id, folderId: english });
 		await moveQuizSet.execute({ quizSetId: archived.id, folderId: english });
 
@@ -229,8 +215,8 @@ describe("BrowseFolderUseCase inside a folder", () => {
 
 	test("hides drafts and archived sets", async () => {
 		const english = await create("English");
-		const draft = store("set-draft", QuizSetStatus.Draft);
-		const archived = store("set-archived", QuizSetStatus.Archived);
+		const draft = await store("set-draft", QuizSetStatus.Draft);
+		const archived = await store("set-archived", QuizSetStatus.Archived);
 		await moveQuizSet.execute({ quizSetId: draft.id, folderId: english });
 		await moveQuizSet.execute({ quizSetId: archived.id, folderId: english });
 
@@ -258,7 +244,7 @@ describe("DeleteFolderUseCase with sets", () => {
 
 	test("refuses a folder that holds only a draft", async () => {
 		const english = await create("English");
-		const draft = store("set-draft", QuizSetStatus.Draft);
+		const draft = await store("set-draft", QuizSetStatus.Draft);
 		await moveQuizSet.execute({ quizSetId: draft.id, folderId: english });
 
 		expect(deleteFolder.execute({ folderId: english })).rejects.toBeInstanceOf(

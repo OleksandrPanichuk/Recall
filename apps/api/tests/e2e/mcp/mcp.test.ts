@@ -2,17 +2,17 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
-	createMutableClock,
+	createMemoryApplication,
+	type MemoryApplication,
+} from "@tests/fixtures/application.fixture";
+import {
 	createSequentialIdGenerator,
+	sequentialId,
 } from "@tests/fixtures/memory.fixture";
 import { createMcpServer, MCP_SERVER_NAME } from "@/adapters/mcp/server";
-import {
-	type Application,
-	createApplication,
-} from "@/composition/create-application";
 import { QuestionType } from "@/domain/quiz-set/question";
 
-let application: Application;
+let application: MemoryApplication;
 let client: Client;
 
 const aQuestion = (
@@ -60,9 +60,7 @@ const newDraft = async (title = "Bun persistence"): Promise<string> => {
 };
 
 beforeEach(async () => {
-	application = createApplication({
-		databasePath: ":memory:",
-		clock: createMutableClock(),
+	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("q"),
 	});
 
@@ -80,7 +78,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
 	await client.close();
-	application.close();
+	await application.close();
 });
 
 describe("MCP server (§4.1)", () => {
@@ -131,7 +129,7 @@ describe("write tools (§4.2)", () => {
 		});
 
 		expect(result.isError).toBe(false);
-		expect(String(result.structured.quizSetId)).toBe("q-1");
+		expect(String(result.structured.quizSetId)).toBe(sequentialId("q", 1));
 		expect(result.text).toContain("Created draft quiz set");
 	});
 

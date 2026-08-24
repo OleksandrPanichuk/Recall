@@ -44,7 +44,7 @@ describe("AddQuestionsUseCase", () => {
 			quizSetId,
 			questions: [aQuestionInput(), anotherQuestionInput()],
 		});
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
 		expect(result.alreadyPresent).toBe(false);
 		expect(result.addedQuestionIds).toHaveLength(2);
@@ -64,21 +64,23 @@ describe("AddQuestionsUseCase", () => {
 		await add.execute({ quizSetId, questions: [anotherQuestionInput()] });
 
 		expect(
-			context.quizSets.findById(quizSetId)?.questions.map((q) => q.position),
+			(await context.scope.quizzes.findById(quizSetId))?.questions.map(
+				(q) => q.position,
+			),
 		).toEqual([0, 1]);
 	});
 
 	test("replaying an identical batch is a no-op", async () => {
 		const quizSetId = await newDraft();
 		await add.execute({ quizSetId, questions: [aQuestionInput()] });
-		const before = context.quizSets.findById(quizSetId);
+		const before = await context.scope.quizzes.findById(quizSetId);
 		context.clock.advance(60_000);
 
 		const result = await add.execute({
 			quizSetId,
 			questions: [aQuestionInput()],
 		});
-		const after = context.quizSets.findById(quizSetId);
+		const after = await context.scope.quizzes.findById(quizSetId);
 
 		expect(result).toEqual({ addedQuestionIds: [], alreadyPresent: true });
 		expect(after?.questions).toHaveLength(1);
@@ -88,7 +90,7 @@ describe("AddQuestionsUseCase", () => {
 	test("a partially overlapping batch is a conflict and changes nothing", async () => {
 		const quizSetId = await newDraft();
 		await add.execute({ quizSetId, questions: [aQuestionInput()] });
-		const before = context.quizSets.findById(quizSetId);
+		const before = await context.scope.quizzes.findById(quizSetId);
 		context.clock.advance(60_000);
 
 		await expect(
@@ -98,7 +100,7 @@ describe("AddQuestionsUseCase", () => {
 			}),
 		).rejects.toThrow(DuplicateQuestionError);
 
-		const after = context.quizSets.findById(quizSetId);
+		const after = await context.scope.quizzes.findById(quizSetId);
 
 		expect(after?.questions).toHaveLength(1);
 		expect(after?.updatedAt).toEqual(before?.updatedAt as Date);
@@ -150,7 +152,9 @@ describe("AddQuestionsUseCase", () => {
 		await expect(
 			add.execute({ quizSetId, questions: [question] }),
 		).rejects.toThrow(QuestionValidationError);
-		expect(context.quizSets.findById(quizSetId)?.questions).toHaveLength(0);
+		expect(
+			(await context.scope.quizzes.findById(quizSetId))?.questions,
+		).toHaveLength(0);
 	});
 
 	test("rejects an unknown set", async () => {
@@ -167,7 +171,7 @@ describe("AddQuestionsUseCase", () => {
 
 		await add.execute({ quizSetId, questions: [anotherQuestionInput()] });
 
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
 		expect(stored?.questions.map((question) => question.position)).toEqual([
 			0, 1,
@@ -198,6 +202,8 @@ describe("AddQuestionsUseCase", () => {
 		await expect(add.execute({ quizSetId, questions })).rejects.toThrow(
 			QuestionBatchTooLargeError,
 		);
-		expect(context.quizSets.findById(quizSetId)?.questions).toHaveLength(0);
+		expect(
+			(await context.scope.quizzes.findById(quizSetId))?.questions,
+		).toHaveLength(0);
 	});
 });

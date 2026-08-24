@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { countRows } from "@tests/fixtures/oauth-database";
+import {
+	attemptCount,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
@@ -8,6 +10,7 @@ import type { AddQuestionsUseCase } from "../quiz-sets/add-questions";
 import type { ArchiveQuizSetUseCase } from "../quiz-sets/archive-quiz-set";
 import type { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { ownerScope, quizScope } from "../settings/resolve-quiz-settings";
 import {
 	type AttemptsHarness,
 	aQuestionInput,
@@ -58,11 +61,11 @@ describe("StartQuizAttemptUseCase", () => {
 
 		expect(result.resumed).toBe(false);
 		expect(String(result.currentQuestionId)).toBe(
-			String(questionIdOf(quizSetId, 0)),
+			String(await questionIdOf(quizSetId, 0)),
 		);
-		expect(context.attempts.findById(result.attemptId)?.status).toBe(
-			QuizAttemptStatus.Active,
-		);
+		expect(
+			(await context.scope.attempts.findById(result.attemptId))?.status,
+		).toBe(QuizAttemptStatus.Active);
 	});
 
 	test("starting the same set again resumes instead of duplicating", async () => {
@@ -73,7 +76,7 @@ describe("StartQuizAttemptUseCase", () => {
 
 		expect(second.resumed).toBe(true);
 		expect(String(second.attemptId)).toBe(String(first.attemptId));
-		expect(countRows(context.database, "quiz_attempts")).toBe(1);
+		expect(attemptCount(context.store)).toBe(1);
 	});
 
 	test("starting the same set resumes a paused attempt", async () => {
@@ -86,9 +89,9 @@ describe("StartQuizAttemptUseCase", () => {
 		const result = await start.execute({ quizSetId, telegramUserId: USER });
 
 		expect(result.resumed).toBe(true);
-		expect(context.attempts.findById(result.attemptId)?.status).toBe(
-			QuizAttemptStatus.Active,
-		);
+		expect(
+			(await context.scope.attempts.findById(result.attemptId))?.status,
+		).toBe(QuizAttemptStatus.Active);
 	});
 
 	test("refuses to start a different set while one is unfinished", async () => {
@@ -151,23 +154,27 @@ describe("StartQuizAttemptUseCase", () => {
 
 		await start.execute({ quizSetId, telegramUserId: 7 });
 
-		expect(countRows(context.database, "quiz_attempts")).toBe(2);
+		expect(attemptCount(context.store)).toBe(2);
 	});
 });
 
 describe("shuffled question order", () => {
 	const PROMPTS = ["One", "Two", "Three", "Four", "Five", "Six", "Seven"];
 
-	const enableShuffle = (quizSetId: QuizSetId): void => {
-		context.repetition.saveSettings(quizSetId, {
-			...defaultQuizSettings(),
-			shuffleQuestions: true,
-		});
-	};
+	const enableShuffle = (quizSetId: QuizSetId): Promise<void> =>
+		context.unitOfWork.run(({ reviews }) =>
+			reviews.saveSettings(quizScope(quizSetId), {
+				...defaultQuizSettings(),
+				shuffleQuestions: true,
+			}),
+		);
 
-	const plannedPrompts = (quizSetId: QuizSetId): readonly string[] => {
-		const questions = context.quizSets.findById(quizSetId)?.questions ?? [];
-		const attempt = context.attempts.findActiveByUser(USER);
+	const plannedPrompts = async (
+		quizSetId: QuizSetId,
+	): Promise<readonly string[]> => {
+		const questions =
+			(await context.scope.quizzes.findById(quizSetId))?.questions ?? [];
+		const attempt = await context.scope.attempts.findActiveFor(USER);
 
 		return (attempt?.questionIds ?? []).map(
 			(questionId) =>
@@ -181,27 +188,27 @@ describe("shuffled question order", () => {
 
 		await start.execute({ quizSetId, telegramUserId: USER });
 
-		expect(plannedPrompts(quizSetId)).toEqual(PROMPTS);
+		expect(await plannedPrompts(quizSetId)).toEqual(PROMPTS);
 	});
 
 	test("plans a different order once the toggle is on", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
-		enableShuffle(quizSetId);
+		await enableShuffle(quizSetId);
 
 		await start.execute({ quizSetId, telegramUserId: USER });
 
-		expect(plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
-		expect([...plannedPrompts(quizSetId)].toSorted()).toEqual(
+		expect(await plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
+		expect([...(await plannedPrompts(quizSetId))].toSorted()).toEqual(
 			[...PROMPTS].toSorted(),
 		);
 	});
 
 	test("asks the shuffled question first, not the authored one", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
-		enableShuffle(quizSetId);
+		await enableShuffle(quizSetId);
 
 		const result = await start.execute({ quizSetId, telegramUserId: USER });
-		const attempt = context.attempts.findActiveByUser(USER);
+		const attempt = await context.scope.attempts.findActiveFor(USER);
 
 		expect(String(result.currentQuestionId)).toBe(
 			String(attempt?.questionIds[0]),
@@ -210,50 +217,55 @@ describe("shuffled question order", () => {
 
 	test("keeps the planned order when the attempt is resumed", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
-		enableShuffle(quizSetId);
+		await enableShuffle(quizSetId);
 		await start.execute({ quizSetId, telegramUserId: USER });
 
-		const planned = plannedPrompts(quizSetId);
+		const planned = await plannedPrompts(quizSetId);
 		await pause.execute({ telegramUserId: USER });
 		await start.execute({ quizSetId, telegramUserId: USER });
 
-		expect(plannedPrompts(quizSetId)).toEqual(planned);
+		expect(await plannedPrompts(quizSetId)).toEqual(planned);
 	});
 
 	test("follows the global toggle when the set has no settings of its own", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
-		context.repetition.saveDefaults({
-			...defaultQuizSettings(),
-			shuffleQuestions: true,
-		});
+		await context.unitOfWork.run(({ reviews }) =>
+			reviews.saveSettings(ownerScope, {
+				...defaultQuizSettings(),
+				shuffleQuestions: true,
+			}),
+		);
 
 		await start.execute({ quizSetId, telegramUserId: USER });
 
-		expect(plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
+		expect(await plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
 	});
 
 	test("shuffles a repetition run too, without letting undue questions in", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
-		enableShuffle(quizSetId);
+		await enableShuffle(quizSetId);
 
-		const due = PROMPTS.slice(0, 6).map((_, index) =>
-			questionIdOf(quizSetId, index),
+		const due = await Promise.all(
+			PROMPTS.slice(0, 6).map((_, index) => questionIdOf(quizSetId, index)),
 		);
-		context.repetition.saveSchedules(
-			due.map((questionId) => ({
-				questionId,
-				telegramUserId: USER,
-				repetitionCount: 1,
-				lapses: 0,
-				lastCompletedAt: new Date("2026-07-01T09:00:00.000Z"),
-				dueAt: new Date("2026-07-02T09:00:00.000Z"),
-			})),
+
+		await context.unitOfWork.run(({ reviews }) =>
+			reviews.saveSchedules(
+				due.map((questionId) => ({
+					questionId,
+					telegramUserId: USER,
+					repetitionCount: 1,
+					lapses: 0,
+					lastCompletedAt: new Date("2026-07-01T09:00:00.000Z"),
+					dueAt: new Date("2026-07-02T09:00:00.000Z"),
+				})),
+			),
 		);
 
 		await start.execute({ quizSetId, telegramUserId: USER, onlyDue: true });
 
-		expect(plannedPrompts(quizSetId)).not.toEqual(PROMPTS.slice(0, 6));
-		expect([...plannedPrompts(quizSetId)].toSorted()).toEqual(
+		expect(await plannedPrompts(quizSetId)).not.toEqual(PROMPTS.slice(0, 6));
+		expect([...(await plannedPrompts(quizSetId))].toSorted()).toEqual(
 			[...PROMPTS.slice(0, 6)].toSorted(),
 		);
 	});

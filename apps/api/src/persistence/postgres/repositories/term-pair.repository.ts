@@ -10,6 +10,7 @@ import {
 } from "@/domain/vocabulary/vocabulary-item";
 import { termPairs } from "../schema";
 import type { Executor } from "../unit-of-work";
+import { isUuid } from "../uuid";
 
 type TermPairRow = typeof termPairs.$inferSelect;
 
@@ -50,6 +51,10 @@ export function createTermPairPostgresRepository(
 		},
 
 		async findById(id: VocabularyItemId): Promise<VocabularyItem | undefined> {
+			if (!isUuid(String(id))) {
+				return undefined;
+			}
+
 			const [row] = await executor
 				.select()
 				.from(termPairs)
@@ -60,6 +65,10 @@ export function createTermPairPostgresRepository(
 		},
 
 		async listForQuiz(quizId: QuizSetId): Promise<readonly VocabularyItem[]> {
+			if (!isUuid(String(quizId))) {
+				return [];
+			}
+
 			const rows = await executor
 				.select()
 				.from(termPairs)

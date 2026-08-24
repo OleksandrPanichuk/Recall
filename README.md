@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** Stable Personal Release. Phases 1-6 виконані: domain models, SQLite persistence, application use cases, Telegram-бот, MCP server, adaptive practice і operations (graceful shutdown, privacy-safe logs, backup/restore, health command).
+> **Статус:** Stable Personal Release, у процесі rewrite-у на v2. Phases 1-6 виконані: domain models, persistence, application use cases, Telegram-бот, MCP server, adaptive practice і operations (graceful shutdown, privacy-safe logs, health command). Quiz data переїхала зі `bun:sqlite` на Postgres — див. [REWRITE_PLAN.md](REWRITE_PLAN.md).
 
 ## Як має працювати продукт
 
@@ -17,7 +17,7 @@
           local MCP server
                   |
                   v
-             SQLite database
+            Postgres database
                   ^
                   |
             Telegram-бот
@@ -52,15 +52,18 @@
 - [Bun](https://bun.com) — runtime, package manager, build і test runner;
 - TypeScript;
 - [Telegraf](https://telegraf.js.org) — запланований Telegram Bot framework;
-- `bun:sqlite` + [Drizzle ORM](https://orm.drizzle.team) — локальна database, schema,
-  versioned migrations і всі repository-запити;
+- Postgres 17 + [Drizzle ORM](https://orm.drizzle.team) над driver-ом `postgres` —
+  quiz data, schema, versioned migrations і всі repository-запити;
+- `bun:sqlite` — залишився тільки під MCP OAuth client credentials
+  (`OAUTH_DATABASE_PATH`); phase 7 замінює його на Better Auth;
 - Model Context Protocol — запланована інтеграція з Claude Desktop/Claude Code.
 
 ## Поточна локальна foundation
 
 ### Передумови
 
-- Bun.
+- Bun;
+- Docker — для локального Postgres (`bun run db:up`).
 
 ### Налаштування
 
@@ -80,52 +83,65 @@ cp .env.example .env
 | --- | --- |
 | `TELEGRAM_BOT_KEY` | Токен бота з @BotFather |
 | `ALLOWED_TELEGRAM_USER_ID` | Єдиний Telegram user id, якому дозволено доступ |
-| `DATABASE_PATH` | Шлях до локального `bun:sqlite` файлу |
+| `DATABASE_URL` | Postgres connection string для quiz data |
 | `APP_TIMEZONE` | IANA time zone для дат у звітах |
+| `OAUTH_DATABASE_PATH` | SQLite файл із MCP OAuth credentials (default `./data/oauth.sqlite`) |
 
-Усі чотири змінні обов'язкові. `apps/api/src/infrastructure/config/env.ts` валідує їх на
+Перші чотири змінні обов'язкові, `OAUTH_DATABASE_PATH` має default. `apps/api/src/infrastructure/config/env.ts` валідує їх на
 старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
 змінних і причини — секретні значення не логуються, тому токен не потрапляє в
 logs. Водночас це не означає, що приховуються всі значення: startup друкує
-нешкідливі `DATABASE_PATH` і `APP_TIMEZONE`, а migration command друкує
-`DATABASE_PATH`, щоб оператор бачив, з яким файлом працює процес.
+нешкідливий `APP_TIMEZONE`, а `DATABASE_URL` друкується без пароля —
+`postgres://recall@127.0.0.1:55432/recall`, щоб оператор бачив, з якою базою
+працює процес, і щоб credentials не потрапили в logs.
 
-Створити або оновити database за шляхом `DATABASE_PATH`:
-
-```bash
-bun run migrate
-```
-
-Команда друкує шлях перед відкриттям файлу, застосовує pending migrations із
-`apps/api/drizzle/` і виводить список застосованих версій або `database is up to date`.
-Повторний запуск нічого не змінює. Секретні environment variables у вивід не
-потрапляють; не-secret database path друкується навмисно. Перед закриттям
-connection команда **намагається** виконати `PRAGMA wal_checkpoint(TRUNCATE)` і
-повернути journal mode у `delete`, але це best-effort cleanup: за наявності
-іншого connection дані можуть залишитися в `-wal`. Ніколи не вважайте просту
-копію `quiz.sqlite` повним backup. Для консистентного backup є `bun run backup`
-— він робить `VACUUM INTO` у самому процесі, тому працює однаково на macOS,
-Linux і Windows і не потребує жодного зовнішнього бінарника:
+Підняти локальний Postgres 17 у Docker (порт 55432) і застосувати migrations:
 
 ```bash
-bun run backup                        # поруч із базою, з timestamp
-bun run backup ~/backups/quiz.sqlite  # або явний шлях
+bun run db:up       # docker compose up -d --wait
+bun run db:migrate  # drizzle-kit migrate проти DATABASE_URL
 ```
 
-Якщо `sqlite3` CLI усе ж під рукою, те саме робить і він — але на Windows його
-типово немає, тому в скриптах спирайтеся на `bun run backup`:
+`bun run db:down` зупиняє контейнер, `bun run db:reset` ще й витирає volume.
+`bun run up` робить це сам: перед стартом сервісів він перевіряє, що
+`DATABASE_URL` відповідає, і застосовує pending migrations — інакше не
+запускає нічого.
 
-```bash
-sqlite3 "$DATABASE_PATH" ".backup '${DATABASE_PATH}.backup.sqlite'"
-```
-
-Schema описана в `apps/api/src/adapters/persistence/sqlite/schema.ts`. Після її зміни
+Schema описана в `apps/api/src/persistence/postgres/schema.ts`. Після її зміни
 потрібно згенерувати нову migration:
 
 ```bash
 bun run db:generate
 ```
+
+Migration filename генерує drizzle-kit і перейменовує його на кожній
+регенерації, тому ні tests, ні ETL його не хардкодять — вони читають найновіший
+`.sql` із `apps/api/drizzle-postgres/`.
+
+### Перенесення даних із SQLite (v1)
+
+ETL читає старий `bun:sqlite` файл напряму і пише в Postgres ідемпотентно, а
+тоді сам себе перевіряє — table за table, плюс кількість правильних відповідей і
+цілісність foreign keys:
+
+```bash
+cd apps/api
+APPLY_SCHEMA=1 bun run ./scripts/migrate-to-postgres.ts \
+  ../../data/quiz.before-postgres-20260823-170412.sqlite \
+  postgres://recall:recall@127.0.0.1:55432/recall
+```
+
+`APPLY_SCHEMA=1` спершу накладає schema на порожню базу. Без нього ETL очікує,
+що migrations уже застосовані. Ids детерміновані (`uuidFor(kind, legacyId)`),
+тому повторний запуск нічого не дублює. Старий SQLite файл залишається
+read-only escape hatch — не видаляйте його.
+
+### SQLite, що залишився
+
+Нижче — правила для `bun:sqlite` migrations. Після переходу на Postgres вони
+стосуються **тільки** OAuth-файла (`OAUTH_DATABASE_PATH`) і його schema в
+`apps/api/src/adapters/persistence/sqlite/schema.ts`; phase 7 прибирає і це.
 
 > **Важливо:** Drizzle schema builder не вміє виражати `STRICT`, тому в кожному
 > згенерованому `.sql` файлі кожен `CREATE TABLE` доводиться вручну завершувати
@@ -177,8 +193,12 @@ rebuild не проїхав як звичайна migration.
 | Command | Призначення |
 | --- | --- |
 | `bun run dev` | Запустити watch mode для майбутнього Telegram entrypoint |
-| `bun run migrate` | Застосувати pending SQLite migrations до `DATABASE_PATH` |
+| `bun run db:up` | Підняти Postgres 17 у Docker на порту 55432 |
+| `bun run db:down` | Зупинити Postgres |
+| `bun run db:reset` | Зупинити Postgres і витерти volume |
+| `bun run db:migrate` | Застосувати pending Postgres migrations до `DATABASE_URL` |
 | `bun run db:generate` | Згенерувати migration зі змін у Drizzle schema |
+| `bun run etl -- <файл> [url]` | Перенести v1 SQLite файл у Postgres і перевірити результат |
 | `bun run lint` | Перевірити код правилами Biome linter |
 | `bun run lint:fix` | Автоматично виправити safe lint findings |
 | `bun run format:check` | Перевірити форматування без зміни файлів |
@@ -208,7 +228,7 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 Реалізація поділена на послідовні фази:
 
 1. **Repository foundation** — Git baseline, `.gitignore`, environment schema та verification scripts.
-2. **Domain and persistence** — domain models, SQLite schema, migrations та repositories (готово).
+2. **Domain and persistence** — domain models, schema, migrations та repositories (готово; persistence перенесена на Postgres).
 3. **Application services** — authoring, attempts, scoring і statistics (готово).
 4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
 5. **MCP authoring** — локальний server та tools для Claude (готово).
@@ -254,11 +274,14 @@ Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
 
 ```text
 apps/api/
-  drizzle/          міграції SQLite
+  drizzle/          міграції SQLite (залишилися тільки OAuth-таблиці)
+  drizzle-postgres/ міграції Postgres
   drizzle.config.ts
+  drizzle.postgres.config.ts
+  scripts/          migrate-to-postgres.ts — ETL з v1 SQLite
 packages/
   tooling/          спільний tsconfig base
-scripts/            migrate, backup, restore, seed, up
+scripts/            up — supervisor локальних сервісів
 ```
 
 Всередині `apps/api/src` структура не змінилася:
@@ -274,8 +297,8 @@ apps/api/src/
     branded-id.ts
   application/
     use-case.ts    shared Command and UseCase contracts
-    ports/         Clock, IdGenerator and Transaction contracts
-      repositories/ quiz set, quiz attempt and folder repository contracts
+    ports/         Clock, IdGenerator and UnitOfWork contracts
+      repositories/ page, quiz, attempt, review and term pair contracts
     use-cases/
       quiz-sets/    create, update, add questions, publish, archive
       attempts/     start, pause, resume, answer, finish
@@ -283,12 +306,20 @@ apps/api/src/
       folders/      create, rename, move, delete, ensure path, browse
   adapters/
     persistence/
-      sqlite/
+      sqlite/     only the MCP OAuth store is left here
         database.ts connection lifecycle and SQLite pragmas
         migrator.ts guarded Drizzle migration runner
         schema.ts   Drizzle SQLite schema
         sqlite-transaction.ts Transaction port over bun:sqlite
-        repositories/ Drizzle query builders and row mappers
+        repositories/ the OAuth client store
+  persistence/
+    postgres/
+      client.ts    connection pool over the postgres driver
+      schema.ts    Drizzle Postgres schema
+      unit-of-work.ts transactional scope over drizzle
+      etl.ts       the v1 SQLite to Postgres migration and its verification
+      repositories/ Drizzle query builders and row mappers
+    memory/        the same repositories in memory, behind the contract suites
   infrastructure/
     config/
       env.ts       validated startup configuration
@@ -320,19 +351,20 @@ apps/api/src/
     telegram.ts    starts the bot; --check validates configuration and exits
     mcp.ts         stdio MCP server for Claude
 scripts/
-  migrate.ts       migration command
+  up.ts            the supervisor: checks Postgres, migrates, starts services
 apps/api/tests/
   e2e/
     startup.test.ts
   fixtures/        aggregate builders shared by the integration tests
+  contracts/     repository contract suites, run against both engines
   integration/
-    sqlite/        schema, migration and repository integration tests
+    postgres/      schema constraints, transactions, the ETL and the status report
 skills/
   run-reviewed-development/
 .env.example
 DESCRIPTION.md
 ARCHITECTURE.md
-DEVELOPMENT_PLAN.md
+REWRITE_PLAN.md
 WORKFLOW.md
 AGENTS.md
 CLAUDE.md
@@ -359,7 +391,7 @@ bun run mcp
 claude mcp add recall-quiz --scope user \
   --env TELEGRAM_BOT_KEY=... \
   --env ALLOWED_TELEGRAM_USER_ID=... \
-  --env DATABASE_PATH=/absolute/path/to/quiz.sqlite \
+  --env DATABASE_URL=postgres://recall:recall@127.0.0.1:55432/recall \
   --env APP_TIMEZONE=Europe/Kyiv \
   -- bun run /absolute/path/to/repo/apps/api/src/entrypoints/mcp.ts
 ```
@@ -952,30 +984,27 @@ quiz_move_set({ quizSetId: "..." })
 | `bun run start` | запустити зібраного бота |
 | `bun run status` | health-звіт: скільки наборів, спроб і питань |
 | `bun run <entrypoint> --check` | перевірити конфігурацію і вийти (не відкриває database) |
-| `bun run backup [файл]` | консистентний backup через `VACUUM INTO` |
-| `bun run restore <файл>` | відновити з backup |
+| `bun run db:up` / `db:down` | підняти або зупинити локальний Postgres |
 | `bun run mcp:http` | віддалений MCP через HTTP (див. «Віддалений доступ до MCP») |
 
 ### Backup
 
-`bun run backup` використовує `VACUUM INTO` — власний механізм SQLite для
-консистентної копії працюючої database. Результат — один файл без `-wal`
-сайдкара. **Не копіюйте `quiz.sqlite` вручну:** найновіші writes можуть ще
-лежати у WAL.
+Quiz data живе в Postgres, тому backup робить `pg_dump`, а не скрипт у репозиторії:
 
 ```bash
-bun run backup                       # quiz.sqlite.2026-08-05T....backup.sqlite
-bun run backup ~/backups/quiz.sqlite # або явний шлях
+docker exec recall-postgres pg_dump -U recall -d recall -Fc > quiz.dump
+docker exec -i recall-postgres pg_restore -U recall -d recall --clean < quiz.dump
 ```
 
-`bun run restore <файл>` спершу перевіряє, що файл — справжній Recall backup
-(усі таблиці + migration ledger), і лише потім замінює database. Поточний файл
-не перезаписується, а відсувається вбік із timestamp.
+Окремо варто зберігати `OAUTH_DATABASE_PATH` — це звичайний SQLite файл із
+client credentials. Старий `data/quiz.before-postgres-*.sqlite` — read-only
+escape hatch на випадок, якщо в перенесених даних знайдеться проблема.
 
 ### Graceful shutdown
 
-На `SIGINT`/`SIGTERM` бот спершу зупиняє polling і лише потім закриває database
-— інакше сигнал під час відповіді закрив би handle посеред транзакції. Повторний
+На `SIGINT`/`SIGTERM` бот спершу зупиняє polling і лише потім закриває
+connection pool — інакше сигнал під час відповіді розірвав би connection посеред
+транзакції. Повторний
 сигнал не запускає другий teardown, а помилка в одному кроці не блокує решту.
 
 ### Logs
@@ -996,7 +1025,7 @@ MCP server.
 | `could not decode callback data` | застаріла або зіпсована callback payload | `telegramUserId`, `action`, `dataLength` |
 | `mcp tool` | кожен виклик MCP tool | `tool`, `durationMs`, `outcome` плюс `quizSetId`, `questionCount`, `folderPath` |
 | `mcp tool failed` | tool завершився помилкою | ті самі поля плюс `error` |
-| `database ready` | старт процесу | `path`, `migrationCount`, `appliedMigrations` |
+| `database ready` | старт процесу | `driver` |
 | `shutting down`, `shutdown complete` | teardown | `reason`, `tasks` |
 
 Записи описують **що** сталося, а не **зміст**: замість тексту питання — його

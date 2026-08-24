@@ -47,8 +47,8 @@ describe("FinishQuizAttemptUseCase", () => {
 		context.clock.advance(60_000);
 		await answer.execute({
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
 		context.clock.advance(60_000);
 
@@ -56,13 +56,13 @@ describe("FinishQuizAttemptUseCase", () => {
 
 		expect(result.unansweredCount).toBe(1);
 		expect(result.score).toEqual({ correct: 1, total: 2, percentage: 50 });
-		expect(context.attempts.findById(result.attemptId)?.status).toBe(
-			QuizAttemptStatus.Completed,
-		);
-		expect(context.attempts.findActiveByUser(USER)).toBeUndefined();
-		expect(context.attempts.listCompletedBySet(USER, quizSetId)).toHaveLength(
-			1,
-		);
+		expect(
+			(await context.scope.attempts.findById(result.attemptId))?.status,
+		).toBe(QuizAttemptStatus.Completed);
+		expect(await context.scope.attempts.findActiveFor(USER)).toBeUndefined();
+		expect(
+			await context.scope.attempts.listCompletedForQuiz(USER, quizSetId),
+		).toHaveLength(1);
 	});
 
 	test("completes a paused attempt", async () => {
@@ -74,9 +74,9 @@ describe("FinishQuizAttemptUseCase", () => {
 
 		const result = await finish.execute({ telegramUserId: USER });
 
-		expect(context.attempts.findById(result.attemptId)?.status).toBe(
-			QuizAttemptStatus.Completed,
-		);
+		expect(
+			(await context.scope.attempts.findById(result.attemptId))?.status,
+		).toBe(QuizAttemptStatus.Completed);
 	});
 
 	test("a second call has nothing to finish", async () => {

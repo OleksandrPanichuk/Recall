@@ -1,15 +1,14 @@
 import {
-	createMutableClock,
-	createRealisticIdGenerator,
+	createMemoryApplication,
+	type MemoryApplication,
+} from "@tests/fixtures/application.fixture";
+import {
+	createSequentialIdGenerator,
 	type MutableClock,
 } from "@tests/fixtures/memory.fixture";
 import { type Telegraf, Telegram } from "telegraf";
 import { createBot } from "@/adapters/telegram/bot";
 import type { QuestionInput } from "@/application/use-cases/quiz-sets/add-questions";
-import {
-	type Application,
-	createApplication,
-} from "@/composition/create-application";
 import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { silentLogger } from "@/infrastructure/logging/logger";
@@ -34,7 +33,7 @@ export interface BotHarnessOptions {
 
 export interface BotHarness {
 	readonly bot: Telegraf;
-	readonly application: Application;
+	readonly application: MemoryApplication;
 	readonly clock: MutableClock;
 	readonly calls: ApiCall[];
 	send(text: string, userId?: number): Promise<void>;
@@ -43,7 +42,7 @@ export interface BotHarness {
 	lastButtons(): readonly InlineButton[];
 	answeredQueries(): readonly string[];
 	failNext(failure: TelegramFailure): void;
-	close(): void;
+	close(): Promise<void>;
 }
 
 let updateId = 0;
@@ -120,13 +119,10 @@ function patchTelegramTransport(): void {
 }
 
 export function createBotHarness(options: BotHarnessOptions = {}): BotHarness {
-	const clock = createMutableClock();
-	const application = createApplication({
-		databasePath: ":memory:",
-		clock,
-		idGenerator: createRealisticIdGenerator("q"),
-		logger: options.logger,
+	const application = createMemoryApplication({
+		idGenerator: createSequentialIdGenerator("q"),
 	});
+	const clock = application.context.clock;
 	const bot = createBot({
 		token: "test-token",
 		allowedTelegramUserId: ALLOWED_USER,
@@ -222,9 +218,7 @@ export function createBotHarness(options: BotHarnessOptions = {}): BotHarness {
 			calls
 				.filter((call) => call.method === "answerCallbackQuery")
 				.map((call) => String(call.payload.text ?? "")),
-		close: () => {
-			application.close();
-		},
+		close: () => application.close(),
 	};
 }
 

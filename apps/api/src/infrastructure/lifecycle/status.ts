@@ -1,6 +1,7 @@
 import { count, eq, inArray } from "drizzle-orm";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { describeDatabaseUrl } from "@/infrastructure/config/database-url";
 import type { RecallDatabase } from "@/persistence/postgres/client";
 import {
 	attempts,
@@ -76,7 +77,7 @@ export async function readStatus(
 
 export function formatStatus(report: StatusReport): string {
 	return [
-		`database        ${report.databaseUrl}`,
+		`database        ${describeDatabaseUrl(report.databaseUrl)}`,
 		`timezone        ${report.timezone}`,
 		`published sets  ${report.publishedSets}`,
 		`draft sets      ${report.draftSets}`,

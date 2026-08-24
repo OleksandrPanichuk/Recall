@@ -48,8 +48,8 @@ const addOne = async (
 	return itemId;
 };
 
-const cardsOfItem = (quizSetId: QuizSetId, itemId: VocabularyItemId) =>
-	(context.quizSets.findById(quizSetId)?.questions ?? []).filter(
+const cardsOfItem = async (quizSetId: QuizSetId, itemId: VocabularyItemId) =>
+	((await context.scope.quizzes.findById(quizSetId))?.questions ?? []).filter(
 		(question) => question.vocabularyItemId === String(itemId),
 	);
 
@@ -72,13 +72,15 @@ describe("UpdateVocabularyUseCase", () => {
 	test("keeps every question id, so the repetition history survives", async () => {
 		const quizSetId = await newDraft();
 		const itemId = await addOne(quizSetId);
-		const before = cardsOfItem(quizSetId, itemId).map((card) => card.id);
+		const before = (await cardsOfItem(quizSetId, itemId)).map(
+			(card) => card.id,
+		);
 
 		await update.execute({ itemId, translation: ["кіт"] });
 
-		expect(cardsOfItem(quizSetId, itemId).map((card) => card.id)).toEqual(
-			before,
-		);
+		expect(
+			(await cardsOfItem(quizSetId, itemId)).map((card) => card.id),
+		).toEqual(before);
 	});
 
 	test("fixes both directions from a single correction", async () => {
@@ -86,7 +88,7 @@ describe("UpdateVocabularyUseCase", () => {
 		const itemId = await addOne(quizSetId);
 
 		const result = await update.execute({ itemId, translation: ["кіт"] });
-		const cards = cardsOfItem(quizSetId, itemId);
+		const cards = await cardsOfItem(quizSetId, itemId);
 
 		expect(result.rebuiltQuestionCount).toBe(2);
 		expect(cards.map((card) => card.prompt).sort()).toEqual(["cat", "кіт"]);
@@ -102,7 +104,7 @@ describe("UpdateVocabularyUseCase", () => {
 		]);
 
 		const result = await update.execute({ itemId, translation: ["кіт"] });
-		const cards = cardsOfItem(quizSetId, itemId);
+		const cards = await cardsOfItem(quizSetId, itemId);
 
 		expect(result.rebuiltQuestionCount).toBe(1);
 		expect(cards).toHaveLength(1);
@@ -114,7 +116,7 @@ describe("UpdateVocabularyUseCase", () => {
 		const itemId = await addOne(quizSetId);
 
 		await update.execute({ itemId, transcription: "/kæt/" });
-		const stored = context.vocabulary.findById(itemId);
+		const stored = await context.scope.termPairs.findById(itemId);
 
 		expect(stored?.terms).toEqual(["cat"]);
 		expect(stored?.translations).toEqual(["кыт"]);
@@ -133,11 +135,11 @@ describe("UpdateVocabularyUseCase", () => {
 
 		if (other === undefined) throw new Error("nothing was added");
 
-		const untouched = cardsOfItem(quizSetId, other);
+		const untouched = await cardsOfItem(quizSetId, other);
 
 		await update.execute({ itemId, translation: ["кіт"] });
 
-		expect(cardsOfItem(quizSetId, other)).toEqual(untouched);
+		expect(await cardsOfItem(quizSetId, other)).toEqual(untouched);
 	});
 
 	test("corrects a published set, which is the only kind you study", async () => {
@@ -148,32 +150,32 @@ describe("UpdateVocabularyUseCase", () => {
 		await update.execute({ itemId, translation: ["кіт"] });
 
 		expect(
-			cardsOfItem(quizSetId, itemId)
-				.map((card) => card.prompt)
-				.sort(),
+			(await cardsOfItem(quizSetId, itemId)).map((card) => card.prompt).sort(),
 		).toEqual(["cat", "кіт"]);
 	});
 
 	test("the repetition history stays attached to the corrected card", async () => {
 		const quizSetId = await newDraft();
 		const itemId = await addOne(quizSetId);
-		const card = cardsOfItem(quizSetId, itemId)[0];
+		const card = (await cardsOfItem(quizSetId, itemId))[0];
 
 		if (card === undefined) throw new Error("no card was generated");
 
-		context.repetition.saveSchedules([
-			{
-				questionId: card.id,
-				telegramUserId: 42,
-				repetitionCount: 4,
-				lapses: 1,
-				lastCompletedAt: new Date("2026-08-01T10:00:00.000Z"),
-				dueAt: new Date("2026-08-15T10:00:00.000Z"),
-			},
-		]);
+		await context.unitOfWork.run(({ reviews }) =>
+			reviews.saveSchedules([
+				{
+					questionId: card.id,
+					telegramUserId: 42,
+					repetitionCount: 4,
+					lapses: 1,
+					lastCompletedAt: new Date("2026-08-01T10:00:00.000Z"),
+					dueAt: new Date("2026-08-15T10:00:00.000Z"),
+				},
+			]),
+		);
 
 		await update.execute({ itemId, translation: ["кіт"] });
-		const [schedule] = context.repetition.findSchedules([card.id], 42);
+		const [schedule] = await context.scope.reviews.findSchedules([card.id], 42);
 
 		expect(schedule?.repetitionCount).toBe(4);
 		expect(schedule?.lapses).toBe(1);
@@ -195,9 +197,7 @@ describe("UpdateVocabularyUseCase", () => {
 
 		expect(result.rebuiltQuestionCount).toBe(2);
 		expect(
-			cardsOfItem(quizSetId, itemId)
-				.map((card) => card.prompt)
-				.sort(),
+			(await cardsOfItem(quizSetId, itemId)).map((card) => card.prompt).sort(),
 		).toEqual(["cat", "kot"]);
 	});
 
@@ -223,7 +223,9 @@ describe("UpdateVocabularyUseCase", () => {
 			update.execute({ itemId, translation: ["кіт"] }),
 		).rejects.toThrow(DuplicateQuestionError);
 
-		expect(context.vocabulary.findById(itemId)?.translations).toEqual(["кыт"]);
+		expect(
+			(await context.scope.termPairs.findById(itemId))?.translations,
+		).toEqual(["кыт"]);
 	});
 
 	test("drops the card a correction leaves without a word to ask", async () => {
@@ -237,7 +239,7 @@ describe("UpdateVocabularyUseCase", () => {
 		});
 
 		const result = await update.execute({ itemId, translation: ["cat"] });
-		const cards = cardsOfItem(quizSetId, itemId);
+		const cards = await cardsOfItem(quizSetId, itemId);
 
 		expect(result.removedQuestionCount).toBe(1);
 		expect(cards).toHaveLength(1);
@@ -266,7 +268,9 @@ describe("UpdateVocabularyUseCase", () => {
 			update.execute({ itemId, translation: ["кіт"] }),
 		).rejects.toThrow(VocabularyItemValidationError);
 
-		expect(context.vocabulary.findById(itemId)?.translations).toEqual(["кыт"]);
+		expect(
+			(await context.scope.termPairs.findById(itemId))?.translations,
+		).toEqual(["кыт"]);
 	});
 
 	test("rejects an item that does not exist", async () => {

@@ -1,22 +1,24 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Server } from "node:http";
+import {
+	createMemoryApplication,
+	type MemoryApplication,
+} from "@tests/fixtures/application.fixture";
 import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
+import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
 import {
-	createMutableClock,
-	createSequentialIdGenerator,
-} from "@tests/fixtures/memory.fixture";
+	createOAuthDatabase,
+	type OAuthDatabase,
+} from "@/adapters/persistence/sqlite/oauth-database";
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
-import {
-	type Application,
-	createApplication,
-} from "@/composition/create-application";
 import { createMcpHttpApp } from "./app";
 import { createOAuthProvider } from "./oauth/provider";
 
 const STATIC_TOKEN = "s".repeat(40);
 const PASSPHRASE = "correct horse battery staple";
 
-let application: Application;
+let application: MemoryApplication;
+let oauthDatabase: OAuthDatabase;
 let listener: Server;
 let origin: string;
 
@@ -35,16 +37,15 @@ const callMcp = (token?: string): Promise<globalThis.Response> =>
 	});
 
 beforeEach(async () => {
-	const clock = createMutableClock();
-	application = createApplication({
-		databasePath: ":memory:",
-		clock,
+	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("q"),
 	});
+	oauthDatabase = createOAuthDatabase(":memory:");
+
 	const oauth = createOAuthProvider({
 		store: createSqliteOAuthStore(
-			application.client,
-			application.transaction,
+			oauthDatabase.client,
+			oauthDatabase.transaction,
 			() => new Date(),
 		),
 		staticToken: STATIC_TOKEN,
@@ -76,7 +77,8 @@ afterEach(async () => {
 	await new Promise<void>((resolve) => {
 		listener.close(() => resolve());
 	});
-	application.close();
+	oauthDatabase.close();
+	await application.close();
 });
 
 describe("the protected endpoint", () => {

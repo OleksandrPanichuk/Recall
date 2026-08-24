@@ -160,7 +160,9 @@ describe("quiz flow (§3.3)", () => {
 
 		expect(options).toHaveLength(2);
 		for (const option of options) {
-			expect(option.callback_data).toMatch(/^a:q\d{17}:\d+$/);
+			expect(option.callback_data).toMatch(
+				/^a:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}:\d+$/i,
+			);
 		}
 		expect(
 			options.map((option) => option.callback_data.split(":").slice(0, 2)),

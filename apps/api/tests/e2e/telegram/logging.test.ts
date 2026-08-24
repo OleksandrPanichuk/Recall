@@ -119,10 +119,4 @@ describe("telegram request logging (§6.2)", () => {
 			outcome: "failed",
 		});
 	});
-
-	test("records the database it opened", () => {
-		expect(logger.of("database ready").at(0)).toMatchObject({
-			path: ":memory:",
-		});
-	});
 });

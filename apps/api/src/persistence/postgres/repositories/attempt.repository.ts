@@ -1,4 +1,15 @@
-import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	gt,
+	inArray,
+	notExists,
+	sql,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type {
 	AttemptRepository,
 	AttemptStatistics,
@@ -23,6 +34,7 @@ import {
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { attemptQuestions, attempts, questions, responses } from "../schema";
 import type { Executor } from "../unit-of-work";
+import { isUuid } from "../uuid";
 
 type AttemptRow = typeof attempts.$inferSelect;
 
@@ -152,6 +164,10 @@ export function createAttemptPostgresRepository(
 		},
 
 		async findById(id: QuizAttemptId): Promise<QuizAttempt | undefined> {
+			if (!isUuid(String(id))) {
+				return undefined;
+			}
+
 			return first(
 				await executor
 					.select()
@@ -247,8 +263,17 @@ export function createAttemptPostgresRepository(
 			telegramUserId: number,
 			quizId: QuizSetId,
 		): Promise<readonly QuestionId[]> {
+			if (!isUuid(String(quizId))) {
+				return [];
+			}
+
+			const later = alias(responses, "later");
+			const laterAttempt = alias(attempts, "later_attempt");
 			const rows = await executor
-				.selectDistinct({ questionId: responses.questionId })
+				.select({
+					questionId: responses.questionId,
+					latest: sql<string>`max(${responses.answeredAt})`.as("latest"),
+				})
 				.from(responses)
 				.innerJoin(attempts, eq(attempts.id, responses.attemptId))
 				.where(
@@ -256,13 +281,33 @@ export function createAttemptPostgresRepository(
 						eq(attempts.quizId, String(quizId)),
 						eq(attempts.telegramUserId, telegramUserId),
 						eq(responses.isCorrect, false),
+						notExists(
+							executor
+								.select({ present: sql`1` })
+								.from(later)
+								.innerJoin(laterAttempt, eq(laterAttempt.id, later.attemptId))
+								.where(
+									and(
+										eq(laterAttempt.telegramUserId, telegramUserId),
+										eq(later.questionId, responses.questionId),
+										eq(later.isCorrect, true),
+										gt(later.answeredAt, responses.answeredAt),
+									),
+								),
+						),
 					),
-				);
+				)
+				.groupBy(responses.questionId)
+				.orderBy(desc(sql`latest`), asc(responses.questionId));
 
 			return rows.map((row) => toQuestionId(row.questionId));
 		},
 
 		async answerCount(questionId: QuestionId): Promise<number> {
+			if (!isUuid(String(questionId))) {
+				return 0;
+			}
+
 			const [row] = await executor
 				.select({ total: count() })
 				.from(responses)

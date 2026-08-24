@@ -41,8 +41,14 @@ export interface MemoryContext {
 	close(): void;
 }
 
+export interface MemoryContextOptions {
+	readonly startAt?: Date;
+	readonly timezone?: string;
+	readonly idGenerator?: IdGenerator;
+}
+
 export function createMemoryContext(
-	options: { readonly startAt?: Date; readonly timezone?: string } = {},
+	options: MemoryContextOptions = {},
 ): MemoryContext {
 	const store = emptyStore();
 	const persistence = createMemoryPersistence(store);
@@ -52,7 +58,7 @@ export function createMemoryContext(
 		unitOfWork: persistence.unitOfWork,
 		scope: persistence.scope,
 		clock: createMutableClock(options.startAt),
-		idGenerator: createUuidGenerator(),
+		idGenerator: options.idGenerator ?? createUuidGenerator(),
 		timezone: options.timezone ?? DEFAULT_TIMEZONE,
 		close: () => {
 			store.pages.clear();
@@ -68,8 +74,29 @@ export function createMemoryContext(
 	};
 }
 
+export const attemptCount = (store: MemoryStore): number => store.attempts.size;
+
+export const responseCount = (store: MemoryStore): number =>
+	[...store.attempts.values()].reduce(
+		(total, attempt) => total + attempt.responses.length,
+		0,
+	);
+
+const hexOf = (prefix: string): string => {
+	let hash = 0;
+
+	for (const character of prefix) {
+		hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 0xff_ff_ff_ff;
+	}
+
+	return hash.toString(16).padStart(8, "0").slice(0, 8);
+};
+
 // Deterministic, uuid-shaped ids: Postgres columns are uuid, so a counter alone
 // will not do.
+export const sequentialId = (prefix: string, nth: number): string =>
+	`${hexOf(prefix)}-0000-4000-8000-${String(nth).padStart(12, "0")}`;
+
 export function createSequentialIdGenerator(prefix = "0"): IdGenerator {
 	let next = 0;
 
@@ -77,9 +104,7 @@ export function createSequentialIdGenerator(prefix = "0"): IdGenerator {
 		generate: () => {
 			next += 1;
 
-			const tail = String(next).padStart(12, "0");
-
-			return `${prefix.repeat(8).slice(0, 8)}-0000-4000-8000-${tail}`;
+			return sequentialId(prefix, next);
 		},
 	};
 }

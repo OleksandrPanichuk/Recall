@@ -26,86 +26,72 @@ let createFolder: CreateFolderUseCase;
 
 beforeEach(() => {
 	context = createMemoryContext();
-	createFolder = new CreateFolderUseCase({
-		folders: context.folders,
-		clock: context.clock,
-		idGenerator: context.idGenerator,
-		transaction: context.transaction,
-	});
-	moveQuizSet = new MoveQuizSetUseCase({
-		quizSets: context.quizSets,
-		folders: context.folders,
-		clock: context.clock,
-	});
+	createFolder = new CreateFolderUseCase(context);
+	moveQuizSet = new MoveQuizSetUseCase(context);
 });
 
 afterEach(() => {
 	context.close();
 });
 
-const storedSet = (published = false): QuizSetId => {
+const storedSet = async (published = false): Promise<QuizSetId> => {
 	const draft = aQuizSet({ id: "set-1", questions: [aQuestion({ id: "q1" })] });
 	const quizSet = published
 		? publishQuizSet(draft, context.clock.now())
 		: draft;
 
-	context.quizSets.save(quizSet);
+	await context.unitOfWork.run(({ quizzes }) => quizzes.save(quizSet));
 
 	return quizSet.id;
 };
 
-const folderOf = (quizSetId: QuizSetId): FolderId | undefined =>
-	context.quizSets.findById(quizSetId)?.folderId;
+const folderOf = async (quizSetId: QuizSetId): Promise<FolderId | undefined> =>
+	(await context.scope.quizzes.findById(quizSetId))?.folderId;
 
 describe("MoveQuizSetUseCase", () => {
 	test("files a set into a folder", async () => {
-		const quizSetId = storedSet();
+		const quizSetId = await storedSet();
 		const { folderId } = await createFolder.execute({ name: "English" });
 
 		await moveQuizSet.execute({ quizSetId, folderId });
 
-		expect(folderOf(quizSetId)).toBe(folderId);
+		expect(await folderOf(quizSetId)).toBe(folderId);
 	});
 
 	test("files a published set", async () => {
-		const quizSetId = storedSet(true);
+		const quizSetId = await storedSet(true);
 		const { folderId } = await createFolder.execute({ name: "English" });
 
 		await moveQuizSet.execute({ quizSetId, folderId });
 
-		expect(folderOf(quizSetId)).toBe(folderId);
-		expect(context.quizSets.findById(quizSetId)?.status).toBe(
+		expect(await folderOf(quizSetId)).toBe(folderId);
+		expect((await context.scope.quizzes.findById(quizSetId))?.status).toBe(
 			QuizSetStatus.Published,
 		);
 	});
 
 	test("returns a set to unfiled", async () => {
-		const quizSetId = storedSet();
+		const quizSetId = await storedSet();
 		const { folderId } = await createFolder.execute({ name: "English" });
 		await moveQuizSet.execute({ quizSetId, folderId });
 
 		await moveQuizSet.execute({ quizSetId, folderId: undefined });
 
-		expect(folderOf(quizSetId)).toBeUndefined();
+		expect(await folderOf(quizSetId)).toBeUndefined();
 	});
 
-	test("rejects an unknown folder", () => {
-		const quizSetId = storedSet();
+	test("rejects an unknown folder", async () => {
+		const quizSetId = await storedSet();
 
-		expect(
+		await expect(
 			moveQuizSet.execute({ quizSetId, folderId: "missing" as FolderId }),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 
-	test("rejects a set created into an unknown folder", () => {
-		const createQuizSet = new CreateQuizSetUseCase({
-			quizSets: context.quizSets,
-			folders: context.folders,
-			clock: context.clock,
-			idGenerator: context.idGenerator,
-		});
+	test("rejects a set created into an unknown folder", async () => {
+		const createQuizSet = new CreateQuizSetUseCase(context);
 
-		expect(
+		await expect(
 			createQuizSet.execute({
 				title: "T",
 				language: "uk",

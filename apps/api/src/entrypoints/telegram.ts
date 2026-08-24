@@ -1,7 +1,7 @@
-import { resolve } from "node:path";
 import { createBot } from "@/adapters/telegram/bot";
 import { startDailyReminder } from "@/adapters/telegram/reminders";
 import { createApplication } from "@/composition/create-application";
+import { describeDatabaseUrl } from "@/infrastructure/config/database-url";
 import {
 	type Environment,
 	EnvironmentError,
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${environment.databaseUrl} timezone=${environment.appTimezone}`,
+			`Configuration is valid. database=${describeDatabaseUrl(environment.databaseUrl)} timezone=${environment.appTimezone}`,
 		);
 
 		return;

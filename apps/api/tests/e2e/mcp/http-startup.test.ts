@@ -10,7 +10,7 @@ const token = "s".repeat(40);
 const validEnvironment = {
 	TELEGRAM_BOT_KEY: "123456789:AA-startup-test-token",
 	ALLOWED_TELEGRAM_USER_ID: "987654321",
-	DATABASE_PATH: ":memory:",
+	DATABASE_URL: "postgres://recall:recall@127.0.0.1:55432/recall",
 	APP_TIMEZONE: "Europe/Kyiv",
 	MCP_HTTP_TOKEN: token,
 };
@@ -46,6 +46,7 @@ describe("mcp http entrypoint startup", () => {
 
 		expect(stdout).not.toContain(token);
 		expect(stderr).not.toContain(token);
+		expect(stdout).not.toContain("recall:recall");
 	});
 
 	test("reports the loopback default and the port it would bind", async () => {

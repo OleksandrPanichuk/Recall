@@ -4,8 +4,8 @@
 > investigation findings and recommendations per numbered item, then the
 > sequencing and the open decisions. Everything about this rewrite lives here.
 >
-> Status: **investigation complete, revised after adversarial review, decisions pending.**
-> No code changed yet. Written 2026-08-23 against commit `d17a161`.
+> Status: **phases 1-6 landed; phase 7 is next.** Written 2026-08-23 against commit
+> `d17a161`, last revised 2026-08-24 when the Postgres cutover landed.
 >
 > **Revision log**
 > - r1 — first investigation pass.
@@ -31,6 +31,12 @@
 >     port cannot be incremental, because the first ported use case forces the whole app onto
 >     Postgres. Attempted, measured, and stashed rather than half-landed. The remaining work is
 >     one atomic cutover, specified below.
+>   - r17 — **the cutover landed. Phases 5 and 6 are done.** All 34 use cases, every test, the
+>     composition root, the supervisor, `.env` and the operator manual are on Postgres. 1263
+>     tests green, and the suite still runs without Docker by skipping the 65 that need it. The
+>     migration was rehearsed against the real backup and verified clean, and the bot was then
+>     driven against that database: it served a real quiz and recorded an answer. Four defects
+>     the port had introduced, and two decisions, are below.
 > - r9 — the **§6 schema exists** as one Postgres migration with the approved names
 >   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
 >   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
@@ -1198,8 +1204,8 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | ~~3~~ | ~~Async call sites~~ — **deleted (r6)**, folded into phase 5. Not implementable standalone: see below. | — | — |
 | — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
 | 4 | ~~**Minimal Nest API shell**~~ — **done** (r7). Nest 11 + Express, `apps/api/src/modules/{shared,content}`, factory-provided use cases, `GET /quizzes`, `GET /quizzes/:id`, health, Swagger at `/docs`, domain-error→HTTP filter. Runs on Bun. | 2 | M |
-| 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines. **Started (r8)**: infrastructure and transaction contract done; repositories not ported. | 4 | L |
-| 6 | ~~Rehearsed cutover~~ — **merged into phase 5** (r15): the use-case port forces the engine switch, so they land together. | 5 | L |
+| 5 | ~~**Postgres cutover**~~ — **done** (r17). Five repositories paired behind contract suites, all 34 use cases on `UnitOfWork<RepositoryScope>`, the composition root on Postgres, the ETL rehearsed against the real backup and the bot proven against the result. Shipped on `wip/postgres-cutover`. | 4 | L |
+| 6 | ~~Rehearsed cutover~~ — **merged into phase 5** (r15) and **done** with it (r17). | 5 | L |
 | 7 | Identity, ownership, sessions, bot login link (§3, §5) | 6 | L |
 | 8 | Bot, MCP, and admin become API clients; MCP OAuth gains its user dimension (§1, §5) | 7 | L |
 | 9 | Web MVP: auth, browse, practice, attempt review (§4) | 8 | L |
@@ -1214,6 +1220,73 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### The cutover, finished (r17)
+
+`bun run verify` is green on `wip/postgres-cutover`: 1263 tests, no skips with Postgres up, 65
+skipped and still green without it. The migration was rehearsed end to end against
+`data/quiz.before-postgres-20260823-170412.sqlite` into a scratch database — 13 pages, 9
+quizzes, 32 term pairs, 306 questions, 64 question sources, 915 options, 38 attempts, 504
+attempt questions, 312 responses, 227 review states, 7 settings rows, `verification passed` —
+and `bun run status` then reported 9 published sets, 306 questions, 38 attempts and 312 answers
+off that database.
+
+**The bot serves a quiz from Postgres.** The step r16 called unproven is proven: the real
+`createBot` router, wired to a Postgres-backed application over the migrated data, rendered the
+menu, opened `DDIA — Розділ 2`, showed question 1/20 with its four options, and recorded the
+answer — 312 responses before, 313 after. Callback payloads with uuid ids measure 40 characters
+against Telegram's 64-character limit, so the 22-char base64url form §5 reserves is not needed
+yet.
+
+**Four defects the port had introduced, all now fixed and pinned by tests.**
+
+1. **A non-uuid id was a 500, not a 404.** Every id-shaped string used to be a legal SQLite
+   key; on Postgres `where id = 'does-not-exist'` fails the cast with 22P02, so
+   `GET /quizzes/does-not-exist` returned 500 where v1 returned 404, and the same held for
+   every adapter passing an id in from outside. The read paths of the Postgres repositories now
+   answer "not found" themselves (`persistence/postgres/uuid.ts`), which is what the in-memory
+   ones always did — the divergence is now a contract test in three of the four suites.
+2. **"Outstanding mistakes" never forgot a mistake.** v1's query excluded a wrong answer when a
+   *later* correct one existed; both new implementations returned every question ever answered
+   wrongly, so a corrected mistake came back forever. Both engines now reproduce v1's
+   semantics, including the ordering, and two contract tests pin it.
+3. **The connection string was printed with its password** — by `--check` on all three
+   entrypoints and by `bun run status`. `describeDatabaseUrl` redacts it; the startup tests
+   assert the password does not reach stdout.
+4. **A test leaked `DATABASE_URL` and silently disabled others.** The API e2e test points the
+   Nest app at its per-run database through the environment and drops that database afterwards;
+   every later suite then read the dead url when deciding whether Postgres was reachable and
+   skipped itself. It restores the previous value now. This is the failure mode the
+   "not silently skipped" guard exists for, arriving from a direction the guard did not cover.
+
+**Two decisions taken while finishing it.**
+
+- **Adapter e2e tests run against the in-memory scope, not Postgres.** They used
+  `databasePath: ":memory:"`, so they never tested persistence; making them Postgres-backed
+  would have made the largest part of the suite conditional on a container for no coverage
+  gained. `create-application.ts` therefore splits into `createUseCases(dependencies)` and the
+  Postgres wrapper `createApplication`, and `tests/fixtures/application.fixture.ts` builds the
+  same 34 use cases over the memory scope. What genuinely needs the engine — the repository
+  contracts, the schema constraints, transaction semantics, the ETL, the status report, the Nest
+  API and the admin UI — runs against a real per-run database.
+- **The ETL test builds its own v1 source.** It used to seed through the v1 repositories, which
+  no longer exist. `tests/fixtures/legacy-sqlite.ts` applies the v1 migrations to a temp file
+  and inserts the fixture with raw SQL, which is what the ETL reads anyway.
+
+**Deleted as obsolete rather than ported:** `tests/e2e/operations.test.ts` (backup/restore of the
+quiz SQLite file — Postgres uses `pg_dump`) with `infrastructure/lifecycle/backup.ts` and
+`schema-tables.ts` behind it, and `tests/e2e/concurrency.test.ts` (two processes contending for
+the SQLite write lock on `quiz_sets` — a table no repository reads any more). The restart test
+inside the resume suite became a Postgres integration test that closes and reopens the
+connection, and the status-command coverage `operations.test.ts` carried moved with it.
+
+**What phase 7 inherits.** `bun:sqlite` is still in the tree for one reason: the MCP OAuth store
+and the SDK provider above it are synchronous throughout, so client credentials keep their own
+file (`OAUTH_DATABASE_PATH`, default `./data/oauth.sqlite`). r16 wanted those three tables moved
+in this cutover to unblock the Node switch; that was reversed — porting an OAuth provider that
+Better Auth replaces in phase 7 is work with a known expiry date. So the **Bun → Node switch
+moves to phase 7**, and `ownership` (`owner_id`) arrives there as planned, with
+`telegram_user_id` preserved on `attempts` and `review_states` to map the accounts.
 
 ### Phase 5 and 6 are one landing (r15)
 

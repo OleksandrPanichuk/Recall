@@ -1,21 +1,25 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
-import { join } from "node:path";
 import type { INestApplication } from "@nestjs/common";
 import { createApplication } from "@/composition/create-application";
 import { createApiApp } from "@/entrypoints/api";
 import {
-	makeTempDirectory,
-	removeTempDirectory,
-} from "../../fixtures/temp-dir";
+	applyMigration,
+	openPostgres,
+	type PostgresHarness,
+	postgresAvailable,
+} from "../../fixtures/postgres";
 
-let directory: string;
+const available = await postgresAvailable();
+
+let harness: PostgresHarness;
+let previousDatabaseUrl: string | undefined;
 let app: INestApplication;
 let origin: string;
 let quizSetId: string;
 
-const seed = async (databasePath: string): Promise<string> => {
-	const application = createApplication({ databasePath });
+const seed = async (databaseUrl: string): Promise<string> => {
+	const application = createApplication({ databaseUrl });
 
 	try {
 		const { quizSetId: id } = await application.createQuizSet.execute({
@@ -42,17 +46,22 @@ const seed = async (databasePath: string): Promise<string> => {
 
 		return String(id);
 	} finally {
-		application.close();
+		await application.close();
 	}
 };
 
 beforeAll(async () => {
-	directory = makeTempDirectory("recall-api-");
-	const databasePath = join(directory, "quiz.sqlite");
+	if (!available) {
+		return;
+	}
 
-	quizSetId = await seed(databasePath);
+	harness = await openPostgres("api");
+	await applyMigration(harness);
 
-	process.env.DATABASE_PATH = databasePath;
+	quizSetId = await seed(harness.url);
+
+	previousDatabaseUrl = process.env.DATABASE_URL;
+	process.env.DATABASE_URL = harness.url;
 	app = await createApiApp();
 	await app.listen(0, "127.0.0.1");
 
@@ -61,11 +70,17 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-	await app.close();
-	removeTempDirectory(directory);
+	await app?.close();
+	await harness?.close();
+
+	if (previousDatabaseUrl === undefined) {
+		delete process.env.DATABASE_URL;
+	} else {
+		process.env.DATABASE_URL = previousDatabaseUrl;
+	}
 });
 
-describe("the api", () => {
+describe.skipIf(!available)("the api", () => {
 	test("reports that it is live", async () => {
 		const response = await fetch(`${origin}/health/live`);
 

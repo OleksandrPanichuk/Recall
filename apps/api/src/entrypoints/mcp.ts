@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createMcpServer } from "@/adapters/mcp/server";
 import { createApplication } from "@/composition/create-application";

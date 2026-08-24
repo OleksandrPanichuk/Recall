@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { countRows } from "@tests/fixtures/oauth-database";
-import { createSqliteQuizAttemptRepository } from "@/adapters/persistence/sqlite/repositories/sqlite-quiz-attempt.repository";
+import {
+	attemptCount,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import {
 	type AttemptsHarness,
@@ -42,18 +43,18 @@ describe("PauseQuizAttemptUseCase and ResumeQuizAttemptUseCase", () => {
 
 		await pause.execute({ telegramUserId: USER });
 
-		expect(context.attempts.findById(attemptId)?.status).toBe(
+		expect((await context.scope.attempts.findById(attemptId))?.status).toBe(
 			QuizAttemptStatus.Paused,
 		);
 
 		context.clock.advance(60_000);
 		const resumed = await resume.execute({ telegramUserId: USER });
 
-		expect(context.attempts.findById(attemptId)?.status).toBe(
+		expect((await context.scope.attempts.findById(attemptId))?.status).toBe(
 			QuizAttemptStatus.Active,
 		);
 		expect(String(resumed.currentQuestionId)).toBe(
-			String(questionIdOf(quizSetId, 0)),
+			String(await questionIdOf(quizSetId, 0)),
 		);
 	});
 
@@ -67,23 +68,7 @@ describe("PauseQuizAttemptUseCase and ResumeQuizAttemptUseCase", () => {
 		await resume.execute({ telegramUserId: USER });
 		await resume.execute({ telegramUserId: USER });
 
-		expect(countRows(context.database, "quiz_attempts")).toBe(1);
-	});
-
-	test("a paused attempt survives a restart", async () => {
-		const quizSetId = await seedPublishedSet();
-		await start.execute({ quizSetId, telegramUserId: USER });
-		context.clock.advance(60_000);
-		await pause.execute({ telegramUserId: USER });
-
-		const restarted = createSqliteQuizAttemptRepository(
-			context.client,
-			context.transaction,
-		);
-
-		expect(restarted.findActiveByUser(USER)?.status).toBe(
-			QuizAttemptStatus.Paused,
-		);
+		expect(attemptCount(context.store)).toBe(1);
 	});
 
 	test("both reject a user with nothing unfinished", async () => {

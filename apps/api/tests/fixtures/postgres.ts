@@ -40,6 +40,7 @@ export interface PostgresHarness {
 	readonly client: postgres.Sql;
 	readonly db: PostgresJsDatabase;
 	readonly database: string;
+	readonly url: string;
 	readonly schema: string;
 	close(): Promise<void>;
 }
@@ -67,7 +68,8 @@ export async function openPostgres(prefix: string): Promise<PostgresHarness> {
 		await creator.end({ timeout: 5 });
 	}
 
-	const client = postgres(withDatabase(base, database), {
+	const url = withDatabase(base, database);
+	const client = postgres(url, {
 		max: 1,
 		prepare: false,
 		onnotice: () => {},
@@ -77,6 +79,7 @@ export async function openPostgres(prefix: string): Promise<PostgresHarness> {
 		client,
 		db: drizzle({ client }),
 		database,
+		url,
 		schema: "public",
 		close: async () => {
 			await client.end({ timeout: 5 });

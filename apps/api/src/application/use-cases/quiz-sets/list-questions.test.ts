@@ -101,13 +101,15 @@ describe("ListQuestionsUseCase", () => {
 
 		expect(before[0]?.answerCount).toBe(0);
 
-		context.attempts.save(
-			recordResponse(
-				anAttempt({
-					quizSetId: String(quizSetId),
-					questionIds: [questionId],
-				}),
-				anAnswer(questionId, true, new Date("2026-08-01T10:05:00.000Z")),
+		await context.unitOfWork.run(({ attempts }) =>
+			attempts.save(
+				recordResponse(
+					anAttempt({
+						quizSetId: String(quizSetId),
+						questionIds: [questionId],
+					}),
+					anAnswer(questionId, true, new Date("2026-08-01T10:05:00.000Z")),
+				),
 			),
 		);
 

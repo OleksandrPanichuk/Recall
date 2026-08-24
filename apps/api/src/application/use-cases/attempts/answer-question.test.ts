@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { countRows } from "@tests/fixtures/oauth-database";
+import {
+	type MemoryContext,
+	responseCount,
+} from "@tests/fixtures/memory.fixture";
+
 import {
 	QuestionNotInAttemptError,
 	QuizAttemptValidationError,
@@ -52,8 +55,8 @@ describe("AnswerQuestionUseCase", () => {
 
 		const result = await answer.execute({
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
 
 		expect(result.isCorrect).toBe(true);
@@ -61,7 +64,7 @@ describe("AnswerQuestionUseCase", () => {
 		expect(result.explanation).toBe("Because of One");
 		expect(result.correctOptionIds).toHaveLength(1);
 		expect(String(result.nextQuestionId)).toBe(
-			String(questionIdOf(quizSetId, 1)),
+			String(await questionIdOf(quizSetId, 1)),
 		);
 		expect(result.score).toEqual({ correct: 1, total: 2, percentage: 50 });
 	});
@@ -73,8 +76,8 @@ describe("AnswerQuestionUseCase", () => {
 
 		const result = await answer.execute({
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, false)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, false)],
 		});
 
 		expect(result.isCorrect).toBe(false);
@@ -87,8 +90,8 @@ describe("AnswerQuestionUseCase", () => {
 		context.clock.advance(60_000);
 		const command = {
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		};
 		await answer.execute(command);
 
@@ -97,9 +100,9 @@ describe("AnswerQuestionUseCase", () => {
 		expect(replay.alreadyAnswered).toBe(true);
 		expect(replay.score).toEqual({ correct: 1, total: 2, percentage: 50 });
 		expect(String(replay.nextQuestionId)).toBe(
-			String(questionIdOf(quizSetId, 1)),
+			String(await questionIdOf(quizSetId, 1)),
 		);
-		expect(countRows(context.database, "question_responses")).toBe(1);
+		expect(responseCount(context.store)).toBe(1);
 	});
 
 	test("a replay cannot turn a wrong answer into a right one", async () => {
@@ -108,14 +111,14 @@ describe("AnswerQuestionUseCase", () => {
 		context.clock.advance(60_000);
 		await answer.execute({
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, false)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, false)],
 		});
 
 		const replay = await answer.execute({
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
 
 		expect(replay.alreadyAnswered).toBe(true);
@@ -131,11 +134,11 @@ describe("AnswerQuestionUseCase", () => {
 		await expect(
 			answer.execute({
 				telegramUserId: USER,
-				questionId: questionIdOf(quizSetId, 1),
-				selectedOptionPositions: [positionOf(quizSetId, 1, true)],
+				questionId: await questionIdOf(quizSetId, 1),
+				selectedOptionPositions: [await positionOf(quizSetId, 1, true)],
 			}),
 		).rejects.toThrow(QuestionNotInAttemptError);
-		expect(countRows(context.database, "question_responses")).toBe(0);
+		expect(responseCount(context.store)).toBe(0);
 	});
 
 	test("refuses an option position the question does not have", async () => {
@@ -146,11 +149,11 @@ describe("AnswerQuestionUseCase", () => {
 		await expect(
 			answer.execute({
 				telegramUserId: USER,
-				questionId: questionIdOf(quizSetId, 0),
+				questionId: await questionIdOf(quizSetId, 0),
 				selectedOptionPositions: [99],
 			}),
 		).rejects.toThrow(QuizAttemptValidationError);
-		expect(countRows(context.database, "question_responses")).toBe(0);
+		expect(responseCount(context.store)).toBe(0);
 	});
 
 	test("refuses an empty selection", async () => {
@@ -161,7 +164,7 @@ describe("AnswerQuestionUseCase", () => {
 		await expect(
 			answer.execute({
 				telegramUserId: USER,
-				questionId: questionIdOf(quizSetId, 0),
+				questionId: await questionIdOf(quizSetId, 0),
 				selectedOptionPositions: [],
 			}),
 		).rejects.toThrow(QuizAttemptValidationError);
@@ -176,8 +179,8 @@ describe("AnswerQuestionUseCase", () => {
 		await expect(
 			answer.execute({
 				telegramUserId: USER,
-				questionId: questionIdOf(quizSetId, 0),
-				selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+				questionId: await questionIdOf(quizSetId, 0),
+				selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 			}),
 		).rejects.toThrow(AttemptNotActiveError);
 	});
@@ -188,8 +191,8 @@ describe("AnswerQuestionUseCase", () => {
 		await expect(
 			answer.execute({
 				telegramUserId: USER,
-				questionId: questionIdOf(quizSetId, 0),
-				selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+				questionId: await questionIdOf(quizSetId, 0),
+				selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 			}),
 		).rejects.toThrow(NoActiveAttemptError);
 	});
@@ -201,8 +204,8 @@ describe("AnswerQuestionUseCase", () => {
 
 		const result = await answer.execute({
 			telegramUserId: USER,
-			questionId: questionIdOf(quizSetId, 0),
-			selectedOptionPositions: [positionOf(quizSetId, 0, true)],
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
 
 		expect(result.nextQuestionId).toBeUndefined();

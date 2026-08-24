@@ -44,8 +44,12 @@ export interface AttemptsHarness {
 	readonly answer: AnswerQuestionUseCase;
 	readonly finish: FinishQuizAttemptUseCase;
 	seedPublishedSet(prompts?: string[]): Promise<QuizSetId>;
-	positionOf(quizSetId: QuizSetId, index: number, correct: boolean): number;
-	questionIdOf(quizSetId: QuizSetId, index: number): QuestionId;
+	positionOf(
+		quizSetId: QuizSetId,
+		index: number,
+		correct: boolean,
+	): Promise<number>;
+	questionIdOf(quizSetId: QuizSetId, index: number): Promise<QuestionId>;
 }
 
 export function createAttemptsHarness(): AttemptsHarness {
@@ -54,8 +58,8 @@ export function createAttemptsHarness(): AttemptsHarness {
 	const add = new AddQuestionsUseCase(context);
 	const publish = new PublishQuizSetUseCase(context);
 
-	const questionsOf = (quizSetId: QuizSetId) =>
-		await context.scope.quizzes.findById(quizSetId)?.questions ?? [];
+	const questionsOf = async (quizSetId: QuizSetId) =>
+		(await context.scope.quizzes.findById(quizSetId))?.questions ?? [];
 
 	return {
 		context,
@@ -80,8 +84,8 @@ export function createAttemptsHarness(): AttemptsHarness {
 			return quizSetId;
 		},
 
-		positionOf: (quizSetId, index, correct) => {
-			const question = questionsOf(quizSetId)[index];
+		positionOf: async (quizSetId, index, correct) => {
+			const question = (await questionsOf(quizSetId))[index];
 			const option = question?.options.find(
 				(candidate) => candidate.isCorrect === correct,
 			);
@@ -93,8 +97,8 @@ export function createAttemptsHarness(): AttemptsHarness {
 			return option.position;
 		},
 
-		questionIdOf: (quizSetId, index) => {
-			const question = questionsOf(quizSetId)[index];
+		questionIdOf: async (quizSetId, index) => {
+			const question = (await questionsOf(quizSetId))[index];
 
 			if (question === undefined) {
 				throw new Error("fixture is missing a question");

@@ -10,7 +10,7 @@ import {
 const validSource: EnvironmentSource = {
 	TELEGRAM_BOT_KEY: "123456789:AA-valid-looking-bot-token",
 	ALLOWED_TELEGRAM_USER_ID: "987654321",
-	DATABASE_PATH: "./data/quiz.sqlite",
+	DATABASE_URL: "postgres://recall:recall@127.0.0.1:55432/recall",
 	APP_TIMEZONE: "Europe/Kyiv",
 };
 
@@ -22,7 +22,8 @@ describe("loadEnvironment", () => {
 			expect(environment).toEqual({
 				telegramBotKey: "123456789:AA-valid-looking-bot-token",
 				allowedTelegramUserId: 987654321,
-				databasePath: "./data/quiz.sqlite",
+				databaseUrl: "postgres://recall:recall@127.0.0.1:55432/recall",
+				oauthDatabasePath: "./data/oauth.sqlite",
 				appTimezone: "Europe/Kyiv",
 			});
 		});
@@ -30,11 +31,13 @@ describe("loadEnvironment", () => {
 		test("trims surrounding whitespace from values", () => {
 			const environment = loadEnvironment({
 				...validSource,
-				DATABASE_PATH: "  ./data/quiz.sqlite  ",
+				DATABASE_URL: "  postgres://recall:recall@127.0.0.1:55432/recall  ",
 				APP_TIMEZONE: " Europe/Kyiv ",
 			});
 
-			expect(environment.databasePath).toBe("./data/quiz.sqlite");
+			expect(environment.databaseUrl).toBe(
+				"postgres://recall:recall@127.0.0.1:55432/recall",
+			);
 			expect(environment.appTimezone).toBe("Europe/Kyiv");
 		});
 
@@ -68,7 +71,7 @@ describe("loadEnvironment", () => {
 			expect(error?.issues).toEqual([
 				"TELEGRAM_BOT_KEY is required and must not be empty",
 				"ALLOWED_TELEGRAM_USER_ID must be a positive integer Telegram user id",
-				"DATABASE_PATH is required and must not be empty",
+				"DATABASE_URL is required: the Postgres connection string for the quiz data",
 				"APP_TIMEZONE must be a valid IANA time zone such as Europe/Kyiv",
 			]);
 		});

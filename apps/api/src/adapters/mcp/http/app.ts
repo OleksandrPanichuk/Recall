@@ -2,7 +2,7 @@ import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middlew
 import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express, { type Express, type Request, type Response } from "express";
-import type { Application } from "@/composition/create-application";
+import type { UseCases } from "@/composition/create-application";
 import type { Logger } from "@/infrastructure/logging/logger.types";
 import { createMcpServer } from "../server";
 import { matchesToken } from "./bearer";
@@ -14,7 +14,7 @@ import {
 } from "./oauth/provider";
 
 export interface McpHttpAppDependencies {
-	readonly application: Application;
+	readonly application: UseCases;
 	readonly logger: Logger;
 	readonly oauth: RecallOAuth;
 	readonly allowedHosts: readonly string[];

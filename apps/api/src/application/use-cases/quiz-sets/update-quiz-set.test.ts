@@ -32,7 +32,7 @@ describe("UpdateQuizSetUseCase", () => {
 		context.clock.advance(60_000);
 
 		await update.execute({ quizSetId, title: "Renamed" });
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
 		expect(stored?.title).toBe("Renamed");
 		expect(stored?.language).toBe("uk");
@@ -51,7 +51,9 @@ describe("UpdateQuizSetUseCase", () => {
 
 		await update.execute({ quizSetId, title: "Renamed" });
 
-		expect(context.quizSets.findById(quizSetId)?.title).toBe("Renamed");
+		expect((await context.scope.quizzes.findById(quizSetId))?.title).toBe(
+			"Renamed",
+		);
 	});
 
 	test("refuses to edit an archived set", async () => {
@@ -61,6 +63,8 @@ describe("UpdateQuizSetUseCase", () => {
 		await expect(
 			update.execute({ quizSetId, title: "Renamed" }),
 		).rejects.toThrow(QuizSetTransitionError);
-		expect(context.quizSets.findById(quizSetId)?.title).toBe("Bun persistence");
+		expect((await context.scope.quizzes.findById(quizSetId))?.title).toBe(
+			"Bun persistence",
+		);
 	});
 });

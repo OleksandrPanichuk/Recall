@@ -42,7 +42,9 @@ describe("ListFolderTreeUseCase", () => {
 			questions: [aQuestion({ id: "q1" })],
 		});
 
-		context.quizSets.save({ ...draft, folderId });
+		await context.unitOfWork.run(({ quizzes }) =>
+			quizzes.save({ ...draft, folderId }),
+		);
 
 		const [node] = await listFolderTree.execute({});
 

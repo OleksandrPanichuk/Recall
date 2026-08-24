@@ -1,19 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	createMemoryApplication,
+	type MemoryApplication,
+} from "@tests/fixtures/application.fixture";
 import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
-import {
-	createMutableClock,
-	createSequentialIdGenerator,
-} from "@tests/fixtures/memory.fixture";
-import {
-	type Application,
-	createApplication,
-} from "@/composition/create-application";
+import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
 import { createAdminApi } from "./api";
 
 const PASSPHRASE = "correct horse battery staple";
 const TELEGRAM_USER_ID = 4242;
 
-let application: Application;
+let application: MemoryApplication;
 let server: ReturnType<typeof Bun.serve>;
 let origin: string;
 let cookie: string;
@@ -114,9 +111,7 @@ const publishedSet = async (title = "Present Perfect"): Promise<string> => {
 };
 
 beforeEach(async () => {
-	application = createApplication({
-		databasePath: ":memory:",
-		clock: createMutableClock(),
+	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("a"),
 	});
 	server = Bun.serve({
@@ -142,7 +137,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
 	await server.stop(true);
-	application.close();
+	await application.close();
 });
 
 describe("the session", () => {

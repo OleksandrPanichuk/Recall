@@ -5,6 +5,6 @@ export default defineConfig({
 	schema: "./src/adapters/persistence/sqlite/schema.ts",
 	out: "./drizzle",
 	dbCredentials: {
-		url: process.env.DATABASE_PATH ?? "./data/quiz.sqlite",
+		url: process.env.OAUTH_DATABASE_PATH ?? "./data/oauth.sqlite",
 	},
 });

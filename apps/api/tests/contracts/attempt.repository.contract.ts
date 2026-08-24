@@ -118,7 +118,7 @@ export function describeAttemptRepository(
 					startedAt: at,
 				});
 
-			const answered = (correctly: boolean) => {
+			const answered = (correctly: boolean, answeredAt = later(1)) => {
 				const attempt = started();
 				const target = quiz.questions[0];
 
@@ -134,7 +134,7 @@ export function describeAttemptRepository(
 					questionId: target.id,
 					selectedOptionIds: option === undefined ? [] : [option.id],
 					isCorrect: correctly,
-					answeredAt: later(1),
+					answeredAt,
 				});
 			};
 
@@ -153,6 +153,17 @@ export function describeAttemptRepository(
 				]);
 				expect(stored?.telegramUserId).toBe(USER);
 				expect(stored?.responses).toEqual([]);
+			});
+
+			test("treats an id that is not a uuid as missing, not as an error", async () => {
+				expect(
+					await harness.scope.attempts.findById(
+						toQuizAttemptId("does-not-exist"),
+					),
+				).toBeUndefined();
+				expect(
+					await harness.scope.attempts.answerCount(toQuestionId("nonsense")),
+				).toBe(0);
 			});
 
 			test("keeps a recorded answer", async () => {
@@ -243,6 +254,47 @@ export function describeAttemptRepository(
 				);
 
 				expect(wrong.map(String)).toEqual([firstQuestion]);
+			});
+
+			test("forgets a mistake once a later attempt got it right", async () => {
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(
+						completeQuizAttempt(answered(false, later(1)), later(2)),
+					);
+					await attempts.save(
+						completeQuizAttempt(answered(true, later(3)), later(4)),
+					);
+				});
+
+				expect(
+					await harness.scope.attempts.incorrectQuestionIds(
+						USER,
+						toQuizSetId(quizId),
+					),
+				).toEqual([]);
+			});
+
+			test("names it again when a later attempt got it wrong once more", async () => {
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(
+						completeQuizAttempt(answered(false, later(1)), later(2)),
+					);
+					await attempts.save(
+						completeQuizAttempt(answered(true, later(3)), later(4)),
+					);
+					await attempts.save(
+						completeQuizAttempt(answered(false, later(5)), later(6)),
+					);
+				});
+
+				expect(
+					(
+						await harness.scope.attempts.incorrectQuestionIds(
+							USER,
+							toQuizSetId(quizId),
+						)
+					).map(String),
+				).toEqual([firstQuestion]);
 			});
 
 			test("counts the answers a question has collected", async () => {

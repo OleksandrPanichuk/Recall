@@ -1,4 +1,4 @@
-import type { Application } from "@/composition/create-application";
+import type { UseCases } from "@/composition/create-application";
 import { toFolderId } from "@/domain/folder/folder";
 import type { Difficulty, QuestionType } from "@/domain/quiz-set/question";
 import { toQuestionId } from "@/domain/quiz-set/question";
@@ -20,7 +20,7 @@ import {
 import { clearSession, issueSession, readSession } from "./session";
 
 export interface AdminApiDependencies {
-	readonly application: Application;
+	readonly application: UseCases;
 	readonly logger: Logger;
 	readonly passphrase: string;
 	readonly telegramUserId: number;

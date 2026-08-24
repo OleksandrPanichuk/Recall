@@ -7,6 +7,7 @@ import {
 	QuizSetNotPublishedError,
 } from "../attempts/start-quiz-attempt";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { quizScope } from "../settings/resolve-quiz-settings";
 import {
 	aQuestionInput,
 	createPracticeHarness,
@@ -51,7 +52,7 @@ describe("a mistakes session", () => {
 		const result = await startMistakes(quizSetId);
 
 		expect(result.questionCount).toBe(2);
-		expect([...harness.plannedPrompts(quizSetId)].toSorted()).toEqual([
+		expect([...(await harness.plannedPrompts(quizSetId))].toSorted()).toEqual([
 			"Three",
 			"Two",
 		]);
@@ -67,7 +68,7 @@ describe("a mistakes session", () => {
 
 		await startMistakes(quizSetId);
 
-		expect(harness.plannedPrompts(quizSetId)).toEqual(["Two"]);
+		expect(await harness.plannedPrompts(quizSetId)).toEqual(["Two"]);
 	});
 
 	test("refuses when nothing is outstanding", async () => {
@@ -103,9 +104,9 @@ describe("a mistakes session", () => {
 
 		await startMistakes(quizSetId);
 
-		expect(harness.context.attempts.findActiveByUser(USER)?.mode).toBe(
-			QuizAttemptMode.Mistakes,
-		);
+		expect(
+			(await harness.context.scope.attempts.findActiveFor(USER))?.mode,
+		).toBe(QuizAttemptMode.Mistakes);
 	});
 });
 
@@ -136,7 +137,7 @@ describe("a weak-topic session", () => {
 		const result = await startWeakTopics(quizSetId);
 
 		expect(result.topics).toEqual(["Weak"]);
-		expect([...harness.plannedPrompts(quizSetId)].toSorted()).toEqual([
+		expect([...(await harness.plannedPrompts(quizSetId))].toSorted()).toEqual([
 			"W1",
 			"W2",
 			"W3",
@@ -154,7 +155,7 @@ describe("a weak-topic session", () => {
 
 		await startWeakTopics(quizSetId);
 
-		expect([...harness.plannedPrompts(quizSetId)].toSorted()).toEqual([
+		expect([...(await harness.plannedPrompts(quizSetId))].toSorted()).toEqual([
 			"W1",
 			"W2",
 			"W3",
@@ -206,9 +207,9 @@ describe("a weak-topic session", () => {
 
 		await startWeakTopics(quizSetId);
 
-		expect(harness.context.attempts.findActiveByUser(USER)?.mode).toBe(
-			QuizAttemptMode.WeakTopics,
-		);
+		expect(
+			(await harness.context.scope.attempts.findActiveFor(USER))?.mode,
+		).toBe(QuizAttemptMode.WeakTopics);
 	});
 });
 
@@ -252,28 +253,30 @@ describe("guards shared with a normal attempt", () => {
 });
 
 describe("finishing a drill", () => {
-	const scheduleOf = (quizSetId: ReturnType<typeof toQuizSetId>) => {
-		const questionId =
-			harness.context.quizSets.findById(quizSetId)?.questions[0]?.id;
+	const scheduleOf = async (quizSetId: ReturnType<typeof toQuizSetId>) => {
+		const questionId = (await harness.context.scope.quizzes.findById(quizSetId))
+			?.questions[0]?.id;
 
-		return harness.context.repetition.findSchedules(
+		const [schedule] = await harness.context.scope.reviews.findSchedules(
 			[questionId as never],
 			USER,
-		)[0];
+		);
+
+		return schedule;
 	};
 
 	test("leaves the repetition schedule exactly where it was", async () => {
 		const quizSetId = await harness.seedPublishedSet([aQuestionInput("One")]);
 		await harness.playAttempt(quizSetId, [false]);
 
-		const before = scheduleOf(quizSetId);
+		const before = await scheduleOf(quizSetId);
 
 		await startMistakes(quizSetId);
 		await harness.answerCurrent(true);
 		harness.context.clock.advance(60_000);
 		await harness.finish.execute({ telegramUserId: USER });
 
-		expect(scheduleOf(quizSetId)).toEqual(before);
+		expect(await scheduleOf(quizSetId)).toEqual(before);
 	});
 
 	test("still records the answer, so the mistake stops being outstanding", async () => {
@@ -307,15 +310,17 @@ describe("question order", () => {
 			false,
 			false,
 		]);
-		harness.context.repetition.saveSettings(quizSetId, {
-			...defaultQuizSettings(),
-			shuffleQuestions: true,
-		});
+		await harness.context.unitOfWork.run(({ reviews }) =>
+			reviews.saveSettings(quizScope(quizSetId), {
+				...defaultQuizSettings(),
+				shuffleQuestions: true,
+			}),
+		);
 
 		await startMistakes(quizSetId);
 
-		expect(harness.plannedPrompts(quizSetId)).not.toEqual(
-			harness.promptsOf(quizSetId),
+		expect(await harness.plannedPrompts(quizSetId)).not.toEqual(
+			await harness.promptsOf(quizSetId),
 		);
 	});
 });

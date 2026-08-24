@@ -130,21 +130,34 @@ export function createMemoryAttemptRepository(
 			telegramUserId: number,
 			quizId: QuizSetId,
 		): Promise<readonly QuestionId[]> {
-			const seen = new Set<string>();
-			const ids: QuestionId[] = [];
+			const wrong = new Map<string, { id: QuestionId; at: number }>();
+			const right = new Map<string, number>();
 
 			for (const attempt of forQuiz(telegramUserId, quizId)) {
 				for (const answer of attempt.responses) {
-					if (answer.isCorrect || seen.has(String(answer.questionId))) {
+					const key = String(answer.questionId);
+					const at = answer.answeredAt.getTime();
+
+					if (answer.isCorrect) {
+						right.set(key, Math.max(right.get(key) ?? 0, at));
 						continue;
 					}
 
-					seen.add(String(answer.questionId));
-					ids.push(answer.questionId);
+					const seen = wrong.get(key);
+
+					if (seen === undefined || at > seen.at) {
+						wrong.set(key, { id: answer.questionId, at });
+					}
 				}
 			}
 
-			return ids;
+			return [...wrong.entries()]
+				.filter(([key, entry]) => (right.get(key) ?? -1) <= entry.at)
+				.sort(
+					([leftKey, left], [rightKey, rightEntry]) =>
+						rightEntry.at - left.at || leftKey.localeCompare(rightKey),
+				)
+				.map(([, entry]) => entry.id);
 		},
 
 		async answerCount(questionId: QuestionId): Promise<number> {

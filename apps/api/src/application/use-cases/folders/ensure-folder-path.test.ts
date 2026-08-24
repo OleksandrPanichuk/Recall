@@ -27,7 +27,9 @@ describe("EnsureFolderPathUseCase", () => {
 
 		expect(result.created).toEqual(path);
 		expect(await nameOf(result.folderId)).toBe("A1");
-		expect(context.folders.listAncestors(result.folderId)).toHaveLength(3);
+		expect(
+			await context.scope.pages.listAncestors(result.folderId),
+		).toHaveLength(3);
 	});
 
 	test("is idempotent", async () => {
@@ -61,8 +63,8 @@ describe("EnsureFolderPathUseCase", () => {
 		);
 	});
 
-	test("creates nothing when a later segment is invalid", () => {
-		expect(
+	test("creates nothing when a later segment is invalid", async () => {
+		await expect(
 			ensureFolderPath.execute({ path: ["New", "Deep", "z".repeat(61)] }),
 		).rejects.toBeInstanceOf(FolderValidationError);
 

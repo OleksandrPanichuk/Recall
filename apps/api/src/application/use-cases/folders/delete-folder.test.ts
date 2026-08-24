@@ -43,9 +43,11 @@ describe("DeleteFolderUseCase", () => {
 			questions: [aQuestion({ id: "q1" })],
 		});
 
-		context.quizSets.save({ ...draft, folderId });
+		await context.unitOfWork.run(({ quizzes }) =>
+			quizzes.save({ ...draft, folderId }),
+		);
 
-		expect(deleteFolder.execute({ folderId })).rejects.toBeInstanceOf(
+		await expect(deleteFolder.execute({ folderId })).rejects.toBeInstanceOf(
 			FolderNotEmptyError,
 		);
 	});

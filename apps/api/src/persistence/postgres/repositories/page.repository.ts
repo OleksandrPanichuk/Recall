@@ -10,6 +10,7 @@ import {
 import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { pages, quizzes } from "../schema";
 import type { Executor } from "../unit-of-work";
+import { isUuid } from "../uuid";
 
 type PageRow = typeof pages.$inferSelect;
 
@@ -36,6 +37,10 @@ export function createPagePostgresRepository(
 	executor: Executor,
 ): PageRepository {
 	const byId = async (id: string): Promise<Folder | undefined> => {
+		if (!isUuid(id)) {
+			return undefined;
+		}
+
 		const [row] = await executor
 			.select()
 			.from(pages)
@@ -78,6 +83,10 @@ export function createPagePostgresRepository(
 		async listChildren(
 			parentId: FolderId | undefined,
 		): Promise<readonly Folder[]> {
+			if (parentId !== undefined && !isUuid(String(parentId))) {
+				return [];
+			}
+
 			const rows = await executor
 				.select()
 				.from(pages)
@@ -126,6 +135,10 @@ export function createPagePostgresRepository(
 			id: FolderId,
 			statuses?: readonly QuizSetStatus[],
 		): Promise<number> {
+			if (!isUuid(String(id))) {
+				return 0;
+			}
+
 			const [row] = await executor
 				.select({ total: count() })
 				.from(quizzes)
@@ -142,6 +155,10 @@ export function createPagePostgresRepository(
 		},
 
 		async countChildPages(id: FolderId): Promise<number> {
+			if (!isUuid(String(id))) {
+				return 0;
+			}
+
 			const [row] = await executor
 				.select({ total: count() })
 				.from(pages)
@@ -151,6 +168,10 @@ export function createPagePostgresRepository(
 		},
 
 		async delete(id: FolderId): Promise<void> {
+			if (!isUuid(String(id))) {
+				return;
+			}
+
 			await executor.delete(pages).where(eq(pages.id, String(id)));
 		},
 	};

@@ -23,11 +23,12 @@ afterEach(() => {
 describe("ArchiveQuizSetUseCase", () => {
 	test("archives a published set and keeps publishedAt", async () => {
 		const quizSetId = await newPublished();
-		const publishedAt = context.quizSets.findById(quizSetId)?.publishedAt;
+		const publishedAt = (await context.scope.quizzes.findById(quizSetId))
+			?.publishedAt;
 		context.clock.advance(60_000);
 
 		await archive.execute({ quizSetId });
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
 		expect(stored?.status).toBe(QuizSetStatus.Archived);
 		expect(stored?.publishedAt).toEqual(publishedAt as Date);
@@ -36,14 +37,14 @@ describe("ArchiveQuizSetUseCase", () => {
 	test("archiving again keeps the original timestamp", async () => {
 		const quizSetId = await newPublished();
 		await archive.execute({ quizSetId });
-		const first = context.quizSets.findById(quizSetId)?.archivedAt;
+		const first = (await context.scope.quizzes.findById(quizSetId))?.archivedAt;
 		context.clock.advance(60_000);
 
 		await archive.execute({ quizSetId });
 
-		expect(context.quizSets.findById(quizSetId)?.archivedAt).toEqual(
-			first as Date,
-		);
+		expect(
+			(await context.scope.quizzes.findById(quizSetId))?.archivedAt,
+		).toEqual(first as Date);
 	});
 
 	test("rejects an unknown set", async () => {

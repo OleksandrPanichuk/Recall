@@ -1,7 +1,7 @@
-import { resolve } from "node:path";
 import { createAdminApi } from "@/adapters/admin/api";
 import index from "@/adapters/admin/ui/index.html";
 import { createApplication } from "@/composition/create-application";
+import { describeDatabaseUrl } from "@/infrastructure/config/database-url";
 import {
 	type AdminEnvironment,
 	type Environment,
@@ -36,7 +36,7 @@ function main(): void {
 
 	if (process.argv.includes("--check")) {
 		console.log(
-			`Configuration is valid. database=${environment.databaseUrl} host=${admin.host} port=${admin.port}`,
+			`Configuration is valid. database=${describeDatabaseUrl(environment.databaseUrl)} host=${admin.host} port=${admin.port}`,
 		);
 
 		return;

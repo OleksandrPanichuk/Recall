@@ -53,11 +53,13 @@ const publishAndTake = async (id: string, title: string): Promise<void> => {
 		questions: [aQuestion({ id: `${id}-q` })],
 	});
 
-	context.quizSets.save({
-		...draft,
-		status: QuizSetStatus.Published,
-		publishedAt: context.clock.now(),
-	});
+	await context.unitOfWork.run(({ quizzes }) =>
+		quizzes.save({
+			...draft,
+			status: QuizSetStatus.Published,
+			publishedAt: context.clock.now(),
+		}),
+	);
 
 	await new StartQuizAttemptUseCase(context).execute({
 		quizSetId: toQuizSetId(id),

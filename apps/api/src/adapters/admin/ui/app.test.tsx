@@ -1,6 +1,12 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import {
+	applyMigration,
+	openPostgres,
+	type PostgresHarness,
+	postgresAvailable,
+} from "@tests/fixtures/postgres";
+import {
 	makeTempDirectory,
 	removeTempDirectory,
 } from "@tests/fixtures/temp-dir";
@@ -8,32 +14,44 @@ import {
 const PASSPHRASE = "correct horse battery staple";
 const nativeFetch = globalThis.fetch;
 
+const available = await postgresAvailable();
+
 const directory = makeTempDirectory("recall-admin-ui-");
 const port = 8100 + (process.pid % 500);
 const origin = `http://127.0.0.1:${port}`;
 
-const child = Bun.spawn(
-	[
-		process.execPath,
-		Bun.fileURLToPath(
-			new URL("../../../entrypoints/admin.ts", import.meta.url),
-		),
-	],
-	{
-		env: {
-			...process.env,
-			TELEGRAM_BOT_KEY: "123456789:token-the-admin-never-uses",
-			ALLOWED_TELEGRAM_USER_ID: "42",
-			APP_TIMEZONE: "Europe/Kyiv",
-			DATABASE_PATH: `${directory}/admin-ui.sqlite`,
-			ADMIN_PASSPHRASE: PASSPHRASE,
-			ADMIN_HOST: "127.0.0.1",
-			ADMIN_PORT: String(port),
-		},
-		stdout: "ignore",
-		stderr: "pipe",
-	},
-);
+let harness: PostgresHarness | undefined;
+
+if (available) {
+	harness = await openPostgres("admin_ui");
+	await applyMigration(harness);
+}
+
+const child = available
+	? Bun.spawn(
+			[
+				process.execPath,
+				Bun.fileURLToPath(
+					new URL("../../../entrypoints/admin.ts", import.meta.url),
+				),
+			],
+			{
+				env: {
+					...process.env,
+					TELEGRAM_BOT_KEY: "123456789:token-the-admin-never-uses",
+					ALLOWED_TELEGRAM_USER_ID: "42",
+					APP_TIMEZONE: "Europe/Kyiv",
+					DATABASE_URL: harness?.url ?? "",
+					OAUTH_DATABASE_PATH: `${directory}/oauth.sqlite`,
+					ADMIN_PASSPHRASE: PASSPHRASE,
+					ADMIN_HOST: "127.0.0.1",
+					ADMIN_PORT: String(port),
+				},
+				stdout: "ignore",
+				stderr: "pipe",
+			},
+		)
+	: undefined;
 
 let cookie = "";
 
@@ -87,7 +105,11 @@ const put = (path: string, body: unknown) =>
 	api(path, { method: "PUT", body: JSON.stringify(body) });
 
 const complaint = async (): Promise<string> => {
-	if (child.stderr === null || typeof child.stderr === "number") {
+	if (
+		child === undefined ||
+		child.stderr === null ||
+		typeof child.stderr === "number"
+	) {
 		return "no output";
 	}
 
@@ -103,9 +125,9 @@ const waitForServer = async (): Promise<void> => {
 	const deadline = Date.now() + 20_000;
 
 	while (Date.now() < deadline) {
-		if (child.killed || child.exitCode !== null) {
+		if (child === undefined || child.killed || child.exitCode !== null) {
 			throw new Error(
-				`the admin exited with ${child.exitCode}: ${await complaint()}`,
+				`the admin exited with ${child?.exitCode}: ${await complaint()}`,
 			);
 		}
 
@@ -135,8 +157,10 @@ const signIn = async (): Promise<void> => {
 	cookie = (response.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
 };
 
-await waitForServer();
-await signIn();
+if (available) {
+	await waitForServer();
+	await signIn();
+}
 
 GlobalRegistrator.register({
 	url: "http://127.0.0.1/",
@@ -196,12 +220,13 @@ afterEach(() => {
 
 afterAll(async () => {
 	globalThis.fetch = happyFetch;
-	child.kill("SIGTERM");
-	await child.exited;
+	child?.kill("SIGTERM");
+	await child?.exited;
+	await harness?.close();
 	removeTempDirectory(directory);
 });
 
-describe("the admin", () => {
+describe.skipIf(!available)("the admin", () => {
 	test(
 		"lists the sets it finds",
 		async () => {

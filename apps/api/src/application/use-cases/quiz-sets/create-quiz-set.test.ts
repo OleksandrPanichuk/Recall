@@ -23,9 +23,11 @@ afterEach(() => {
 describe("CreateQuizSetUseCase", () => {
 	test("stores a draft and returns its id", async () => {
 		const quizSetId = await newDraft();
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
-		expect(String(quizSetId)).toBe("id-1");
+		expect(String(quizSetId)).toMatch(
+			/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i,
+		);
 		expect(stored?.title).toBe("Bun persistence");
 		expect(stored?.status).toBe(QuizSetStatus.Draft);
 		expect(stored?.questions).toHaveLength(0);
@@ -34,7 +36,7 @@ describe("CreateQuizSetUseCase", () => {
 	test("stamps the timestamps from the clock", async () => {
 		context.clock.set(new Date("2026-08-04T09:00:00.000Z"));
 
-		const stored = context.quizSets.findById(await newDraft());
+		const stored = await context.scope.quizzes.findById(await newDraft());
 
 		expect(stored?.createdAt.toISOString()).toBe("2026-08-04T09:00:00.000Z");
 		expect(stored?.updatedAt.toISOString()).toBe("2026-08-04T09:00:00.000Z");
@@ -49,7 +51,7 @@ describe("CreateQuizSetUseCase", () => {
 			sourceChapters: "1-3",
 			tags: ["bun", "bun", " sqlite "],
 		});
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
 		expect(stored?.description).toBe("Drills");
 		expect(stored?.source).toBe("DDIA");
@@ -60,6 +62,6 @@ describe("CreateQuizSetUseCase", () => {
 		await expect(
 			create.execute({ title: "   ", language: "uk" }),
 		).rejects.toThrow(QuizSetValidationError);
-		expect(context.quizSets.list()).toEqual([]);
+		expect(await context.scope.quizzes.list()).toEqual([]);
 	});
 });

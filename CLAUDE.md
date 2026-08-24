@@ -67,7 +67,7 @@ Both exemptions are **scoped to their directory** — do not let them spread.
 `apps/bot`, `apps/mcp`, `apps/admin`, `packages/*`, `scripts/`, and all of `src/` stay on
 plain Bun with no exemption.
 
-**Postgres, when you are working on it.** `bun run db:up` starts Postgres 17 in Docker on
+**Postgres.** `bun run db:up` starts Postgres 17 in Docker on
 port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it discover it via
 `TEST_DATABASE_URL` (falling back to the Docker default) and **skip** when it is unreachable,
 so `bun run verify` passes without Docker. Setting `TEST_DATABASE_URL` makes them mandatory
@@ -88,6 +88,11 @@ FK violation. `tests/fixtures/postgres.ts` creates and drops a database per run.
 **`expect(query).rejects` does not work on postgres.js queries.** They are lazy thenables and
 the assertion never settles, so the test hangs to timeout instead of failing. Force execution
 through `catch` — see `failureOf` in `tests/integration/postgres/schema-constraints.test.ts`.
+
+**A test that sets `process.env.DATABASE_URL` must restore it.** `tests/fixtures/postgres.ts`
+reads `TEST_DATABASE_URL ?? DATABASE_URL ?? default` to decide whether Postgres is reachable, so
+a test that points it at a per-run database and then drops that database leaves every later
+suite deciding Postgres is unreachable — and skipping, green.
 
 **Never leave a promise unawaited inside a transaction.** Measured, not theoretical: on
 Postgres an unawaited write inside a `db.transaction(...)` callback survives when that

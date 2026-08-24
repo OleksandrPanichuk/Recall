@@ -2,6 +2,7 @@ import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type { ApplicationDependencies } from "@/application/use-case";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -56,10 +57,7 @@ export const uuidGenerator: IdGenerator = {
 	generate: () => crypto.randomUUID(),
 };
 
-export interface Application {
-	readonly connection: PostgresConnection;
-	readonly unitOfWork: UnitOfWork<RepositoryScope>;
-	readonly scope: RepositoryScope;
+export interface UseCases {
 	readonly createQuizSet: CreateQuizSetUseCase;
 	readonly updateQuizSet: UpdateQuizSetUseCase;
 	readonly addQuestions: AddQuestionsUseCase;
@@ -95,6 +93,12 @@ export interface Application {
 	readonly listLeeches: ListLeechesUseCase;
 	readonly resolveQuizSettings: ResolveQuizSettingsUseCase;
 	readonly updateQuizSettings: UpdateQuizSettingsUseCase;
+}
+
+export interface Application extends UseCases {
+	readonly connection: PostgresConnection;
+	readonly unitOfWork: UnitOfWork<RepositoryScope>;
+	readonly scope: RepositoryScope;
 	close(): Promise<void>;
 }
 
@@ -107,29 +111,12 @@ export interface ApplicationOptions {
 	readonly maxConnections?: number;
 }
 
-export function createApplication(options: ApplicationOptions): Application {
-	const logger = options.logger ?? silentLogger;
-	const connection = createPostgresConnection({
-		url: options.databaseUrl,
-		maxConnections: options.maxConnections,
-	});
-
-	logger.info("database ready", { driver: "postgres" });
-
-	const dependencies = {
-		unitOfWork: createPostgresUnitOfWork(connection.db),
-		scope: readOnlyScope(connection.db),
-		clock: options.clock ?? systemClock,
-		idGenerator: options.idGenerator ?? uuidGenerator,
-		timezone: options.timezone ?? "UTC",
-	};
-
+export function createUseCases(
+	dependencies: ApplicationDependencies,
+): UseCases {
 	const addQuestions = new AddQuestionsUseCase(dependencies);
 
 	return {
-		connection,
-		unitOfWork: dependencies.unitOfWork,
-		scope: dependencies.scope,
 		createQuizSet: new CreateQuizSetUseCase(dependencies),
 		updateQuizSet: new UpdateQuizSetUseCase(dependencies),
 		addQuestions,
@@ -165,6 +152,31 @@ export function createApplication(options: ApplicationOptions): Application {
 		listLeeches: new ListLeechesUseCase(dependencies),
 		resolveQuizSettings: new ResolveQuizSettingsUseCase(dependencies),
 		updateQuizSettings: new UpdateQuizSettingsUseCase(dependencies),
+	};
+}
+
+export function createApplication(options: ApplicationOptions): Application {
+	const logger = options.logger ?? silentLogger;
+	const connection = createPostgresConnection({
+		url: options.databaseUrl,
+		maxConnections: options.maxConnections,
+	});
+
+	logger.info("database ready", { driver: "postgres" });
+
+	const dependencies: ApplicationDependencies = {
+		unitOfWork: createPostgresUnitOfWork(connection.db),
+		scope: readOnlyScope(connection.db),
+		clock: options.clock ?? systemClock,
+		idGenerator: options.idGenerator ?? uuidGenerator,
+		timezone: options.timezone ?? "UTC",
+	};
+
+	return {
+		connection,
+		unitOfWork: dependencies.unitOfWork,
+		scope: dependencies.scope,
+		...createUseCases(dependencies),
 		close: async () => {
 			await connection.close();
 			logger.debug("database closed", { driver: "postgres" });

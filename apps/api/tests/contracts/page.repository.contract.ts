@@ -51,6 +51,16 @@ export function describePageRepository(
 				expect(stored?.parentId).toBeUndefined();
 			});
 
+			test("treats an id that is not a uuid as missing, not as an error", async () => {
+				const missing = toFolderId("does-not-exist");
+
+				expect(await harness.scope.pages.findById(missing)).toBeUndefined();
+				expect(await harness.scope.pages.listChildren(missing)).toEqual([]);
+				expect(await harness.scope.pages.listAncestors(missing)).toEqual([]);
+				expect(await harness.scope.pages.countQuizzesIn(missing)).toBe(0);
+				expect(await harness.scope.pages.countChildPages(missing)).toBe(0);
+			});
+
 			test("lists children in name order", async () => {
 				const root = uuid();
 

@@ -25,7 +25,7 @@ afterEach(() => {
 describe("PublishQuizSetUseCase", () => {
 	test("publishes a draft that has questions", async () => {
 		const quizSetId = await newPublished();
-		const stored = context.quizSets.findById(quizSetId);
+		const stored = await context.scope.quizzes.findById(quizSetId);
 
 		expect(stored?.status).toBe(QuizSetStatus.Published);
 		expect(stored?.publishedAt).toBeDefined();
@@ -33,14 +33,15 @@ describe("PublishQuizSetUseCase", () => {
 
 	test("publishing again keeps the original timestamp", async () => {
 		const quizSetId = await newPublished();
-		const first = context.quizSets.findById(quizSetId)?.publishedAt;
+		const first = (await context.scope.quizzes.findById(quizSetId))
+			?.publishedAt;
 		context.clock.advance(60_000);
 
 		await publish.execute({ quizSetId });
 
-		expect(context.quizSets.findById(quizSetId)?.publishedAt).toEqual(
-			first as Date,
-		);
+		expect(
+			(await context.scope.quizzes.findById(quizSetId))?.publishedAt,
+		).toEqual(first as Date);
 	});
 
 	test("refuses a set with no questions", async () => {
@@ -49,7 +50,7 @@ describe("PublishQuizSetUseCase", () => {
 		await expect(publish.execute({ quizSetId })).rejects.toThrow(
 			EmptyQuizSetError,
 		);
-		expect(context.quizSets.findById(quizSetId)?.status).toBe(
+		expect((await context.scope.quizzes.findById(quizSetId))?.status).toBe(
 			QuizSetStatus.Draft,
 		);
 	});

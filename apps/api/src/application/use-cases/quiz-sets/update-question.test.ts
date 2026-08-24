@@ -30,8 +30,9 @@ afterEach(() => {
 	harness.context.close();
 });
 
-const firstQuestionOf = (quizSetId: ReturnType<typeof toQuizSetId>) => {
-	const question = harness.context.quizSets.findById(quizSetId)?.questions[0];
+const firstQuestionOf = async (quizSetId: ReturnType<typeof toQuizSetId>) => {
+	const question = (await harness.context.scope.quizzes.findById(quizSetId))
+		?.questions[0];
 
 	if (question === undefined) {
 		throw new Error("the set has no questions");
@@ -43,7 +44,7 @@ const firstQuestionOf = (quizSetId: ReturnType<typeof toQuizSetId>) => {
 describe("UpdateQuestionUseCase", () => {
 	test("fixes a prompt on a published set", async () => {
 		const quizSetId = await harness.newPublished();
-		const before = firstQuestionOf(quizSetId);
+		const before = await firstQuestionOf(quizSetId);
 
 		await update.execute({
 			quizSetId,
@@ -51,7 +52,7 @@ describe("UpdateQuestionUseCase", () => {
 			prompt: "What does WAL actually stand for?",
 		});
 
-		const after = firstQuestionOf(quizSetId);
+		const after = await firstQuestionOf(quizSetId);
 
 		expect(after.prompt).toBe("What does WAL actually stand for?");
 		expect(String(after.id)).toBe(String(before.id));
@@ -59,7 +60,7 @@ describe("UpdateQuestionUseCase", () => {
 
 	test("keeps the fields it was not given", async () => {
 		const quizSetId = await harness.newPublished();
-		const before = firstQuestionOf(quizSetId);
+		const before = await firstQuestionOf(quizSetId);
 
 		await update.execute({
 			quizSetId,
@@ -67,7 +68,7 @@ describe("UpdateQuestionUseCase", () => {
 			prompt: "Reworded",
 		});
 
-		const after = firstQuestionOf(quizSetId);
+		const after = await firstQuestionOf(quizSetId);
 
 		expect(after.difficulty).toBe(before.difficulty);
 		expect(after.options.map((option) => option.text)).toEqual(
@@ -87,7 +88,7 @@ describe("UpdateQuestionUseCase", () => {
 				}),
 			],
 		});
-		const before = firstQuestionOf(quizSetId);
+		const before = await firstQuestionOf(quizSetId);
 
 		await update.execute({
 			quizSetId,
@@ -99,7 +100,7 @@ describe("UpdateQuestionUseCase", () => {
 			],
 		});
 
-		const after = firstQuestionOf(quizSetId);
+		const after = await firstQuestionOf(quizSetId);
 
 		expect(after.options.map((option) => option.text)).toEqual([
 			"блискавка",
@@ -111,7 +112,7 @@ describe("UpdateQuestionUseCase", () => {
 
 	test("still refuses answers the question type does not allow", async () => {
 		const quizSetId = await harness.newPublished();
-		const question = firstQuestionOf(quizSetId);
+		const question = await firstQuestionOf(quizSetId);
 
 		await expect(
 			update.execute({
@@ -132,10 +133,11 @@ describe("UpdateQuestionUseCase", () => {
 			questions: [aQuestionInput(), anotherQuestionInput()],
 		});
 
-		const [first, second] = harness.context.quizSets.findById(quizSetId)
-			?.questions as [
-			ReturnType<typeof firstQuestionOf>,
-			ReturnType<typeof firstQuestionOf>,
+		const [first, second] = (
+			await harness.context.scope.quizzes.findById(quizSetId)
+		)?.questions as [
+			Awaited<ReturnType<typeof firstQuestionOf>>,
+			Awaited<ReturnType<typeof firstQuestionOf>>,
 		];
 
 		await expect(
@@ -149,7 +151,7 @@ describe("UpdateQuestionUseCase", () => {
 
 	test("refuses an archived set", async () => {
 		const quizSetId = await harness.newPublished();
-		const question = firstQuestionOf(quizSetId);
+		const question = await firstQuestionOf(quizSetId);
 		await harness.archive.execute({ quizSetId });
 
 		await expect(
@@ -181,7 +183,7 @@ describe("UpdateQuestionUseCase", () => {
 
 	test("cannot change the type of a question", async () => {
 		const quizSetId = await harness.newPublished();
-		const question = firstQuestionOf(quizSetId);
+		const question = await firstQuestionOf(quizSetId);
 
 		await update.execute({
 			quizSetId,
@@ -189,11 +191,13 @@ describe("UpdateQuestionUseCase", () => {
 			prompt: "Still single choice",
 		});
 
-		expect(firstQuestionOf(quizSetId).type).toBe(QuestionType.SingleChoice);
+		expect((await firstQuestionOf(quizSetId)).type).toBe(
+			QuestionType.SingleChoice,
+		);
 	});
 	test("keeps option ids stable when the options are rewritten", async () => {
 		const quizSetId = await harness.newPublished();
-		const before = firstQuestionOf(quizSetId);
+		const before = await firstQuestionOf(quizSetId);
 
 		await update.execute({
 			quizSetId,
@@ -204,7 +208,7 @@ describe("UpdateQuestionUseCase", () => {
 			],
 		});
 
-		const after = firstQuestionOf(quizSetId);
+		const after = await firstQuestionOf(quizSetId);
 
 		expect(after.options.map((option) => String(option.id))).toEqual(
 			before.options.map((option) => String(option.id)),
@@ -215,7 +219,7 @@ describe("UpdateQuestionUseCase", () => {
 	test("leaves a finished attempt still able to name what was chosen", async () => {
 		const user = 42;
 		const quizSetId = await harness.newPublished();
-		const question = firstQuestionOf(quizSetId);
+		const question = await firstQuestionOf(quizSetId);
 		const wrong = question.options.find((option) => !option.isCorrect);
 
 		if (wrong === undefined) {

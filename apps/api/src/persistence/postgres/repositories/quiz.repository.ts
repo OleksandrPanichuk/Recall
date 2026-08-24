@@ -19,12 +19,17 @@ import type { QuizSet, QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { questionOptions, questions, quizzes } from "../schema";
 import type { Executor } from "../unit-of-work";
+import { isUuid } from "../uuid";
 import { toQuiz } from "./quiz.mapper";
 
 export function createQuizPostgresRepository(
 	executor: Executor,
 ): QuizRepository {
 	const currentVersion = async (id: string): Promise<number | undefined> => {
+		if (!isUuid(id)) {
+			return undefined;
+		}
+
 		const [row] = await executor
 			.select({ version: quizzes.version })
 			.from(quizzes)
@@ -140,6 +145,10 @@ export function createQuizPostgresRepository(
 		},
 
 		async findById(id: QuizSetId): Promise<QuizSet | undefined> {
+			if (!isUuid(String(id))) {
+				return undefined;
+			}
+
 			const [row] = await executor
 				.select()
 				.from(quizzes)
@@ -183,6 +192,10 @@ export function createQuizPostgresRepository(
 			if (filter?.pageId === null) {
 				conditions.push(isNull(quizzes.pageId));
 			} else if (filter?.pageId !== undefined) {
+				if (!isUuid(String(filter.pageId))) {
+					return [];
+				}
+
 				conditions.push(eq(quizzes.pageId, String(filter.pageId)));
 			}
 
