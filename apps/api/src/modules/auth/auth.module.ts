@@ -2,6 +2,7 @@ import { Global, Module } from "@nestjs/common";
 import type { PostgresConnection } from "@/persistence/postgres/client";
 import { loadApiEnvironment } from "../shared/config/api-env";
 import { CONNECTION } from "../shared/database/tokens";
+import { ApiTokenService } from "./api-token.service";
 import { createAuth, type RecallAuth } from "./build-auth";
 import { TelegramIdentityService } from "./telegram-identity.service";
 import { AUTH } from "./tokens";
@@ -28,9 +29,10 @@ import { AUTH } from "./tokens";
 				});
 			},
 		},
+		ApiTokenService,
 		TelegramIdentityService,
 	],
-	exports: [AUTH, TelegramIdentityService],
+	exports: [AUTH, ApiTokenService, TelegramIdentityService],
 })
 export class AuthModule {}
 

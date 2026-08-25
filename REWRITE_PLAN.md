@@ -1398,6 +1398,44 @@ answer recorded, 38→39 attempts). Then the same database was served as a *seco
 account: `/quizzes` returned 9 for the owner and **0** for the other, and `/bot/*` refused a body
 naming a foreign account with 403.
 
+## Phase 7c (first half): MCP per credential (r23)
+
+The MCP surface no longer serves "the instance" — it serves whoever the token belongs to.
+`createMcpHttpApp` takes `applicationFor(owner)` and builds the tools per request, and bearer
+verification returns a **principal** rather than a boolean, which is the change §5 asked for.
+
+**Personal access tokens.** `api_tokens` holds owner, name, scopes, `last_used_at`, `expires_at`
+and `revoked_at`; only a sha256 of the token is stored, so a leaked database hands nobody a
+working credential and the token itself is shown once. The bot issues, lists and revokes them
+(`/token`, `/tokens`, `/revoke`), which means the same Telegram account that owns the data is the
+only thing that can mint access to it.
+
+**Three kinds of credential, one answer.** A personal token names its own owner. The static
+`MCP_HTTP_TOKEN` and an OAuth grant resolve to the instance owner — the consent gate is a
+passphrase, and whoever knows it is that owner. Binding a *user* into the OAuth grant proper is
+the second half of 7c, and it needs the consent screen to require a session.
+
+**Two things the SDK and the driver taught us.** The MCP SDK refuses an auth assertion with no
+expiry (`Token has no expiration time`), so a non-expiring personal token still gets a bounded
+assertion — the token stays valid, only the assertion is short-lived, exactly as the static
+token's already was. And `findApiTokenPrincipal` failed at first for the reason CLAUDE.md warns
+about: a raw `Date` handed to postgres.js. The placeholder is now `${at.toISOString()}::timestamptz`.
+
+**The ETL stopped applying the schema.** `APPLY_SCHEMA=1` wrote the tables without recording them
+in drizzle's journal, so the next `db:migrate` against that database tried to create everything
+again and failed — which is exactly what happened when this phase added a migration. The script
+now refuses a database with no schema and tells you to run `bun run db:migrate` first. Migrations
+are drizzle-kit's job.
+
+**Proven against the real library.** Same `/mcp` endpoint, one process: the owner's personal token
+listed **9** sets, the static token listed **9**, a second owner's token listed **0**, and a
+forged token got 401. Revoking through the bot turned a working token into a 401, and
+`last_used_at` recorded every use.
+
+**What the second half still owes:** `user_id` on `oauth_codes`/`oauth_tokens` bound from a
+logged-in consent screen, moving that store off `bun:sqlite` (its interface is synchronous, which
+is what pins `apps/api` to Bun), and then the Node switch.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

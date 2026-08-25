@@ -24,6 +24,11 @@ import {
 import { menuHandler, resumeHandler } from "./handlers/start.handler";
 import { startAttemptHandler } from "./handlers/start-attempt.handler";
 import { statisticsHandler } from "./handlers/statistics.handler";
+import {
+	issueTokenHandler,
+	listTokensHandler,
+	revokeTokenHandler,
+} from "./handlers/tokens.handler";
 import { allowlistMiddleware } from "./middleware/allowlist.middleware";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { loggingMiddleware } from "./middleware/logging.middleware";
@@ -52,6 +57,23 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 
 	bot.start(menuHandler(useCases));
 	bot.command("login", loginHandler(useCases));
+	bot.command("tokens", listTokensHandler(useCases));
+	bot.command("token", async (ctx) => {
+		const name = ctx.message.text.slice("/token".length).trim();
+
+		await issueTokenHandler(useCases)(ctx, name.length === 0 ? "mcp" : name);
+	});
+	bot.command("revoke", async (ctx) => {
+		const id = ctx.message.text.slice("/revoke".length).trim();
+
+		if (id.length === 0) {
+			await listTokensHandler(useCases)(ctx);
+
+			return;
+		}
+
+		await revokeTokenHandler(useCases)(ctx, id);
+	});
 
 	bot.on("callback_query", async (ctx) => {
 		const query = ctx.callbackQuery;

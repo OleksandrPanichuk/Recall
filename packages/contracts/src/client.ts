@@ -2,9 +2,11 @@ import type { z } from "zod";
 import {
 	type AnswerQuestionCommand,
 	type AnswerQuestionResult,
+	type ApiToken,
 	type AttemptDetail,
 	answerCommandSchema,
 	answerResultSchema,
+	apiTokenSchema,
 	attemptDetailCommandSchema,
 	attemptDetailSchema,
 	type BrowseFolderCommand,
@@ -24,13 +26,19 @@ import {
 	type GetAttemptDetailCommand,
 	type GetCurrentQuestionCommand,
 	type GetQuizStatisticsCommand,
+	type IssueApiTokenCommand,
+	type IssuedApiToken,
 	type IssueLoginLinkCommand,
+	issueApiTokenCommandSchema,
+	issuedApiTokenSchema,
 	type LeechView,
+	type ListApiTokensCommand,
 	type ListDueRepetitionsCommand,
 	type ListLeechesCommand,
 	type LoginLink,
 	leechesCommandSchema,
 	leechSchema,
+	listApiTokensCommandSchema,
 	loginLinkCommandSchema,
 	loginLinkSchema,
 	practiceCommandSchema,
@@ -41,8 +49,12 @@ import {
 	quizStatisticsSchema,
 	type ResolvedQuizSettings,
 	type ResolveQuizSettingsCommand,
+	type RevokeApiTokenCommand,
+	type RevokedApiToken,
 	resolvedSettingsSchema,
 	resolveSettingsCommandSchema,
+	revokeApiTokenCommandSchema,
+	revokedApiTokenSchema,
 	type StartPracticeSessionCommand,
 	type StartPracticeSessionResult,
 	type StartQuizAttemptCommand,
@@ -148,6 +160,12 @@ export interface UseCaseLike<Command, Result> {
 
 export interface BotUseCases {
 	readonly issueLoginLink: UseCaseLike<IssueLoginLinkCommand, LoginLink>;
+	readonly issueApiToken: UseCaseLike<IssueApiTokenCommand, IssuedApiToken>;
+	readonly listApiTokens: UseCaseLike<
+		ListApiTokensCommand,
+		readonly ApiToken[]
+	>;
+	readonly revokeApiToken: UseCaseLike<RevokeApiTokenCommand, RevokedApiToken>;
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly listDueRepetitions: UseCaseLike<
 		ListDueRepetitionsCommand,
@@ -194,6 +212,9 @@ export interface BotUseCases {
 
 export const BOT_ROUTES = {
 	loginLink: "auth/login-link",
+	issueApiToken: "auth/tokens/issue",
+	listApiTokens: "auth/tokens/list",
+	revokeApiToken: "auth/tokens/revoke",
 	browse: "browse",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
@@ -312,6 +333,21 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 			BOT_ROUTES.loginLink,
 			loginLinkCommandSchema,
 			loginLinkSchema,
+		),
+		issueApiToken: operation(
+			BOT_ROUTES.issueApiToken,
+			issueApiTokenCommandSchema,
+			issuedApiTokenSchema,
+		),
+		listApiTokens: operation(
+			BOT_ROUTES.listApiTokens,
+			listApiTokensCommandSchema,
+			apiTokenSchema.array().readonly(),
+		),
+		revokeApiToken: operation(
+			BOT_ROUTES.revokeApiToken,
+			revokeApiTokenCommandSchema,
+			revokedApiTokenSchema,
 		),
 		browseFolder: operation(
 			BOT_ROUTES.browse,

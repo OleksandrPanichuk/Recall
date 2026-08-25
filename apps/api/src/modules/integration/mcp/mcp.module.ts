@@ -8,10 +8,24 @@ import {
 	type OAuthDatabase,
 } from "@/adapters/persistence/sqlite/oauth-database";
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
-import type { ApplicationDependencies } from "@/application/use-case";
-import { createUseCases } from "@/composition/create-application";
+import {
+	createUseCases,
+	systemClock,
+	uuidGenerator,
+} from "@/composition/create-application";
+import {
+	findApiTokenPrincipal,
+	looksLikeApiToken,
+	touchApiToken,
+} from "@/persistence/postgres/api-tokens";
+import type { PostgresConnection } from "@/persistence/postgres/client";
+import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
+import {
+	createPostgresUnitOfWork,
+	readOnlyScope,
+} from "@/persistence/postgres/unit-of-work";
 import { loadApiEnvironment } from "../../shared/config/api-env";
-import { USE_CASE_DEPENDENCIES } from "../../shared/database/tokens";
+import { CONNECTION, INSTANCE_OWNER } from "../../shared/database/tokens";
 
 export const MCP_SURFACE = Symbol("MCP_SURFACE");
 
@@ -24,8 +38,11 @@ export interface McpSurface {
 	providers: [
 		{
 			provide: MCP_SURFACE,
-			inject: [USE_CASE_DEPENDENCIES],
-			useFactory: (dependencies: ApplicationDependencies): McpSurface => {
+			inject: [CONNECTION, INSTANCE_OWNER],
+			useFactory: (
+				connection: PostgresConnection,
+				instanceOwner: OwnerResolver,
+			): McpSurface => {
 				const environment = loadApiEnvironment();
 
 				if (environment.mcpToken === undefined) {
@@ -40,7 +57,16 @@ export interface McpSurface {
 				return {
 					database,
 					app: createMcpHttpApp({
-						application: createUseCases(dependencies),
+						// The tools are built for whoever the credential belongs to, so
+						// two people with two tokens see two different libraries.
+						applicationFor: (owner) =>
+							createUseCases({
+								unitOfWork: createPostgresUnitOfWork(connection.db, owner),
+								scope: readOnlyScope(connection.db, owner),
+								clock: systemClock,
+								idGenerator: uuidGenerator,
+								timezone: process.env.APP_TIMEZONE ?? "UTC",
+							}),
 						logger: silentLogger,
 						oauth: createOAuthProvider({
 							store: createSqliteOAuthStore(
@@ -49,6 +75,35 @@ export interface McpSurface {
 								() => new Date(),
 							),
 							staticToken: environment.mcpToken,
+							instanceOwner,
+							personalToken: async (token) => {
+								if (!looksLikeApiToken(token)) {
+									return undefined;
+								}
+
+								const principal = await findApiTokenPrincipal(
+									connection.db,
+									token,
+									new Date(),
+								);
+
+								if (principal === undefined) {
+									return undefined;
+								}
+
+								await touchApiToken(
+									connection.db,
+									principal.tokenId,
+									new Date(),
+								);
+
+								return {
+									owner: principal.owner,
+									scopes: principal.scopes,
+									expiresAt: principal.expiresAt,
+									tokenId: principal.tokenId,
+								};
+							},
 							now: () => new Date(),
 						}),
 						allowedHosts: environment.mcpAllowedHosts,

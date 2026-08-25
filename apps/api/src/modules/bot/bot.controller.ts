@@ -17,10 +17,13 @@ import {
 	currentQuestionCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
+	issueApiTokenCommandSchema,
 	leechesCommandSchema,
+	listApiTokensCommandSchema,
 	loginLinkCommandSchema,
 	practiceCommandSchema,
 	resolveSettingsCommandSchema,
+	revokeApiTokenCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
@@ -42,6 +45,7 @@ import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { ApiTokenService } from "../auth/api-token.service";
 import { TelegramIdentityService } from "../auth/telegram-identity.service";
 import { BotTokenGuard } from "./bot-token.guard";
 import { parseBody } from "./parse-body";
@@ -67,6 +71,8 @@ export class BotController {
 	constructor(
 		@Inject(TelegramIdentityService)
 		private readonly identity: TelegramIdentityService,
+		@Inject(ApiTokenService)
+		private readonly tokens: ApiTokenService,
 		@Inject(BrowseFolderUseCase)
 		private readonly browseFolder: BrowseFolderUseCase,
 		@Inject(StartQuizAttemptUseCase)
@@ -106,6 +112,52 @@ export class BotController {
 		);
 
 		return { url: link.url, expiresAt: link.expiresAt.toISOString() };
+	}
+
+	@Post(BOT_ROUTES.issueApiToken)
+	@HttpCode(HttpStatus.OK)
+	async issueApiToken(@Body() body: unknown) {
+		const command = parseBody(issueApiTokenCommandSchema, body);
+		const issued = await this.tokens.issue(command.telegramUserId, {
+			name: command.name,
+			expiresInDays: command.expiresInDays,
+		});
+
+		return {
+			id: issued.id,
+			name: issued.name,
+			token: issued.token,
+			expiresAt: issued.expiresAt?.toISOString(),
+		};
+	}
+
+	@Post(BOT_ROUTES.listApiTokens)
+	@HttpCode(HttpStatus.OK)
+	async listApiTokens(@Body() body: unknown) {
+		const command = parseBody(listApiTokensCommandSchema, body);
+		const tokens = await this.tokens.list(command.telegramUserId);
+
+		return tokens.map((token) => ({
+			id: token.id,
+			name: token.name,
+			scopes: [...token.scopes],
+			lastUsedAt: token.lastUsedAt?.toISOString(),
+			expiresAt: token.expiresAt?.toISOString(),
+			createdAt: token.createdAt.toISOString(),
+		}));
+	}
+
+	@Post(BOT_ROUTES.revokeApiToken)
+	@HttpCode(HttpStatus.OK)
+	async revokeApiToken(@Body() body: unknown) {
+		const command = parseBody(revokeApiTokenCommandSchema, body);
+
+		return {
+			revoked: await this.tokens.revoke(
+				command.telegramUserId,
+				command.tokenId,
+			),
+		};
 	}
 
 	@Post(BOT_ROUTES.browse)

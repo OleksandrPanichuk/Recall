@@ -15,6 +15,7 @@ import { createMcpHttpApp } from "./app";
 import { createOAuthProvider } from "./oauth/provider";
 
 const STATIC_TOKEN = "s".repeat(40);
+const OWNER = "the-owner";
 const PASSPHRASE = "correct horse battery staple";
 
 let application: MemoryApplication;
@@ -49,10 +50,11 @@ beforeEach(async () => {
 			() => new Date(),
 		),
 		staticToken: STATIC_TOKEN,
+		instanceOwner: async () => OWNER,
 		now: () => new Date(),
 	});
 	const app = createMcpHttpApp({
-		application,
+		applicationFor: () => application,
 		logger: createRecordingLogger(),
 		oauth,
 		allowedHosts: [],

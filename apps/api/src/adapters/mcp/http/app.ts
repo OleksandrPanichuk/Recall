@@ -3,6 +3,7 @@ import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Logger } from "@recall/kit";
 import express, { type Express, type Request, type Response } from "express";
+import type { OwnerId } from "@/application/ports/owner";
 import type { UseCases } from "@/composition/create-application";
 import { createMcpServer } from "../server";
 import { matchesToken } from "./bearer";
@@ -14,7 +15,9 @@ import {
 } from "./oauth/provider";
 
 export interface McpHttpAppDependencies {
-	readonly application: UseCases;
+	// Per request, not per process: which quizzes the tools can see depends on
+	// whose credential arrived.
+	applicationFor(owner: OwnerId): UseCases;
 	readonly logger: Logger;
 	readonly oauth: RecallOAuth;
 	readonly allowedHosts: readonly string[];
@@ -25,7 +28,7 @@ export interface McpHttpAppDependencies {
 export function createMcpHttpApp(
 	dependencies: McpHttpAppDependencies,
 ): Express {
-	const { application, logger, oauth, allowedHosts, issuer, passphrase } =
+	const { applicationFor, logger, oauth, allowedHosts, issuer, passphrase } =
 		dependencies;
 	const app = express();
 
@@ -96,17 +99,38 @@ export function createMcpHttpApp(
 		});
 	}
 
+	// requireBearerAuth puts what the verifier returned on request.auth, so the
+	// owner the token belongs to travels with the request rather than being
+	// looked up again here.
+	const ownerOf = (request: Request): OwnerId | undefined => {
+		const extra = (request as { auth?: { extra?: unknown } }).auth?.extra;
+		const owner = (extra as { ownerId?: unknown } | undefined)?.ownerId;
+
+		return typeof owner === "string" ? (owner as OwnerId) : undefined;
+	};
+
 	app.all(
 		"/mcp",
 		requireBearerAuth({ verifier: oauth.provider }),
 		async (request: Request, response: Response) => {
+			const owner = ownerOf(request);
+
+			if (owner === undefined) {
+				response.status(403).json({
+					error: "no_owner",
+					error_description: "that credential is not tied to an account",
+				});
+
+				return;
+			}
+
 			const transport = new StreamableHTTPServerTransport({
 				sessionIdGenerator: undefined,
 				enableJsonResponse: true,
 				allowedHosts: [...allowedHosts],
 				enableDnsRebindingProtection: allowedHosts.length > 0,
 			});
-			const server = createMcpServer(application, { logger });
+			const server = createMcpServer(applicationFor(owner), { logger });
 
 			try {
 				await server.connect(transport);

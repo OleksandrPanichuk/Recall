@@ -338,6 +338,7 @@ export const studySettings = pgTable(
 
 export {
 	account,
+	apiTokens,
 	authEvents,
 	session,
 	user,

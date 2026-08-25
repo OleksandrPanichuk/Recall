@@ -20,6 +20,7 @@ import {
 
 export const CONSENT_PATH = "/consent";
 export const STATIC_CLIENT_ID = "static-token";
+export const PERSONAL_CLIENT_ID = "personal-token";
 export const OFFLINE_ACCESS = "offline_access";
 
 const CODE_TTL_MS = 60_000;
@@ -47,9 +48,24 @@ export interface RecallOAuth {
 	readonly consent: ConsentGate;
 }
 
+export interface TokenPrincipal {
+	readonly owner: string;
+	readonly scopes: readonly string[];
+	readonly expiresAt?: Date;
+	readonly tokenId?: string;
+}
+
 export interface OAuthProviderDependencies {
 	readonly store: OAuthStore;
 	readonly staticToken?: string;
+	// A personal token names its own owner. The static token and an oauth grant
+	// belong to whoever runs the instance — the consent gate is a passphrase, and
+	// the person who knows it is that owner. When consent requires a session
+	// instead, the grant carries its own user and this stops being the fallback.
+	readonly instanceOwner?: () => Promise<string>;
+	readonly personalToken?: (
+		token: string,
+	) => Promise<TokenPrincipal | undefined>;
 	now(): Date;
 }
 
@@ -58,7 +74,8 @@ const secret = (): string => randomBytes(32).toString("base64url");
 export function createOAuthProvider(
 	dependencies: OAuthProviderDependencies,
 ): RecallOAuth {
-	const { store, staticToken, now } = dependencies;
+	const { store, staticToken, instanceOwner, personalToken, now } =
+		dependencies;
 	const pendings = new Map<string, PendingAuthorization>();
 
 	const forget = (): void => {
@@ -67,6 +84,14 @@ export function createOAuthProvider(
 				pendings.delete(id);
 			}
 		}
+	};
+
+	const ownerFor = async (
+		stored: string | undefined,
+	): Promise<{ ownerId: string } | undefined> => {
+		const owner = stored ?? (await instanceOwner?.());
+
+		return owner === undefined ? undefined : { ownerId: owner };
 	};
 
 	const issue = (clientId: string, scopes: readonly string[]): OAuthTokens => {
@@ -196,6 +221,28 @@ export function createOAuthProvider(
 					clientId: STATIC_CLIENT_ID,
 					scopes: [OFFLINE_ACCESS],
 					expiresAt: Math.floor((now().getTime() + ACCESS_TTL_MS) / 1000),
+					extra:
+						instanceOwner === undefined
+							? undefined
+							: { ownerId: await instanceOwner() },
+				};
+			}
+
+			const personal = await personalToken?.(token);
+
+			if (personal !== undefined) {
+				return {
+					token,
+					clientId: PERSONAL_CLIENT_ID,
+					scopes: [...personal.scopes],
+					// The sdk refuses an assertion with no expiry, and a personal
+					// token may legitimately have none. The token stays valid; only
+					// this assertion about it is short-lived, as the static token's is.
+					expiresAt: Math.floor(
+						(personal.expiresAt?.getTime() ?? now().getTime() + ACCESS_TTL_MS) /
+							1000,
+					),
+					extra: { ownerId: personal.owner },
 				};
 			}
 
@@ -213,6 +260,7 @@ export function createOAuthProvider(
 					stored.expiresAt === undefined
 						? undefined
 						: Math.floor(stored.expiresAt.getTime() / 1000),
+				extra: await ownerFor(stored.ownerId),
 			};
 		},
 

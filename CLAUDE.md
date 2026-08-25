@@ -109,6 +109,14 @@ lets the http surfaces be built at boot, before anyone has linked. `ensureTelegr
 id to an owner; the ETL and the login flow both go through them, so an import cannot land under a
 different user than the one the bot will hand the platform to.
 
+**MCP is per credential, not per instance.** `createMcpHttpApp` takes `applicationFor(owner)`
+and builds the tools for whoever the bearer token belongs to, so two people with two tokens see
+two libraries. Verification returns a **principal**, never a boolean: a personal token
+(`recall_pat_…`, sha256-hashed at rest, issued by the bot via `/bot/auth/tokens/*`) names its own
+owner; the static `MCP_HTTP_TOKEN` and an OAuth grant resolve to the instance owner, because the
+consent gate is a passphrase and whoever knows it *is* that owner. The MCP SDK **refuses an auth
+assertion with no expiry**, so a non-expiring personal token still gets a bounded assertion.
+
 **A refusal travels as a name, not a class.** The API answers a domain error with
 `{ error: "<ErrorName>", details }`, and the bot maps that name to user text
 (`ApiErrorName` / `isApiError` in `packages/contracts`). Only a whitelist of detail keys

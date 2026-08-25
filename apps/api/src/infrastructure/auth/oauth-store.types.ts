@@ -22,6 +22,7 @@ export interface StoredToken {
 	readonly clientId: string;
 	readonly scopes: readonly string[];
 	readonly expiresAt?: Date;
+	readonly ownerId?: string;
 }
 
 export interface OAuthStore {

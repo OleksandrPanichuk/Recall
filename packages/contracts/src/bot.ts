@@ -214,6 +214,39 @@ export const loginLinkSchema = z.object({
 	expiresAt: z.string(),
 });
 
+export const issueApiTokenCommandSchema = z.object({
+	telegramUserId: z.number().int(),
+	name: z.string().trim().min(1).max(80),
+	expiresInDays: z.number().int().positive().max(3650).optional(),
+});
+
+export const issuedApiTokenSchema = z.object({
+	id,
+	name: z.string(),
+	token: z.string(),
+	expiresAt: z.string().optional(),
+});
+
+export const listApiTokensCommandSchema = z.object({
+	telegramUserId: z.number().int(),
+});
+
+export const apiTokenSchema = z.object({
+	id,
+	name: z.string(),
+	scopes: z.array(z.string()).readonly(),
+	lastUsedAt: z.string().optional(),
+	expiresAt: z.string().optional(),
+	createdAt: z.string(),
+});
+
+export const revokeApiTokenCommandSchema = z.object({
+	telegramUserId: z.number().int(),
+	tokenId: id,
+});
+
+export const revokedApiTokenSchema = z.object({ revoked: z.boolean() });
+
 export const browseCommandSchema = z.object({ folderId: optionalId });
 
 export const startAttemptCommandSchema = z.object({
@@ -303,6 +336,12 @@ export type ResolvedQuizSettings = z.infer<typeof resolvedSettingsSchema>;
 
 export type LoginLink = z.infer<typeof loginLinkSchema>;
 export type IssueLoginLinkCommand = z.infer<typeof loginLinkCommandSchema>;
+export type IssuedApiToken = z.infer<typeof issuedApiTokenSchema>;
+export type ApiToken = z.infer<typeof apiTokenSchema>;
+export type IssueApiTokenCommand = z.infer<typeof issueApiTokenCommandSchema>;
+export type ListApiTokensCommand = z.infer<typeof listApiTokensCommandSchema>;
+export type RevokeApiTokenCommand = z.infer<typeof revokeApiTokenCommandSchema>;
+export type RevokedApiToken = z.infer<typeof revokedApiTokenSchema>;
 export type BrowseFolderCommand = z.infer<typeof browseCommandSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;
