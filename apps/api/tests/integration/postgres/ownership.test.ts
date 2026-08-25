@@ -7,7 +7,7 @@ import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
 } from "@/persistence/postgres/unit-of-work";
-import { describePageRepository } from "../../contracts/page.repository.contract";
+import { describeOwnership } from "../../contracts/ownership.contract";
 import {
 	applyMigration,
 	openPostgres,
@@ -20,39 +20,40 @@ const available = await postgresAvailable();
 
 let harness: PostgresHarness;
 let db: RecallDatabase;
-let owner: OwnerId;
+let mine: OwnerId;
+let theirs: OwnerId;
 
 beforeAll(async () => {
 	if (!available) {
 		return;
 	}
 
-	harness = await openPostgres("pages");
+	harness = await openPostgres("ownership");
 	await applyMigration(harness);
 	db = drizzle({ client: harness.client, schema });
-	owner = await seedOwner(harness, `${"page"} owner`);
+	mine = await seedOwner(harness, "the owner");
+	theirs = await seedOwner(harness, "somebody else");
 });
 
 afterAll(async () => {
 	await harness?.close();
 });
 
-describePageRepository(
+describeOwnership(
 	"postgres",
 	() => ({
-		unitOfWork: createPostgresUnitOfWork(db, owner),
-		scope: readOnlyScope(db, owner),
-		reset: async () => {
-			await harness.client.unsafe("truncate pages, quizzes cascade");
+		mine: {
+			unitOfWork: createPostgresUnitOfWork(db, mine),
+			scope: readOnlyScope(db, mine),
 		},
-		seedQuiz: async (pageId, status) => {
-			await harness.client`
-				insert into quizzes (id, owner_id, page_id, title, language, status)
-				values (
-					${crypto.randomUUID()}::uuid, ${String(owner)}::text, ${pageId}::uuid,
-					${status}::text, 'en'::text, ${status}::text
-				)
-			`;
+		theirs: {
+			unitOfWork: createPostgresUnitOfWork(db, theirs),
+			scope: readOnlyScope(db, theirs),
+		},
+		reset: async () => {
+			await harness.client.unsafe(
+				"truncate pages, quizzes, attempts, review_states, study_settings, term_pairs cascade",
+			);
 		},
 	}),
 	{ skip: !available },

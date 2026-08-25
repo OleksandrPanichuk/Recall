@@ -2,6 +2,7 @@ import type { Logger } from "@recall/kit";
 import { silentLogger } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
+import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { ApplicationDependencies } from "@/application/use-case";
@@ -104,6 +105,7 @@ export interface Application extends UseCases {
 
 export interface ApplicationOptions {
 	readonly databaseUrl: string;
+	readonly owner: OwnerId;
 	readonly timezone?: string;
 	readonly clock?: Clock;
 	readonly idGenerator?: IdGenerator;
@@ -165,8 +167,8 @@ export function createApplication(options: ApplicationOptions): Application {
 	logger.info("database ready", { driver: "postgres" });
 
 	const dependencies: ApplicationDependencies = {
-		unitOfWork: createPostgresUnitOfWork(connection.db),
-		scope: readOnlyScope(connection.db),
+		unitOfWork: createPostgresUnitOfWork(connection.db, options.owner),
+		scope: readOnlyScope(connection.db, options.owner),
 		clock: options.clock ?? systemClock,
 		idGenerator: options.idGenerator ?? uuidGenerator,
 		timezone: options.timezone ?? "UTC",

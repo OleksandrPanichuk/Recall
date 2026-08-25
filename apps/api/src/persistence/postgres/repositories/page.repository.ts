@@ -1,4 +1,5 @@
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
+import type { OwnerId } from "@/application/ports/owner";
 import type { PageRepository } from "@/application/ports/repositories/page.repository";
 import {
 	type Folder,
@@ -35,7 +36,9 @@ export const slugOf = (name: string): string => {
 
 export function createPagePostgresRepository(
 	executor: Executor,
+	owner: OwnerId,
 ): PageRepository {
+	const mine = eq(pages.ownerId, owner);
 	const byId = async (id: string): Promise<Folder | undefined> => {
 		if (!isUuid(id)) {
 			return undefined;
@@ -44,7 +47,7 @@ export function createPagePostgresRepository(
 		const [row] = await executor
 			.select()
 			.from(pages)
-			.where(eq(pages.id, id))
+			.where(and(mine, eq(pages.id, id)))
 			.limit(1);
 
 		return row === undefined ? undefined : toPage(row);
@@ -55,6 +58,7 @@ export function createPagePostgresRepository(
 			const slug = slugOf(page.name);
 			const values = {
 				id: String(page.id),
+				ownerId: owner,
 				parentId: page.parentId === undefined ? null : String(page.parentId),
 				title: page.name,
 				slug,
@@ -91,9 +95,12 @@ export function createPagePostgresRepository(
 				.select()
 				.from(pages)
 				.where(
-					parentId === undefined
-						? isNull(pages.parentId)
-						: eq(pages.parentId, String(parentId)),
+					and(
+						mine,
+						parentId === undefined
+							? isNull(pages.parentId)
+							: eq(pages.parentId, String(parentId)),
+					),
 				)
 				.orderBy(asc(pages.title), asc(pages.id));
 
@@ -126,6 +133,7 @@ export function createPagePostgresRepository(
 			const rows = await executor
 				.select()
 				.from(pages)
+				.where(mine)
 				.orderBy(asc(pages.title), asc(pages.id));
 
 			return rows.map(toPage);
@@ -143,12 +151,13 @@ export function createPagePostgresRepository(
 				.select({ total: count() })
 				.from(quizzes)
 				.where(
-					statuses === undefined
-						? eq(quizzes.pageId, String(id))
-						: and(
-								eq(quizzes.pageId, String(id)),
-								inArray(quizzes.status, [...statuses]),
-							),
+					and(
+						eq(quizzes.ownerId, owner),
+						eq(quizzes.pageId, String(id)),
+						statuses === undefined
+							? undefined
+							: inArray(quizzes.status, [...statuses]),
+					),
 				);
 
 			return Number(row?.total ?? 0);
@@ -162,7 +171,7 @@ export function createPagePostgresRepository(
 			const [row] = await executor
 				.select({ total: count() })
 				.from(pages)
-				.where(eq(pages.parentId, String(id)));
+				.where(and(mine, eq(pages.parentId, String(id))));
 
 			return Number(row?.total ?? 0);
 		},
@@ -172,7 +181,7 @@ export function createPagePostgresRepository(
 				return;
 			}
 
-			await executor.delete(pages).where(eq(pages.id, String(id)));
+			await executor.delete(pages).where(and(mine, eq(pages.id, String(id))));
 		},
 	};
 }

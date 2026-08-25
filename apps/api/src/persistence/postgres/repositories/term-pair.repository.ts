@@ -1,4 +1,5 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import type { OwnerId } from "@/application/ports/owner";
 import type { TermPairRepository } from "@/application/ports/repositories/term-pair.repository";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
@@ -29,11 +30,15 @@ const toPair = (row: TermPairRow): VocabularyItem =>
 
 export function createTermPairPostgresRepository(
 	executor: Executor,
+	owner: OwnerId,
 ): TermPairRepository {
+	const mine = eq(termPairs.ownerId, owner);
+
 	return {
 		async save(pair: VocabularyItem): Promise<void> {
 			const row = {
 				id: String(pair.id),
+				ownerId: owner,
 				quizId: String(pair.quizSetId),
 				terms: [...pair.terms],
 				translations: [...pair.translations],
@@ -58,7 +63,7 @@ export function createTermPairPostgresRepository(
 			const [row] = await executor
 				.select()
 				.from(termPairs)
-				.where(eq(termPairs.id, String(id)))
+				.where(and(mine, eq(termPairs.id, String(id))))
 				.limit(1);
 
 			return row === undefined ? undefined : toPair(row);
@@ -72,7 +77,7 @@ export function createTermPairPostgresRepository(
 			const rows = await executor
 				.select()
 				.from(termPairs)
-				.where(eq(termPairs.quizId, String(quizId)))
+				.where(and(mine, eq(termPairs.quizId, String(quizId))))
 				.orderBy(asc(termPairs.createdAt), asc(termPairs.id));
 
 			return rows.map(toPair);

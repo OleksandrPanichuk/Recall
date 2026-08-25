@@ -1,13 +1,16 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
 	migrateSqliteToPostgres,
 	verifyMigration,
 } from "@/persistence/postgres/etl";
+import { ensureTelegramOwner } from "@/persistence/postgres/owner";
 
 const sqlitePath = process.argv[2];
 const url = process.argv[3] ?? process.env.DATABASE_URL;
+const telegramUserId = Number(process.env.ALLOWED_TELEGRAM_USER_ID ?? "");
 
 if (sqlitePath === undefined || url === undefined) {
 	console.error(
@@ -16,25 +19,34 @@ if (sqlitePath === undefined || url === undefined) {
 	process.exit(1);
 }
 
+if (!Number.isSafeInteger(telegramUserId) || telegramUserId <= 0) {
+	console.error(
+		"ALLOWED_TELEGRAM_USER_ID must name the telegram account that will own the imported data",
+	);
+	process.exit(1);
+}
+
 const migrationsDirectory = join(import.meta.dir, "..", "drizzle-postgres");
 
-const migrationFile = (): string => {
-	const [name] = readdirSync(migrationsDirectory)
+const migrationFiles = (): readonly string[] => {
+	const names = readdirSync(migrationsDirectory)
 		.filter((entry) => entry.endsWith(".sql"))
 		.sort();
 
-	if (name === undefined) {
+	if (names.length === 0) {
 		throw new Error(`no migration found in ${migrationsDirectory}`);
 	}
 
-	return join(migrationsDirectory, name);
+	return names.map((name) => join(migrationsDirectory, name));
 };
 
 const statements = (): readonly string[] =>
-	readFileSync(migrationFile(), "utf8")
-		.split("--> statement-breakpoint")
-		.map((statement) => statement.trim())
-		.filter((statement) => statement.length > 0);
+	migrationFiles().flatMap((file) =>
+		readFileSync(file, "utf8")
+			.split("--> statement-breakpoint")
+			.map((statement) => statement.trim())
+			.filter((statement) => statement.length > 0),
+	);
 
 const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
 
@@ -47,7 +59,12 @@ try {
 		console.log("schema applied");
 	}
 
-	const report = await migrateSqliteToPostgres({ sqlitePath, client });
+	// The import has to land under a user, and it must be the same user the bot
+	// will hand the platform to — so it is resolved from the telegram id, and
+	// created if the owner has not linked yet.
+	const owner = await ensureTelegramOwner(drizzle({ client }), telegramUserId);
+
+	const report = await migrateSqliteToPostgres({ sqlitePath, client, owner });
 
 	console.log("\nrows written");
 

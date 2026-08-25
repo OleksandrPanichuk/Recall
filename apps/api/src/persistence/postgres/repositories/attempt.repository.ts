@@ -10,6 +10,7 @@ import {
 	sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import type { OwnerId } from "@/application/ports/owner";
 import type {
 	AttemptRepository,
 	AttemptStatistics,
@@ -47,7 +48,9 @@ export class CorruptedAttemptRowError extends Error {
 
 export function createAttemptPostgresRepository(
 	executor: Executor,
+	owner: OwnerId,
 ): AttemptRepository {
+	const mine = eq(attempts.ownerId, owner);
 	const hydrate = async (row: AttemptRow): Promise<QuizAttempt> => {
 		if (!isQuizAttemptMode(row.mode)) {
 			throw new CorruptedAttemptRowError(row.id, `mode "${row.mode}"`);
@@ -107,6 +110,7 @@ export function createAttemptPostgresRepository(
 				id,
 				quizId: String(attempt.quizSetId),
 				telegramUserId: attempt.telegramUserId,
+				ownerId: owner,
 				mode: attempt.mode,
 				status: attempt.status,
 				startedAt: attempt.startedAt,
@@ -117,7 +121,7 @@ export function createAttemptPostgresRepository(
 			const [stored] = await executor
 				.select({ updatedAt: attempts.updatedAt })
 				.from(attempts)
-				.where(eq(attempts.id, id))
+				.where(and(mine, eq(attempts.id, id)))
 				.limit(1);
 
 			// Applying a stale copy would rewind updated_at past answers already
@@ -172,7 +176,7 @@ export function createAttemptPostgresRepository(
 				await executor
 					.select()
 					.from(attempts)
-					.where(eq(attempts.id, String(id)))
+					.where(and(mine, eq(attempts.id, String(id))))
 					.limit(1),
 			);
 		},
@@ -186,6 +190,7 @@ export function createAttemptPostgresRepository(
 					.from(attempts)
 					.where(
 						and(
+							mine,
 							eq(attempts.telegramUserId, telegramUserId),
 							inArray(attempts.status, [
 								QuizAttemptStatus.Active,
@@ -213,6 +218,7 @@ export function createAttemptPostgresRepository(
 				.leftJoin(responses, eq(responses.attemptId, attempts.id))
 				.where(
 					and(
+						mine,
 						eq(attempts.quizId, String(quizId)),
 						eq(attempts.telegramUserId, telegramUserId),
 						eq(attempts.status, QuizAttemptStatus.Completed),
@@ -245,6 +251,7 @@ export function createAttemptPostgresRepository(
 				.innerJoin(questions, eq(questions.id, responses.questionId))
 				.where(
 					and(
+						mine,
 						eq(attempts.quizId, String(quizId)),
 						eq(attempts.telegramUserId, telegramUserId),
 					),
@@ -278,6 +285,7 @@ export function createAttemptPostgresRepository(
 				.innerJoin(attempts, eq(attempts.id, responses.attemptId))
 				.where(
 					and(
+						mine,
 						eq(attempts.quizId, String(quizId)),
 						eq(attempts.telegramUserId, telegramUserId),
 						eq(responses.isCorrect, false),
@@ -288,6 +296,7 @@ export function createAttemptPostgresRepository(
 								.innerJoin(laterAttempt, eq(laterAttempt.id, later.attemptId))
 								.where(
 									and(
+										eq(laterAttempt.ownerId, owner),
 										eq(laterAttempt.telegramUserId, telegramUserId),
 										eq(later.questionId, responses.questionId),
 										eq(later.isCorrect, true),
@@ -311,7 +320,8 @@ export function createAttemptPostgresRepository(
 			const [row] = await executor
 				.select({ total: count() })
 				.from(responses)
-				.where(eq(responses.questionId, String(questionId)));
+				.innerJoin(attempts, eq(attempts.id, responses.attemptId))
+				.where(and(mine, eq(responses.questionId, String(questionId))));
 
 			return Number(row?.total ?? 0);
 		},

@@ -1,14 +1,18 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import type { OwnerId } from "@/application/ports/owner";
 import {
 	applyMigration,
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedOwner,
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
 
 let harness: PostgresHarness;
+let owner: OwnerId;
+let other: OwnerId;
 
 const uuid = (): string => crypto.randomUUID();
 
@@ -20,6 +24,8 @@ beforeAll(async () => {
 	harness = await openPostgres("schema");
 
 	await applyMigration(harness);
+	owner = await seedOwner(harness, "schema owner");
+	other = await seedOwner(harness, "another owner");
 });
 
 afterAll(async () => {
@@ -28,10 +34,15 @@ afterAll(async () => {
 	}
 });
 
-const insertPage = (id: string, slug: string, parentId: string | null) =>
+const insertPage = (
+	id: string,
+	slug: string,
+	parentId: string | null,
+	as: () => OwnerId = () => owner,
+) =>
 	harness.client`
-		insert into pages (id, parent_id, title, slug)
-		values (${id}, ${parentId}, ${slug}, ${slug})
+		insert into pages (id, owner_id, parent_id, title, slug)
+		values (${id}, ${String(as())}, ${parentId}, ${slug}, ${slug})
 	`;
 
 // postgres.js queries are lazy thenables, and expect().rejects never settles
@@ -70,10 +81,10 @@ describe.skipIf(!available)("the postgres schema", () => {
 	});
 
 	test("refuses a second owner-wide settings row", async () => {
-		const settings = (id: string) => harness.client`
+		const settings = (id: string, as: OwnerId = owner) => harness.client`
 			insert into study_settings
-				(id, scope_type, scope_id, intervals_days, max_interval_days, max_repetitions)
-			values (${id}, 'owner', null, '{1,3,7}', 90, 5)
+				(id, owner_id, scope_type, scope_id, intervals_days, max_interval_days, max_repetitions)
+			values (${id}, ${String(as)}, 'owner', null, '{1,3,7}', 90, 5)
 		`;
 
 		await settings(uuid());
@@ -89,16 +100,16 @@ describe.skipIf(!available)("the postgres schema", () => {
 		const attemptId = uuid();
 
 		await harness.client`
-			insert into quizzes (id, title, language, status)
-			values (${quizId}, 'Replication', 'en', 'published')
+			insert into quizzes (id, owner_id, title, language, status)
+			values (${quizId}, ${String(owner)}, 'Replication', 'en', 'published')
 		`;
 		await harness.client`
-			insert into questions (id, quiz_id, type, prompt, difficulty, position, fingerprint)
-			values (${questionId}, ${quizId}, 'single_choice', 'Why replicate?', 'medium', 0, 'fp-1')
+			insert into questions (id, owner_id, quiz_id, type, prompt, difficulty, position, fingerprint)
+			values (${questionId}, ${String(owner)}, ${quizId}, 'single_choice', 'Why replicate?', 'medium', 0, 'fp-1')
 		`;
 		await harness.client`
-			insert into attempts (id, quiz_id, mode, status, started_at)
-			values (${attemptId}, ${quizId}, 'full', 'completed', now())
+			insert into attempts (id, owner_id, quiz_id, mode, status, started_at)
+			values (${attemptId}, ${String(owner)}, ${quizId}, 'full', 'completed', now())
 		`;
 		await harness.client`
 			insert into responses (attempt_id, question_id, selected_option_ids, is_correct, answered_at)
@@ -130,5 +141,27 @@ describe.skipIf(!available)("the postgres schema", () => {
 		`;
 
 		expect(rows[0]?.kind).toBe("timestamp with time zone");
+	});
+
+	test("lets a second owner reuse a slug the first one took", async () => {
+		await insertPage(uuid(), "shared-name", null);
+
+		expect(
+			await insertPage(uuid(), "shared-name", null, () => other),
+		).toBeDefined();
+	});
+
+	test("gives every owner their own instance-wide settings row", async () => {
+		const settings = (id: string, as: OwnerId) => harness.client`
+			insert into study_settings
+				(id, owner_id, scope_type, scope_id, intervals_days, max_interval_days, max_repetitions)
+			values (${id}, ${String(as)}, 'owner', null, '{1,3,7}', 90, 5)
+		`;
+
+		await settings(uuid(), other);
+
+		const failure = await failureOf(() => settings(uuid(), other));
+
+		expect(failure.message).toContain("study_settings_scope_unique");
 	});
 });

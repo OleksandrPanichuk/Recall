@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createMutableClock } from "@tests/fixtures/memory.fixture";
+import type { OwnerId } from "@/application/ports/owner";
 import {
 	type Application,
 	createApplication,
@@ -13,6 +14,7 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedOwner,
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
@@ -20,10 +22,12 @@ const USER = 42;
 
 let harness: PostgresHarness;
 let databaseUrl: string;
+let owner: OwnerId;
 
 const clock = createMutableClock();
 
-const open = (): Application => createApplication({ databaseUrl, clock });
+const open = (): Application =>
+	createApplication({ databaseUrl, clock, owner });
 
 const aQuestion = (prompt: string) => ({
 	type: QuestionType.SingleChoice,
@@ -83,6 +87,7 @@ beforeAll(async () => {
 
 	harness = await openPostgres("status");
 	await applyMigration(harness);
+	owner = await seedOwner(harness, "status owner");
 	databaseUrl = harness.url;
 });
 

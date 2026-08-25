@@ -88,6 +88,27 @@ client, so a route that turns a Telegram id into a session would be reachable by
 plugin's job is only to *spend* a token it did not mint. Email+password stays disabled until the
 plan's second auth phase — enabling it opens `POST /sign-up/email` to the world.
 
+**Ownership lives in the repository scope, not in the use cases.** Seven tables carry
+`owner_id` (`pages`, `quizzes`, `questions`, `attempts`, `term_pairs`, `review_states`,
+`study_settings`); their children are reached only through an owned parent. `scopeFor(executor,
+owner)` builds every repository against one owner, so a use case cannot name another owner's
+rows — it never holds anything that could. **Never add a repository method that takes an owner
+as an argument**; that would put the decision back in the caller. The in-memory double gives each
+owner its own store, which is the same isolation expressed as a partition. `tests/contracts/
+ownership.contract.ts` runs against both engines and is the proof.
+
+Every unique constraint that used to be instance-wide is now per owner — a legacy id, a page
+slug, an instance-wide settings row. Two people may import the same v1 export.
+
+**The api decides who the caller is; the caller never says.** `BotTokenGuard` refuses any body
+naming a `telegramUserId` other than `ALLOWED_TELEGRAM_USER_ID`, so holding the bot token does not
+let anyone read another account's data. The owner itself is resolved from the linked Telegram
+account (`instanceOwnerResolver`), cached, and reached lazily through `lazyScope` — which is what
+lets the http surfaces be built at boot, before anyone has linked. `ensureTelegramOwner` /
+`findTelegramOwner` in `persistence/postgres/owner.ts` are the *only* place that maps a Telegram
+id to an owner; the ETL and the login flow both go through them, so an import cannot land under a
+different user than the one the bot will hand the platform to.
+
 **A refusal travels as a name, not a class.** The API answers a domain error with
 `{ error: "<ErrorName>", details }`, and the bot maps that name to user text
 (`ApiErrorName` / `isApiError` in `packages/contracts`). Only a whitelist of detail keys

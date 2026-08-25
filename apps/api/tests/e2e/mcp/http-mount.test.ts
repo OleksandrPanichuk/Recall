@@ -8,6 +8,7 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedTelegramOwner,
 } from "../../fixtures/postgres";
 import {
 	makeTempDirectory,
@@ -62,9 +63,11 @@ beforeAll(async () => {
 
 	harness = await openPostgres("mcp-mount");
 	await applyMigration(harness);
+	await seedTelegramOwner(harness, 42);
 	directory = makeTempDirectory("recall-mcp-mount-");
 
 	override("DATABASE_URL", harness.url);
+	override("ALLOWED_TELEGRAM_USER_ID", "42");
 	override("MCP_HTTP_TOKEN", TOKEN);
 	override("OAUTH_DATABASE_PATH", join(directory, "oauth.sqlite"));
 	// The port is chosen by the kernel, so an allowed host cannot be named ahead

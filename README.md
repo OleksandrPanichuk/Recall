@@ -199,7 +199,7 @@ rebuild не проїхав як звичайна migration.
 | `bun run db:reset` | Зупинити Postgres і витерти volume |
 | `bun run db:migrate` | Застосувати pending Postgres migrations до `DATABASE_URL` |
 | `bun run db:generate` | Згенерувати migration зі змін у Drizzle schema |
-| `bun run etl -- <файл> [url]` | Перенести v1 SQLite файл у Postgres і перевірити результат |
+| `bun run etl -- <файл> [url]` | Перенести v1 SQLite файл у Postgres (потрібен `ALLOWED_TELEGRAM_USER_ID` — власник даних) |
 | `bun run lint` | Перевірити код правилами Biome linter |
 | `bun run lint:fix` | Автоматично виправити safe lint findings |
 | `bun run format:check` | Перевірити форматування без зміни файлів |

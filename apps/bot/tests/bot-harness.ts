@@ -188,9 +188,13 @@ export async function createBotHarness(
 
 	const previousToken = process.env.BOT_API_TOKEN;
 	const previousDatabaseUrl = process.env.DATABASE_URL;
+	const previousTelegramUserId = process.env.ALLOWED_TELEGRAM_USER_ID;
 
 	process.env.BOT_API_TOKEN = HARNESS_TOKEN;
 	process.env.DATABASE_URL ??= "postgres://unused@127.0.0.1:1/unused";
+	// The api refuses a request that names any other telegram account, so the
+	// harness has to be the account it serves.
+	process.env.ALLOWED_TELEGRAM_USER_ID = String(ALLOWED_USER);
 
 	const api = await startApi(application.context);
 	const bot = createBot({
@@ -303,6 +307,12 @@ export async function createBotHarness(
 
 			if (previousDatabaseUrl === undefined) {
 				delete process.env.DATABASE_URL;
+			}
+
+			if (previousTelegramUserId === undefined) {
+				delete process.env.ALLOWED_TELEGRAM_USER_ID;
+			} else {
+				process.env.ALLOWED_TELEGRAM_USER_ID = previousTelegramUserId;
 			}
 		},
 	};

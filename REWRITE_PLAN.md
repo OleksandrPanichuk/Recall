@@ -1343,6 +1343,61 @@ multi-user. The mapping already exists (`TelegramIdentityService.userIdForTelegr
 missing is `owner_id` on the domain tables and a principal threaded through the use cases, so the
 type checker refuses an unscoped call.
 
+## Phase 7b: ownership, bound where it cannot be forgotten (r22)
+
+Multi-user data isolation is in. The decision that made it small: **the owner binds to the
+repository scope, not to the use cases.** `scopeFor(executor, owner)` builds all five
+repositories against one owner, so none of the 34 use cases changed — they never hold anything
+that could name another owner's rows. Threading a `UserId` through every use case would have been
+a far bigger diff *and* weaker, because each new call site could forget it.
+
+**Seven tables carry `owner_id`:** pages, quizzes, questions, attempts, term_pairs,
+review_states, study_settings. Children (question_options, question_sources, responses,
+attempt_questions) are reached only through an owned parent, so they do not need the column —
+except that `answerCount` used to read `responses` directly, and now joins `attempts` to stay
+inside the owner. Every previously instance-wide unique became per owner: a legacy id, a page
+slug, the instance-wide settings row. Two people may import the same v1 export.
+
+**The migration adopts rather than fails.** `ADD COLUMN … NOT NULL` cannot land on a populated
+table, and this migration has to work on a database that predates ownership. It adds the column
+nullable, adopts every row into the single existing user, then sets NOT NULL — and if there are
+rows but no user to adopt them it raises with an instruction instead of leaving a half-migrated
+schema. Both paths were tested against a populated copy.
+
+**The in-memory double partitions instead of filtering.** One store per owner is the same
+isolation as a column, expressed so that a forgotten predicate cannot leak. `createMemoryStores`
+hands out stores lazily.
+
+**Where the owner comes from.** One instance, one owner: whoever holds the Telegram account named
+by `ALLOWED_TELEGRAM_USER_ID`. `instanceOwnerResolver` looks it up once and caches it, and
+`lazyScope` defers that lookup to the first query — which is what lets the http surfaces be built
+at boot, before anyone has linked an account. When credentials become per-user the resolver
+becomes per-request and nothing above it changes.
+
+**The authorization hole is closed.** `/bot/*` still carries `telegramUserId` for domain keying,
+but `BotTokenGuard` now refuses any body naming a different account: holding the bot token no
+longer lets a caller read someone else's data. That is the property §5 asked for, reached without
+waiting for per-user tokens.
+
+**One mapping, used by both paths.** `ensureTelegramOwner` / `findTelegramOwner` in
+`persistence/postgres/owner.ts` is the only code that maps a Telegram id to an owner. The login
+flow and the ETL both call it, so an import cannot land under a different user than the one the
+bot will hand the platform to. The ETL now requires `ALLOWED_TELEGRAM_USER_ID` and creates the
+owner if the bot has not been used yet.
+
+**Two bugs found on the way**, both latent before ownership: `applyMigration` in the test fixture
+and the ETL script both took `[name] = files.sort()` and silently ignored every migration after
+the first — invisible while there was one file, wrong the moment there were two.
+
+**Proven, three ways.** `tests/contracts/ownership.contract.ts` runs on both engines: a page, a
+quiz, an attempt and a settings row written by one owner are invisible to the other, both may
+reuse a name, and neither can delete the other's rows. The v1 backup was re-imported into a fresh
+database — 9 quizzes, 306 questions, 38 attempts, 312 responses, every owned row under the one
+Telegram-linked user — and the real bot drove it end to end (menu, browse, *"питання 1/20"*, an
+answer recorded, 38→39 attempts). Then the same database was served as a *second* Telegram
+account: `/quizzes` returned 9 for the owner and **0** for the other, and `/bot/*` refused a body
+naming a foreign account with 403.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

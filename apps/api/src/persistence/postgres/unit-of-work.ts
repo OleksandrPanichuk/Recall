@@ -1,3 +1,4 @@
+import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { RecallDatabase } from "./client";
@@ -11,21 +12,29 @@ export type Executor =
 	| RecallDatabase
 	| Parameters<Parameters<RecallDatabase["transaction"]>[0]>[0];
 
-export const scopeFor = (executor: Executor): RepositoryScope => ({
-	pages: createPagePostgresRepository(executor),
-	quizzes: createQuizPostgresRepository(executor),
-	attempts: createAttemptPostgresRepository(executor),
-	reviews: createReviewPostgresRepository(executor),
-	termPairs: createTermPairPostgresRepository(executor),
+// Every repository is built against one owner. A use case cannot reach another
+// owner's rows because it never holds anything that could name them.
+export const scopeFor = (
+	executor: Executor,
+	owner: OwnerId,
+): RepositoryScope => ({
+	pages: createPagePostgresRepository(executor, owner),
+	quizzes: createQuizPostgresRepository(executor, owner),
+	attempts: createAttemptPostgresRepository(executor, owner),
+	reviews: createReviewPostgresRepository(executor, owner),
+	termPairs: createTermPairPostgresRepository(executor, owner),
 });
 
 export function createPostgresUnitOfWork(
 	db: RecallDatabase,
+	owner: OwnerId,
 ): UnitOfWork<RepositoryScope> {
 	return {
-		run: (operation) => db.transaction((tx) => operation(scopeFor(tx))),
+		run: (operation) => db.transaction((tx) => operation(scopeFor(tx, owner))),
 	};
 }
 
-export const readOnlyScope = (db: RecallDatabase): RepositoryScope =>
-	scopeFor(db);
+export const readOnlyScope = (
+	db: RecallDatabase,
+	owner: OwnerId,
+): RepositoryScope => scopeFor(db, owner);

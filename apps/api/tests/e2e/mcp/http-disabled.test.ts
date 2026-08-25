@@ -7,6 +7,7 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedTelegramOwner,
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
@@ -16,6 +17,7 @@ let app: INestApplication;
 let origin: string;
 let previousDatabaseUrl: string | undefined;
 let previousToken: string | undefined;
+let previousTelegramUserId: string | undefined;
 
 beforeAll(async () => {
 	if (!available) {
@@ -24,10 +26,13 @@ beforeAll(async () => {
 
 	harness = await openPostgres("mcp-disabled");
 	await applyMigration(harness);
+	await seedTelegramOwner(harness, 42);
 
 	previousDatabaseUrl = process.env.DATABASE_URL;
 	previousToken = process.env.MCP_HTTP_TOKEN;
 	process.env.DATABASE_URL = harness.url;
+	previousTelegramUserId = process.env.ALLOWED_TELEGRAM_USER_ID;
+	process.env.ALLOWED_TELEGRAM_USER_ID = "42";
 	delete process.env.MCP_HTTP_TOKEN;
 
 	app = await createApiApp();
@@ -51,6 +56,12 @@ afterAll(async () => {
 		delete process.env.MCP_HTTP_TOKEN;
 	} else {
 		process.env.MCP_HTTP_TOKEN = previousToken;
+	}
+
+	if (previousTelegramUserId === undefined) {
+		delete process.env.ALLOWED_TELEGRAM_USER_ID;
+	} else {
+		process.env.ALLOWED_TELEGRAM_USER_ID = previousTelegramUserId;
 	}
 });
 

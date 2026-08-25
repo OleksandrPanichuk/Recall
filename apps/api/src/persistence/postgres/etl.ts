@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import type postgres from "postgres";
+import type { OwnerId } from "@/application/ports/owner";
 
 export interface EtlReport {
 	readonly inserted: Readonly<Record<string, number>>;
@@ -197,8 +198,9 @@ interface DefaultsRow {
 export async function migrateSqliteToPostgres(options: {
 	readonly sqlitePath: string;
 	readonly client: postgres.Sql;
+	readonly owner: OwnerId;
 }): Promise<EtlReport> {
-	const { client } = options;
+	const { client, owner } = options;
 	const source = new Database(options.sqlitePath, { readonly: true });
 	const inserted: Record<string, number> = {};
 	const notes: string[] = [];
@@ -255,9 +257,10 @@ export async function migrateSqliteToPostgres(options: {
 
 		for (const folder of folders) {
 			await client`
-				insert into pages (id, legacy_id, parent_id, title, slug, created_at, updated_at)
+				insert into pages (id, owner_id, legacy_id, parent_id, title, slug, created_at, updated_at)
 				values (
 					${uuidFor("page", folder.id)}::uuid,
+					${owner}::text,
 					${folder.id}::text,
 					${folder.parent_id === null ? null : uuidFor("page", folder.parent_id)}::uuid,
 					${folder.name}::text,
@@ -265,7 +268,7 @@ export async function migrateSqliteToPostgres(options: {
 					${date(folder.created_at)}::timestamptz,
 					${date(folder.updated_at)}::timestamptz
 				)
-				on conflict (legacy_id) do nothing
+				on conflict (owner_id, legacy_id) do nothing
 			`;
 			count("pages", 1);
 		}
@@ -277,18 +280,18 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into quizzes (
-					id, legacy_id, page_id, title, description, language, source,
+					id, owner_id, legacy_id, page_id, title, description, language, source,
 					source_chapters, tags, status, created_at, updated_at,
 					published_at, archived_at
 				) values (
-					${uuidFor("quiz", id)}::uuid, ${id}::text,
+					${uuidFor("quiz", id)}::uuid, ${owner}::text, ${id}::text,
 					${quiz.folder_id === null ? null : uuidFor("page", quiz.folder_id)}::uuid,
 					${quiz.title}::text, ${quiz.description}::text, ${quiz.language}::text, ${quiz.source}::text,
 					${quiz.source_chapters}::text, ${strings(quiz.tags)}::text[], ${quiz.status}::text,
 					${date(quiz.created_at)}::timestamptz, ${date(quiz.updated_at)}::timestamptz,
 					${date(quiz.published_at)}::timestamptz, ${date(quiz.archived_at)}::timestamptz
 				)
-				on conflict (legacy_id) do nothing
+				on conflict (owner_id, legacy_id) do nothing
 			`;
 			count("quizzes", 1);
 		}
@@ -306,16 +309,16 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into term_pairs (
-					id, legacy_id, quiz_id, terms, translations, transcription,
+					id, owner_id, legacy_id, quiz_id, terms, translations, transcription,
 					example, topic, created_at, updated_at
 				) values (
-					${uuidFor("term_pair", id)}::uuid, ${id}::text,
+					${uuidFor("term_pair", id)}::uuid, ${owner}::text, ${id}::text,
 					${uuidFor("quiz", pair.quiz_set_id)}::uuid,
 					${terms}::text[], ${strings(pair.translations)}::text[], ${pair.transcription}::text,
 					${pair.example}::text, ${pair.topic}::text,
 					${date(pair.created_at)}::timestamptz, ${date(pair.updated_at)}::timestamptz
 				)
-				on conflict (legacy_id) do nothing
+				on conflict (owner_id, legacy_id) do nothing
 			`;
 			count("term_pairs", 1);
 		}
@@ -331,16 +334,16 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into questions (
-					id, legacy_id, quiz_id, type, prompt, explanation,
+					id, owner_id, legacy_id, quiz_id, type, prompt, explanation,
 					source_reference, topic, difficulty, hint, position, fingerprint
 				) values (
-					${uuidFor("question", id)}::uuid, ${id}::text,
+					${uuidFor("question", id)}::uuid, ${owner}::text, ${id}::text,
 					${uuidFor("quiz", question.quiz_set_id)}::uuid,
 					${question.type}::text, ${question.prompt}::text, ${question.explanation}::text,
 					${question.source_reference}::text, ${question.topic}::text, ${question.difficulty}::text,
 					${question.hint}::text, ${question.position}::int, ${question.fingerprint}::text
 				)
-				on conflict (legacy_id) do nothing
+				on conflict (owner_id, legacy_id) do nothing
 			`;
 			count("questions", 1);
 
@@ -403,10 +406,10 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into attempts (
-					id, legacy_id, quiz_id, telegram_user_id, mode, status,
+					id, owner_id, legacy_id, quiz_id, telegram_user_id, mode, status,
 					started_at, updated_at, completed_at
 				) values (
-					${uuidFor("attempt", id)}::uuid, ${id}::text,
+					${uuidFor("attempt", id)}::uuid, ${owner}::text, ${id}::text,
 					${uuidFor("quiz", attempt.quiz_set_id)}::uuid,
 					${attempt.telegram_user_id}::int,
 					${attempt.mode}::text, ${attempt.status}::text,
@@ -414,7 +417,7 @@ export async function migrateSqliteToPostgres(options: {
 					${date(attempt.updated_at)}::timestamptz,
 					${date(attempt.completed_at)}::timestamptz
 				)
-				on conflict (legacy_id) do nothing
+				on conflict (owner_id, legacy_id) do nothing
 			`;
 			count("attempts", 1);
 
@@ -488,10 +491,11 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into review_states (
-					question_id, telegram_user_id, repetition_count, lapses,
+					question_id, owner_id, telegram_user_id, repetition_count, lapses,
 					last_reviewed_at, due_at, created_at, updated_at
 				) values (
 					${uuidFor("question", questionId)}::uuid,
+					${owner}::text,
 					${schedule.telegram_user_id}::int,
 					${schedule.repetition_count}::int, ${schedule.lapses}::int,
 					${date(schedule.last_completed_at)}::timestamptz,
@@ -511,10 +515,11 @@ export async function migrateSqliteToPostgres(options: {
 		if (defaults !== null) {
 			await client`
 				insert into study_settings (
-					id, scope_type, scope_id, intervals_days, max_interval_days,
+					id, owner_id, scope_type, scope_id, intervals_days, max_interval_days,
 					max_repetitions, shuffle_options, shuffle_questions, exam_mode, updated_at
 				) values (
 					${uuidFor("settings", "owner")}::uuid,
+					${owner}::text,
 					'owner'::text,
 					null::uuid,
 					${numbers(defaults.intervals_days)}::integer[],
@@ -525,7 +530,7 @@ export async function migrateSqliteToPostgres(options: {
 					${defaults.exam_mode === 1}::boolean,
 					${date(defaults.updated_at)}::timestamptz
 				)
-				on conflict (scope_type, scope_id) do nothing
+				on conflict (owner_id, scope_type, scope_id) do nothing
 			`;
 			count("study_settings", 1);
 		}
@@ -539,10 +544,11 @@ export async function migrateSqliteToPostgres(options: {
 
 			await client`
 				insert into study_settings (
-					id, scope_type, scope_id, intervals_days, max_interval_days,
+					id, owner_id, scope_type, scope_id, intervals_days, max_interval_days,
 					max_repetitions, shuffle_options, shuffle_questions, exam_mode, updated_at
 				) values (
 					${uuidFor("settings", quizId)}::uuid,
+					${owner}::text,
 					'quiz'::text,
 					${uuidFor("quiz", quizId)}::uuid,
 					${numbers(settings.intervals_days)}::integer[],
@@ -553,7 +559,7 @@ export async function migrateSqliteToPostgres(options: {
 					${settings.exam_mode === 1}::boolean,
 					${date(settings.updated_at)}::timestamptz
 				)
-				on conflict (scope_type, scope_id) do nothing
+				on conflict (owner_id, scope_type, scope_id) do nothing
 			`;
 			count("study_settings", 1);
 		}

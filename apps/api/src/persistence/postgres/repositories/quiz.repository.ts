@@ -8,6 +8,7 @@ import {
 	notInArray,
 	sql,
 } from "drizzle-orm";
+import type { OwnerId } from "@/application/ports/owner";
 import type {
 	QuizListFilter,
 	QuizRepository,
@@ -24,7 +25,10 @@ import { toQuiz } from "./quiz.mapper";
 
 export function createQuizPostgresRepository(
 	executor: Executor,
+	owner: OwnerId,
 ): QuizRepository {
+	const mine = eq(quizzes.ownerId, owner);
+	const myQuestions = eq(questions.ownerId, owner);
 	const currentVersion = async (id: string): Promise<number | undefined> => {
 		if (!isUuid(id)) {
 			return undefined;
@@ -33,7 +37,7 @@ export function createQuizPostgresRepository(
 		const [row] = await executor
 			.select({ version: quizzes.version })
 			.from(quizzes)
-			.where(eq(quizzes.id, id))
+			.where(and(mine, eq(quizzes.id, id)))
 			.limit(1);
 
 		return row?.version;
@@ -59,6 +63,7 @@ export function createQuizPostgresRepository(
 			const nextVersion = (stored ?? -1) + 1;
 			const row = {
 				id,
+				ownerId: owner,
 				pageId: quiz.folderId === undefined ? null : String(quiz.folderId),
 				title: quiz.title,
 				description: quiz.description ?? null,
@@ -86,9 +91,13 @@ export function createQuizPostgresRepository(
 			await executor
 				.delete(questions)
 				.where(
-					keptIds.length === 0
-						? eq(questions.quizId, id)
-						: and(eq(questions.quizId, id), notInArray(questions.id, keptIds)),
+					and(
+						myQuestions,
+						eq(questions.quizId, id),
+						keptIds.length === 0
+							? undefined
+							: notInArray(questions.id, keptIds),
+					),
 				);
 
 			// position and fingerprint are unique per quiz and Postgres checks both
@@ -99,11 +108,12 @@ export function createQuizPostgresRepository(
 					position: sql`-1 - ${questions.position}`,
 					fingerprint: sql`'parked:' || ${questions.id}`,
 				})
-				.where(eq(questions.quizId, id));
+				.where(and(myQuestions, eq(questions.quizId, id)));
 
 			for (const question of quiz.questions) {
 				const questionRow = {
 					id: String(question.id),
+					ownerId: owner,
 					quizId: id,
 					type: question.type,
 					prompt: question.prompt,
@@ -152,7 +162,7 @@ export function createQuizPostgresRepository(
 			const [row] = await executor
 				.select()
 				.from(quizzes)
-				.where(eq(quizzes.id, String(id)))
+				.where(and(mine, eq(quizzes.id, String(id))))
 				.limit(1);
 
 			if (row === undefined) {
@@ -162,7 +172,7 @@ export function createQuizPostgresRepository(
 			const questionRows = await executor
 				.select()
 				.from(questions)
-				.where(eq(questions.quizId, String(id)))
+				.where(and(myQuestions, eq(questions.quizId, String(id))))
 				.orderBy(asc(questions.position));
 
 			const optionRows =
@@ -183,7 +193,7 @@ export function createQuizPostgresRepository(
 		},
 
 		async list(filter?: QuizListFilter): Promise<readonly QuizSummary[]> {
-			const conditions = [];
+			const conditions = [mine];
 
 			if (filter?.statuses !== undefined) {
 				conditions.push(inArray(quizzes.status, [...filter.statuses]));
@@ -209,7 +219,7 @@ export function createQuizPostgresRepository(
 				})
 				.from(quizzes)
 				.leftJoin(questions, eq(questions.quizId, quizzes.id))
-				.where(conditions.length === 0 ? undefined : and(...conditions))
+				.where(and(...conditions))
 				.groupBy(quizzes.id)
 				.orderBy(asc(quizzes.title));
 

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll } from "bun:test";
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { OwnerId } from "@/application/ports/owner";
 import type { RecallDatabase } from "@/persistence/postgres/client";
 import * as schema from "@/persistence/postgres/schema";
 import {
@@ -12,12 +13,14 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedOwner,
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
 
 let harness: PostgresHarness;
 let db: RecallDatabase;
+let owner: OwnerId;
 
 beforeAll(async () => {
 	if (!available) {
@@ -27,6 +30,7 @@ beforeAll(async () => {
 	harness = await openPostgres("quizzes");
 	await applyMigration(harness);
 	db = drizzle({ client: harness.client, schema });
+	owner = await seedOwner(harness, `${"quiz"} owner`);
 });
 
 afterAll(async () => {
@@ -36,8 +40,8 @@ afterAll(async () => {
 describeQuizRepository(
 	"postgres",
 	() => ({
-		unitOfWork: createPostgresUnitOfWork(db),
-		scope: readOnlyScope(db),
+		unitOfWork: createPostgresUnitOfWork(db, owner),
+		scope: readOnlyScope(db, owner),
 		reset: async () => {
 			await harness.client.unsafe(
 				"truncate pages, quizzes, questions, question_options, attempts, responses cascade",
@@ -55,9 +59,9 @@ describeQuizRepository(
 			const attemptId = crypto.randomUUID();
 
 			await harness.client`
-				insert into attempts (id, quiz_id, mode, status, started_at)
+				insert into attempts (id, owner_id, quiz_id, mode, status, started_at)
 				values (
-					${attemptId}::uuid, ${question.quiz_id}::uuid,
+					${attemptId}::uuid, ${String(owner)}::text, ${question.quiz_id}::uuid,
 					'full'::text, 'completed'::text, now()
 				)
 			`;

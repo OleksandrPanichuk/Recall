@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
+import type { OwnerId } from "@/application/ports/owner";
 import { createApplication } from "@/composition/create-application";
 import { createApiApp } from "@/entrypoints/api";
 import {
@@ -8,18 +9,21 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedTelegramOwner,
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
+const OWNER_TELEGRAM_ID = 987654321;
 
 let harness: PostgresHarness;
 let previousDatabaseUrl: string | undefined;
+let previousTelegramUserId: string | undefined;
 let app: INestApplication;
 let origin: string;
 let quizSetId: string;
 
-const seed = async (databaseUrl: string): Promise<string> => {
-	const application = createApplication({ databaseUrl });
+const seed = async (databaseUrl: string, owner: OwnerId): Promise<string> => {
+	const application = createApplication({ databaseUrl, owner });
 
 	try {
 		const { quizSetId: id } = await application.createQuizSet.execute({
@@ -58,10 +62,14 @@ beforeAll(async () => {
 	harness = await openPostgres("api");
 	await applyMigration(harness);
 
-	quizSetId = await seed(harness.url);
+	const owner = await seedTelegramOwner(harness, OWNER_TELEGRAM_ID);
+
+	quizSetId = await seed(harness.url, owner);
 
 	previousDatabaseUrl = process.env.DATABASE_URL;
+	previousTelegramUserId = process.env.ALLOWED_TELEGRAM_USER_ID;
 	process.env.DATABASE_URL = harness.url;
+	process.env.ALLOWED_TELEGRAM_USER_ID = String(OWNER_TELEGRAM_ID);
 	app = await createApiApp();
 	await app.listen(0, "127.0.0.1");
 
@@ -77,6 +85,12 @@ afterAll(async () => {
 		delete process.env.DATABASE_URL;
 	} else {
 		process.env.DATABASE_URL = previousDatabaseUrl;
+	}
+
+	if (previousTelegramUserId === undefined) {
+		delete process.env.ALLOWED_TELEGRAM_USER_ID;
+	} else {
+		process.env.ALLOWED_TELEGRAM_USER_ID = previousTelegramUserId;
 	}
 });
 

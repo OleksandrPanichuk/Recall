@@ -5,6 +5,7 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedTelegramOwner,
 } from "@api-tests/fixtures/postgres";
 import {
 	makeTempDirectory,
@@ -75,6 +76,7 @@ beforeAll(async () => {
 
 	harness = await openPostgres("mcp-bridge");
 	await applyMigration(harness);
+	await seedTelegramOwner(harness, 987654321);
 	directory = makeTempDirectory("recall-mcp-bridge-");
 
 	apiProcess = Bun.spawn([process.execPath, "--env-file=/dev/null", api], {

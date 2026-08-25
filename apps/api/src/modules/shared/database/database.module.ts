@@ -11,15 +11,23 @@ import {
 	type PostgresConnection,
 } from "@/persistence/postgres/client";
 import {
-	createPostgresUnitOfWork,
-	readOnlyScope,
-} from "@/persistence/postgres/unit-of-work";
+	lazyScope,
+	lazyUnitOfWork,
+	type OwnerResolver,
+} from "@/persistence/postgres/lazy-scope";
 import { loadApiEnvironment } from "../config/api-env";
-import { CONNECTION, USE_CASE_DEPENDENCIES } from "./tokens";
+import { instanceOwnerResolver } from "./instance-owner";
+import { CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES } from "./tokens";
 
 @Global()
 @Module({
 	providers: [
+		{
+			provide: INSTANCE_OWNER,
+			inject: [CONNECTION],
+			useFactory: (connection: PostgresConnection): OwnerResolver =>
+				instanceOwnerResolver(connection.db),
+		},
 		{
 			provide: CONNECTION,
 			useFactory: (): PostgresConnection =>
@@ -27,19 +35,20 @@ import { CONNECTION, USE_CASE_DEPENDENCIES } from "./tokens";
 		},
 		{
 			provide: USE_CASE_DEPENDENCIES,
-			inject: [CONNECTION],
+			inject: [CONNECTION, INSTANCE_OWNER],
 			useFactory: (
 				connection: PostgresConnection,
+				owner: OwnerResolver,
 			): ApplicationDependencies => ({
-				unitOfWork: createPostgresUnitOfWork(connection.db),
-				scope: readOnlyScope(connection.db),
+				unitOfWork: lazyUnitOfWork(connection.db, owner),
+				scope: lazyScope(connection.db, owner),
 				clock: systemClock,
 				idGenerator: uuidGenerator,
 				timezone: process.env.APP_TIMEZONE ?? "UTC",
 			}),
 		},
 	],
-	exports: [CONNECTION, USE_CASE_DEPENDENCIES],
+	exports: [CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES],
 })
 export class DatabaseModule implements OnApplicationShutdown {
 	constructor(

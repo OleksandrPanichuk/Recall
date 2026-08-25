@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import type { OwnerId } from "@/application/ports/owner";
 import {
 	migrateSqliteToPostgres,
 	uuidFor,
@@ -11,6 +12,7 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedOwner,
 } from "../../fixtures/postgres";
 import {
 	makeTempDirectory,
@@ -20,6 +22,7 @@ import {
 const available = await postgresAvailable();
 
 let harness: PostgresHarness;
+let owner: OwnerId;
 let directory: string;
 let sqlitePath: string;
 let quizSetId: string;
@@ -37,7 +40,8 @@ beforeAll(async () => {
 
 	harness = await openPostgres("etl");
 	await applySchema();
-	await migrateSqliteToPostgres({ sqlitePath, client: harness.client });
+	owner = await seedOwner(harness, "etl owner");
+	await migrateSqliteToPostgres({ sqlitePath, client: harness.client, owner });
 });
 
 afterAll(async () => {
@@ -121,7 +125,11 @@ describe.skipIf(!available)("the sqlite to postgres migration", () => {
 			select count(*)::int as n from questions
 		`;
 
-		await migrateSqliteToPostgres({ sqlitePath, client: harness.client });
+		await migrateSqliteToPostgres({
+			sqlitePath,
+			client: harness.client,
+			owner,
+		});
 
 		const after = await harness.client<{ n: number }[]>`
 			select count(*)::int as n from questions

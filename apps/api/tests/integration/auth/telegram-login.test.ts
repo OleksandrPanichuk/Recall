@@ -17,6 +17,7 @@ const available = await postgresAvailable();
 const BOT_TOKEN = "b".repeat(40);
 const AUTH_SECRET = "s".repeat(40);
 const SUCCESS_URL = "http://127.0.0.1:3999";
+const OWNER_TELEGRAM_ID = 424242;
 
 const overrides: { name: string; previous: string | undefined }[] = [];
 
@@ -72,6 +73,7 @@ beforeAll(async () => {
 	override("BOT_API_TOKEN", BOT_TOKEN);
 	override("BETTER_AUTH_SECRET", AUTH_SECRET);
 	override("WEB_APP_URL", SUCCESS_URL);
+	override("ALLOWED_TELEGRAM_USER_ID", String(OWNER_TELEGRAM_ID));
 
 	app = await createApiApp();
 	await app.listen(0, "127.0.0.1");
@@ -96,6 +98,21 @@ afterAll(async () => {
 });
 
 describe.skipIf(!available)("logging in from the telegram bot", () => {
+	test("the api has an owner once the first link is followed", async () => {
+		await follow(await linkFor(OWNER_TELEGRAM_ID));
+
+		const response = await fetch(`${origin}/bot/attempts/current`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${BOT_TOKEN}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ telegramUserId: OWNER_TELEGRAM_ID }),
+		});
+
+		expect(response.status).toBe(204);
+	});
+
 	test("only the bot can ask for a login link", async () => {
 		expect((await issue({ telegramUserId: 1 }, "wrong")).status).toBe(401);
 		expect(
@@ -114,15 +131,15 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("the link carries a token, not a user id", async () => {
-		const url = new URL(await linkFor(4242));
+		const url = new URL(await linkFor(OWNER_TELEGRAM_ID));
 
 		expect(url.pathname).toBe("/api/auth/telegram/verify");
 		expect(url.searchParams.get("token")).toBeString();
-		expect(url.search).not.toContain("4242");
+		expect(url.search).not.toContain(String(OWNER_TELEGRAM_ID));
 	});
 
 	test("following the link sets a session cookie and lands on the app", async () => {
-		const response = await follow(await linkFor(1001));
+		const response = await follow(await linkFor(OWNER_TELEGRAM_ID));
 
 		expect(response.status).toBe(302);
 		expect(response.headers.get("location")).toBe(SUCCESS_URL);
@@ -135,7 +152,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("the cookie identifies the user to the api", async () => {
-		const link = await linkFor(1002);
+		const link = await linkFor(OWNER_TELEGRAM_ID);
 		const login = await follow(link);
 		const cookie = login.headers
 			.getSetCookie()
@@ -154,7 +171,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("a link works once", async () => {
-		const link = await linkFor(1003);
+		const link = await linkFor(OWNER_TELEGRAM_ID);
 
 		expect((await follow(link)).headers.get("location")).toBe(SUCCESS_URL);
 		expect((await follow(link)).headers.get("location")).toBe(
@@ -192,30 +209,52 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("the same telegram account is the same user on every device", async () => {
-		const before = await countOf("user");
+		await follow(await linkFor(OWNER_TELEGRAM_ID));
+		await follow(await linkFor(OWNER_TELEGRAM_ID));
 
-		await follow(await linkFor(2001));
-		await follow(await linkFor(2001));
-
-		expect(await countOf("user")).toBe(before + 1);
+		expect(await countOf("user")).toBe(1);
 
 		const sessions = await harness.client`
 			select count(distinct s.user_id)::int as n
 			from session s
 			join account a on a.user_id = s.user_id
-			where a.account_id = '2001'
+			where a.account_id = ${String(OWNER_TELEGRAM_ID)}
 		`;
 
 		expect(Number(sessions[0]?.n ?? 0)).toBe(1);
 	});
 
-	test("a different telegram account is a different user", async () => {
+	test("asking for a link for anyone else is refused, and creates nobody", async () => {
 		const before = await countOf("user");
 
-		await linkFor(3001);
-		await linkFor(3002);
+		expect((await issue({ telegramUserId: 3001 })).status).toBe(403);
+		expect(await countOf("user")).toBe(before);
+	});
 
-		expect(await countOf("user")).toBe(before + 2);
+	test("the bot cannot act for a telegram account this api does not serve", async () => {
+		const response = await fetch(`${origin}/bot/attempts/current`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${BOT_TOKEN}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ telegramUserId: 5150 }),
+		});
+
+		expect(response.status).toBe(403);
+	});
+
+	test("it can act for the one it does", async () => {
+		const response = await fetch(`${origin}/bot/attempts/current`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${BOT_TOKEN}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ telegramUserId: OWNER_TELEGRAM_ID }),
+		});
+
+		expect(response.status).toBe(204);
 	});
 
 	test("a stranger cannot sign themselves up", async () => {
@@ -239,7 +278,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({
-				email: "telegram-1001@telegram.invalid",
+				email: `telegram-${OWNER_TELEGRAM_ID}@telegram.invalid`,
 				password: "correct horse battery staple",
 			}),
 		});

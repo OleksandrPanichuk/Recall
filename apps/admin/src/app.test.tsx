@@ -4,6 +4,7 @@ import {
 	openPostgres,
 	type PostgresHarness,
 	postgresAvailable,
+	seedTelegramOwner,
 } from "@api-tests/fixtures/postgres";
 import {
 	makeTempDirectory,
@@ -25,6 +26,7 @@ let harness: PostgresHarness | undefined;
 if (available) {
 	harness = await openPostgres("admin_ui");
 	await applyMigration(harness);
+	await seedTelegramOwner(harness, 42);
 }
 
 const child = available
@@ -167,7 +169,7 @@ GlobalRegistrator.register({
 	settings: { fetch: { disableSameOriginPolicy: true } },
 });
 
-const happyFetch = globalThis.fetch;
+const _happyFetch = globalThis.fetch;
 
 globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 	const url =

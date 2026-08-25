@@ -1,5 +1,6 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { type OwnerId, toOwnerId } from "@/application/ports/owner";
 
 export const DEFAULT_POSTGRES_URL =
 	"postgres://recall:recall@127.0.0.1:55432/recall";
@@ -119,4 +120,39 @@ export async function applyMigration(harness: PostgresHarness): Promise<void> {
 			await harness.client.unsafe(statement);
 		}
 	}
+}
+
+// Owned rows point at a user, so a repository test needs one before it can
+// write anything. Two of them is what proves the scoping.
+export async function seedOwner(
+	harness: PostgresHarness,
+	name: string,
+): Promise<OwnerId> {
+	const id = crypto.randomUUID();
+
+	await harness.client`
+		insert into "user" (id, name, email)
+		values (${id}::text, ${name}::text, ${`${id}@telegram.invalid`}::text)
+	`;
+
+	return toOwnerId(id);
+}
+
+// The api resolves its owner through the linked telegram account, so a test
+// that drives the api has to link one.
+export async function seedTelegramOwner(
+	harness: PostgresHarness,
+	telegramUserId: number,
+): Promise<OwnerId> {
+	const owner = await seedOwner(harness, `telegram ${telegramUserId}`);
+
+	await harness.client`
+		insert into account (id, account_id, provider_id, user_id)
+		values (
+			${crypto.randomUUID()}::text, ${String(telegramUserId)}::text,
+			'telegram'::text, ${String(owner)}::text
+		)
+	`;
+
+	return owner;
 }

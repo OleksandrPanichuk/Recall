@@ -14,16 +14,22 @@ import {
 	unique,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { user } from "./auth-schema";
 
 const createdAt = () =>
 	timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
 	timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
 const deletedAt = () => timestamp("deleted_at", { withTimezone: true });
+const ownerId = () =>
+	text("owner_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" });
 
 export const pages = pgTable(
 	"pages",
 	{
+		ownerId: ownerId(),
 		id: uuid("id").primaryKey(),
 		legacyId: text("legacy_id"),
 		parentId: uuid("parent_id").references((): AnyPgColumn => pages.id, {
@@ -43,9 +49,10 @@ export const pages = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
-		unique("pages_legacy_unique").on(table.legacyId),
+		index("pages_owner_idx").on(table.ownerId),
+		unique("pages_legacy_unique").on(table.ownerId, table.legacyId),
 		unique("pages_parent_slug_unique")
-			.on(table.parentId, table.slug)
+			.on(table.ownerId, table.parentId, table.slug)
 			.nullsNotDistinct(),
 		check(
 			"pages_visibility_check",
@@ -58,6 +65,7 @@ export const pages = pgTable(
 export const quizzes = pgTable(
 	"quizzes",
 	{
+		ownerId: ownerId(),
 		id: uuid("id").primaryKey(),
 		legacyId: text("legacy_id"),
 		pageId: uuid("page_id").references(() => pages.id, {
@@ -79,7 +87,8 @@ export const quizzes = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
-		unique("quizzes_legacy_unique").on(table.legacyId),
+		index("quizzes_owner_idx").on(table.ownerId),
+		unique("quizzes_legacy_unique").on(table.ownerId, table.legacyId),
 		check(
 			"quizzes_status_check",
 			sql`${table.status} in ('draft', 'published', 'archived')`,
@@ -116,6 +125,7 @@ export const quizAttachments = pgTable(
 export const termPairs = pgTable(
 	"term_pairs",
 	{
+		ownerId: ownerId(),
 		id: uuid("id").primaryKey(),
 		legacyId: text("legacy_id"),
 		quizId: uuid("quiz_id")
@@ -131,7 +141,8 @@ export const termPairs = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
-		unique("term_pairs_legacy_unique").on(table.legacyId),
+		index("term_pairs_owner_idx").on(table.ownerId),
+		unique("term_pairs_legacy_unique").on(table.ownerId, table.legacyId),
 		index("term_pairs_quiz_idx").on(table.quizId),
 	],
 );
@@ -139,6 +150,7 @@ export const termPairs = pgTable(
 export const questions = pgTable(
 	"questions",
 	{
+		ownerId: ownerId(),
 		id: uuid("id").primaryKey(),
 		legacyId: text("legacy_id"),
 		quizId: uuid("quiz_id")
@@ -158,7 +170,8 @@ export const questions = pgTable(
 		deletedAt: deletedAt(),
 	},
 	(table) => [
-		unique("questions_legacy_unique").on(table.legacyId),
+		index("questions_owner_idx").on(table.ownerId),
+		unique("questions_legacy_unique").on(table.ownerId, table.legacyId),
 		check(
 			"questions_difficulty_check",
 			sql`${table.difficulty} in ('easy', 'medium', 'hard')`,
@@ -206,6 +219,7 @@ export const questionOptions = pgTable(
 export const attempts = pgTable(
 	"attempts",
 	{
+		ownerId: ownerId(),
 		id: uuid("id").primaryKey(),
 		legacyId: text("legacy_id"),
 		quizId: uuid("quiz_id")
@@ -219,7 +233,8 @@ export const attempts = pgTable(
 		completedAt: timestamp("completed_at", { withTimezone: true }),
 	},
 	(table) => [
-		unique("attempts_legacy_unique").on(table.legacyId),
+		index("attempts_owner_idx").on(table.ownerId),
+		unique("attempts_legacy_unique").on(table.ownerId, table.legacyId),
 		check(
 			"attempts_status_check",
 			sql`${table.status} in ('active', 'paused', 'completed')`,
@@ -275,6 +290,7 @@ export const responses = pgTable(
 export const reviewStates = pgTable(
 	"review_states",
 	{
+		ownerId: ownerId(),
 		questionId: uuid("question_id")
 			.primaryKey()
 			.references(() => questions.id, { onDelete: "cascade" }),
@@ -295,6 +311,7 @@ export const reviewStates = pgTable(
 export const studySettings = pgTable(
 	"study_settings",
 	{
+		ownerId: ownerId(),
 		id: uuid("id").primaryKey(),
 		scopeType: text("scope_type").notNull(),
 		scopeId: uuid("scope_id"),
@@ -307,12 +324,14 @@ export const studySettings = pgTable(
 		updatedAt: updatedAt(),
 	},
 	(table) => [
+		index("study_settings_owner_idx").on(table.ownerId),
+		index("review_states_owner_idx").on(table.ownerId),
 		check(
 			"study_settings_scope_check",
 			sql`${table.scopeType} in ('owner', 'page', 'quiz')`,
 		),
 		unique("study_settings_scope_unique")
-			.on(table.scopeType, table.scopeId)
+			.on(table.ownerId, table.scopeType, table.scopeId)
 			.nullsNotDistinct(),
 	],
 );

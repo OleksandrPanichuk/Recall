@@ -4,9 +4,12 @@ import {
 	Injectable,
 	ServiceUnavailableException,
 } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
-import { account, authEvents, user } from "@/persistence/postgres/auth-schema";
+import { authEvents } from "@/persistence/postgres/auth-schema";
 import type { PostgresConnection } from "@/persistence/postgres/client";
+import {
+	ensureTelegramOwner,
+	findTelegramOwner,
+} from "@/persistence/postgres/owner";
 import { loadApiEnvironment } from "../shared/config/api-env";
 import { CONNECTION } from "../shared/database/tokens";
 import { AUTH_BASE_PATH, type RecallAuth } from "./build-auth";
@@ -14,7 +17,6 @@ import {
 	DEFAULT_LINK_TTL_SECONDS,
 	identifierFor,
 	mintLoginToken,
-	TELEGRAM_PROVIDER,
 } from "./telegram-link.plugin";
 import { AUTH } from "./tokens";
 
@@ -23,12 +25,6 @@ export interface LoginLink {
 	readonly expiresAt: Date;
 	readonly userId: string;
 }
-
-// A telegram account has no email, and better-auth requires one to be unique.
-// The placeholder is reserved rather than routable, so a later "add a password"
-// flow can replace it without colliding with anything a person could own.
-const placeholderEmailFor = (telegramUserId: number): string =>
-	`telegram-${telegramUserId}@telegram.invalid`;
 
 @Injectable()
 export class TelegramIdentityService {
@@ -78,19 +74,8 @@ export class TelegramIdentityService {
 		return { url: url.href, expiresAt, userId };
 	}
 
-	async userIdForTelegram(telegramUserId: number): Promise<string | undefined> {
-		const [row] = await this.connection.db
-			.select({ userId: account.userId })
-			.from(account)
-			.where(
-				and(
-					eq(account.providerId, TELEGRAM_PROVIDER),
-					eq(account.accountId, String(telegramUserId)),
-				),
-			)
-			.limit(1);
-
-		return row?.userId;
+	userIdForTelegram(telegramUserId: number): Promise<string | undefined> {
+		return findTelegramOwner(this.connection.db, telegramUserId);
 	}
 
 	private async resolveUserId(
@@ -103,31 +88,15 @@ export class TelegramIdentityService {
 			return existing;
 		}
 
-		const userId = randomUUID();
-		const now = new Date();
+		const owner = await ensureTelegramOwner(
+			this.connection.db,
+			telegramUserId,
+			displayName,
+		);
 
-		await this.connection.db.transaction(async (transaction) => {
-			await transaction.insert(user).values({
-				id: userId,
-				name: displayName ?? `Telegram ${telegramUserId}`,
-				email: placeholderEmailFor(telegramUserId),
-				emailVerified: false,
-				createdAt: now,
-				updatedAt: now,
-			});
-			await transaction.insert(account).values({
-				id: randomUUID(),
-				accountId: String(telegramUserId),
-				providerId: TELEGRAM_PROVIDER,
-				userId,
-				createdAt: now,
-				updatedAt: now,
-			});
-		});
+		await this.record("telegram-user-created", owner, String(telegramUserId));
 
-		await this.record("telegram-user-created", userId, String(telegramUserId));
-
-		return userId;
+		return owner;
 	}
 
 	private async record(
