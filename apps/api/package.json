@@ -5,7 +5,7 @@
 	"type": "module",
 	"module": "src/entrypoints/telegram.ts",
 	"scripts": {
-		"build": "bun build ./src/entrypoints/telegram.ts ./src/entrypoints/mcp.ts ./src/entrypoints/mcp-http.ts --outdir ../../dist --target bun",
+		"build": "bun build ./src/entrypoints/telegram.ts --outdir ../../dist --target bun",
 		"db:generate": "drizzle-kit generate",
 		"db:generate:pg": "drizzle-kit generate --config drizzle.postgres.config.ts",
 		"db:migrate:pg": "drizzle-kit migrate --config drizzle.postgres.config.ts",

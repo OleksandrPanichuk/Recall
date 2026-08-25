@@ -1,6 +1,10 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "@/modules/app.module";
+import {
+	MCP_SURFACE,
+	type McpSurface,
+} from "@/modules/integration/mcp/mcp.module";
 import { loadApiEnvironment } from "@/modules/shared/config/api-env";
 import { DomainExceptionFilter } from "@/modules/shared/errors/domain-exception.filter";
 import {
@@ -17,6 +21,15 @@ export async function createApiApp() {
 	// Without an explicit origin nothing cross-origin is allowed at all.
 	if (environment.adminOrigin !== undefined) {
 		app.enableCors({ origin: environment.adminOrigin, credentials: true });
+	}
+
+	// The MCP surface is a whole Express app. Mounting it through Nest middleware
+	// would put it behind a path and Express would strip that prefix, so /mcp
+	// would never match. A path-less use() on the underlying instance does not.
+	const mcp = app.get<McpSurface>(MCP_SURFACE);
+
+	if (mcp.app !== undefined) {
+		app.getHttpAdapter().getInstance().use(mcp.app);
 	}
 
 	app.useGlobalFilters(new DomainExceptionFilter());

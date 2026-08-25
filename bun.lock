@@ -48,6 +48,10 @@
         "drizzle-kit": "^0.31.10",
       },
     },
+    "apps/mcp": {
+      "name": "@recall/mcp",
+      "version": "0.0.0",
+    },
     "packages/tooling": {
       "name": "@recall/tooling",
       "version": "0.0.0",
@@ -229,6 +233,8 @@
     "@recall/admin": ["@recall/admin@workspace:apps/admin"],
 
     "@recall/api": ["@recall/api@workspace:apps/api"],
+
+    "@recall/mcp": ["@recall/mcp@workspace:apps/mcp"],
 
     "@recall/tooling": ["@recall/tooling@workspace:packages/tooling"],
 

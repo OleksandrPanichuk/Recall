@@ -1213,6 +1213,45 @@ logged `telegram handler failed` with the query, its parameters and `ECONNREFUSE
 Untried: `bun run dev` against the live Telegram API, which needs a bot token and covers nothing
 the above does not.
 
+## Splitting the apps out (r19)
+
+`apps/admin` went first, then `apps/mcp`. Both are now their own workspace package, and the API
+serves what used to be three separate HTTP processes on one port.
+
+**The admin.** A whole Fetch-style route table mounted inside Nest through
+`modules/integration/admin/fetch-routes.ts`. Two traps paid for themselves there: Nest mounts
+middleware behind a wildcard, so `request.path` is always `/` and the real path is on
+`originalUrl`; and copying a Fetch `Response`'s headers onto an Express response duplicates
+`content-length`, which happy-dom rejects as a parse error.
+
+**The MCP surface.** `createMcpHttpApp` already returns an Express app, so no bridge was needed —
+but it cannot be mounted through Nest middleware either: Nest gives middleware a path, Express
+strips that prefix from a mounted sub-app, and `/mcp` then never matches (404 on every request,
+token or not). It is mounted path-lessly on the underlying Express instance instead, from
+`createApiApp`, with the module providing it so shutdown still closes the OAuth SQLite file.
+
+`MCP_HTTP_TOKEN` decides whether it exists at all: without one the API answers 404 on `/mcp` and
+serves everything else, which is what the old standalone entrypoint could not do — it refused to
+boot. The paired `MCP_OAUTH_ISSUER`/`MCP_OAUTH_PASSPHRASE` guard moved across with it.
+
+**`apps/mcp` is a bridge, not a server.** It reads newline-delimited JSON-RPC on stdin, POSTs
+each line to the API's `/mcp` with the bearer token, and writes the answer back — notifications
+stay silent, an unreachable API becomes a JSON-RPC error rather than a crash, and writes are
+serialised so two concurrent answers cannot interleave inside one line. That is what makes
+"only `apps/api` talks to the database" true for MCP as well: the old `entrypoints/mcp.ts` opened
+its own connection, and is deleted.
+
+Deleted with it: `entrypoints/mcp-http.ts`, `loadHttpEnvironment` (its only caller), and the
+`mcp` service in `bun run up` — three processes now, not four, because MCP is the API.
+
+Proven, not assumed: 1271 tests green including a stdio round-trip that spawns the API *and* the
+bridge as real processes, hands the bridge `initialize`, `tools/list` and `tools/call`, and reads
+the created set back out of Postgres through a second tool call.
+
+One measured correction to note: an "Invalid Host header" on `/mcp` during manual testing was
+the repo's own `.env` — `MCP_HTTP_ALLOWED_HOST` turns on DNS-rebinding protection, and Bun loads
+`.env` automatically. The tests pass `--env-file=/dev/null` for exactly this reason.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

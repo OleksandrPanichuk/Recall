@@ -67,6 +67,13 @@ Both exemptions are **scoped to their directory** — do not let them spread.
 `apps/bot`, `apps/mcp`, `apps/admin`, `packages/*`, `scripts/`, and all of `src/` stay on
 plain Bun with no exemption.
 
+**`apps/mcp` and `apps/admin` are clients of the API, not of the database.** `apps/mcp` is a
+stdio↔HTTP bridge: it forwards JSON-RPC to the API's `/mcp` and holds no application code. The
+MCP tools themselves live in `apps/api` and are mounted on the underlying Express instance from
+`createApiApp` — **not** through Nest middleware, which gives the sub-app a path that Express
+then strips, so `/mcp` never matches and every request 404s. `/mcp` exists only when
+`MCP_HTTP_TOKEN` is set.
+
 **Postgres.** `bun run db:up` starts Postgres 17 in Docker on
 port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it discover it via
 `TEST_DATABASE_URL` (falling back to the Docker default) and **skip** when it is unreachable,

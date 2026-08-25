@@ -1,4 +1,4 @@
-export const SERVICE_NAMES = ["api", "bot", "mcp", "admin"] as const;
+export const SERVICE_NAMES = ["api", "bot", "admin"] as const;
 
 export type ServiceName = (typeof SERVICE_NAMES)[number];
 
@@ -14,7 +14,6 @@ export interface PlannedService {
 export type EnvironmentSource = Readonly<Record<string, string | undefined>>;
 
 const DEFAULT_HOST = "127.0.0.1";
-const DEFAULT_MCP_PORT = 8765;
 const DEFAULT_ADMIN_PORT = 8766;
 
 const text = (value: string | undefined): string => (value ?? "").trim();
@@ -75,14 +74,9 @@ export function planServices(
 			? undefined
 			: "not selected by --only";
 
-	const mcpHost = hostOf(env.MCP_HTTP_HOST);
 	const adminHost = hostOf(env.ADMIN_HOST);
-	const mcpPort = portOf(env.MCP_HTTP_PORT, DEFAULT_MCP_PORT);
 	const adminPort = portOf(env.ADMIN_PORT, DEFAULT_ADMIN_PORT);
 
-	const mcpSkipped =
-		wanted("mcp") ??
-		(isSet(env.MCP_HTTP_TOKEN) ? undefined : "MCP_HTTP_TOKEN is not set");
 	const adminSkipped =
 		wanted("admin") ??
 		(isSet(env.ADMIN_PASSPHRASE) || isSet(env.MCP_OAUTH_PASSPHRASE)
@@ -108,17 +102,6 @@ export function planServices(
 			name: "bot",
 			entry: "apps/api/src/entrypoints/telegram.ts",
 			skipped: wanted("bot"),
-		},
-		{
-			name: "mcp",
-			entry: "apps/api/src/entrypoints/mcp-http.ts",
-			...(mcpSkipped === undefined
-				? {
-						host: mcpHost,
-						port: mcpPort,
-						url: `http://${reachable(mcpHost)}:${mcpPort}/mcp`,
-					}
-				: { skipped: mcpSkipped }),
 		},
 		{
 			name: "admin",

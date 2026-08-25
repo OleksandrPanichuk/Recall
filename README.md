@@ -206,8 +206,9 @@ rebuild не проїхав як звичайна migration.
 | `bun run check` | Одночасно перевірити lint, formatting та imports |
 | `bun run check:fix` | Застосувати safe Biome fixes, formatting та import sorting |
 | `bun run typecheck` | Перевірити TypeScript без генерації output |
-| `bun run up` | Підняти все, що налаштоване: бот, MCP, адмінка |
-| `bun run mcp:http` | Підняти MCP через HTTP для віддаленого доступу |
+| `bun run up` | Підняти все, що налаштоване: API (з MCP), бот, адмінка |
+| `bun run api` | Підняти API — REST, Swagger, адмін-API і MCP на одному порті |
+| `bun run mcp` | stdio-мостик до MCP цього API (для Claude Desktop) |
 | `bun run admin` | Підняти веб-адмінку на `http://127.0.0.1:8766` |
 | `bun run build` | Зібрати всі entrypoints у `dist/` |
 | `bun run start` | Запустити попередньо зібраний `dist/telegram.js` |
@@ -349,7 +350,10 @@ apps/api/src/
     create-application.ts  manual dependency injection root
   entrypoints/
     telegram.ts    starts the bot; --check validates configuration and exits
-    mcp.ts         stdio MCP server for Claude
+    api.ts         starts NestJS: REST, Swagger, admin API and MCP
+  modules/         NestJS modules; integration/ mounts the admin and MCP apps
+apps/mcp/
+  src/main.ts      stdio bridge: a local MCP client talks to the api over http
 scripts/
   up.ts            the supervisor: checks Postgres, migrates, starts services
 apps/api/tests/
@@ -376,28 +380,40 @@ cases і transport adapters додаватимуться поступово за
 
 ## Створення наборів через Claude (MCP)
 
-MCP server працює локально через stdio і використовує ті самі application
-services, що й бот, тому Claude ніколи не торкається SQL напряму.
+MCP tools живуть в API: той самий процес, що віддає REST і Swagger, віддає і
+`/mcp`. Тому Claude ніколи не торкається SQL напряму — і до бази ходить лише
+`apps/api`.
 
-Запуск вручну:
+`apps/mcp` — це мостик: клієнт (Claude Desktop, Claude Code) запускає його
+через stdio, а він переказує кожен JSON-RPC запит на `/mcp` того API.
+
+Спершу підніми API з увімкненим MCP:
 
 ```bash
-bun run mcp
+openssl rand -hex 32          # токен, мінімум 32 символи → MCP_HTTP_TOKEN
+bun run api                   # REST, Swagger і /mcp на 127.0.0.1:8767
 ```
 
 Підключення до Claude Code:
 
 ```bash
 claude mcp add recall-quiz --scope user \
-  --env TELEGRAM_BOT_KEY=... \
-  --env ALLOWED_TELEGRAM_USER_ID=... \
-  --env DATABASE_URL=postgres://recall:recall@127.0.0.1:55432/recall \
-  --env APP_TIMEZONE=Europe/Kyiv \
-  -- bun run /absolute/path/to/repo/apps/api/src/entrypoints/mcp.ts
+  --env MCP_HTTP_TOKEN=... \
+  --env RECALL_API_MCP_URL=http://127.0.0.1:8767/mcp \
+  -- bun run /absolute/path/to/repo/apps/mcp/src/main.ts
 ```
 
 Для Claude Desktop додайте той самий command у `claude_desktop_config.json`
-(`mcpServers.recall-quiz`) з абсолютними шляхами та тими ж чотирма змінними.
+(`mcpServers.recall-quiz`) з абсолютним шляхом і тими ж двома змінними.
+
+| Змінна | Типово | Призначення |
+| --- | --- | --- |
+| `MCP_HTTP_TOKEN` | — | той самий токен, що в API; обов'язковий |
+| `RECALL_API_MCP_URL` | `http://127.0.0.1:8767/mcp` | endpoint API |
+| `RECALL_MCP_TIMEOUT_MS` | `120000` | скільки чекати відповідь API |
+
+`bun run mcp --check` перевіряє конфігурацію мостика і виходить. Якщо API не
+підняте, мостик не падає: клієнт отримує JSON-RPC error з причиною.
 
 Доступні tools:
 
@@ -427,18 +443,18 @@ claude mcp add recall-quiz --scope user \
 
 ## Віддалений доступ до MCP
 
-`bun run mcp` говорить через stdio — його запускає сам клієнт на цій машині.
-`bun run mcp:http` піднімає **той самий** сервер, ті самі 17 tools і ту саму
-базу, але через HTTP, щоб до нього дійшов Codex чи Claude Code з іншої машини.
+`bun run mcp` говорить через stdio — його запускає сам клієнт на цій машині, і
+він усе одно ходить у той самий API. Якщо клієнт уміє HTTP сам (Codex,
+Claude Code), мостик не потрібен: дай йому напряму `/mcp` того самого API.
 
 ```bash
 openssl rand -hex 32          # токен, мінімум 32 символи
-bun run mcp:http --check      # перевірити конфіг і вийти
-bun run mcp:http
+bun run api                   # /mcp вмикається лише коли є MCP_HTTP_TOKEN
 ```
 
-Змінні: `MCP_HTTP_TOKEN` (обов'язково), `MCP_HTTP_HOST` (типово `127.0.0.1`),
-`MCP_HTTP_PORT` (типово `8765`), `MCP_HTTP_ALLOWED_HOST` (хост тунелю).
+Змінні: `MCP_HTTP_TOKEN` (без нього `/mcp` просто не існує — 404),
+`API_HOST` (типово `127.0.0.1`), `API_PORT` (типово `8767`),
+`MCP_HTTP_ALLOWED_HOST` (хост тунелю).
 
 ### Токен — це весь захист
 
@@ -456,7 +472,7 @@ bun run mcp:http
 ### Тунель
 
 ```bash
-cloudflared tunnel --url http://127.0.0.1:8765
+cloudflared tunnel --url http://127.0.0.1:8767
 ```
 
 Візьми виданий домен, поклади його в `MCP_HTTP_ALLOWED_HOST` і перезапусти
@@ -475,7 +491,7 @@ claude mcp add --transport http recall-quiz https://<домен>/mcp \
   --header "Authorization: Bearer $RECALL_TOKEN"
 ```
 
-Сесії немає: кожен запит обробляється сам собою, бо всі 16 tools —
+Сесії немає: кожен запит обробляється сам собою, бо всі 19 tools —
 запит-відповідь і нічого не пушать. Тому два клієнти одночасно не заважають
 одне одному, а база лишається одна, спільна з ботом.
 
@@ -527,8 +543,8 @@ bun run up
 Спершу вона друкує план — що піднімається і чому щось пропущено:
 
 ```
+api    http://127.0.0.1:8767/docs
 bot    starting
-mcp    http://127.0.0.1:8765/mcp
 admin  http://127.0.0.1:8766
 ```
 
@@ -539,7 +555,7 @@ admin  http://127.0.0.1:8766
 admin  00:06:50 info  admin ready  host=127.0.0.1 port=8766
 
 admin → http://127.0.0.1:8766
-mcp   → http://127.0.0.1:8765/mcp
+api   → http://127.0.0.1:8767/docs
 admin password: run with --show-passphrase to print it
 ready in 0.4s — Ctrl+C to stop
 ```
@@ -550,7 +566,7 @@ JSON-логи трьох процесів зводяться в одну чит�
 Якщо порт зайнятий, вона не стартує нічого і каже, хто його тримає:
 
 ```
-port 8765 (mcp) is held by pid 24823 (bun) — stop it with: kill 24823
+port 8767 (api) is held by pid 24823 (bun) — stop it with: kill 24823
 ```
 
 | Флаг | Що робить |
@@ -985,7 +1001,7 @@ quiz_move_set({ quizSetId: "..." })
 | `bun run status` | health-звіт: скільки наборів, спроб і питань |
 | `bun run <entrypoint> --check` | перевірити конфігурацію і вийти (не відкриває database) |
 | `bun run db:up` / `db:down` | підняти або зупинити локальний Postgres |
-| `bun run mcp:http` | віддалений MCP через HTTP (див. «Віддалений доступ до MCP») |
+| `bun run api` | API разом із MCP (див. «Віддалений доступ до MCP») |
 
 ### Backup
 
