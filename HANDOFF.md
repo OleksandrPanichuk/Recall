@@ -89,12 +89,15 @@ spawns the api **and** the bridge as real processes and does it over stdio.
 
 ## 4. What is left before merging
 
-Nothing functional. Two things still open from the previous handoff:
+Nothing functional, and nothing procedural either — the two items the previous handoff listed as
+open were already done, so it was wrong about them. The chain as it stands:
 
-- **PR #76 needs retargeting to `rewrite`** — `gh pr edit 76 --base rewrite`. It still points at
-  the merged-and-undeleted `fix/stable-option-ids`.
-- **The PR for this branch is not open yet** —
-  `gh pr create --base refactor/monorepo-split --head wip/postgres-cutover`.
+| PR | | |
+| --- | --- | --- |
+| #77 | `wip/postgres-cutover` → `refactor/monorepo-split` | the cutover **and** the app split |
+| #76 | `refactor/monorepo-split` → `rewrite` | phases 2–4; already retargeted correctly |
+
+Merge #76 first, then #77.
 
 Housekeeping: the local `.env` points `DATABASE_URL` at `…/recall_live`, the rehearsal database,
 and now also needs `BOT_API_TOKEN` for the bot to start. **Keep the SQLite files** —
