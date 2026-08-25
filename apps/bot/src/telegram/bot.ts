@@ -13,6 +13,7 @@ import {
 import { attemptDetailHandler } from "./handlers/attempt-detail.handler";
 import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
+import { loginHandler } from "./handlers/login.handler";
 import { practiceHandler } from "./handlers/practice.handler";
 import { repetitionsHandler } from "./handlers/repetitions.handler";
 import {
@@ -50,6 +51,7 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 	);
 
 	bot.start(menuHandler(useCases));
+	bot.command("login", loginHandler(useCases));
 
 	bot.on("callback_query", async (ctx) => {
 		const query = ctx.callbackQuery;
@@ -95,6 +97,10 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.Settings:
 				await settingsMenuHandler()(ctx);
+
+				return;
+			case CallbackAction.Login:
+				await loginHandler(useCases)(ctx);
 
 				return;
 			case CallbackAction.SettingsFor:

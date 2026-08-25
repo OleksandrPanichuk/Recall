@@ -38,6 +38,7 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Settings:
 		case CallbackAction.Mistakes:
 		case CallbackAction.WeakTopics:
+		case CallbackAction.Login:
 			return callback.action;
 		case CallbackAction.SettingsFor:
 			return [callback.action, callback.quizSetId ?? ""].join(SEPARATOR);
@@ -109,6 +110,7 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Settings:
 		case CallbackAction.Mistakes:
 		case CallbackAction.WeakTopics:
+		case CallbackAction.Login:
 			return { action };
 		case CallbackAction.SettingsFor:
 			return {

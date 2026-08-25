@@ -8,6 +8,11 @@ export interface ApiEnvironment {
 	readonly oauthDatabasePath: string;
 	readonly mcpToken?: string;
 	readonly botToken?: string;
+	readonly authSecret?: string;
+	readonly authBaseUrl: string;
+	readonly authSuccessUrl: string;
+	readonly authTrustedOrigins: readonly string[];
+	readonly authLinkTtlSeconds?: number;
 	readonly mcpIssuer?: URL;
 	readonly mcpPassphrase?: string;
 	readonly mcpAllowedHosts: readonly string[];
@@ -23,6 +28,15 @@ const schema = z.object({
 	OAUTH_DATABASE_PATH: z.string().trim().min(1).default("./data/oauth.sqlite"),
 	MCP_HTTP_TOKEN: z.string().trim().min(32).optional(),
 	BOT_API_TOKEN: z.string().trim().min(32).optional(),
+	BETTER_AUTH_SECRET: z.string().trim().min(32).optional(),
+	BETTER_AUTH_URL: z.string().trim().url().optional(),
+	WEB_APP_URL: z.string().trim().url().optional(),
+	AUTH_LINK_TTL_SECONDS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.max(3600)
+		.optional(),
 	MCP_OAUTH_ISSUER: z.string().trim().url().optional(),
 	MCP_OAUTH_PASSPHRASE: z.string().trim().min(16).optional(),
 	MCP_HTTP_ALLOWED_HOST: z.string().trim().min(1).optional(),
@@ -69,6 +83,20 @@ export function loadApiEnvironment(
 		oauthDatabasePath: parsed.data.OAUTH_DATABASE_PATH,
 		mcpToken: parsed.data.MCP_HTTP_TOKEN,
 		botToken: parsed.data.BOT_API_TOKEN,
+		authSecret: parsed.data.BETTER_AUTH_SECRET,
+		authBaseUrl:
+			parsed.data.BETTER_AUTH_URL ??
+			`http://${parsed.data.API_HOST}:${parsed.data.API_PORT}`,
+		authSuccessUrl:
+			parsed.data.WEB_APP_URL ??
+			parsed.data.BETTER_AUTH_URL ??
+			`http://${parsed.data.API_HOST}:${parsed.data.API_PORT}`,
+		authTrustedOrigins: [
+			parsed.data.WEB_APP_URL,
+			parsed.data.ADMIN_ORIGIN,
+			parsed.data.BETTER_AUTH_URL,
+		].filter((origin): origin is string => origin !== undefined),
+		authLinkTtlSeconds: parsed.data.AUTH_LINK_TTL_SECONDS,
 		mcpIssuer: issuer === undefined ? undefined : new URL(issuer),
 		mcpPassphrase: passphrase,
 		mcpAllowedHosts:

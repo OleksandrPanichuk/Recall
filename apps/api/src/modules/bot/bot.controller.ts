@@ -18,6 +18,7 @@ import {
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
 	leechesCommandSchema,
+	loginLinkCommandSchema,
 	practiceCommandSchema,
 	resolveSettingsCommandSchema,
 	startAttemptCommandSchema,
@@ -41,6 +42,7 @@ import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { TelegramIdentityService } from "../auth/telegram-identity.service";
 import { BotTokenGuard } from "./bot-token.guard";
 import { parseBody } from "./parse-body";
 import {
@@ -63,6 +65,8 @@ import {
 @Controller("bot")
 export class BotController {
 	constructor(
+		@Inject(TelegramIdentityService)
+		private readonly identity: TelegramIdentityService,
 		@Inject(BrowseFolderUseCase)
 		private readonly browseFolder: BrowseFolderUseCase,
 		@Inject(StartQuizAttemptUseCase)
@@ -88,6 +92,21 @@ export class BotController {
 		@Inject(UpdateQuizSettingsUseCase)
 		private readonly updateQuizSettings: UpdateQuizSettingsUseCase,
 	) {}
+
+	@Post(BOT_ROUTES.loginLink)
+	@HttpCode(HttpStatus.OK)
+	async loginLink(@Body() body: unknown) {
+		const command = parseBody(loginLinkCommandSchema, body);
+		// The bot proves it is the bot with its own token and hands over the
+		// telegram id; the api is what maps that id to a user. No caller ever
+		// names a user id.
+		const link = await this.identity.issueLoginLink(
+			command.telegramUserId,
+			command.displayName,
+		);
+
+		return { url: link.url, expiresAt: link.expiresAt.toISOString() };
+	}
 
 	@Post(BOT_ROUTES.browse)
 	@HttpCode(HttpStatus.OK)

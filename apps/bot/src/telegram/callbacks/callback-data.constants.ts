@@ -20,6 +20,7 @@ export const CallbackAction = {
 	MistakesFor: "K",
 	WeakTopics: "w",
 	WeakTopicsFor: "W",
+	Login: "i",
 } as const;
 export const SettingsChange = {
 	Preset: "p",

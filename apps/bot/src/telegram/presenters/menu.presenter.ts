@@ -29,6 +29,7 @@ export function mainMenu(state: MenuState): Screen {
 			[button("🧠 Слабкі теми", { action: CallbackAction.WeakTopics })],
 			[button("📊 Статистика", { action: CallbackAction.Statistics })],
 			[button("⚙️ Налаштування", { action: CallbackAction.Settings })],
+			[button("🌐 Вхід на платформу", { action: CallbackAction.Login })],
 		],
 	};
 }

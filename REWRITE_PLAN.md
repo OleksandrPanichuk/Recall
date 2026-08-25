@@ -1295,6 +1295,54 @@ its last caller and is deleted; the bot validates its own, smaller environment
 (`TELEGRAM_BOT_KEY`, `ALLOWED_TELEGRAM_USER_ID`, `BOT_API_TOKEN`, `RECALL_API_URL`,
 `APP_TIMEZONE`) and never sees `DATABASE_URL`.
 
+## Phase 7a: identity, and who is allowed to say who you are (r21)
+
+Better Auth is in, on Postgres, with the Telegram login flow working end to end. Ownership
+(`owner_id` on the domain tables) is deliberately **not** in this step — see below.
+
+**The tables are ours, not generated.** `persistence/postgres/auth-schema.ts` defines `user`,
+`session`, `account`, `verification` with the column names Better Auth expects, plus
+`auth_events` for the audit trail the plan asked for from day one. They live in the same drizzle
+schema as everything else, so `db:generate` produced one migration and `applyMigration` in the
+test fixture now applies **every** file rather than only the first — it had been taking
+`[name] = files.sort()` and silently ignoring the rest, which worked only while there was one.
+
+**Where the seam is.** Two decisions, both about who may assert an identity:
+
+- **Mounting.** The handler goes on the raw Express instance ahead of any body parser, so
+  `NestFactory.create` gets `bodyParser: false` and `json()` is mounted by hand after. Better
+  Auth reads the raw body; a parser that already drained the stream leaves it hanging.
+- **Issuing.** A link is minted only by `POST /bot/auth/login-link`, behind the bot token. It is
+  *not* a Better Auth endpoint, because `SERVER_ONLY` only hides an endpoint from the generated
+  client — the route would still be reachable, and a route that converts a Telegram id into a
+  session is an authorization bypass. The plugin only spends a token it did not mint. The bot
+  hands over the Telegram id and the api maps it to a user; no caller ever names a `userId`.
+
+**The cookie is a session row, as decided.** One year, `HttpOnly`, `SameSite=Lax`, re-issued on
+use — revocable, listable, and killable per device, which an endless JWT is not.
+
+**A hole I opened and closed before landing.** Enabling `emailAndPassword` (phase 2 of the auth
+plan, not this one) exposes `POST /api/auth/sign-up/email` publicly. A stranger signed themselves
+up on the instance in testing. It is now off, and two tests pin it: sign-up is refused and no user
+row appears, and password sign-in against a Telegram user's placeholder email is refused too.
+
+**Also found by testing rather than reasoning:** the plugin's explicit "is this token expired"
+branch was unreachable — `consumeVerificationValue` already rejects an expired row, so an expired
+link comes back as `invalid_token`. The branch is deleted and the behaviour is pinned by a test,
+which is what protects it: if the library ever started returning expired rows, that test fails
+instead of a session being minted.
+
+**Proven end to end.** `/login` in the real bot returned a link; following it set the cookie and
+redirected to the app; `get-session` reported a session expiring in a year; replaying the link
+gave `?error=invalid_token`. One Telegram id is one user across devices, a different id is a
+different user, and `auth_events` recorded both the creation and every issued link.
+
+**What phase 7b still owes.** `/bot/*` still carries `telegramUserId` in the body and the api
+still believes it — correct while one person owns the instance, and the thing to fix before
+multi-user. The mapping already exists (`TelegramIdentityService.userIdForTelegram`); what is
+missing is `owner_id` on the domain tables and a principal threaded through the use cases, so the
+type checker refuses an unscoped call.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

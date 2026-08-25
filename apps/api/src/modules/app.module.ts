@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AuthModule } from "./auth/auth.module";
 import { BotModule } from "./bot/bot.module";
 import { ContentModule } from "./content/content.module";
 import { AdminModule } from "./integration/admin/admin.module";
@@ -7,7 +8,14 @@ import { DatabaseModule } from "./shared/database/database.module";
 import { HealthController } from "./shared/health/health.controller";
 
 @Module({
-	imports: [DatabaseModule, ContentModule, BotModule, AdminModule, McpModule],
+	imports: [
+		DatabaseModule,
+		AuthModule,
+		ContentModule,
+		BotModule,
+		AdminModule,
+		McpModule,
+	],
 	controllers: [HealthController],
 })
 export class AppModule {}

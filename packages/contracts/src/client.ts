@@ -24,11 +24,15 @@ import {
 	type GetAttemptDetailCommand,
 	type GetCurrentQuestionCommand,
 	type GetQuizStatisticsCommand,
+	type IssueLoginLinkCommand,
 	type LeechView,
 	type ListDueRepetitionsCommand,
 	type ListLeechesCommand,
+	type LoginLink,
 	leechesCommandSchema,
 	leechSchema,
+	loginLinkCommandSchema,
+	loginLinkSchema,
 	practiceCommandSchema,
 	practiceResultSchema,
 	type QuizSettings,
@@ -143,6 +147,7 @@ export interface UseCaseLike<Command, Result> {
 }
 
 export interface BotUseCases {
+	readonly issueLoginLink: UseCaseLike<IssueLoginLinkCommand, LoginLink>;
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly listDueRepetitions: UseCaseLike<
 		ListDueRepetitionsCommand,
@@ -188,6 +193,7 @@ export interface BotUseCases {
 }
 
 export const BOT_ROUTES = {
+	loginLink: "auth/login-link",
 	browse: "browse",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
@@ -302,6 +308,11 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 	});
 
 	return {
+		issueLoginLink: operation(
+			BOT_ROUTES.loginLink,
+			loginLinkCommandSchema,
+			loginLinkSchema,
+		),
 		browseFolder: operation(
 			BOT_ROUTES.browse,
 			browseCommandSchema,

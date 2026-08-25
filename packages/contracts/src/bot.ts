@@ -204,6 +204,16 @@ export const resolvedSettingsSchema = z.object({
 	folderId: optionalId,
 });
 
+export const loginLinkCommandSchema = z.object({
+	telegramUserId: z.number().int(),
+	displayName: z.string().trim().min(1).optional(),
+});
+
+export const loginLinkSchema = z.object({
+	url: z.string(),
+	expiresAt: z.string(),
+});
+
 export const browseCommandSchema = z.object({ folderId: optionalId });
 
 export const startAttemptCommandSchema = z.object({
@@ -291,6 +301,8 @@ export type DueSet = z.infer<typeof dueSetSchema>;
 export type LeechView = z.infer<typeof leechSchema>;
 export type ResolvedQuizSettings = z.infer<typeof resolvedSettingsSchema>;
 
+export type LoginLink = z.infer<typeof loginLinkSchema>;
+export type IssueLoginLinkCommand = z.infer<typeof loginLinkCommandSchema>;
 export type BrowseFolderCommand = z.infer<typeof browseCommandSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;

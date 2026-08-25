@@ -85,7 +85,14 @@ describe("navigation shell (§3.2)", () => {
 			expect.stringContaining("Слабкі теми"),
 			expect.stringContaining("Статистика"),
 			expect.stringContaining("Налаштування"),
+			expect.stringContaining("Вхід на платформу"),
 		]);
+	});
+
+	test("the login entry explains itself when identity is not configured", async () => {
+		await harness.send("/login");
+
+		expect(harness.lastText()).toContain("ще не налаштований");
 	});
 
 	test("an empty library says so instead of erroring", async () => {

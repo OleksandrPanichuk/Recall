@@ -2,8 +2,12 @@ import type { AddressInfo } from "node:net";
 import type { QuestionInput } from "@api/application/use-cases/quiz-sets/add-questions";
 import { Difficulty, QuestionType } from "@api/domain/quiz-set/question";
 import type { QuizSetId } from "@api/domain/quiz-set/quiz-set";
+import { AuthModule } from "@api/modules/auth/auth.module";
 import { BotModule } from "@api/modules/bot/bot.module";
-import { USE_CASE_DEPENDENCIES } from "@api/modules/shared/database/tokens";
+import {
+	CONNECTION,
+	USE_CASE_DEPENDENCIES,
+} from "@api/modules/shared/database/tokens";
 import { DomainExceptionFilter } from "@api/modules/shared/errors/domain-exception.filter";
 import { Global, type INestApplication, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -40,23 +44,44 @@ export interface BotHarnessOptions {
 
 const HARNESS_TOKEN = "h".repeat(40);
 
+const unreachableConnection = {
+	get db(): never {
+		throw new Error("this harness has no postgres connection");
+	},
+	get client(): never {
+		throw new Error("this harness has no postgres connection");
+	},
+	close: async () => {},
+};
+
 // The bot reaches the api over http now, so the harness runs the real thing:
 // the real controller, the real zod validation and the real error filter, over
 // an in-memory database. Nothing about a screen is asserted against a stub.
 async function startApi(
 	dependencies: unknown,
 ): Promise<{ readonly app: INestApplication; readonly origin: string }> {
+	// AUTH is absent on purpose: identity belongs to the api's own integration
+	// tests, and a bot test asserting "login is not configured here" is the honest
+	// screen for a deployment without it.
 	@Global()
 	@Module({
-		providers: [{ provide: USE_CASE_DEPENDENCIES, useValue: dependencies }],
-		exports: [USE_CASE_DEPENDENCIES],
+		providers: [
+			{ provide: USE_CASE_DEPENDENCIES, useValue: dependencies },
+			{ provide: CONNECTION, useValue: unreachableConnection },
+		],
+		exports: [USE_CASE_DEPENDENCIES, CONNECTION],
 	})
 	class MemoryDependenciesModule {}
 
-	@Module({ imports: [MemoryDependenciesModule, BotModule] })
+	@Module({ imports: [MemoryDependenciesModule, AuthModule, BotModule] })
 	class TestApiModule {}
 
-	const app = await NestFactory.create(TestApiModule, { logger: false });
+	// abortOnError: false, or a resolution failure calls process.exit(1) and the
+	// suite dies with no output at all.
+	const app = await NestFactory.create(TestApiModule, {
+		logger: false,
+		abortOnError: false,
+	});
 
 	app.useGlobalFilters(new DomainExceptionFilter());
 	await app.listen(0, "127.0.0.1");

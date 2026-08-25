@@ -5,6 +5,7 @@ import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { Callback } from "../callbacks/callback-data.types";
 
 const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
+	[CallbackAction.Login]: "login",
 	[CallbackAction.Menu]: "menu",
 	[CallbackAction.Sets]: "sets",
 	[CallbackAction.StartSet]: "start-set",

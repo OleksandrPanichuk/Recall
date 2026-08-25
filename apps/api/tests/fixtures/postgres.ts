@@ -103,20 +103,20 @@ export async function applyMigration(harness: PostgresHarness): Promise<void> {
 	const { readdirSync, readFileSync } = await import("node:fs");
 	const { join } = await import("node:path");
 	const directory = join(import.meta.dir, "..", "..", "drizzle-postgres");
-	const [name] = readdirSync(directory)
+	const names = readdirSync(directory)
 		.filter((entry) => entry.endsWith(".sql"))
 		.sort();
 
-	if (name === undefined) {
+	if (names.length === 0) {
 		throw new Error(`no migration found in ${directory}`);
 	}
 
-	const file = join(directory, name);
-
-	for (const statement of readFileSync(file, "utf8")
-		.split("--> statement-breakpoint")
-		.map((entry) => entry.trim())
-		.filter((entry) => entry.length > 0)) {
-		await harness.client.unsafe(statement);
+	for (const name of names) {
+		for (const statement of readFileSync(join(directory, name), "utf8")
+			.split("--> statement-breakpoint")
+			.map((entry) => entry.trim())
+			.filter((entry) => entry.length > 0)) {
+			await harness.client.unsafe(statement);
+		}
 	}
 }

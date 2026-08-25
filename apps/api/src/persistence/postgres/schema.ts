@@ -316,3 +316,11 @@ export const studySettings = pgTable(
 			.nullsNotDistinct(),
 	],
 );
+
+export {
+	account,
+	authEvents,
+	session,
+	user,
+	verification,
+} from "./auth-schema";

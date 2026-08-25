@@ -76,6 +76,18 @@ ISO strings) and `packages/kit` the shared runtime bits (logger, shutdown, daily
 utils). The API's `/bot/*` surface is guarded by `BOT_API_TOKEN` and excluded from Swagger — it
 is an internal RPC surface, not public REST.
 
+**Identity: the api is the only issuer, and no caller ever names a user.** Better Auth lives in
+`apps/api` at `/api/auth/*`, mounted on the raw Express instance **before** the body parser —
+`NestFactory.create` is therefore given `bodyParser: false` and `json()`/`urlencoded()` are
+mounted by hand afterwards. Better Auth reads the raw request body itself, and a parser that has
+already consumed the stream leaves it hanging.
+
+Login links are minted **only** from `/bot/auth/login-link`, behind the bot token. Do not move
+that into a Better Auth endpoint: `SERVER_ONLY` merely hides an endpoint from the generated
+client, so a route that turns a Telegram id into a session would be reachable by anyone. The
+plugin's job is only to *spend* a token it did not mint. Email+password stays disabled until the
+plan's second auth phase — enabling it opens `POST /sign-up/email` to the world.
+
 **A refusal travels as a name, not a class.** The API answers a domain error with
 `{ error: "<ErrorName>", details }`, and the bot maps that name to user text
 (`ApiErrorName` / `isApiError` in `packages/contracts`). Only a whitelist of detail keys

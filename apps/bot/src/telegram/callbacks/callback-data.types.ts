@@ -15,6 +15,9 @@ export interface FinishCallback {
 export interface StatisticsCallback {
 	readonly action: typeof CallbackAction.Statistics;
 }
+export interface LoginCallback {
+	readonly action: typeof CallbackAction.Login;
+}
 export interface StartSetCallback {
 	readonly action: typeof CallbackAction.StartSet;
 	readonly quizSetId: string;
@@ -110,4 +113,5 @@ export type Callback =
 	| MistakesCallback
 	| MistakesForCallback
 	| WeakTopicsCallback
-	| WeakTopicsForCallback;
+	| WeakTopicsForCallback
+	| LoginCallback;
