@@ -1,3 +1,5 @@
+import type { Logger } from "@recall/kit";
+import { silentLogger } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
@@ -40,8 +42,6 @@ import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/res
 import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import { silentLogger } from "@/infrastructure/logging/logger";
-import type { Logger } from "@/infrastructure/logging/logger.types";
 import {
 	createPostgresConnection,
 	type PostgresConnection,

@@ -6,7 +6,7 @@ import {
 	HttpStatus,
 } from "@nestjs/common";
 import type { Response } from "express";
-import { statusOf } from "./error-map";
+import { detailsOf, statusOf } from "./error-map";
 
 @Catch()
 export class DomainExceptionFilter implements ExceptionFilter {
@@ -23,10 +23,13 @@ export class DomainExceptionFilter implements ExceptionFilter {
 			const status = statusOf(exception);
 
 			if (status !== undefined) {
+				const details = detailsOf(exception);
+
 				response.status(status).json({
 					statusCode: status,
 					error: exception.name,
 					message: exception.message,
+					...(details === undefined ? {} : { details }),
 				});
 
 				return;

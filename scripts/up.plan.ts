@@ -77,6 +77,9 @@ export function planServices(
 	const adminHost = hostOf(env.ADMIN_HOST);
 	const adminPort = portOf(env.ADMIN_PORT, DEFAULT_ADMIN_PORT);
 
+	const botSkipped =
+		wanted("bot") ??
+		(isSet(env.BOT_API_TOKEN) ? undefined : "BOT_API_TOKEN is not set");
 	const adminSkipped =
 		wanted("admin") ??
 		(isSet(env.ADMIN_PASSPHRASE) || isSet(env.MCP_OAUTH_PASSPHRASE)
@@ -100,8 +103,8 @@ export function planServices(
 		},
 		{
 			name: "bot",
-			entry: "apps/api/src/entrypoints/telegram.ts",
-			skipped: wanted("bot"),
+			entry: "apps/bot/src/main.ts",
+			skipped: botSkipped,
 		},
 		{
 			name: "admin",

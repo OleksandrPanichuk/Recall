@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { describePlan, planServices, running, selectionFrom } from "./up.plan";
 
 const FULL = {
-	MCP_HTTP_TOKEN: "t".repeat(32),
+	BOT_API_TOKEN: "b".repeat(32),
 	ADMIN_PASSPHRASE: "correct horse battery staple",
 } as const;
 
@@ -17,16 +17,13 @@ describe("planning what to start", () => {
 		]);
 	});
 
-	test("keeps the bot alone when nothing else is configured", () => {
+	test("keeps the api alone when nothing else is configured", () => {
 		const plan = planServices({});
 
-		expect(running(plan).map((service) => service.name)).toEqual([
-			"api",
-			"bot",
-		]);
+		expect(running(plan).map((service) => service.name)).toEqual(["api"]);
 		expect(describePlan(plan)).toEqual([
 			"api    http://127.0.0.1:8767/docs",
-			"bot    starting",
+			"bot    skipped — BOT_API_TOKEN is not set",
 			"admin  skipped — neither ADMIN_PASSPHRASE nor MCP_OAUTH_PASSPHRASE is set",
 		]);
 	});
@@ -38,7 +35,6 @@ describe("planning what to start", () => {
 
 		expect(running(plan).map((service) => service.name)).toEqual([
 			"api",
-			"bot",
 			"admin",
 		]);
 	});
@@ -83,12 +79,9 @@ describe("planning what to start", () => {
 	});
 
 	test("treats a blank value as unset", () => {
-		const plan = planServices({ ADMIN_PASSPHRASE: "   " });
+		const plan = planServices({ ADMIN_PASSPHRASE: "   ", BOT_API_TOKEN: "  " });
 
-		expect(running(plan).map((service) => service.name)).toEqual([
-			"api",
-			"bot",
-		]);
+		expect(running(plan).map((service) => service.name)).toEqual(["api"]);
 	});
 });
 

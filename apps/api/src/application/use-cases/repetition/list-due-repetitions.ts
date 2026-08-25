@@ -1,3 +1,4 @@
+import { startOfDayIn } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type {
@@ -8,7 +9,6 @@ import type {
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { type QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { type DueSet, overdueDaysOf } from "@/domain/repetition/repetition";
-import { startOfDayIn } from "@/shared/utils/timezone";
 
 export type { DueSet } from "@/domain/repetition/repetition";
 

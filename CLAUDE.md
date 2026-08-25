@@ -67,6 +67,22 @@ Both exemptions are **scoped to their directory** — do not let them spread.
 `apps/bot`, `apps/mcp`, `apps/admin`, `packages/*`, `scripts/`, and all of `src/` stay on
 plain Bun with no exemption.
 
+**`apps/bot`, `apps/mcp` and `apps/admin` are clients of the API, not of the database.**
+`apps/bot` holds the Telegraf router, its handlers and its presenters, and reaches every use
+case over HTTP through `createBotClient` from `packages/contracts`. The `TelegramUseCases`
+interface it renders against is now the client's, so a handler cannot accidentally reach a
+repository. `packages/contracts` owns the wire shapes (zod, ids as plain strings, timestamps as
+ISO strings) and `packages/kit` the shared runtime bits (logger, shutdown, daily timer, pure
+utils). The API's `/bot/*` surface is guarded by `BOT_API_TOKEN` and excluded from Swagger — it
+is an internal RPC surface, not public REST.
+
+**A refusal travels as a name, not a class.** The API answers a domain error with
+`{ error: "<ErrorName>", details }`, and the bot maps that name to user text
+(`ApiErrorName` / `isApiError` in `packages/contracts`). Only a whitelist of detail keys
+(`mode`, `folderId`, `quizSetId`, `questionId`, `attemptId`) crosses the wire, so an error can
+never leak a field nobody vetted. Adding an error the bot must distinguish means adding it to
+`error-map.ts` **and** `ApiErrorName` — an error missing from the map becomes a flat 500.
+
 **`apps/mcp` and `apps/admin` are clients of the API, not of the database.** `apps/mcp` is a
 stdio↔HTTP bridge: it forwards JSON-RPC to the API's `/mcp` and holds no application code. The
 MCP tools themselves live in `apps/api` and are mounted on the underlying Express instance from

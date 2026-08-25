@@ -1,9 +1,9 @@
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { Logger } from "@recall/kit";
 import express, { type Express, type Request, type Response } from "express";
 import type { UseCases } from "@/composition/create-application";
-import type { Logger } from "@/infrastructure/logging/logger.types";
 import { createMcpServer } from "../server";
 import { matchesToken } from "./bearer";
 import { consentPage } from "./oauth/consent";

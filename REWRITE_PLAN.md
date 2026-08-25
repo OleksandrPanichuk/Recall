@@ -1252,6 +1252,49 @@ One measured correction to note: an "Invalid Host header" on `/mcp` during manua
 the repo's own `.env` — `MCP_HTTP_ALLOWED_HOST` turns on DNS-rebinding protection, and Bun loads
 `.env` automatically. The tests pass `--env-file=/dev/null` for exactly this reason.
 
+## The bot as a client, not a co-tenant (r20)
+
+`apps/bot` was the last and largest split, and the only one that needed a real contract. The
+other apps could be moved because they already spoke HTTP; the bot called 12 use cases directly
+and rendered their return values — domain objects with branded ids and `Date`s.
+
+**Two packages came out of it.** `packages/contracts` holds the wire shapes as zod schemas (ids
+as plain strings, timestamps as ISO strings) plus `createBotClient`, which exposes exactly the
+`{ execute(command) }` shape the handlers already called. That is what kept the diff sane: the
+bot's `TelegramUseCases` is now `BotUseCases`, and 40-odd handler and presenter files needed
+only their imports rewritten. `packages/kit` holds what both sides genuinely share — logger,
+shutdown, daily timer, and the pure text/shuffle/timezone helpers.
+
+**The API grew an internal RPC surface.** `POST /bot/*`, twelve routes, one per use case, guarded
+by `BOT_API_TOKEN` (SHA-256 + `timingSafeEqual`, reusing the MCP bearer helpers) and excluded
+from Swagger. Bodies are validated by the same zod schemas the client sends, and results go
+through explicit domain→wire mappers rather than being serialised by accident.
+
+**A refusal had to keep its meaning.** The bot's error screen used `instanceof` on six error
+classes. Over HTTP it now reads `error.name`, which the exception filter already emitted — but
+`QuestionNotInAttemptError` was missing from `error-map.ts` and would have become a flat 500,
+and `NothingToPracticeError` carries the `mode` and `folderId` the next screen draws. So the
+filter now also emits a whitelisted `details` object, and the client rehydrates it onto
+`BotApiError`.
+
+**The test suite got stronger, not weaker.** `bot.test.ts` is 2492 lines of screen assertions
+that used to run against an in-process application. The harness now boots the real Nest
+controller over a real port (a `@Global()` module supplies in-memory repositories in place of
+Postgres) and points `createBotClient` at it. All 175 bot tests pass through HTTP, zod
+validation and the error filter — paths that previously had no coverage at all.
+
+**Proven end to end.** With the API on the post-cutover `recall_live` database, the real Telegraf
+router with only Telegram's transport stubbed: `/start` drew the seven-button menu, browse listed
+the sets, opening one served *"DDIA — Розділ 2: Data Models and Query Languages — питання 1/20"*
+with four options, and answering it rendered *"❌ Неправильно / Правильна відповідь: Edgar Codd,
+1970"*. The database moved 38→39 attempts and 312→313 responses.
+
+Also moved: `bun run status` became `apps/api/src/entrypoints/status.ts`, because reading counts
+off the database is the API's business. `loadEnvironment` in `infrastructure/config/env.ts` lost
+its last caller and is deleted; the bot validates its own, smaller environment
+(`TELEGRAM_BOT_KEY`, `ALLOWED_TELEGRAM_USER_ID`, `BOT_API_TOKEN`, `RECALL_API_URL`,
+`APP_TIMEZONE`) and never sees `DATABASE_URL`.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

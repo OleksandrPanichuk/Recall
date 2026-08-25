@@ -1,4 +1,4 @@
-import { trimmedOrUndefined } from "@/shared/utils/text";
+import { trimmedOrUndefined } from "@recall/kit";
 
 export const normaliseTags = (
 	tags: readonly string[] | undefined,

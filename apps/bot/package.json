@@ -1,0 +1,21 @@
+{
+	"name": "@recall/bot",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --watch ./src/main.ts",
+		"start": "bun run ./src/main.ts",
+		"build": "bun build ./src/main.ts --outdir ../../dist/bot --target bun"
+	},
+	"dependencies": {
+		"@recall/contracts": "workspace:*",
+		"@recall/kit": "workspace:*",
+		"telegraf": "^4.16.3",
+		"zod": "^4.1.13"
+	},
+	"devDependencies": {
+		"@nestjs/common": "^11.1.6",
+		"@nestjs/core": "^11.1.6"
+	}
+}

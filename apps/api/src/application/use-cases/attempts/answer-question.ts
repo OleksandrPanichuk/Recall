@@ -1,3 +1,4 @@
+import { normaliseForComparison } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
@@ -40,7 +41,6 @@ import {
 	QuestionType,
 } from "@/domain/quiz-set/question";
 import { isWithinOneEdit } from "@/shared/utils/edit-distance";
-import { normaliseForComparison } from "@/shared/utils/text";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {

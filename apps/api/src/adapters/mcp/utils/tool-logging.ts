@@ -1,4 +1,4 @@
-import type { LogFields, Logger } from "@/infrastructure/logging/logger.types";
+import type { LogFields, Logger } from "@recall/kit";
 import { failure, type ToolResult } from "../presenters/tool-result.presenter";
 
 export type ToolRunner = (

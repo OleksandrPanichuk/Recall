@@ -1,3 +1,4 @@
+import { startOfDayIn } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
@@ -15,7 +16,6 @@ import {
 import type { Score } from "@/domain/quiz-attempt/score";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { scheduleAfter } from "@/domain/repetition/repetition";
-import { startOfDayIn } from "@/shared/utils/timezone";
 import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
 import {
 	type AttemptOfUserCommand,

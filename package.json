@@ -12,7 +12,7 @@
 		"typescript": "^7.0.2"
 	},
 	"scripts": {
-		"build": "bun run --filter '@recall/api' build && bun run --filter '@recall/admin' build && bun run --filter '@recall/mcp' build",
+		"build": "bun run --filter '@recall/api' build && bun run --filter '@recall/bot' build && bun run --filter '@recall/admin' build && bun run --filter '@recall/mcp' build",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"format": "biome format --write .",
@@ -25,15 +25,16 @@
 		"db:generate": "bun run --filter '@recall/api' db:generate:pg",
 		"db:migrate": "bun run --filter '@recall/api' db:migrate:pg",
 		"up": "bun run ./scripts/up.ts",
-		"dev": "bun --watch ./apps/api/src/entrypoints/telegram.ts",
-		"start": "bun run ./dist/telegram.js",
-		"status": "bun run ./apps/api/src/entrypoints/telegram.ts --status",
+		"dev": "bun run --filter '@recall/bot' dev",
+		"start": "bun run ./dist/bot/main.js",
+		"status": "bun run ./apps/api/src/entrypoints/status.ts",
 		"mcp": "bun run --filter '@recall/mcp' start",
 		"admin": "bun run --filter '@recall/admin' start",
 		"api": "bun run ./apps/api/src/entrypoints/api.ts",
 		"db:up": "docker compose up -d --wait",
 		"db:down": "docker compose down",
 		"db:reset": "docker compose down -v && docker compose up -d --wait",
-		"etl": "bun run --filter '@recall/api' etl --"
+		"etl": "bun run --filter '@recall/api' etl --",
+		"bot": "bun run --filter '@recall/bot' start"
 	}
 }

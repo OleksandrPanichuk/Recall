@@ -1,0 +1,366 @@
+import type { z } from "zod";
+import {
+	type AnswerQuestionCommand,
+	type AnswerQuestionResult,
+	type AttemptDetail,
+	answerCommandSchema,
+	answerResultSchema,
+	attemptDetailCommandSchema,
+	attemptDetailSchema,
+	type BrowseFolderCommand,
+	type BrowseView,
+	browseCommandSchema,
+	browseViewSchema,
+	type CurrentQuestionView,
+	currentQuestionCommandSchema,
+	currentQuestionSchema,
+	type DueSet,
+	dueRepetitionsCommandSchema,
+	dueSetSchema,
+	type FinishQuizAttemptCommand,
+	type FinishQuizAttemptResult,
+	finishCommandSchema,
+	finishResultSchema,
+	type GetAttemptDetailCommand,
+	type GetCurrentQuestionCommand,
+	type GetQuizStatisticsCommand,
+	type LeechView,
+	type ListDueRepetitionsCommand,
+	type ListLeechesCommand,
+	leechesCommandSchema,
+	leechSchema,
+	practiceCommandSchema,
+	practiceResultSchema,
+	type QuizSettings,
+	type QuizStatistics,
+	quizSettingsSchema,
+	quizStatisticsSchema,
+	type ResolvedQuizSettings,
+	type ResolveQuizSettingsCommand,
+	resolvedSettingsSchema,
+	resolveSettingsCommandSchema,
+	type StartPracticeSessionCommand,
+	type StartPracticeSessionResult,
+	type StartQuizAttemptCommand,
+	type StartQuizAttemptResult,
+	startAttemptCommandSchema,
+	startAttemptResultSchema,
+	statisticsCommandSchema,
+	type UpdateQuizSettingsCommand,
+	updateSettingsCommandSchema,
+} from "./bot";
+
+export type Fetch = (
+	input: string | URL,
+	init?: RequestInit,
+) => Promise<Response>;
+
+export interface BotApiOptions {
+	readonly baseUrl: string | URL;
+	readonly token: string;
+	readonly fetch?: Fetch;
+	readonly timeoutMs?: number;
+}
+
+export class BotApiError extends Error {
+	constructor(
+		readonly errorName: string,
+		message: string,
+		readonly status: number,
+		readonly details: Readonly<Record<string, string>> = {},
+	) {
+		super(message);
+		this.name = "BotApiError";
+	}
+}
+
+export class BotApiUnreachableError extends Error {
+	constructor(
+		readonly endpoint: string,
+		cause: unknown,
+	) {
+		super(`the recall api at ${endpoint} could not be reached`, { cause });
+		this.name = "BotApiUnreachableError";
+	}
+}
+
+export class BotApiContractError extends Error {
+	constructor(
+		readonly endpoint: string,
+		readonly problems: string,
+	) {
+		super(
+			`the recall api answered ${endpoint} with a body this bot cannot read`,
+		);
+		this.name = "BotApiContractError";
+	}
+}
+
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+// The api answers a refusal with the name of the error behind it, so a client
+// can tell "no active attempt" from "that set is not published" without
+// importing the api's error classes.
+export const ApiErrorName = {
+	NoActiveAttempt: "NoActiveAttemptError",
+	AttemptAlreadyInProgress: "AttemptAlreadyInProgressError",
+	AttemptNotActive: "AttemptNotActiveError",
+	QuestionNotInAttempt: "QuestionNotInAttemptError",
+	QuizSetNotPublished: "QuizSetNotPublishedError",
+	QuizSetNotFound: "QuizSetNotFoundError",
+	NothingToPractice: "NothingToPracticeError",
+	NothingDue: "NothingDueError",
+} as const;
+export type ApiErrorName = (typeof ApiErrorName)[keyof typeof ApiErrorName];
+
+export const isApiError = (
+	error: unknown,
+	name?: ApiErrorName,
+): error is BotApiError =>
+	error instanceof BotApiError &&
+	(name === undefined || error.errorName === name);
+
+interface Failure {
+	readonly error?: unknown;
+	readonly message?: unknown;
+	readonly details?: unknown;
+}
+
+const detailsOf = (value: unknown): Readonly<Record<string, string>> => {
+	if (typeof value !== "object" || value === null) {
+		return {};
+	}
+
+	return Object.fromEntries(
+		Object.entries(value).flatMap(([key, entry]) =>
+			typeof entry === "string" ? [[key, entry] as const] : [],
+		),
+	);
+};
+
+export interface UseCaseLike<Command, Result> {
+	execute(command: Command): Promise<Result>;
+}
+
+export interface BotUseCases {
+	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
+	readonly listDueRepetitions: UseCaseLike<
+		ListDueRepetitionsCommand,
+		readonly DueSet[]
+	>;
+	readonly listLeeches: UseCaseLike<ListLeechesCommand, readonly LeechView[]>;
+	readonly getAttemptDetail: UseCaseLike<
+		GetAttemptDetailCommand,
+		AttemptDetail
+	>;
+	readonly startQuizAttempt: UseCaseLike<
+		StartQuizAttemptCommand,
+		StartQuizAttemptResult
+	>;
+	readonly startPracticeSession: UseCaseLike<
+		StartPracticeSessionCommand,
+		StartPracticeSessionResult
+	>;
+	readonly getCurrentQuestion: UseCaseLike<
+		GetCurrentQuestionCommand,
+		CurrentQuestionView | undefined
+	>;
+	readonly answerQuestion: UseCaseLike<
+		AnswerQuestionCommand,
+		AnswerQuestionResult
+	>;
+	readonly finishQuizAttempt: UseCaseLike<
+		FinishQuizAttemptCommand,
+		FinishQuizAttemptResult
+	>;
+	readonly getQuizStatistics: UseCaseLike<
+		GetQuizStatisticsCommand,
+		QuizStatistics
+	>;
+	readonly resolveQuizSettings: UseCaseLike<
+		ResolveQuizSettingsCommand,
+		ResolvedQuizSettings
+	>;
+	readonly updateQuizSettings: UseCaseLike<
+		UpdateQuizSettingsCommand,
+		QuizSettings
+	>;
+}
+
+export const BOT_ROUTES = {
+	browse: "browse",
+	startAttempt: "attempts/start",
+	practice: "attempts/practice",
+	currentQuestion: "attempts/current",
+	answer: "attempts/answer",
+	finish: "attempts/finish",
+	statistics: "statistics",
+	attemptDetail: "attempts/detail",
+	dueRepetitions: "repetitions/due",
+	leeches: "repetitions/leeches",
+	resolveSettings: "settings/resolve",
+	updateSettings: "settings/update",
+} as const;
+
+export function createBotClient(options: BotApiOptions): BotUseCases {
+	const send = options.fetch ?? fetch;
+	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+	const base = new URL(
+		String(options.baseUrl).endsWith("/")
+			? String(options.baseUrl)
+			: `${String(options.baseUrl)}/`,
+	);
+
+	const post = async (route: string, command: unknown): Promise<unknown> => {
+		const endpoint = new URL(route, base);
+
+		let response: Response;
+
+		try {
+			response = await send(endpoint, {
+				method: "POST",
+				headers: {
+					authorization: `Bearer ${options.token}`,
+					"content-type": "application/json",
+				},
+				body: JSON.stringify(command ?? {}),
+				signal: AbortSignal.timeout(timeoutMs),
+			});
+		} catch (error) {
+			throw new BotApiUnreachableError(endpoint.href, error);
+		}
+
+		if (response.status === 204) {
+			return undefined;
+		}
+
+		const body: unknown = await response.json().catch(() => undefined);
+
+		if (!response.ok) {
+			const failure = (body ?? {}) as Failure;
+
+			throw new BotApiError(
+				typeof failure.error === "string" ? failure.error : "UnknownError",
+				typeof failure.message === "string"
+					? failure.message
+					: `the recall api answered ${response.status}`,
+				response.status,
+				detailsOf(failure.details),
+			);
+		}
+
+		return body;
+	};
+
+	const operation = <
+		CommandSchema extends z.ZodType,
+		ResultSchema extends z.ZodType,
+	>(
+		route: string,
+		commandSchema: CommandSchema,
+		resultSchema: ResultSchema,
+	) => ({
+		async execute(
+			command: z.input<CommandSchema>,
+		): Promise<z.output<ResultSchema>> {
+			const body = await post(route, commandSchema.parse(command));
+			const parsed = resultSchema.safeParse(body);
+
+			if (!parsed.success) {
+				throw new BotApiContractError(route, parsed.error.message);
+			}
+
+			return parsed.data;
+		},
+	});
+
+	const optionalOperation = <
+		CommandSchema extends z.ZodType,
+		ResultSchema extends z.ZodType,
+	>(
+		route: string,
+		commandSchema: CommandSchema,
+		resultSchema: ResultSchema,
+	) => ({
+		async execute(
+			command: z.input<CommandSchema>,
+		): Promise<z.output<ResultSchema> | undefined> {
+			const body = await post(route, commandSchema.parse(command));
+
+			if (body === undefined || body === null) {
+				return undefined;
+			}
+
+			const parsed = resultSchema.safeParse(body);
+
+			if (!parsed.success) {
+				throw new BotApiContractError(route, parsed.error.message);
+			}
+
+			return parsed.data;
+		},
+	});
+
+	return {
+		browseFolder: operation(
+			BOT_ROUTES.browse,
+			browseCommandSchema,
+			browseViewSchema,
+		),
+		listDueRepetitions: operation(
+			BOT_ROUTES.dueRepetitions,
+			dueRepetitionsCommandSchema,
+			dueSetSchema.array().readonly(),
+		),
+		listLeeches: operation(
+			BOT_ROUTES.leeches,
+			leechesCommandSchema,
+			leechSchema.array().readonly(),
+		),
+		getAttemptDetail: operation(
+			BOT_ROUTES.attemptDetail,
+			attemptDetailCommandSchema,
+			attemptDetailSchema,
+		),
+		startQuizAttempt: operation(
+			BOT_ROUTES.startAttempt,
+			startAttemptCommandSchema,
+			startAttemptResultSchema,
+		),
+		startPracticeSession: operation(
+			BOT_ROUTES.practice,
+			practiceCommandSchema,
+			practiceResultSchema,
+		),
+		getCurrentQuestion: optionalOperation(
+			BOT_ROUTES.currentQuestion,
+			currentQuestionCommandSchema,
+			currentQuestionSchema,
+		),
+		answerQuestion: operation(
+			BOT_ROUTES.answer,
+			answerCommandSchema,
+			answerResultSchema,
+		),
+		finishQuizAttempt: operation(
+			BOT_ROUTES.finish,
+			finishCommandSchema,
+			finishResultSchema,
+		),
+		getQuizStatistics: operation(
+			BOT_ROUTES.statistics,
+			statisticsCommandSchema,
+			quizStatisticsSchema,
+		),
+		resolveQuizSettings: operation(
+			BOT_ROUTES.resolveSettings,
+			resolveSettingsCommandSchema,
+			resolvedSettingsSchema,
+		),
+		updateQuizSettings: operation(
+			BOT_ROUTES.updateSettings,
+			updateSettingsCommandSchema,
+			quizSettingsSchema,
+		),
+	};
+}

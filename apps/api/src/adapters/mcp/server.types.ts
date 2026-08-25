@@ -1,3 +1,4 @@
+import type { Logger } from "@recall/kit";
 import type { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
 import type { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
 import type { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
@@ -18,7 +19,6 @@ import type { UpdateQuizSetUseCase } from "@/application/use-cases/quiz-sets/upd
 import type { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import type { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
-import type { Logger } from "@/infrastructure/logging/logger.types";
 
 export interface McpUseCases {
 	readonly createQuizSet: CreateQuizSetUseCase;

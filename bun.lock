@@ -35,6 +35,8 @@
         "@nestjs/core": "^11",
         "@nestjs/platform-express": "^11",
         "@nestjs/swagger": "^11",
+        "@recall/contracts": "workspace:*",
+        "@recall/kit": "workspace:*",
         "drizzle-orm": "^0.45.2",
         "express": "^5",
         "postgres": "^3.4.9",
@@ -48,8 +50,33 @@
         "drizzle-kit": "^0.31.10",
       },
     },
+    "apps/bot": {
+      "name": "@recall/bot",
+      "version": "0.0.0",
+      "dependencies": {
+        "@recall/contracts": "workspace:*",
+        "@recall/kit": "workspace:*",
+        "telegraf": "^4.16.3",
+        "zod": "^4.1.13",
+      },
+      "devDependencies": {
+        "@nestjs/common": "^11.1.6",
+        "@nestjs/core": "^11.1.6",
+      },
+    },
     "apps/mcp": {
       "name": "@recall/mcp",
+      "version": "0.0.0",
+    },
+    "packages/contracts": {
+      "name": "@recall/contracts",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.1.13",
+      },
+    },
+    "packages/kit": {
+      "name": "@recall/kit",
       "version": "0.0.0",
     },
     "packages/tooling": {
@@ -233,6 +260,12 @@
     "@recall/admin": ["@recall/admin@workspace:apps/admin"],
 
     "@recall/api": ["@recall/api@workspace:apps/api"],
+
+    "@recall/bot": ["@recall/bot@workspace:apps/bot"],
+
+    "@recall/contracts": ["@recall/contracts@workspace:packages/contracts"],
+
+    "@recall/kit": ["@recall/kit@workspace:packages/kit"],
 
     "@recall/mcp": ["@recall/mcp@workspace:apps/mcp"],
 

@@ -1,9 +1,9 @@
+import { trimmedOrUndefined } from "@recall/kit";
 import {
 	copiedDate,
 	copiedOptionalDate,
 	isValidDate,
 } from "@/shared/utils/date";
-import { trimmedOrUndefined } from "@/shared/utils/text";
 import { brandedId } from "../branded-id";
 import type { FolderId } from "../folder/folder";
 import type { Question, QuestionId } from "./question";

@@ -1,3 +1,4 @@
+import { normaliseForComparison } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
@@ -22,7 +23,6 @@ import {
 	type VocabularyItem,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
-import { normaliseForComparison } from "@/shared/utils/text";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export class VocabularyItemNotFoundError extends Error {

@@ -11,6 +11,7 @@ const byName: Readonly<Record<string, HttpStatus>> = {
 	QuizSetTransitionError: HttpStatus.CONFLICT,
 	AttemptAlreadyInProgressError: HttpStatus.CONFLICT,
 	AttemptNotActiveError: HttpStatus.CONFLICT,
+	QuestionNotInAttemptError: HttpStatus.CONFLICT,
 	FolderNotEmptyError: HttpStatus.CONFLICT,
 	AnsweredQuestionError: HttpStatus.CONFLICT,
 	QuizSetNotPublishedError: HttpStatus.CONFLICT,
@@ -29,4 +30,30 @@ const byName: Readonly<Record<string, HttpStatus>> = {
 
 export function statusOf(error: Error): HttpStatus | undefined {
 	return byName[error.name];
+}
+
+// A refused call often carries what the caller needs to draw the next screen —
+// which mode had nothing to practise, which folder it was in. Only these keys
+// travel, so an error can never leak a field nobody vetted.
+const DETAIL_KEYS = [
+	"mode",
+	"folderId",
+	"quizSetId",
+	"questionId",
+	"attemptId",
+] as const;
+
+export function detailsOf(
+	error: Error,
+): Readonly<Record<string, string>> | undefined {
+	const carrier = error as unknown as Record<string, unknown>;
+	const entries = DETAIL_KEYS.flatMap((key) => {
+		const value = carrier[key];
+
+		return value === undefined || value === null
+			? []
+			: [[key, String(value)] as const];
+	});
+
+	return entries.length === 0 ? undefined : Object.fromEntries(entries);
 }

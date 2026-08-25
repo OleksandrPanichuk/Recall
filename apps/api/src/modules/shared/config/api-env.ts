@@ -7,6 +7,7 @@ export interface ApiEnvironment {
 	readonly adminOrigin?: string;
 	readonly oauthDatabasePath: string;
 	readonly mcpToken?: string;
+	readonly botToken?: string;
 	readonly mcpIssuer?: URL;
 	readonly mcpPassphrase?: string;
 	readonly mcpAllowedHosts: readonly string[];
@@ -21,6 +22,7 @@ const schema = z.object({
 	ADMIN_ORIGIN: z.string().trim().url().optional(),
 	OAUTH_DATABASE_PATH: z.string().trim().min(1).default("./data/oauth.sqlite"),
 	MCP_HTTP_TOKEN: z.string().trim().min(32).optional(),
+	BOT_API_TOKEN: z.string().trim().min(32).optional(),
 	MCP_OAUTH_ISSUER: z.string().trim().url().optional(),
 	MCP_OAUTH_PASSPHRASE: z.string().trim().min(16).optional(),
 	MCP_HTTP_ALLOWED_HOST: z.string().trim().min(1).optional(),
@@ -66,6 +68,7 @@ export function loadApiEnvironment(
 		adminOrigin: parsed.data.ADMIN_ORIGIN,
 		oauthDatabasePath: parsed.data.OAUTH_DATABASE_PATH,
 		mcpToken: parsed.data.MCP_HTTP_TOKEN,
+		botToken: parsed.data.BOT_API_TOKEN,
 		mcpIssuer: issuer === undefined ? undefined : new URL(issuer),
 		mcpPassphrase: passphrase,
 		mcpAllowedHosts:

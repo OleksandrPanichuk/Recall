@@ -192,7 +192,8 @@ rebuild не проїхав як звичайна migration.
 
 | Command | Призначення |
 | --- | --- |
-| `bun run dev` | Запустити watch mode для майбутнього Telegram entrypoint |
+| `bun run dev` | Запустити бота у watch mode (потрібне підняте API) |
+| `bun run bot` | Запустити бота |
 | `bun run db:up` | Підняти Postgres 17 у Docker на порту 55432 |
 | `bun run db:down` | Зупинити Postgres |
 | `bun run db:reset` | Зупинити Postgres і витерти volume |
@@ -211,7 +212,7 @@ rebuild не проїхав як звичайна migration.
 | `bun run mcp` | stdio-мостик до MCP цього API (для Claude Desktop) |
 | `bun run admin` | Підняти веб-адмінку на `http://127.0.0.1:8766` |
 | `bun run build` | Зібрати всі entrypoints у `dist/` |
-| `bun run start` | Запустити попередньо зібраний `dist/telegram.js` |
+| `bun run start` | Запустити попередньо зібраний `dist/bot/main.js` |
 | `bun test` | Запустити Bun unit і contract tests |
 | `bun run verify` | Запустити повний local gate: Biome, typecheck, tests і build |
 
@@ -269,18 +270,22 @@ Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
 
 ## Поточна структура
 
-Репозиторій — це Bun workspace. Уся поточна кодова база живе в `apps/api`; решта
-застосунків (`web`, `bot`, `mcp`, `admin`) відокремлюються від неї пізніше, коли
-стануть HTTP-клієнтами API — див. [REWRITE_PLAN.md](REWRITE_PLAN.md).
+Репозиторій — це Bun workspace. Домен, use cases і доступ до бази живуть в
+`apps/api`; бот, MCP і адмінка — окремі застосунки, які ходять до API по HTTP і
+до бази не мають доступу взагалі. `apps/web` ще не існує — див.
+[REWRITE_PLAN.md](REWRITE_PLAN.md).
 
 ```text
-apps/api/
+apps/api/           NestJS: REST, Swagger, /bot/*, /api/* (адмінка) і /mcp
   drizzle/          міграції SQLite (залишилися тільки OAuth-таблиці)
   drizzle-postgres/ міграції Postgres
-  drizzle.config.ts
-  drizzle.postgres.config.ts
   scripts/          migrate-to-postgres.ts — ETL з v1 SQLite
+apps/bot/           Telegraf-роутер; кожен use case — виклик /bot/* по HTTP
+apps/mcp/           stdio-мостик до /mcp того ж API
+apps/admin/         react-admin SPA на Bun.serve
 packages/
+  contracts/        zod-схеми wire-формату + типізований клієнт API
+  kit/              спільний runtime: logger, shutdown, daily timer, утиліти
   tooling/          спільний tsconfig base
 scripts/            up — supervisor локальних сервісів
 ```
@@ -333,13 +338,6 @@ apps/api/src/
       backup.ts    consistent backup and restore validation
       status.ts    health report
   adapters/
-    telegram/
-      bot.ts       Telegraf wiring and callback routing
-      middleware/  error mapping, request logging and allowlist
-      handlers/    thin handlers, one use case each
-      presenters/  screen text, inline keyboards and error text
-      callbacks/   callback payload types and encoding
-      utils/       privacy-safe description of an update
     mcp/
       server.ts    MCP server construction and tool registration
       tools/       one registrar per MCP tool
@@ -349,16 +347,24 @@ apps/api/src/
   composition/
     create-application.ts  manual dependency injection root
   entrypoints/
-    telegram.ts    starts the bot; --check validates configuration and exits
-    api.ts         starts NestJS: REST, Swagger, admin API and MCP
-  modules/         NestJS modules; integration/ mounts the admin and MCP apps
+    api.ts         starts NestJS: REST, Swagger, /bot/*, admin API and MCP
+    status.ts      prints the health report; --check validates and exits
+  modules/
+    bot/           the internal /bot/* surface the telegram app calls
+    content/       public REST over the quizzes
+    integration/   mounts the admin and MCP apps
+apps/bot/
+  src/telegram/    Telegraf wiring, handlers and presenters
+  src/config.ts    the bot's own environment; it never sees DATABASE_URL
+  src/main.ts      starts the bot; --check validates configuration and exits
 apps/mcp/
   src/main.ts      stdio bridge: a local MCP client talks to the api over http
+packages/
+  contracts/       wire schemas and the typed api client
+  kit/             logger, shutdown, daily timer and pure helpers
 scripts/
   up.ts            the supervisor: checks Postgres, migrates, starts services
 apps/api/tests/
-  e2e/
-    startup.test.ts
   fixtures/        aggregate builders shared by the integration tests
   contracts/     repository contract suites, run against both engines
   integration/
@@ -998,6 +1004,7 @@ quiz_move_set({ quizSetId: "..." })
 | --- | --- |
 | `bun run dev` | запустити бота локально з hot reload |
 | `bun run start` | запустити зібраного бота |
+| `bun run api` | підняти API, без якого бот не працює |
 | `bun run status` | health-звіт: скільки наборів, спроб і питань |
 | `bun run <entrypoint> --check` | перевірити конфігурацію і вийти (не відкриває database) |
 | `bun run db:up` / `db:down` | підняти або зупинити локальний Postgres |

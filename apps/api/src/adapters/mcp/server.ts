@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { silentLogger } from "@/infrastructure/logging/logger";
+import { silentLogger } from "@recall/kit";
 import type { McpServerOptions, McpUseCases } from "./server.types";
 import { registerAddQuestionsTool } from "./tools/add-questions.tool";
 import { registerAddVocabularyTool } from "./tools/add-vocabulary.tool";

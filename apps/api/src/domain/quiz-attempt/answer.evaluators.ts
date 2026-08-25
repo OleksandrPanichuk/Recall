@@ -1,4 +1,4 @@
-import { normaliseForComparison } from "@/shared/utils/text";
+import { normaliseForComparison } from "@recall/kit";
 import type { Question, QuestionOptionId } from "../quiz-set/question";
 import type { AnswerGrade, OptionPair } from "./answer.types";
 import { QuizAttemptValidationError } from "./quiz-attempt.errors";

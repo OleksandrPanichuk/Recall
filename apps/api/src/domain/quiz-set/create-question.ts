@@ -1,4 +1,4 @@
-import { trimmedOrUndefined } from "@/shared/utils/text";
+import { trimmedOrUndefined } from "@recall/kit";
 import type { QuestionDraft } from "./create-question.types";
 import {
 	collectQuestionIssues,

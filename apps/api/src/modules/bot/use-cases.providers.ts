@@ -1,0 +1,39 @@
+import type { Provider } from "@nestjs/common";
+import type { ApplicationDependencies } from "@/application/use-case";
+import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
+import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
+import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
+import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
+import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
+import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
+import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
+import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
+import { USE_CASE_DEPENDENCIES } from "../shared/database/tokens";
+
+type Constructor = new (dependencies: ApplicationDependencies) => unknown;
+
+const fromDependencies = (useCase: Constructor): Provider => ({
+	provide: useCase,
+	inject: [USE_CASE_DEPENDENCIES],
+	useFactory: (dependencies: ApplicationDependencies) =>
+		new useCase(dependencies),
+});
+
+export const botUseCases: Provider[] = [
+	BrowseFolderUseCase,
+	StartQuizAttemptUseCase,
+	StartPracticeSessionUseCase,
+	GetCurrentQuestionUseCase,
+	AnswerQuestionUseCase,
+	FinishQuizAttemptUseCase,
+	GetQuizStatisticsUseCase,
+	GetAttemptDetailUseCase,
+	ListDueRepetitionsUseCase,
+	ListLeechesUseCase,
+	ResolveQuizSettingsUseCase,
+	UpdateQuizSettingsUseCase,
+].map((useCase) => fromDependencies(useCase as unknown as Constructor));

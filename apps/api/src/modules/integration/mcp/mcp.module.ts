@@ -1,4 +1,5 @@
 import { Inject, Module, type OnApplicationShutdown } from "@nestjs/common";
+import { silentLogger } from "@recall/kit";
 import type { Express } from "express";
 import { createMcpHttpApp } from "@/adapters/mcp/http/app";
 import { createOAuthProvider } from "@/adapters/mcp/http/oauth/provider";
@@ -9,7 +10,6 @@ import {
 import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { createUseCases } from "@/composition/create-application";
-import { silentLogger } from "@/infrastructure/logging/logger";
 import { loadApiEnvironment } from "../../shared/config/api-env";
 import { USE_CASE_DEPENDENCIES } from "../../shared/database/tokens";
 

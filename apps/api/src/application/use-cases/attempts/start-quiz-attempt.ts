@@ -1,3 +1,4 @@
+import { shuffled } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
@@ -19,7 +20,6 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuestionId } from "@/domain/quiz-set/question";
 import { type QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { shuffled } from "@/shared/utils/shuffle";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 import { resolveWithSource } from "../settings/resolve-quiz-settings";
 

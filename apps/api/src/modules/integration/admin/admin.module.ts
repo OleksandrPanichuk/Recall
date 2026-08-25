@@ -4,10 +4,10 @@ import {
 	Module,
 	type NestModule,
 } from "@nestjs/common";
+import { silentLogger } from "@recall/kit";
 import { createAdminApi } from "@/adapters/admin/api";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { createUseCases } from "@/composition/create-application";
-import { silentLogger } from "@/infrastructure/logging/logger";
 import { loadApiEnvironment } from "../../shared/config/api-env";
 import { USE_CASE_DEPENDENCIES } from "../../shared/database/tokens";
 import { fetchRoutes } from "./fetch-routes";

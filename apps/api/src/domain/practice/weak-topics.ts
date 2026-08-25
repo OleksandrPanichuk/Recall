@@ -1,7 +1,4 @@
-import {
-	MIN_ANSWERS_FOR_TOPIC,
-	WEAK_TOPIC_ACCURACY,
-} from "./practice.constants";
+import { MIN_ANSWERS_FOR_TOPIC, WEAK_TOPIC_ACCURACY } from "@recall/contracts";
 
 export interface TopicScore {
 	readonly topic: string | undefined;

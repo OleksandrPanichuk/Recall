@@ -1,3 +1,4 @@
+import { shuffled } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { AttemptRepository } from "@/application/ports/repositories/attempt.repository";
@@ -23,7 +24,6 @@ import {
 	type QuizSetId,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
-import { shuffled } from "@/shared/utils/shuffle";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
