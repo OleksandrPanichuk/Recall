@@ -1529,9 +1529,9 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | 4 | ~~**Minimal Nest API shell**~~ — **done** (r7). Nest 11 + Express, `apps/api/src/modules/{shared,content}`, factory-provided use cases, `GET /quizzes`, `GET /quizzes/:id`, health, Swagger at `/docs`, domain-error→HTTP filter. Runs on Bun. | 2 | M |
 | 5 | ~~**Postgres cutover**~~ — **done** (r17). Five repositories paired behind contract suites, all 34 use cases on `UnitOfWork<RepositoryScope>`, the composition root on Postgres, the ETL rehearsed against the real backup and the bot proven against the result. Shipped on `wip/postgres-cutover`. | 4 | L |
 | 6 | ~~Rehearsed cutover~~ — **merged into phase 5** (r15) and **done** with it (r17). | 5 | L |
-| 7 | Identity, ownership, sessions, bot login link (§3, §5) | 6 | L |
-| 8 | Bot, MCP, and admin become API clients; MCP OAuth gains its user dimension (§1, §5) | 7 | L |
-| 9 | Web MVP: auth, browse, practice, attempt review (§4) | 8 | L |
+| 7 | ~~**Identity, ownership, sessions, bot login link**~~ — **done** (r21–r25). Better Auth on Postgres, the Telegram login link, `owner_id` on seven tables bound into the repository scope, personal access tokens, the OAuth grant carrying its user, and `apps/api` on Node. | 6 | L |
+| 8 | ~~**Bot, MCP and admin become API clients**~~ — **done** (r19, r20, r23); the MCP user dimension landed with phase 7. | 7 | L |
+| 9 | **Web MVP: auth, browse, practice, attempt review (§4)** — next. `packages/contracts` already carries the practice flow; `apps/web` does not exist yet. | 8 | L |
 | 10 | Pages/summaries + MCP page tools + attachments (§7) | 8 | L |
 | 11 | Analytics views and dashboards (§4) | 9 | M |
 | 12 | Email/password auth, sharing, FSRS (§5, §3, §6) | 9 | M |
