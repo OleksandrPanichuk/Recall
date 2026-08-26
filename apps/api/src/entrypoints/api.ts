@@ -60,7 +60,7 @@ export async function createApiApp() {
 	return app;
 }
 
-async function main(): Promise<void> {
+export async function startApi(): Promise<void> {
 	const environment = loadApiEnvironment();
 	const app = await createApiApp();
 
@@ -69,8 +69,4 @@ async function main(): Promise<void> {
 	console.log(
 		`api listening on http://${environment.host}:${environment.port} (docs at /${SWAGGER_PATH})`,
 	);
-}
-
-if (import.meta.main) {
-	await main();
 }

@@ -165,10 +165,11 @@ read-only escape hatch — не видаляйте його.
 | `bun run check:fix` | Застосувати safe Biome fixes, formatting та import sorting |
 | `bun run typecheck` | Перевірити TypeScript без генерації output |
 | `bun run up` | Підняти все, що налаштоване: API (з MCP), бот, адмінка |
-| `bun run api` | Підняти API — REST, Swagger, адмін-API і MCP на одному порті |
+| `bun run api` | Підняти API з TypeScript (dev) — REST, Swagger, адмін-API, MCP |
+| `bun run api:node` | Підняти зібраний API під `node` (як у production) |
 | `bun run mcp` | stdio-мостик до MCP цього API (для Claude Desktop) |
 | `bun run admin` | Підняти веб-адмінку на `http://127.0.0.1:8766` |
-| `bun run build` | Зібрати всі entrypoints у `dist/` |
+| `bun run build` | Зібрати packages і всі застосунки (`apps/api/dist`, `dist/*`) |
 | `bun run start` | Запустити попередньо зібраний `dist/bot/main.js` |
 | `bun test` | Запустити Bun unit і contract tests |
 | `bun run verify` | Запустити повний local gate: Biome, typecheck, tests і build |

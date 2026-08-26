@@ -18,7 +18,7 @@ const TOKEN = "b".repeat(40);
 const PORT = 8791;
 
 const api = Bun.fileURLToPath(
-	new URL("../../api/src/entrypoints/api.ts", import.meta.url),
+	new URL("../../api/src/entrypoints/serve.ts", import.meta.url),
 );
 const bridgeEntry = Bun.fileURLToPath(
 	new URL("../src/main.ts", import.meta.url),

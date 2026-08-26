@@ -54,7 +54,17 @@ These rules hold everywhere **except** the two v2 exemptions below.
 Two apps are exempt because the owner chose frameworks that cannot honour the rules above.
 Both exemptions are **scoped to their directory** — do not let them spread.
 
-1. **`apps/api` — NestJS on Node, with the Express adapter.**
+1. **`apps/api` — NestJS on Node, with the Express adapter.** It really is Node now:
+   `bun run --filter '@recall/api' build` emits ESM to `apps/api/dist` (tsc, then `tsc-alias`
+   to rewrite `@/…` and add the `.js` extensions Node's ESM loader demands), and
+   `bun run api:node` starts it with plain `node`. `bun run api` still runs the TypeScript
+   directly for development. Two consequences worth knowing: **nothing under
+   `apps/api/src` may use a Bun global** — `Bun.hash` in the fingerprint became
+   `node:crypto`, and the bootstrap moved out of `api.ts` into `entrypoints/serve.ts`
+   because `import.meta.main` is a Bun-ism — and `packages/kit` / `packages/contracts`
+   ship both: `exports` gives Bun `./src/index.ts` and Node `./dist/index.js`, so dev needs
+   no build while Node gets real JavaScript. `better-auth` is ESM-only, which is why the
+   build cannot be CommonJS.
    `@nestjs/platform-express`, not Fastify: the MCP SDK's OAuth pieces are Express
    middleware, Better Auth documents the Express handler, and Express is Nest's
    best-supported adapter. Persistence is drizzle-orm over a Postgres driver

@@ -1473,6 +1473,40 @@ entrypoint and `Bun.CryptoHasher` in the ETL. What remains is a build: `node
 --experimental-strip-types` cannot resolve the `@/*` path aliases, so the switch needs a compile
 step (tsc + alias rewriting, or swc) and entrypoint scripts to match.
 
+## Phase 7c, finished: `apps/api` runs on Node (r25)
+
+The plan said NestJS on Node from the start; until now it ran on Bun because `bun:sqlite` was in
+the tree. It is out, so the switch is done — and it was not just a matter of changing the command.
+
+**What it took.** `tsc` emits ESM to `apps/api/dist`, then `tsc-alias --resolveFullPaths` rewrites
+`@/…` to relative paths *and* appends the `.js` extensions Node's ESM loader requires (the source
+stays extensionless). CommonJS was not an option: `better-auth` is ESM-only, with no `require`
+condition.
+
+**The shared packages ship twice.** `packages/kit` and `packages/contracts` declare
+`exports: { ".": { "bun": "./src/index.ts", "default": "./dist/index.js" } }`, so Bun keeps
+reading the TypeScript source — no build needed in development — while Node resolves the compiled
+output. One package, two consumers, no duplicated source.
+
+**Two Bun-isms had to go.** `import.meta.main` guarded the api's bootstrap; Node 22 has no such
+thing, so the bootstrap moved into `entrypoints/serve.ts` whose only job is to start, leaving
+`api.ts` exporting `createApiApp` for the tests. And `Bun.hash` was computing question
+fingerprints **in the domain layer** — the one place that should not know what runtime it is on.
+It is `node:crypto` sha256 now.
+
+**That changed every fingerprint, so imports recompute them.** v1 hashed content with `Bun.hash`;
+a copied fingerprint would never collide with one this app computes, which would quietly weaken
+the duplicate check the `(quiz_id, fingerprint)` unique exists for. The ETL now recomputes every
+fingerprint through the same `questionFingerprint` the repository uses, as a final pass over the
+imported questions and options.
+
+**Proven on both runtimes.** A clean `bun run build` builds two packages and four apps. `node
+apps/api/dist/entrypoints/serve.js` against the imported library served **9** quizzes over
+`/quizzes`, answered `/bot/browse` with 1 root set and 3 folders, refused `/mcp` without a token
+(401) and `/bot/*` without one (401), and served Swagger and `/api/auth/*`. The same code under
+Bun answers identically — including the 503 on a database with no linked owner, which is the same
+on both.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

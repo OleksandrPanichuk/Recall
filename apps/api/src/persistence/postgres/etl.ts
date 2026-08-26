@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
 import type postgres from "postgres";
 import type { OwnerId } from "@/application/ports/owner";
+import type { Question } from "@/domain/quiz-set/question";
+import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
 
 export interface EtlReport {
 	readonly inserted: Readonly<Record<string, number>>;
@@ -564,11 +566,17 @@ export async function migrateSqliteToPostgres(options: {
 			count("study_settings", 1);
 		}
 
+		// v1 hashed question content with Bun.hash; this app hashes it with sha256,
+		// so a copied fingerprint would never collide with one the app computes.
+		// They are derived data, so they are recomputed rather than imported.
+		count("fingerprints", await recomputeFingerprints(client));
+
+		notes.push("oauth tables are not migrated: better auth owns identity now");
 		notes.push(
-			"oauth tables are not migrated: phase 7 replaces them with Better Auth",
+			"question fingerprints were recomputed: v1 hashed with Bun.hash, this app uses sha256",
 		);
 		notes.push(
-			"telegram_user_id is carried as a legacy identifier; phase 7 turns it into owner_id",
+			"telegram_user_id is carried as a legacy identifier next to owner_id",
 		);
 	} finally {
 		source.close();
@@ -722,4 +730,60 @@ export async function verifyMigration(options: {
 	}
 
 	return issues;
+}
+
+interface FingerprintRow {
+	readonly id: string;
+	readonly type: string;
+	readonly prompt: string;
+}
+
+interface FingerprintOption {
+	readonly question_id: string;
+	readonly text: string;
+	readonly is_correct: boolean;
+	readonly position: number;
+	readonly match_key: string | null;
+}
+
+// Read back out and hashed by the same function the repository uses, so an
+// imported question and an identical new one collide as they should.
+export async function recomputeFingerprints(
+	client: postgres.Sql,
+): Promise<number> {
+	const questionRows = await client<FingerprintRow[]>`
+		select id::text as id, type, prompt from questions
+	`;
+	const optionRows = await client<FingerprintOption[]>`
+		select question_id::text as question_id, text, is_correct, position, match_key
+		from question_options
+	`;
+	const byQuestion = new Map<string, FingerprintOption[]>();
+
+	for (const option of optionRows) {
+		byQuestion.set(option.question_id, [
+			...(byQuestion.get(option.question_id) ?? []),
+			option,
+		]);
+	}
+
+	for (const question of questionRows) {
+		const fingerprint = questionFingerprint({
+			type: question.type,
+			prompt: question.prompt,
+			options: (byQuestion.get(question.id) ?? []).map((option) => ({
+				text: option.text,
+				isCorrect: option.is_correct,
+				position: option.position,
+				matchKey: option.match_key ?? undefined,
+			})),
+		} as unknown as Question);
+
+		await client`
+			update questions set fingerprint = ${fingerprint}::text
+			where id = ${question.id}::uuid
+		`;
+	}
+
+	return questionRows.length;
 }

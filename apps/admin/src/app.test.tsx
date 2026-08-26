@@ -34,7 +34,7 @@ const child = available
 			[
 				process.execPath,
 				Bun.fileURLToPath(
-					new URL("../../api/src/entrypoints/api.ts", import.meta.url),
+					new URL("../../api/src/entrypoints/serve.ts", import.meta.url),
 				),
 			],
 			{
@@ -44,7 +44,6 @@ const child = available
 					ALLOWED_TELEGRAM_USER_ID: "42",
 					APP_TIMEZONE: "Europe/Kyiv",
 					DATABASE_URL: harness?.url ?? "",
-					OAUTH_DATABASE_PATH: `${directory}/oauth.sqlite`,
 					ADMIN_PASSPHRASE: PASSPHRASE,
 					API_HOST: "127.0.0.1",
 					API_PORT: String(port),

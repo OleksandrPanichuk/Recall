@@ -1,0 +1,18 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"declaration": true,
+		"allowImportingTsExtensions": false,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"types": ["node"],
+		"outDir": "./dist",
+		"rootDir": "./src"
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["src/**/*.test.ts"],
+	"tsc-alias": {
+		"resolveFullPaths": true
+	}
+}

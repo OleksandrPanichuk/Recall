@@ -5,7 +5,7 @@
 	"type": "module",
 	"module": "src/entrypoints/telegram.ts",
 	"scripts": {
-		"build": "bun build ./src/entrypoints/status.ts --outdir ../../dist --target bun",
+		"build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
 		"db:generate:pg": "drizzle-kit generate --config drizzle.postgres.config.ts",
 		"db:migrate:pg": "drizzle-kit migrate --config drizzle.postgres.config.ts",
 		"etl": "bun run ./scripts/migrate-to-postgres.ts"
@@ -29,6 +29,7 @@
 	},
 	"devDependencies": {
 		"@types/express": "^5.0.6",
-		"drizzle-kit": "^0.31.10"
+		"drizzle-kit": "^0.31.10",
+		"tsc-alias": "^1.8.16"
 	}
 }
