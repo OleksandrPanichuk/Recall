@@ -104,7 +104,7 @@ export function intervalDaysFor(
 export function scheduleAfter(
 	previous: RepetitionSchedule | undefined,
 	questionId: QuestionId,
-	telegramUserId: number,
+	telegramUserId: number | undefined,
 	settings: RepetitionSettings,
 	completedAt: Date,
 	completedDayStart: Date,

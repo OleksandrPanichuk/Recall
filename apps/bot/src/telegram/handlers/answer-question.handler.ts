@@ -17,9 +17,7 @@ const STALE = "Це питання вже позаду. Натисніть «П�
 
 export function toggleHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: ToggleCallback): Promise<void> => {
-		const current = await useCases.getCurrentQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
-		});
+		const current = await useCases.getCurrentQuestion.execute({});
 
 		if (
 			current?.question === undefined ||
@@ -46,7 +44,6 @@ export function answerHandler(useCases: TelegramUseCases) {
 		}
 
 		const result = await useCases.answerQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
 			questionId: callback.questionId,
 			selectedOptionPositions: callback.optionPositions,
 		});
@@ -61,9 +58,7 @@ async function afterAnswer(
 	feedback: Screen,
 	withNext = false,
 ): Promise<void> {
-	const next = await useCases.getCurrentQuestion.execute({
-		telegramUserId: ctx.from?.id ?? 0,
-	});
+	const next = await useCases.getCurrentQuestion.execute({});
 
 	if (next?.examMode === true) {
 		await render(
@@ -87,7 +82,6 @@ async function afterAnswer(
 export function revealHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, callback: RevealCallback): Promise<void> => {
 		const result = await useCases.answerQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
 			questionId: callback.questionId,
 			revealed: true,
 		});
@@ -103,9 +97,7 @@ export function revealHandler(useCases: TelegramUseCases) {
 
 export function typedAnswerHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, text: string): Promise<boolean> => {
-		const current = await useCases.getCurrentQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
-		});
+		const current = await useCases.getCurrentQuestion.execute({});
 
 		if (
 			current?.question === undefined ||
@@ -115,7 +107,6 @@ export function typedAnswerHandler(useCases: TelegramUseCases) {
 		}
 
 		const result = await useCases.answerQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
 			questionId: current.question.id,
 			typedAnswer: text,
 		});

@@ -16,7 +16,7 @@ type SettingsRow = typeof studySettings.$inferSelect;
 
 const toSchedule = (row: ReviewRow): RepetitionSchedule => ({
 	questionId: toQuestionId(row.questionId),
-	telegramUserId: row.telegramUserId ?? 0,
+	telegramUserId: row.telegramUserId ?? undefined,
 	repetitionCount: row.repetitionCount,
 	lapses: row.lapses,
 	lastCompletedAt: row.lastReviewedAt ?? row.updatedAt,
@@ -63,7 +63,7 @@ export function createReviewPostgresRepository(
 				const row = {
 					questionId: String(schedule.questionId),
 					ownerId: owner,
-					telegramUserId: schedule.telegramUserId,
+					telegramUserId: schedule.telegramUserId ?? null,
 					repetitionCount: schedule.repetitionCount,
 					lapses: schedule.lapses,
 					lastReviewedAt: schedule.lastCompletedAt,
@@ -80,7 +80,6 @@ export function createReviewPostgresRepository(
 
 		async findSchedules(
 			questionIds: readonly QuestionId[],
-			telegramUserId: number,
 		): Promise<readonly RepetitionSchedule[]> {
 			if (questionIds.length === 0) {
 				return [];
@@ -90,49 +89,29 @@ export function createReviewPostgresRepository(
 				.select()
 				.from(reviewStates)
 				.where(
-					and(
-						mine,
-						inArray(reviewStates.questionId, questionIds.map(String)),
-						eq(reviewStates.telegramUserId, telegramUserId),
-					),
+					and(mine, inArray(reviewStates.questionId, questionIds.map(String))),
 				);
 
 			return rows.map(toSchedule);
 		},
 
-		async listDue(
-			telegramUserId: number,
-			at: Date,
-		): Promise<readonly RepetitionSchedule[]> {
+		async listDue(at: Date): Promise<readonly RepetitionSchedule[]> {
 			const rows = await executor
 				.select()
 				.from(reviewStates)
-				.where(
-					and(
-						mine,
-						eq(reviewStates.telegramUserId, telegramUserId),
-						lte(reviewStates.dueAt, at),
-					),
-				)
+				.where(and(mine, lte(reviewStates.dueAt, at)))
 				.orderBy(asc(reviewStates.dueAt));
 
 			return rows.map(toSchedule);
 		},
 
 		async listLeeches(
-			telegramUserId: number,
 			threshold: number,
 		): Promise<readonly RepetitionSchedule[]> {
 			const rows = await executor
 				.select()
 				.from(reviewStates)
-				.where(
-					and(
-						mine,
-						eq(reviewStates.telegramUserId, telegramUserId),
-						sql`${reviewStates.lapses} >= ${threshold}`,
-					),
-				)
+				.where(and(mine, sql`${reviewStates.lapses} >= ${threshold}`))
 				.orderBy(sql`${reviewStates.lapses} desc`);
 
 			return rows.map(toSchedule);

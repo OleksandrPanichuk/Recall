@@ -12,9 +12,7 @@ import { type DueSet, overdueDaysOf } from "@/domain/repetition/repetition";
 
 export type { DueSet } from "@/domain/repetition/repetition";
 
-export interface ListDueRepetitionsCommand {
-	readonly telegramUserId: number;
-}
+export type ListDueRepetitionsCommand = Readonly<Record<string, never>>;
 
 export type ListDueRepetitionsDependencies = ApplicationDependencies;
 
@@ -37,12 +35,12 @@ export class ListDueRepetitionsUseCase
 	}
 
 	async execute(
-		request: Command<ListDueRepetitionsCommand>,
+		_request: Command<ListDueRepetitionsCommand>,
 	): Promise<readonly DueSet[]> {
 		const { quizzes, reviews } = this.scope;
 		const at = this.clock.now();
 		const todayStart = startOfDayIn(at, this.timezone);
-		const due = await reviews.listDue(request.telegramUserId, at);
+		const due = await reviews.listDue(at);
 
 		if (due.length === 0) {
 			return [];

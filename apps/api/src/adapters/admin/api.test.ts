@@ -120,7 +120,6 @@ beforeEach(async () => {
 			application,
 			logger: createRecordingLogger(),
 			passphrase: PASSPHRASE,
-			telegramUserId: TELEGRAM_USER_ID,
 			now: () => new Date(),
 		}),
 	});

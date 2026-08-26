@@ -75,7 +75,7 @@ export function createAttemptPostgresRepository(
 		return restoreQuizAttempt({
 			id: toQuizAttemptId(row.id),
 			quizSetId: toQuizSetId(row.quizId),
-			telegramUserId: row.telegramUserId ?? 0,
+			telegramUserId: row.telegramUserId ?? undefined,
 			mode: row.mode,
 			status: row.status,
 			questionIds: planned.map((entry) => toQuestionId(entry.questionId)),
@@ -109,8 +109,8 @@ export function createAttemptPostgresRepository(
 			const row = {
 				id,
 				quizId: String(attempt.quizSetId),
-				telegramUserId: attempt.telegramUserId,
 				ownerId: owner,
+				telegramUserId: attempt.telegramUserId ?? null,
 				mode: attempt.mode,
 				status: attempt.status,
 				startedAt: attempt.startedAt,
@@ -181,9 +181,7 @@ export function createAttemptPostgresRepository(
 			);
 		},
 
-		async findActiveFor(
-			telegramUserId: number,
-		): Promise<QuizAttempt | undefined> {
+		async findActive(): Promise<QuizAttempt | undefined> {
 			return first(
 				await executor
 					.select()
@@ -191,7 +189,6 @@ export function createAttemptPostgresRepository(
 					.where(
 						and(
 							mine,
-							eq(attempts.telegramUserId, telegramUserId),
 							inArray(attempts.status, [
 								QuizAttemptStatus.Active,
 								QuizAttemptStatus.Paused,
@@ -204,7 +201,6 @@ export function createAttemptPostgresRepository(
 		},
 
 		async listCompletedForQuiz(
-			telegramUserId: number,
 			quizId: QuizSetId,
 		): Promise<readonly AttemptStatistics[]> {
 			const rows = await executor
@@ -220,7 +216,6 @@ export function createAttemptPostgresRepository(
 					and(
 						mine,
 						eq(attempts.quizId, String(quizId)),
-						eq(attempts.telegramUserId, telegramUserId),
 						eq(attempts.status, QuizAttemptStatus.Completed),
 					),
 				)
@@ -236,10 +231,7 @@ export function createAttemptPostgresRepository(
 			}));
 		},
 
-		async topicAccuracy(
-			telegramUserId: number,
-			quizId: QuizSetId,
-		): Promise<readonly TopicAccuracy[]> {
+		async topicAccuracy(quizId: QuizSetId): Promise<readonly TopicAccuracy[]> {
 			const rows = await executor
 				.select({
 					topic: questions.topic,
@@ -249,13 +241,7 @@ export function createAttemptPostgresRepository(
 				.from(responses)
 				.innerJoin(attempts, eq(attempts.id, responses.attemptId))
 				.innerJoin(questions, eq(questions.id, responses.questionId))
-				.where(
-					and(
-						mine,
-						eq(attempts.quizId, String(quizId)),
-						eq(attempts.telegramUserId, telegramUserId),
-					),
-				)
+				.where(and(mine, eq(attempts.quizId, String(quizId))))
 				.groupBy(questions.topic)
 				.orderBy(sql`${questions.topic} is null`, asc(questions.topic));
 
@@ -267,7 +253,6 @@ export function createAttemptPostgresRepository(
 		},
 
 		async incorrectQuestionIds(
-			telegramUserId: number,
 			quizId: QuizSetId,
 		): Promise<readonly QuestionId[]> {
 			if (!isUuid(String(quizId))) {
@@ -287,7 +272,6 @@ export function createAttemptPostgresRepository(
 					and(
 						mine,
 						eq(attempts.quizId, String(quizId)),
-						eq(attempts.telegramUserId, telegramUserId),
 						eq(responses.isCorrect, false),
 						notExists(
 							executor
@@ -297,7 +281,6 @@ export function createAttemptPostgresRepository(
 								.where(
 									and(
 										eq(laterAttempt.ownerId, owner),
-										eq(laterAttempt.telegramUserId, telegramUserId),
 										eq(later.questionId, responses.questionId),
 										eq(later.isCorrect, true),
 										gt(later.answeredAt, responses.answeredAt),

@@ -23,7 +23,6 @@ export interface AdminApiDependencies {
 	readonly application: UseCases;
 	readonly logger: Logger;
 	readonly passphrase: string;
-	readonly telegramUserId: number;
 	now(): Date;
 }
 
@@ -112,7 +111,7 @@ const optionsOf = (value: unknown) =>
 	});
 
 export function createAdminApi(dependencies: AdminApiDependencies) {
-	const { application, logger, passphrase, telegramUserId, now } = dependencies;
+	const { application, logger, passphrase, now } = dependencies;
 
 	const guarded =
 		(handler: Handler): Handler =>
@@ -582,7 +581,6 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 			GET: guarded(async (request) =>
 				json(
 					await application.getQuizStatistics.execute({
-						telegramUserId,
 						quizSetId: toQuizSetId(paramOf(request, "id")),
 					}),
 				),
@@ -592,8 +590,8 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 		"/api/repetitions": {
 			GET: guarded(async () => {
 				const [due, leeches] = await Promise.all([
-					application.listDueRepetitions.execute({ telegramUserId }),
-					application.listLeeches.execute({ telegramUserId }),
+					application.listDueRepetitions.execute({}),
+					application.listLeeches.execute({}),
 				]);
 
 				return json({ due, leeches });

@@ -85,23 +85,20 @@ async function playAttempt(
 
 		context.clock.advance(60_000);
 		await answer.execute({
-			telegramUserId,
 			questionId: question.id,
 			selectedOptionPositions: [option?.position ?? 0],
 		});
 	}
 
 	context.clock.advance(60_000);
-	await finish.execute({ telegramUserId });
+	await finish.execute({});
 }
 
 describe("GetQuizStatisticsUseCase", () => {
 	test("returns a zero result for a set with no attempts", async () => {
 		const quizSetId = await seedPublishedSet([aQuestionInput("One")]);
 
-		expect(
-			await statistics.execute({ telegramUserId: USER, quizSetId }),
-		).toEqual({
+		expect(await statistics.execute({ quizSetId })).toEqual({
 			quizSetId,
 			title: "Bun persistence",
 			folderId: undefined,
@@ -124,7 +121,6 @@ describe("GetQuizStatisticsUseCase", () => {
 		await playAttempt(quizSetId, [true, true]);
 
 		const result = await statistics.execute({
-			telegramUserId: USER,
 			quizSetId,
 		});
 
@@ -149,8 +145,7 @@ describe("GetQuizStatisticsUseCase", () => {
 		await playAttempt(quizSetId, [true]);
 
 		expect(
-			(await statistics.execute({ telegramUserId: USER, quizSetId }))
-				.improvement,
+			(await statistics.execute({ quizSetId })).improvement,
 		).toBeUndefined();
 	});
 
@@ -158,9 +153,7 @@ describe("GetQuizStatisticsUseCase", () => {
 		const quizSetId = await seedPublishedSet([aQuestionInput("One")]);
 		await start.execute({ quizSetId, telegramUserId: USER });
 
-		expect(
-			(await statistics.execute({ telegramUserId: USER, quizSetId })).attempts,
-		).toEqual([]);
+		expect((await statistics.execute({ quizSetId })).attempts).toEqual([]);
 	});
 
 	test("groups accuracy by topic and reports an absent topic once", async () => {
@@ -173,9 +166,11 @@ describe("GetQuizStatisticsUseCase", () => {
 		await playAttempt(quizSetId, [true, false, true]);
 
 		expect(
-			(
-				await statistics.execute({ telegramUserId: USER, quizSetId })
-			).topics.map((entry) => [entry.topic, entry.answered, entry.correct]),
+			(await statistics.execute({ quizSetId })).topics.map((entry) => [
+				entry.topic,
+				entry.answered,
+				entry.correct,
+			]),
 		).toEqual([
 			["Alpha", 2, 1],
 			[undefined, 1, 1],
@@ -191,7 +186,6 @@ describe("GetQuizStatisticsUseCase", () => {
 		await playAttempt(quizSetId, [true, false]);
 
 		const afterMistake = await statistics.execute({
-			telegramUserId: USER,
 			quizSetId,
 		});
 
@@ -200,8 +194,7 @@ describe("GetQuizStatisticsUseCase", () => {
 		await playAttempt(quizSetId, [true, true]);
 
 		expect(
-			(await statistics.execute({ telegramUserId: USER, quizSetId }))
-				.incorrectQuestionIds,
+			(await statistics.execute({ quizSetId })).incorrectQuestionIds,
 		).toEqual([]);
 	});
 
@@ -213,7 +206,6 @@ describe("GetQuizStatisticsUseCase", () => {
 		await playAttempt(other, [false]);
 
 		const result = await statistics.execute({
-			telegramUserId: USER,
 			quizSetId: studied,
 		});
 
@@ -221,23 +213,21 @@ describe("GetQuizStatisticsUseCase", () => {
 		expect(result.incorrectQuestionIds).toEqual([]);
 	});
 
-	test("ignores another user's attempts", async () => {
+	test("counts every attempt the owner made, whichever client made it", async () => {
 		const quizSetId = await seedPublishedSet([aQuestionInput("One")]);
+
 		await playAttempt(quizSetId, [true], 7);
 
-		const result = await statistics.execute({
-			telegramUserId: USER,
-			quizSetId,
-		});
+		const result = await statistics.execute({ quizSetId });
 
-		expect(result.attempts).toEqual([]);
-		expect(result.topics).toEqual([]);
+		// Attempts belong to the owner, not to a telegram account. Another owner
+		// seeing nothing is proven in tests/contracts/ownership.contract.ts.
+		expect(result.attempts).toHaveLength(1);
 	});
 
 	test("rejects an unknown set", async () => {
 		await expect(
 			statistics.execute({
-				telegramUserId: USER,
 				quizSetId: toQuizSetId("missing"),
 			}),
 		).rejects.toThrow(QuizSetNotFoundError);

@@ -165,7 +165,6 @@ describe("UpdateVocabularyUseCase", () => {
 			reviews.saveSchedules([
 				{
 					questionId: card.id,
-					telegramUserId: 42,
 					repetitionCount: 4,
 					lapses: 1,
 					lastCompletedAt: new Date("2026-08-01T10:00:00.000Z"),
@@ -175,7 +174,7 @@ describe("UpdateVocabularyUseCase", () => {
 		);
 
 		await update.execute({ itemId, translation: ["кіт"] });
-		const [schedule] = await context.scope.reviews.findSchedules([card.id], 42);
+		const [schedule] = await context.scope.reviews.findSchedules([card.id]);
 
 		expect(schedule?.repetitionCount).toBe(4);
 		expect(schedule?.lapses).toBe(1);

@@ -83,7 +83,7 @@ describe("StartQuizAttemptUseCase", () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
-		await pause.execute({ telegramUserId: USER });
+		await pause.execute({});
 		context.clock.advance(60_000);
 
 		const result = await start.execute({ quizSetId, telegramUserId: USER });
@@ -129,7 +129,6 @@ describe("StartQuizAttemptUseCase", () => {
 		await expect(
 			start.execute({
 				quizSetId: toQuizSetId("missing"),
-				telegramUserId: USER,
 			}),
 		).rejects.toThrow(QuizSetNotFoundError);
 	});
@@ -141,20 +140,24 @@ describe("StartQuizAttemptUseCase", () => {
 		await archive.execute({ quizSetId: first });
 		context.clock.advance(60_000);
 
-		await finish.execute({ telegramUserId: USER });
+		await finish.execute({});
 
 		await expect(
 			start.execute({ quizSetId: second, telegramUserId: USER }),
 		).resolves.toMatchObject({ resumed: false });
 	});
 
-	test("keeps attempts separate per user", async () => {
+	test("resumes the owner's attempt whichever telegram account asks", async () => {
 		const quizSetId = await seedPublishedSet();
-		await start.execute({ quizSetId, telegramUserId: USER });
+		const first = await start.execute({ quizSetId, telegramUserId: USER });
 
-		await start.execute({ quizSetId, telegramUserId: 7 });
+		// The telegram id is provenance, not a second identity that would get its
+		// own attempt on the same quiz.
+		const second = await start.execute({ quizSetId, telegramUserId: 7 });
 
-		expect(attemptCount(context.store)).toBe(2);
+		expect(String(second.attemptId)).toBe(String(first.attemptId));
+		expect(second.resumed).toBe(true);
+		expect(attemptCount(context.store)).toBe(1);
 	});
 });
 
@@ -174,7 +177,7 @@ describe("shuffled question order", () => {
 	): Promise<readonly string[]> => {
 		const questions =
 			(await context.scope.quizzes.findById(quizSetId))?.questions ?? [];
-		const attempt = await context.scope.attempts.findActiveFor(USER);
+		const attempt = await context.scope.attempts.findActive();
 
 		return (attempt?.questionIds ?? []).map(
 			(questionId) =>
@@ -208,7 +211,7 @@ describe("shuffled question order", () => {
 		await enableShuffle(quizSetId);
 
 		const result = await start.execute({ quizSetId, telegramUserId: USER });
-		const attempt = await context.scope.attempts.findActiveFor(USER);
+		const attempt = await context.scope.attempts.findActive();
 
 		expect(String(result.currentQuestionId)).toBe(
 			String(attempt?.questionIds[0]),
@@ -221,7 +224,7 @@ describe("shuffled question order", () => {
 		await start.execute({ quizSetId, telegramUserId: USER });
 
 		const planned = await plannedPrompts(quizSetId);
-		await pause.execute({ telegramUserId: USER });
+		await pause.execute({});
 		await start.execute({ quizSetId, telegramUserId: USER });
 
 		expect(await plannedPrompts(quizSetId)).toEqual(planned);
@@ -253,7 +256,6 @@ describe("shuffled question order", () => {
 			reviews.saveSchedules(
 				due.map((questionId) => ({
 					questionId,
-					telegramUserId: USER,
 					repetitionCount: 1,
 					lapses: 0,
 					lastCompletedAt: new Date("2026-07-01T09:00:00.000Z"),

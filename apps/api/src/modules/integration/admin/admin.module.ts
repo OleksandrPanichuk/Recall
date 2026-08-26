@@ -32,7 +32,6 @@ export class AdminModule implements NestModule {
 			application: createUseCases(this.dependencies),
 			logger: silentLogger,
 			passphrase: environment.adminPassphrase,
-			telegramUserId: environment.allowedTelegramUserId,
 			now: () => new Date(),
 		});
 

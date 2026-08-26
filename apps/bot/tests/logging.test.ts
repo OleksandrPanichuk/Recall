@@ -83,7 +83,6 @@ describe("telegram request logging (§6.2)", () => {
 		expect(logger.of("telegram update").at(-1)).toMatchObject({
 			action: "start-set",
 			quizSetId,
-			telegramUserId: 42,
 		});
 	});
 

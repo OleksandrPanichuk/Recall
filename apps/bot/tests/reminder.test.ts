@@ -63,22 +63,18 @@ const publishAndTake = async (id: string, title: string): Promise<void> => {
 
 	await new StartQuizAttemptUseCase(context).execute({
 		quizSetId: toQuizSetId(id),
-		telegramUserId: USER,
 	});
 
-	const view = await new GetCurrentQuestionUseCase(context).execute({
-		telegramUserId: USER,
-	});
+	const view = await new GetCurrentQuestionUseCase(context).execute({});
 
 	if (view?.question !== undefined) {
 		await new AnswerQuestionUseCase(context).execute({
-			telegramUserId: USER,
 			questionId: view.question.id,
 			selectedOptionPositions: [0],
 		});
 	}
 
-	await new FinishQuizAttemptUseCase(context).execute({ telegramUserId: USER });
+	await new FinishQuizAttemptUseCase(context).execute({});
 };
 
 const fireOnce = async (): Promise<void> => {
@@ -86,8 +82,8 @@ const fireOnce = async (): Promise<void> => {
 	const startedAt = Date.now();
 	const timer = startDailyReminder({
 		bot: fakeBot as never,
+		chatId: USER,
 		listDueRepetitions: new ListDueRepetitionsUseCase(context),
-		telegramUserId: USER,
 		timezone: "UTC",
 		hour: new Date(target).getUTCHours(),
 		now: () => new Date(target - 5 + (Date.now() - startedAt)),
@@ -142,8 +138,8 @@ describe("daily reminder", () => {
 	test("stops cleanly", () => {
 		const timer = startDailyReminder({
 			bot: fakeBot as never,
+			chatId: USER,
 			listDueRepetitions: new ListDueRepetitionsUseCase(context),
-			telegramUserId: USER,
 			timezone: "Europe/Kyiv",
 			hour: 9,
 			now: () => createMutableClock().now(),

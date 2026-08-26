@@ -109,6 +109,7 @@ export function describeAttemptRepository(
 				startQuizAttempt({
 					id: toQuizAttemptId(uuid()),
 					quizSetId: toQuizSetId(quizId),
+					// Provenance: which telegram account started it. Not how it is found.
 					telegramUserId: USER,
 					mode: QuizAttemptMode.Full,
 					questionIds: [
@@ -187,12 +188,11 @@ export function describeAttemptRepository(
 					await attempts.save(attempt);
 				});
 
-				const active = await harness.scope.attempts.findActiveFor(USER);
+				const active = await harness.scope.attempts.findActive();
 
+				// That another owner sees nothing is proven in ownership.contract.ts,
+				// where two scopes exist to compare.
 				expect(String(active?.id)).toBe(String(attempt.id));
-				expect(
-					await harness.scope.attempts.findActiveFor(USER + 1),
-				).toBeUndefined();
 			});
 
 			test("ignores a stale copy rather than rewinding an answer", async () => {
@@ -216,7 +216,6 @@ export function describeAttemptRepository(
 				});
 
 				const summaries = await harness.scope.attempts.listCompletedForQuiz(
-					USER,
 					toQuizSetId(quizId),
 				);
 
@@ -232,7 +231,6 @@ export function describeAttemptRepository(
 				});
 
 				const topics = await harness.scope.attempts.topicAccuracy(
-					USER,
 					toQuizSetId(quizId),
 				);
 
@@ -249,7 +247,6 @@ export function describeAttemptRepository(
 				});
 
 				const wrong = await harness.scope.attempts.incorrectQuestionIds(
-					USER,
 					toQuizSetId(quizId),
 				);
 
@@ -268,7 +265,6 @@ export function describeAttemptRepository(
 
 				expect(
 					await harness.scope.attempts.incorrectQuestionIds(
-						USER,
 						toQuizSetId(quizId),
 					),
 				).toEqual([]);
@@ -290,7 +286,6 @@ export function describeAttemptRepository(
 				expect(
 					(
 						await harness.scope.attempts.incorrectQuestionIds(
-							USER,
 							toQuizSetId(quizId),
 						)
 					).map(String),

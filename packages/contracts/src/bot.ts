@@ -249,9 +249,12 @@ export const revokedApiTokenSchema = z.object({ revoked: z.boolean() });
 
 export const browseCommandSchema = z.object({ folderId: optionalId });
 
+// The practice commands name no user: the api resolves the owner from the
+// credential. Only telegramUserId on an *auth* route names an account, because
+// there the account is the subject.
 export const startAttemptCommandSchema = z.object({
 	quizSetId: id,
-	telegramUserId: z.number().int(),
+	telegramUserId: z.number().int().optional(),
 	onlyDue: z.boolean().optional(),
 });
 
@@ -263,42 +266,28 @@ export type PracticeMode = (typeof PracticeMode)[keyof typeof PracticeMode];
 
 export const practiceCommandSchema = z.object({
 	quizSetId: id,
-	telegramUserId: z.number().int(),
+	telegramUserId: z.number().int().optional(),
 	mode: z.enum(PracticeMode),
 });
 
-export const currentQuestionCommandSchema = z.object({
-	telegramUserId: z.number().int(),
-});
+export const currentQuestionCommandSchema = z.object({});
 
 export const answerCommandSchema = z.object({
-	telegramUserId: z.number().int(),
 	questionId: id,
 	selectedOptionPositions: z.array(z.number().int()).readonly().optional(),
 	typedAnswer: z.string().optional(),
 	revealed: z.boolean().optional(),
 });
 
-export const finishCommandSchema = z.object({
-	telegramUserId: z.number().int(),
-});
+export const finishCommandSchema = z.object({});
 
-export const statisticsCommandSchema = z.object({
-	telegramUserId: z.number().int(),
-	quizSetId: id,
-});
+export const statisticsCommandSchema = z.object({ quizSetId: id });
 
-export const attemptDetailCommandSchema = z.object({
-	telegramUserId: z.number().int(),
-	attemptId: id,
-});
+export const attemptDetailCommandSchema = z.object({ attemptId: id });
 
-export const dueRepetitionsCommandSchema = z.object({
-	telegramUserId: z.number().int(),
-});
+export const dueRepetitionsCommandSchema = z.object({});
 
 export const leechesCommandSchema = z.object({
-	telegramUserId: z.number().int(),
 	threshold: z.number().int().optional(),
 });
 

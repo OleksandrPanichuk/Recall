@@ -54,7 +54,6 @@ describe("AnswerQuestionUseCase", () => {
 		context.clock.advance(60_000);
 
 		const result = await answer.execute({
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
@@ -75,7 +74,6 @@ describe("AnswerQuestionUseCase", () => {
 		context.clock.advance(60_000);
 
 		const result = await answer.execute({
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, false)],
 		});
@@ -89,7 +87,6 @@ describe("AnswerQuestionUseCase", () => {
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
 		const command = {
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		};
@@ -110,13 +107,11 @@ describe("AnswerQuestionUseCase", () => {
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
 		await answer.execute({
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, false)],
 		});
 
 		const replay = await answer.execute({
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
@@ -133,7 +128,6 @@ describe("AnswerQuestionUseCase", () => {
 
 		await expect(
 			answer.execute({
-				telegramUserId: USER,
 				questionId: await questionIdOf(quizSetId, 1),
 				selectedOptionPositions: [await positionOf(quizSetId, 1, true)],
 			}),
@@ -148,7 +142,6 @@ describe("AnswerQuestionUseCase", () => {
 
 		await expect(
 			answer.execute({
-				telegramUserId: USER,
 				questionId: await questionIdOf(quizSetId, 0),
 				selectedOptionPositions: [99],
 			}),
@@ -163,7 +156,6 @@ describe("AnswerQuestionUseCase", () => {
 
 		await expect(
 			answer.execute({
-				telegramUserId: USER,
 				questionId: await questionIdOf(quizSetId, 0),
 				selectedOptionPositions: [],
 			}),
@@ -174,11 +166,10 @@ describe("AnswerQuestionUseCase", () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
-		await pause.execute({ telegramUserId: USER });
+		await pause.execute({});
 
 		await expect(
 			answer.execute({
-				telegramUserId: USER,
 				questionId: await questionIdOf(quizSetId, 0),
 				selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 			}),
@@ -190,7 +181,6 @@ describe("AnswerQuestionUseCase", () => {
 
 		await expect(
 			answer.execute({
-				telegramUserId: USER,
 				questionId: await questionIdOf(quizSetId, 0),
 				selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 			}),
@@ -203,7 +193,6 @@ describe("AnswerQuestionUseCase", () => {
 		context.clock.advance(60_000);
 
 		const result = await answer.execute({
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});

@@ -12,7 +12,6 @@ import { questionScreen } from "../presenters/question.presenter";
 import { render } from "../screen";
 
 export interface PracticeRequest {
-	readonly telegramUserId: number;
 	readonly quizSetId: QuizSetId;
 	readonly mode: PracticeMode;
 }
@@ -20,7 +19,10 @@ export interface PracticeRequest {
 export function practiceHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, request: PracticeRequest): Promise<void> => {
 		try {
-			await useCases.startPracticeSession.execute(request);
+			await useCases.startPracticeSession.execute({
+				...request,
+				telegramUserId: ctx.from?.id,
+			});
 		} catch (error) {
 			if (isApiError(error, ApiErrorName.NothingToPractice)) {
 				await render(
@@ -34,9 +36,7 @@ export function practiceHandler(useCases: TelegramUseCases) {
 			throw error;
 		}
 
-		const current = await useCases.getCurrentQuestion.execute({
-			telegramUserId: request.telegramUserId,
-		});
+		const current = await useCases.getCurrentQuestion.execute({});
 
 		if (current === undefined || current.question === undefined) {
 			await render(ctx, finishPrompt());

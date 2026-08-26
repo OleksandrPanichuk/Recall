@@ -17,7 +17,6 @@ export interface LeechView {
 }
 
 export interface ListLeechesCommand {
-	readonly telegramUserId: number;
 	readonly threshold?: number;
 }
 
@@ -37,7 +36,6 @@ export class ListLeechesUseCase
 	): Promise<readonly LeechView[]> {
 		const { quizzes, reviews } = this.scope;
 		const stuck = await reviews.listLeeches(
-			request.telegramUserId,
 			request.threshold ?? DEFAULT_LEECH_THRESHOLD,
 		);
 

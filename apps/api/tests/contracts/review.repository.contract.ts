@@ -28,7 +28,7 @@ export interface ReviewRepositoryHarness {
 	reset(): Promise<void>;
 }
 
-const USER = 797736131;
+const _USER = 797736131;
 const at = new Date("2026-08-01T10:00:00.000Z");
 const day = (offset: number): Date =>
 	new Date(at.getTime() + offset * 24 * 60 * 60 * 1000);
@@ -100,7 +100,6 @@ export function describeReviewRepository(
 				dueOffset: number,
 			) => ({
 				questionId: toQuestionId(questionId),
-				telegramUserId: USER,
 				repetitionCount: 2,
 				lapses,
 				lastCompletedAt: at,
@@ -115,10 +114,9 @@ export function describeReviewRepository(
 					]);
 				});
 
-				const found = await harness.scope.reviews.findSchedules(
-					[toQuestionId(firstQuestion)],
-					USER,
-				);
+				const found = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
 
 				expect(found).toHaveLength(1);
 				expect(String(found[0]?.questionId)).toBe(firstQuestion);
@@ -131,10 +129,9 @@ export function describeReviewRepository(
 					await reviews.saveSchedules([schedule(firstQuestion, 3, 5)]);
 				});
 
-				const found = await harness.scope.reviews.findSchedules(
-					[toQuestionId(firstQuestion)],
-					USER,
-				);
+				const found = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
 
 				expect(found).toHaveLength(1);
 				expect(found[0]?.lapses).toBe(3);
@@ -148,7 +145,7 @@ export function describeReviewRepository(
 					]);
 				});
 
-				const due = await harness.scope.reviews.listDue(USER, day(1));
+				const due = await harness.scope.reviews.listDue(day(1));
 
 				expect(due.map((entry) => String(entry.questionId))).toEqual([
 					firstQuestion,
@@ -163,7 +160,7 @@ export function describeReviewRepository(
 					]);
 				});
 
-				const leeches = await harness.scope.reviews.listLeeches(USER, 3);
+				const leeches = await harness.scope.reviews.listLeeches(3);
 
 				expect(leeches.map((entry) => String(entry.questionId))).toEqual([
 					secondQuestion,
@@ -273,10 +270,9 @@ export function describeReviewRepository(
 				} catch {}
 
 				expect(
-					await harness.scope.reviews.findSchedules(
-						[toQuestionId(firstQuestion)],
-						USER,
-					),
+					await harness.scope.reviews.findSchedules([
+						toQuestionId(firstQuestion),
+					]),
 				).toEqual([]);
 			});
 		},

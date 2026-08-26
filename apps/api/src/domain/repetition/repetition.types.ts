@@ -9,7 +9,7 @@ export interface RepetitionSettings {
 
 export interface RepetitionSchedule {
 	readonly questionId: QuestionId;
-	readonly telegramUserId: number;
+	readonly telegramUserId?: number;
 	readonly repetitionCount: number;
 	readonly lapses: number;
 	readonly lastCompletedAt: Date;

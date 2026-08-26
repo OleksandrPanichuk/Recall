@@ -50,7 +50,7 @@ function main(): void {
 	const reminder = startDailyReminder({
 		bot,
 		listDueRepetitions: useCases.listDueRepetitions,
-		telegramUserId: environment.allowedTelegramUserId,
+		chatId: environment.allowedTelegramUserId,
 		timezone: environment.timezone,
 		hour: REMINDER_HOUR,
 		now: () => new Date(),

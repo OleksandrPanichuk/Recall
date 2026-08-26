@@ -51,7 +51,8 @@ export class NothingToPracticeError extends Error {
 
 export interface StartPracticeSessionCommand {
 	readonly quizSetId: QuizSetId;
-	readonly telegramUserId: number;
+	// Kept as provenance on the row, not as an identity the api trusts.
+	readonly telegramUserId?: number;
 	readonly mode: PracticeMode;
 }
 
@@ -92,7 +93,7 @@ export class StartPracticeSessionUseCase
 				throw new QuizSetNotPublishedError(request.quizSetId);
 			}
 
-			const unfinished = await attempts.findActiveFor(request.telegramUserId);
+			const unfinished = await attempts.findActive();
 
 			if (unfinished !== undefined) {
 				throw new AttemptAlreadyInProgressError(
@@ -147,9 +148,9 @@ export class StartPracticeSessionUseCase
 		request: Command<StartPracticeSessionCommand>,
 		attempts: AttemptRepository,
 	): Promise<readonly string[]> {
-		return weakTopicsOf(
-			await attempts.topicAccuracy(request.telegramUserId, request.quizSetId),
-		).map((weak) => weak.topic);
+		return weakTopicsOf(await attempts.topicAccuracy(request.quizSetId)).map(
+			(weak) => weak.topic,
+		);
 	}
 
 	private async outstandingMistakes(
@@ -161,12 +162,9 @@ export class StartPracticeSessionUseCase
 			quizSet.questions.map((question) => String(question.id)),
 		);
 
-		return (
-			await attempts.incorrectQuestionIds(
-				request.telegramUserId,
-				request.quizSetId,
-			)
-		).filter((questionId) => present.has(String(questionId)));
+		return (await attempts.incorrectQuestionIds(request.quizSetId)).filter(
+			(questionId) => present.has(String(questionId)),
+		);
 	}
 }
 

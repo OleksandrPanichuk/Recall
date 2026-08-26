@@ -95,7 +95,7 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 		// is past the ~10s answer window and 400s, which must not abort dispatch.
 		await ctx.answerCbQuery().catch(() => {});
 
-		const telegramUserId = ctx.from.id;
+		const _telegramUserId = ctx.from.id;
 
 		switch (callback.action) {
 			case CallbackAction.Menu:
@@ -156,7 +156,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.MistakesFor:
 				await practiceHandler(useCases)(ctx, {
-					telegramUserId,
 					quizSetId: callback.quizSetId,
 					mode: QuizAttemptMode.Mistakes,
 				});
@@ -164,7 +163,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.WeakTopicsFor:
 				await practiceHandler(useCases)(ctx, {
-					telegramUserId,
 					quizSetId: callback.quizSetId,
 					mode: QuizAttemptMode.WeakTopics,
 				});
@@ -176,14 +174,12 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.StartSet:
 				await startAttemptHandler(useCases)(ctx, {
-					telegramUserId,
 					quizSetId: callback.quizSetId,
 				});
 
 				return;
 			case CallbackAction.StartDue:
 				await startAttemptHandler(useCases)(ctx, {
-					telegramUserId,
 					quizSetId: callback.quizSetId,
 					onlyDue: true,
 				});
@@ -191,7 +187,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.StatisticsFor:
 				await statisticsHandler(useCases)(ctx, {
-					telegramUserId,
 					quizSetId: callback.quizSetId,
 				});
 

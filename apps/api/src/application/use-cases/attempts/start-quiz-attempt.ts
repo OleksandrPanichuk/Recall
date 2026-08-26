@@ -51,7 +51,8 @@ export class NothingDueError extends Error {
 
 export interface StartQuizAttemptCommand {
 	readonly quizSetId: QuizSetId;
-	readonly telegramUserId: number;
+	// Kept as provenance on the row, not as an identity the api trusts.
+	readonly telegramUserId?: number;
 	readonly onlyDue?: boolean;
 }
 
@@ -91,7 +92,7 @@ export class StartQuizAttemptUseCase
 				throw new QuizSetNotPublishedError(request.quizSetId);
 			}
 
-			const unfinished = await attempts.findActiveFor(request.telegramUserId);
+			const unfinished = await attempts.findActive();
 
 			if (unfinished !== undefined) {
 				if (unfinished.quizSetId !== request.quizSetId) {
@@ -109,7 +110,7 @@ export class StartQuizAttemptUseCase
 			const due =
 				request.onlyDue === true
 					? new Set(
-							(await reviews.listDue(request.telegramUserId, at)).map(
+							(await reviews.listDue(at)).map(
 								(schedule) => schedule.questionId,
 							),
 						)

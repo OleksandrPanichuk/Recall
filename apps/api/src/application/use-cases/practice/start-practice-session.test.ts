@@ -12,7 +12,6 @@ import {
 	aQuestionInput,
 	createPracticeHarness,
 	type PracticeHarness,
-	USER,
 } from "./practice.fixture";
 import { NothingToPracticeError } from "./start-practice-session";
 
@@ -29,14 +28,12 @@ afterEach(() => {
 const startMistakes = (quizSetId: ReturnType<typeof toQuizSetId>) =>
 	harness.practice.execute({
 		quizSetId,
-		telegramUserId: USER,
 		mode: QuizAttemptMode.Mistakes,
 	});
 
 const startWeakTopics = (quizSetId: ReturnType<typeof toQuizSetId>) =>
 	harness.practice.execute({
 		quizSetId,
-		telegramUserId: USER,
 		mode: QuizAttemptMode.WeakTopics,
 	});
 
@@ -104,9 +101,9 @@ describe("a mistakes session", () => {
 
 		await startMistakes(quizSetId);
 
-		expect(
-			(await harness.context.scope.attempts.findActiveFor(USER))?.mode,
-		).toBe(QuizAttemptMode.Mistakes);
+		expect((await harness.context.scope.attempts.findActive())?.mode).toBe(
+			QuizAttemptMode.Mistakes,
+		);
 	});
 });
 
@@ -207,9 +204,9 @@ describe("a weak-topic session", () => {
 
 		await startWeakTopics(quizSetId);
 
-		expect(
-			(await harness.context.scope.attempts.findActiveFor(USER))?.mode,
-		).toBe(QuizAttemptMode.WeakTopics);
+		expect((await harness.context.scope.attempts.findActive())?.mode).toBe(
+			QuizAttemptMode.WeakTopics,
+		);
 	});
 });
 
@@ -257,10 +254,9 @@ describe("finishing a drill", () => {
 		const questionId = (await harness.context.scope.quizzes.findById(quizSetId))
 			?.questions[0]?.id;
 
-		const [schedule] = await harness.context.scope.reviews.findSchedules(
-			[questionId as never],
-			USER,
-		);
+		const [schedule] = await harness.context.scope.reviews.findSchedules([
+			questionId as never,
+		]);
 
 		return schedule;
 	};
@@ -274,7 +270,7 @@ describe("finishing a drill", () => {
 		await startMistakes(quizSetId);
 		await harness.answerCurrent(true);
 		harness.context.clock.advance(60_000);
-		await harness.finish.execute({ telegramUserId: USER });
+		await harness.finish.execute({});
 
 		expect(await scheduleOf(quizSetId)).toEqual(before);
 	});
@@ -286,7 +282,7 @@ describe("finishing a drill", () => {
 		await startMistakes(quizSetId);
 		await harness.answerCurrent(true);
 		harness.context.clock.advance(60_000);
-		await harness.finish.execute({ telegramUserId: USER });
+		await harness.finish.execute({});
 
 		await expect(startMistakes(quizSetId)).rejects.toThrow(
 			NothingToPracticeError,

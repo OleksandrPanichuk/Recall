@@ -13,10 +13,10 @@ export const settingsKey = (scope: SettingsScope): string =>
 export function createMemoryReviewRepository(
 	store: MemoryStore,
 ): ReviewRepository {
-	const mine = (telegramUserId: number): readonly RepetitionSchedule[] =>
-		[...store.schedules.values()].filter(
-			(schedule) => schedule.telegramUserId === telegramUserId,
-		);
+	// One store per owner: everything in it is theirs.
+	const all = (): readonly RepetitionSchedule[] => [
+		...store.schedules.values(),
+	];
 
 	return {
 		async saveSchedules(
@@ -29,20 +29,16 @@ export function createMemoryReviewRepository(
 
 		async findSchedules(
 			questionIds: readonly QuestionId[],
-			telegramUserId: number,
 		): Promise<readonly RepetitionSchedule[]> {
 			const wanted = new Set(questionIds.map(String));
 
-			return mine(telegramUserId).filter((schedule) =>
+			return all().filter((schedule) =>
 				wanted.has(String(schedule.questionId)),
 			);
 		},
 
-		async listDue(
-			telegramUserId: number,
-			at: Date,
-		): Promise<readonly RepetitionSchedule[]> {
-			return mine(telegramUserId)
+		async listDue(at: Date): Promise<readonly RepetitionSchedule[]> {
+			return all()
 				.filter(
 					(schedule) =>
 						schedule.dueAt !== undefined &&
@@ -55,10 +51,9 @@ export function createMemoryReviewRepository(
 		},
 
 		async listLeeches(
-			telegramUserId: number,
 			threshold: number,
 		): Promise<readonly RepetitionSchedule[]> {
-			return mine(telegramUserId)
+			return all()
 				.filter((schedule) => schedule.lapses >= threshold)
 				.sort((left, right) => right.lapses - left.lapses);
 		},

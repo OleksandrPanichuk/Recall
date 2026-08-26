@@ -184,15 +184,21 @@ describe("QuizAttempt", () => {
 			).toEqual(["questionIds must not contain duplicates"]);
 		});
 
+		test("accepts a draft with no telegram id, for a web attempt", () => {
+			const { telegramUserId: _omitted, ...withoutUser } = validDraft;
+
+			expect(startQuizAttempt(withoutUser).telegramUserId).toBeUndefined();
+		});
+
 		test.each([
 			0,
 			-1,
 			1.5,
 			Number.NaN,
 			Number.MAX_SAFE_INTEGER + 2,
-		])("rejects the telegramUserId %p", (telegramUserId) => {
+		])("rejects the telegramUserId %p when it is given", (telegramUserId) => {
 			expect(issuesOf({ ...validDraft, telegramUserId })).toEqual([
-				"telegramUserId must be a positive integer",
+				"telegramUserId must be a positive integer when it is given",
 			]);
 		});
 
@@ -211,7 +217,7 @@ describe("QuizAttempt", () => {
 					startedAt: invalidDate,
 				}),
 			).toEqual([
-				"telegramUserId must be a positive integer",
+				"telegramUserId must be a positive integer when it is given",
 				"questionIds must not contain duplicates",
 				"startedAt must be a valid date",
 			]);
@@ -805,7 +811,7 @@ describe("QuizAttempt", () => {
 
 		test("rejects a non-positive telegram user id", () => {
 			expect(restoreIssues(snapshot({ telegramUserId: 0 }))).toContain(
-				"telegramUserId must be a positive integer",
+				"telegramUserId must be a positive integer when it is given",
 			);
 		});
 

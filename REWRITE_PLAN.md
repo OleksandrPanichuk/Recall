@@ -1507,6 +1507,43 @@ apps/api/dist/entrypoints/serve.js` against the imported library served **9** qu
 Bun answers identically — including the 503 on a database with no linked owner, which is the same
 on both.
 
+## Phase 9, first step: attempts belong to an owner, not to a chat (r26)
+
+The web app could not have been written against the API as it stood: every practice command
+carried a `telegramUserId`, and a browser user does not have one. This is that fixed, and it is
+also the last caller-supplied identity leaving the API.
+
+**What moved.** The repository ports lost their identity parameters —
+`findActiveFor(telegramUserId)` became `findActive()`, and `listCompletedForQuiz`,
+`topicAccuracy`, `incorrectQuestionIds`, `listDue`, `listLeeches` and `findSchedules` all lost
+theirs. They were redundant: `scopeFor(executor, owner)` already binds the scope to one owner, so
+the parameter could only ever have named somebody else. Seven use-case commands became empty or
+lost the field, and the wire schemas followed.
+
+**What stays, and why.** `telegramUserId` is now **provenance**, not identity: optional on the
+attempt and the schedule, written when a Telegram client starts an attempt, so the row still
+records which account did it. It also stays on `/bot/auth/*`, where the account genuinely is the
+subject, and `BotTokenGuard` still refuses a body naming any other one. And the daily reminder's
+field was renamed `chatId`, which is what it always was — where to send the message, not who is
+asking.
+
+**Two tests asserted the old world and had to be rewritten rather than repaired.** "ignores
+another user's attempts" and "keeps attempts separate per user" both tested per-*Telegram-account*
+separation inside one owner, which no longer exists and should not: an owner's attempts are the
+owner's, whichever client made them. They now assert what actually holds — every attempt of the
+owner is counted, and starting the same quiz twice resumes rather than forking. Cross-owner
+isolation is proven where two scopes exist to compare, in `tests/contracts/ownership.contract.ts`.
+
+**Proven by watching the wire.** The real bot was driven against the imported library with
+`fetch` instrumented to log every request body: `attempts/current {}`, `browse {}`,
+`attempts/start {"quizSetId":…}`, `attempts/answer {"questionId":…}` — **no body names a user**,
+and the screens still render (*"питання 1/20"*, an answer graded). A fresh attempt recorded
+`telegram_user_id = 987654321` as provenance, and a body naming a foreign account is still 403.
+
+**What this unblocks.** `apps/web` can now call the same contract with a session cookie and no
+Telegram id anywhere. The remaining web-specific work is the app itself: TanStack Start, the
+practice screens, and an auth boundary that forwards the cookie.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

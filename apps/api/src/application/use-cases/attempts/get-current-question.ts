@@ -40,10 +40,10 @@ export class GetCurrentQuestionUseCase
 	}
 
 	async execute(
-		request: Command<AttemptOfUserCommand>,
+		_request: Command<AttemptOfUserCommand>,
 	): Promise<CurrentQuestionView | undefined> {
 		const { quizzes, attempts, reviews } = this.scope;
-		const attempt = await attempts.findActiveFor(request.telegramUserId);
+		const attempt = await attempts.findActive();
 
 		if (attempt === undefined) {
 			return undefined;

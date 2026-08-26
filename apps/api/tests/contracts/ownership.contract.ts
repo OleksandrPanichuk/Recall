@@ -180,11 +180,9 @@ export function describeOwnership(
 					);
 				});
 
+				expect(await harness.mine.scope.attempts.findActive()).toBeDefined();
 				expect(
-					await harness.mine.scope.attempts.findActiveFor(telegramUserId),
-				).toBeDefined();
-				expect(
-					await harness.theirs.scope.attempts.findActiveFor(telegramUserId),
+					await harness.theirs.scope.attempts.findActive(),
 				).toBeUndefined();
 				expect(
 					await harness.theirs.scope.attempts.findById(

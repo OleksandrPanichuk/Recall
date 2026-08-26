@@ -5,7 +5,6 @@ import { statisticsScreen } from "../presenters/result.presenter";
 import { render } from "../screen";
 
 export interface StatisticsRequest {
-	readonly telegramUserId: number;
 	readonly quizSetId: QuizSetId;
 }
 

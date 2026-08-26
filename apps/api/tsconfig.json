@@ -3,7 +3,9 @@
 	"compilerOptions": {
 		"paths": {
 			"@/*": ["./src/*"],
-			"@tests/*": ["./tests/*"]
+			"@tests/*": ["./tests/*"],
+			"@recall/kit": ["../../packages/kit/src/index.ts"],
+			"@recall/contracts": ["../../packages/contracts/src/index.ts"]
 		}
 	}
 }

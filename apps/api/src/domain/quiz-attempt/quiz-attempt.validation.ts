@@ -17,10 +17,10 @@ export const collectDraftIssues = (
 	const issues: string[] = [];
 
 	if (
-		!Number.isSafeInteger(draft.telegramUserId) ||
-		draft.telegramUserId <= 0
+		draft.telegramUserId !== undefined &&
+		(!Number.isSafeInteger(draft.telegramUserId) || draft.telegramUserId <= 0)
 	) {
-		issues.push("telegramUserId must be a positive integer");
+		issues.push("telegramUserId must be a positive integer when it is given");
 	}
 
 	if (hasDuplicates(draft.questionIds)) {
@@ -136,10 +136,11 @@ export const collectSnapshotIssues = (
 	}
 
 	if (
-		!Number.isSafeInteger(snapshot.telegramUserId) ||
-		snapshot.telegramUserId <= 0
+		snapshot.telegramUserId !== undefined &&
+		(!Number.isSafeInteger(snapshot.telegramUserId) ||
+			snapshot.telegramUserId <= 0)
 	) {
-		issues.push("telegramUserId must be a positive integer");
+		issues.push("telegramUserId must be a positive integer when it is given");
 	}
 
 	if (hasDuplicates(snapshot.questionIds)) {

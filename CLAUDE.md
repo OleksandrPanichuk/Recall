@@ -110,6 +110,17 @@ ownership.contract.ts` runs against both engines and is the proof.
 Every unique constraint that used to be instance-wide is now per owner — a legacy id, a page
 slug, an instance-wide settings row. Two people may import the same v1 export.
 
+**No practice command carries an identity.** `getCurrentQuestion`, `answerQuestion`,
+`finishQuizAttempt`, `listDueRepetitions`, `listLeeches`, `getQuizStatistics` and
+`getAttemptDetail` take no user at all — the repository scope already knows the owner, and
+`findActive()` / `listDue(at)` are owner-scoped by construction. **Never add a `telegramUserId`
+to a practice command or a repository method**; a parameter there is a caller naming a user
+again, and it is what made a web client impossible. `telegramUserId` survives in exactly three
+places: as **provenance** on `attempts.telegram_user_id` and `review_states.telegram_user_id`
+(optional, written when a Telegram client starts the attempt), on the **auth** routes where the
+account itself is the subject (`/bot/auth/*`), and as the reminder's `chatId` — which is where to
+send a message, not who is asking.
+
 **The api decides who the caller is; the caller never says.** `BotTokenGuard` refuses any body
 naming a `telegramUserId` other than `ALLOWED_TELEGRAM_USER_ID`, so holding the bot token does not
 let anyone read another account's data. The owner itself is resolved from the linked Telegram

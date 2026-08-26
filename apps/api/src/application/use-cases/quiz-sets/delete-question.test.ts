@@ -53,7 +53,6 @@ const answerFirst = async (quizSetId: ReturnType<typeof toQuizSetId>) => {
 	await start.execute({ quizSetId, telegramUserId: USER });
 	harness.context.clock.advance(60_000);
 	await answer.execute({
-		telegramUserId: USER,
 		questionId: question?.id as never,
 		selectedOptionPositions: [0],
 	});

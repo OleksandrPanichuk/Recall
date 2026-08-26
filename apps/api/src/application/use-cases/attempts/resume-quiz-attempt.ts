@@ -16,15 +16,15 @@ import {
 import type { QuestionId } from "@/domain/quiz-set/question";
 
 export class NoActiveAttemptError extends Error {
-	constructor(telegramUserId: number) {
-		super(`User ${telegramUserId} has no unfinished attempt`);
+	constructor() {
+		super("There is no unfinished attempt");
 		this.name = "NoActiveAttemptError";
 	}
 }
 
-export interface AttemptOfUserCommand {
-	readonly telegramUserId: number;
-}
+// The owner comes from the scope, so asking about "the current attempt" needs no
+// argument at all. A field here would be a caller naming a user again.
+export type AttemptOfUserCommand = Readonly<Record<string, never>>;
 
 export interface ResumeQuizAttemptResult {
 	readonly attemptId: QuizAttemptId;
@@ -44,12 +44,12 @@ export class PauseQuizAttemptUseCase
 		this.clock = dependencies.clock;
 	}
 
-	async execute(request: Command<AttemptOfUserCommand>): Promise<void> {
+	async execute(_request: Command<AttemptOfUserCommand>): Promise<void> {
 		await this.unitOfWork.run(async ({ attempts }) => {
-			const attempt = await attempts.findActiveFor(request.telegramUserId);
+			const attempt = await attempts.findActive();
 
 			if (attempt === undefined) {
-				throw new NoActiveAttemptError(request.telegramUserId);
+				throw new NoActiveAttemptError();
 			}
 
 			if (attempt.status === QuizAttemptStatus.Paused) {
@@ -73,13 +73,13 @@ export class ResumeQuizAttemptUseCase
 	}
 
 	execute(
-		request: Command<AttemptOfUserCommand>,
+		_request: Command<AttemptOfUserCommand>,
 	): Promise<ResumeQuizAttemptResult> {
 		return this.unitOfWork.run(async ({ attempts }) => {
-			const attempt = await attempts.findActiveFor(request.telegramUserId);
+			const attempt = await attempts.findActive();
 
 			if (attempt === undefined) {
-				throw new NoActiveAttemptError(request.telegramUserId);
+				throw new NoActiveAttemptError();
 			}
 
 			if (attempt.status === QuizAttemptStatus.Active) {

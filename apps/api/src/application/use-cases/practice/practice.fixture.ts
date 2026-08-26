@@ -69,7 +69,7 @@ export function createPracticeHarness(): PracticeHarness {
 	};
 
 	const answerCurrent = async (correct: boolean) => {
-		const attempt = await context.scope.attempts.findActiveFor(USER);
+		const attempt = await context.scope.attempts.findActive();
 		const questionId = attempt?.questionIds[attempt.responses.length];
 		const question = (await questionsOf(attempt?.quizSetId as QuizSetId)).find(
 			(candidate) => candidate.id === questionId,
@@ -80,7 +80,6 @@ export function createPracticeHarness(): PracticeHarness {
 
 		context.clock.advance(60_000);
 		await answer.execute({
-			telegramUserId: USER,
 			questionId: question?.id as never,
 			selectedOptionPositions: [option?.position ?? 0],
 		});
@@ -108,7 +107,7 @@ export function createPracticeHarness(): PracticeHarness {
 			}
 
 			context.clock.advance(60_000);
-			await finish.execute({ telegramUserId: USER });
+			await finish.execute({});
 		},
 
 		answerCurrent,
@@ -117,7 +116,7 @@ export function createPracticeHarness(): PracticeHarness {
 
 		plannedPrompts: async (quizSetId) => {
 			const questions = await questionsOf(quizSetId);
-			const attempt = await context.scope.attempts.findActiveFor(USER);
+			const attempt = await context.scope.attempts.findActive();
 
 			return (attempt?.questionIds ?? []).map(
 				(questionId) =>

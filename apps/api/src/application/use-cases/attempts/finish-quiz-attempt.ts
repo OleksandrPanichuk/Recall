@@ -45,15 +45,15 @@ export class FinishQuizAttemptUseCase
 	}
 
 	async execute(
-		request: Command<AttemptOfUserCommand>,
+		_request: Command<AttemptOfUserCommand>,
 	): Promise<FinishQuizAttemptResult> {
 		const at = this.clock.now();
 		const finished = await this.unitOfWork.run(
 			async ({ attempts, reviews }) => {
-				const attempt = await attempts.findActiveFor(request.telegramUserId);
+				const attempt = await attempts.findActive();
 
 				if (attempt === undefined) {
-					throw new NoActiveAttemptError(request.telegramUserId);
+					throw new NoActiveAttemptError();
 				}
 
 				const completed = completeQuizAttempt(attempt, at);
@@ -81,9 +81,10 @@ export class FinishQuizAttemptUseCase
 					(response) => response.questionId,
 				);
 				const existing = new Map(
-					(
-						await reviews.findSchedules(answeredIds, completed.telegramUserId)
-					).map((schedule) => [schedule.questionId, schedule]),
+					(await reviews.findSchedules(answeredIds)).map((schedule) => [
+						schedule.questionId,
+						schedule,
+					]),
 				);
 
 				await reviews.saveSchedules(

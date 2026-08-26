@@ -10,7 +10,6 @@ export function attemptDetailHandler(useCases: TelegramUseCases) {
 		callback: AttemptDetailCallback,
 	): Promise<void> => {
 		const detail = await useCases.getAttemptDetail.execute({
-			telegramUserId: ctx.from?.id ?? 0,
 			attemptId: callback.attemptId,
 		});
 

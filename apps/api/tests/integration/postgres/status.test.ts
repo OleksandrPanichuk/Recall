@@ -18,7 +18,7 @@ import {
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
-const USER = 42;
+const _USER = 42;
 
 let harness: PostgresHarness;
 let databaseUrl: string;
@@ -60,7 +60,6 @@ const startAndAnswerOne = async (
 ): Promise<void> => {
 	await application.startQuizAttempt.execute({
 		quizSetId,
-		telegramUserId: USER,
 	});
 
 	const [question] = (await application.getQuizSet.execute({ quizSetId }))
@@ -68,7 +67,6 @@ const startAndAnswerOne = async (
 
 	clock.advance(60_000);
 	await application.answerQuestion.execute({
-		telegramUserId: USER,
 		questionId: question?.id as never,
 		selectedOptionPositions: [0],
 	});
@@ -154,7 +152,7 @@ describe.skipIf(!available)("the status report", () => {
 			quizSetId = await seed(first);
 			await startAndAnswerOne(first, quizSetId);
 			clock.advance(60_000);
-			await first.pauseQuizAttempt.execute({ telegramUserId: USER });
+			await first.pauseQuizAttempt.execute({});
 		} finally {
 			await first.close();
 		}
@@ -162,20 +160,16 @@ describe.skipIf(!available)("the status report", () => {
 		const second = open();
 
 		try {
-			const current = await second.getCurrentQuestion.execute({
-				telegramUserId: USER,
-			});
+			const current = await second.getCurrentQuestion.execute({});
 
 			expect(current?.index).toBe(1);
 			expect(current?.status).toBe(QuizAttemptStatus.Paused);
 
 			clock.advance(60_000);
-			await second.resumeQuizAttempt.execute({ telegramUserId: USER });
+			await second.resumeQuizAttempt.execute({});
 			clock.advance(60_000);
 
-			const finished = await second.finishQuizAttempt.execute({
-				telegramUserId: USER,
-			});
+			const finished = await second.finishQuizAttempt.execute({});
 
 			expect(finished.score.correct).toBe(1);
 		} finally {

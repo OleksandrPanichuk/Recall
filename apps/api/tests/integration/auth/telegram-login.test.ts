@@ -114,13 +114,13 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("only the bot can ask for a login link", async () => {
-		expect((await issue({ telegramUserId: 1 }, "wrong")).status).toBe(401);
+		expect((await issue({}, "wrong")).status).toBe(401);
 		expect(
 			(
 				await fetch(`${origin}/bot/auth/login-link`, {
 					method: "POST",
 					headers: { "content-type": "application/json" },
-					body: JSON.stringify({ telegramUserId: 1 }),
+					body: JSON.stringify({}),
 				})
 			).status,
 		).toBe(401);
@@ -232,6 +232,8 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("the bot cannot act for a telegram account this api does not serve", async () => {
+		// The practice routes no longer carry an identity, but a body that names
+		// one anyway must still be refused rather than quietly ignored.
 		const response = await fetch(`${origin}/bot/attempts/current`, {
 			method: "POST",
 			headers: {

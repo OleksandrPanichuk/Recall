@@ -11,16 +11,9 @@ export interface ReviewRepository {
 	saveSchedules(schedules: readonly RepetitionSchedule[]): Promise<void>;
 	findSchedules(
 		questionIds: readonly QuestionId[],
-		telegramUserId: number,
 	): Promise<readonly RepetitionSchedule[]>;
-	listDue(
-		telegramUserId: number,
-		at: Date,
-	): Promise<readonly RepetitionSchedule[]>;
-	listLeeches(
-		telegramUserId: number,
-		threshold: number,
-	): Promise<readonly RepetitionSchedule[]>;
+	listDue(at: Date): Promise<readonly RepetitionSchedule[]>;
+	listLeeches(threshold: number): Promise<readonly RepetitionSchedule[]>;
 	saveSettings(scope: SettingsScope, settings: QuizSettings): Promise<void>;
 	findSettings(scope: SettingsScope): Promise<QuizSettings | undefined>;
 	clearSettings(scope: SettingsScope): Promise<void>;

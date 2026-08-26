@@ -6,9 +6,7 @@ import { render } from "../screen";
 
 export function menuHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context): Promise<void> => {
-		const current = await useCases.getCurrentQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
-		});
+		const current = await useCases.getCurrentQuestion.execute({});
 
 		await render(
 			ctx,
@@ -22,9 +20,7 @@ export function menuHandler(useCases: TelegramUseCases) {
 
 export function resumeHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context): Promise<void> => {
-		const current = await useCases.getCurrentQuestion.execute({
-			telegramUserId: ctx.from?.id ?? 0,
-		});
+		const current = await useCases.getCurrentQuestion.execute({});
 
 		if (current === undefined) {
 			await render(

@@ -46,22 +46,21 @@ describe("FinishQuizAttemptUseCase", () => {
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
 		await answer.execute({
-			telegramUserId: USER,
 			questionId: await questionIdOf(quizSetId, 0),
 			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
 		});
 		context.clock.advance(60_000);
 
-		const result = await finish.execute({ telegramUserId: USER });
+		const result = await finish.execute({});
 
 		expect(result.unansweredCount).toBe(1);
 		expect(result.score).toEqual({ correct: 1, total: 2, percentage: 50 });
 		expect(
 			(await context.scope.attempts.findById(result.attemptId))?.status,
 		).toBe(QuizAttemptStatus.Completed);
-		expect(await context.scope.attempts.findActiveFor(USER)).toBeUndefined();
+		expect(await context.scope.attempts.findActive()).toBeUndefined();
 		expect(
-			await context.scope.attempts.listCompletedForQuiz(USER, quizSetId),
+			await context.scope.attempts.listCompletedForQuiz(quizSetId),
 		).toHaveLength(1);
 	});
 
@@ -69,10 +68,10 @@ describe("FinishQuizAttemptUseCase", () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
-		await pause.execute({ telegramUserId: USER });
+		await pause.execute({});
 		context.clock.advance(60_000);
 
-		const result = await finish.execute({ telegramUserId: USER });
+		const result = await finish.execute({});
 
 		expect(
 			(await context.scope.attempts.findById(result.attemptId))?.status,
@@ -83,10 +82,8 @@ describe("FinishQuizAttemptUseCase", () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
-		await finish.execute({ telegramUserId: USER });
+		await finish.execute({});
 
-		await expect(finish.execute({ telegramUserId: USER })).rejects.toThrow(
-			NoActiveAttemptError,
-		);
+		await expect(finish.execute({})).rejects.toThrow(NoActiveAttemptError);
 	});
 });

@@ -5,7 +5,9 @@
 			"@/*": ["./apps/api/src/*"],
 			"@tests/*": ["./apps/api/tests/*"],
 			"@api-tests/*": ["./apps/api/tests/*"],
-			"@api/*": ["./apps/api/src/*"]
+			"@api/*": ["./apps/api/src/*"],
+			"@recall/kit": ["./packages/kit/src/index.ts"],
+			"@recall/contracts": ["./packages/contracts/src/index.ts"]
 		}
 	}
 }

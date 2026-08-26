@@ -6,18 +6,20 @@ import { questionScreen } from "../presenters/question.presenter";
 import { render } from "../screen";
 
 export interface StartAttemptRequest {
-	readonly telegramUserId: number;
 	readonly quizSetId: QuizSetId;
 	readonly onlyDue?: boolean;
 }
 
 export function startAttemptHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, request: StartAttemptRequest): Promise<void> => {
-		await useCases.startQuizAttempt.execute(request);
-
-		const current = await useCases.getCurrentQuestion.execute({
-			telegramUserId: request.telegramUserId,
+		// The id is provenance — which account started it — not how the api decides
+		// whose attempt this is.
+		await useCases.startQuizAttempt.execute({
+			...request,
+			telegramUserId: ctx.from?.id,
 		});
+
+		const current = await useCases.getCurrentQuestion.execute({});
 
 		if (current === undefined || current.question === undefined) {
 			await render(ctx, finishPrompt());

@@ -5,9 +5,7 @@ import { render } from "../screen";
 
 export function finishHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context): Promise<void> => {
-		const result = await useCases.finishQuizAttempt.execute({
-			telegramUserId: ctx.from?.id ?? 0,
-		});
+		const result = await useCases.finishQuizAttempt.execute({});
 
 		await render(ctx, finalResult(result));
 	};

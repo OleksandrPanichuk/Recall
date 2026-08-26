@@ -217,7 +217,7 @@ describe("UpdateQuestionUseCase", () => {
 	});
 
 	test("leaves a finished attempt still able to name what was chosen", async () => {
-		const user = 42;
+		const _user = 42;
 		const quizSetId = await harness.newPublished();
 		const question = await firstQuestionOf(quizSetId);
 		const wrong = question.options.find((option) => !option.isCorrect);
@@ -233,16 +233,14 @@ describe("UpdateQuestionUseCase", () => {
 
 		const { attemptId } = await start.execute({
 			quizSetId,
-			telegramUserId: user,
 		});
 
 		await answer.execute({
-			telegramUserId: user,
 			questionId: question.id,
 			selectedOptionPositions: [wrong.position],
 		});
 
-		await finish.execute({ telegramUserId: user });
+		await finish.execute({});
 
 		await update.execute({
 			quizSetId,
@@ -253,7 +251,7 @@ describe("UpdateQuestionUseCase", () => {
 			],
 		});
 
-		const reviewed = await detail.execute({ attemptId, telegramUserId: user });
+		const reviewed = await detail.execute({ attemptId });
 		const answered = reviewed.answers.find(
 			(entry) => String(entry.question.id) === String(question.id),
 		);

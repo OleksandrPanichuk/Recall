@@ -61,22 +61,21 @@ const publish = async (id: string, title = id): Promise<void> => {
 const takeAndFinish = async (id: string): Promise<void> => {
 	await start.execute({ quizSetId: toQuizSetId(id), telegramUserId: USER });
 
-	const view = await current.execute({ telegramUserId: USER });
+	const view = await current.execute({});
 
 	if (view?.question !== undefined) {
 		await answer.execute({
-			telegramUserId: USER,
 			questionId: view.question.id,
 			selectedOptionPositions: [0],
 		});
 	}
 
-	await finish.execute({ telegramUserId: USER });
+	await finish.execute({});
 };
 
 const abandon = async (id: string): Promise<void> => {
 	await start.execute({ quizSetId: toQuizSetId(id), telegramUserId: USER });
-	await finish.execute({ telegramUserId: USER });
+	await finish.execute({});
 };
 
 describe("finishing an attempt schedules a repetition", () => {
@@ -84,11 +83,11 @@ describe("finishing an attempt schedules a repetition", () => {
 		await publish("set-1");
 		await takeAndFinish("set-1");
 
-		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
+		expect(await listDue.execute({})).toEqual([]);
 
 		context.clock.advance(day);
 
-		const due = await listDue.execute({ telegramUserId: USER });
+		const due = await listDue.execute({});
 
 		expect(due).toHaveLength(1);
 		expect(due[0]?.dueCount).toBe(1);
@@ -101,10 +100,10 @@ describe("finishing an attempt schedules a repetition", () => {
 		await takeAndFinish("set-1");
 
 		context.clock.advance(2 * day);
-		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
+		expect(await listDue.execute({})).toEqual([]);
 
 		context.clock.advance(day);
-		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
+		expect(await listDue.execute({})).toHaveLength(1);
 	});
 
 	test("a missed repetition does not shorten the next one", async () => {
@@ -115,10 +114,10 @@ describe("finishing an attempt schedules a repetition", () => {
 		await takeAndFinish("set-1");
 
 		context.clock.advance(2 * day);
-		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
+		expect(await listDue.execute({})).toEqual([]);
 
 		context.clock.advance(day);
-		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
+		expect(await listDue.execute({})).toHaveLength(1);
 	});
 
 	test("the most overdue set comes first", async () => {
@@ -129,11 +128,10 @@ describe("finishing an attempt schedules a repetition", () => {
 		await takeAndFinish("new");
 		context.clock.advance(2 * day);
 
-		expect(
-			(await listDue.execute({ telegramUserId: USER })).map(
-				(entry) => entry.title,
-			),
-		).toEqual(["Old", "New"]);
+		expect((await listDue.execute({})).map((entry) => entry.title)).toEqual([
+			"Old",
+			"New",
+		]);
 	});
 
 	test("reports how many days overdue", async () => {
@@ -141,9 +139,7 @@ describe("finishing an attempt schedules a repetition", () => {
 		await takeAndFinish("set-1");
 		context.clock.advance(6 * day);
 
-		expect(
-			(await listDue.execute({ telegramUserId: USER }))[0]?.overdueDays,
-		).toBe(5);
+		expect((await listDue.execute({}))[0]?.overdueDays).toBe(5);
 	});
 
 	test("retires a set after the configured number of repetitions", async () => {
@@ -158,14 +154,14 @@ describe("finishing an attempt schedules a repetition", () => {
 		for (let repetition = 0; repetition < 2; repetition += 1) {
 			context.clock.advance(30 * day);
 
-			expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
+			expect(await listDue.execute({})).toHaveLength(1);
 
 			await takeAndFinish("set-1");
 		}
 
 		context.clock.advance(365 * day);
 
-		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
+		expect(await listDue.execute({})).toEqual([]);
 	});
 });
 
@@ -176,7 +172,7 @@ describe("attempts that answer nothing", () => {
 
 		context.clock.advance(365 * day);
 
-		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
+		expect(await listDue.execute({})).toEqual([]);
 	});
 
 	test("do not advance a schedule that already exists", async () => {
@@ -185,10 +181,8 @@ describe("attempts that answer nothing", () => {
 		context.clock.advance(day);
 		await abandon("set-1");
 
-		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
-		expect((await listDue.execute({ telegramUserId: USER }))[0]?.dueCount).toBe(
-			1,
-		);
+		expect(await listDue.execute({})).toHaveLength(1);
+		expect((await listDue.execute({}))[0]?.dueCount).toBe(1);
 	});
 });
 
@@ -198,7 +192,7 @@ describe("sets that cannot be taken", () => {
 		await takeAndFinish("set-1");
 		context.clock.advance(2 * day);
 
-		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
+		expect(await listDue.execute({})).toHaveLength(1);
 
 		const stored = await context.scope.quizzes.findById(toQuizSetId("set-1"));
 
@@ -210,7 +204,7 @@ describe("sets that cannot be taken", () => {
 			}),
 		);
 
-		expect(await listDue.execute({ telegramUserId: USER })).toEqual([]);
+		expect(await listDue.execute({})).toEqual([]);
 	});
 });
 
@@ -280,6 +274,6 @@ describe("settings resolution", () => {
 		await takeAndFinish("set-1");
 		context.clock.advance(day);
 
-		expect(await listDue.execute({ telegramUserId: USER })).toHaveLength(1);
+		expect(await listDue.execute({})).toHaveLength(1);
 	});
 });

@@ -22,18 +22,13 @@ export interface TopicAccuracy {
 export interface AttemptRepository {
 	save(attempt: QuizAttempt): Promise<void>;
 	findById(id: QuizAttemptId): Promise<QuizAttempt | undefined>;
-	findActiveFor(telegramUserId: number): Promise<QuizAttempt | undefined>;
+	// No method takes an identity: the scope is already built for one owner, and a
+	// parameter here would let a caller ask about somebody else.
+	findActive(): Promise<QuizAttempt | undefined>;
 	listCompletedForQuiz(
-		telegramUserId: number,
 		quizId: QuizSetId,
 	): Promise<readonly AttemptStatistics[]>;
-	topicAccuracy(
-		telegramUserId: number,
-		quizId: QuizSetId,
-	): Promise<readonly TopicAccuracy[]>;
-	incorrectQuestionIds(
-		telegramUserId: number,
-		quizId: QuizSetId,
-	): Promise<readonly QuestionId[]>;
+	topicAccuracy(quizId: QuizSetId): Promise<readonly TopicAccuracy[]>;
+	incorrectQuestionIds(quizId: QuizSetId): Promise<readonly QuestionId[]>;
 	answerCount(questionId: QuestionId): Promise<number>;
 }

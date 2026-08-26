@@ -51,7 +51,6 @@ export class AttemptNotActiveError extends Error {
 }
 
 export interface AnswerQuestionCommand {
-	readonly telegramUserId: number;
 	readonly questionId: QuestionId;
 	readonly selectedOptionPositions?: readonly number[];
 	readonly typedAnswer?: string;
@@ -91,10 +90,10 @@ export class AnswerQuestionUseCase
 		const at = this.clock.now();
 
 		return this.unitOfWork.run(async ({ quizzes, attempts }) => {
-			const attempt = await attempts.findActiveFor(request.telegramUserId);
+			const attempt = await attempts.findActive();
 
 			if (attempt === undefined) {
-				throw new NoActiveAttemptError(request.telegramUserId);
+				throw new NoActiveAttemptError();
 			}
 
 			if (attempt.status !== Status.Active) {

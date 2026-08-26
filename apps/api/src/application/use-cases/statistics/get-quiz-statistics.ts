@@ -36,7 +36,6 @@ export interface QuizStatistics {
 }
 
 export interface GetQuizStatisticsCommand {
-	readonly telegramUserId: number;
 	readonly quizSetId: QuizSetId;
 }
 
@@ -68,7 +67,6 @@ export class GetQuizStatisticsUseCase
 		}
 
 		const completed = await attemptRepository.listCompletedForQuiz(
-			request.telegramUserId,
 			request.quizSetId,
 		);
 		const attempts = completed.map(
@@ -88,12 +86,8 @@ export class GetQuizStatisticsUseCase
 				completed.reduce((sum, entry) => sum + entry.correct, 0),
 				completed.reduce((sum, entry) => sum + entry.total, 0),
 			),
-			topics: await attemptRepository.topicAccuracy(
-				request.telegramUserId,
-				request.quizSetId,
-			),
+			topics: await attemptRepository.topicAccuracy(request.quizSetId),
 			incorrectQuestionIds: await attemptRepository.incorrectQuestionIds(
-				request.telegramUserId,
 				request.quizSetId,
 			),
 			improvement: improvementOf(attempts),

@@ -22,7 +22,7 @@ export interface QuestionResponse {
 export interface QuizAttempt {
 	readonly id: QuizAttemptId;
 	readonly quizSetId: QuizSetId;
-	readonly telegramUserId: number;
+	readonly telegramUserId?: number;
 	readonly mode: QuizAttemptMode;
 	readonly status: QuizAttemptStatus;
 	readonly questionIds: readonly QuestionId[];
@@ -35,7 +35,7 @@ export interface QuizAttempt {
 export interface QuizAttemptDraft {
 	readonly id: QuizAttemptId;
 	readonly quizSetId: QuizSetId;
-	readonly telegramUserId: number;
+	readonly telegramUserId?: number;
 	readonly mode: QuizAttemptMode;
 	readonly questionIds: readonly QuestionId[];
 	readonly startedAt: Date;
@@ -44,7 +44,7 @@ export interface QuizAttemptDraft {
 export interface QuizAttemptSnapshot {
 	readonly id: QuizAttemptId;
 	readonly quizSetId: QuizSetId;
-	readonly telegramUserId: number;
+	readonly telegramUserId?: number;
 	readonly mode: QuizAttemptMode;
 	readonly status: QuizAttemptStatus;
 	readonly questionIds: readonly QuestionId[];

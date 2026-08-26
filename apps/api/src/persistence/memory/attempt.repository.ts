@@ -15,14 +15,10 @@ import type { MemoryStore } from "./store";
 export function createMemoryAttemptRepository(
 	store: MemoryStore,
 ): AttemptRepository {
-	const forQuiz = (
-		telegramUserId: number,
-		quizId: QuizSetId,
-	): readonly QuizAttempt[] =>
+	// This store belongs to one owner, so every attempt in it is theirs.
+	const forQuiz = (quizId: QuizSetId): readonly QuizAttempt[] =>
 		[...store.attempts.values()].filter(
-			(attempt) =>
-				String(attempt.quizSetId) === String(quizId) &&
-				attempt.telegramUserId === telegramUserId,
+			(attempt) => String(attempt.quizSetId) === String(quizId),
 		);
 
 	const topicOf = (questionId: QuestionId): string | undefined => {
@@ -54,15 +50,12 @@ export function createMemoryAttemptRepository(
 			return store.attempts.get(String(id));
 		},
 
-		async findActiveFor(
-			telegramUserId: number,
-		): Promise<QuizAttempt | undefined> {
+		async findActive(): Promise<QuizAttempt | undefined> {
 			return [...store.attempts.values()]
 				.filter(
 					(attempt) =>
-						attempt.telegramUserId === telegramUserId &&
-						(attempt.status === QuizAttemptStatus.Active ||
-							attempt.status === QuizAttemptStatus.Paused),
+						attempt.status === QuizAttemptStatus.Active ||
+						attempt.status === QuizAttemptStatus.Paused,
 				)
 				.sort(
 					(left, right) => left.startedAt.getTime() - right.startedAt.getTime(),
@@ -70,10 +63,9 @@ export function createMemoryAttemptRepository(
 		},
 
 		async listCompletedForQuiz(
-			telegramUserId: number,
 			quizId: QuizSetId,
 		): Promise<readonly AttemptStatistics[]> {
-			return forQuiz(telegramUserId, quizId)
+			return forQuiz(quizId)
 				.filter((attempt) => attempt.status === QuizAttemptStatus.Completed)
 				.sort(
 					(left, right) =>
@@ -89,13 +81,10 @@ export function createMemoryAttemptRepository(
 				}));
 		},
 
-		async topicAccuracy(
-			telegramUserId: number,
-			quizId: QuizSetId,
-		): Promise<readonly TopicAccuracy[]> {
+		async topicAccuracy(quizId: QuizSetId): Promise<readonly TopicAccuracy[]> {
 			const buckets = new Map<string, TopicAccuracy>();
 
-			for (const attempt of forQuiz(telegramUserId, quizId)) {
+			for (const attempt of forQuiz(quizId)) {
 				for (const answer of attempt.responses) {
 					const topic = topicOf(answer.questionId);
 					const key = topic ?? " ";
@@ -127,13 +116,12 @@ export function createMemoryAttemptRepository(
 		},
 
 		async incorrectQuestionIds(
-			telegramUserId: number,
 			quizId: QuizSetId,
 		): Promise<readonly QuestionId[]> {
 			const wrong = new Map<string, { id: QuestionId; at: number }>();
 			const right = new Map<string, number>();
 
-			for (const attempt of forQuiz(telegramUserId, quizId)) {
+			for (const attempt of forQuiz(quizId)) {
 				for (const answer of attempt.responses) {
 					const key = String(answer.questionId);
 					const at = answer.answeredAt.getTime();

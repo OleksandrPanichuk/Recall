@@ -37,18 +37,17 @@ describe("PauseQuizAttemptUseCase and ResumeQuizAttemptUseCase", () => {
 		const quizSetId = await seedPublishedSet();
 		const { attemptId } = await start.execute({
 			quizSetId,
-			telegramUserId: USER,
 		});
 		context.clock.advance(60_000);
 
-		await pause.execute({ telegramUserId: USER });
+		await pause.execute({});
 
 		expect((await context.scope.attempts.findById(attemptId))?.status).toBe(
 			QuizAttemptStatus.Paused,
 		);
 
 		context.clock.advance(60_000);
-		const resumed = await resume.execute({ telegramUserId: USER });
+		const resumed = await resume.execute({});
 
 		expect((await context.scope.attempts.findById(attemptId))?.status).toBe(
 			QuizAttemptStatus.Active,
@@ -63,20 +62,16 @@ describe("PauseQuizAttemptUseCase and ResumeQuizAttemptUseCase", () => {
 		await start.execute({ quizSetId, telegramUserId: USER });
 		context.clock.advance(60_000);
 
-		await pause.execute({ telegramUserId: USER });
-		await pause.execute({ telegramUserId: USER });
-		await resume.execute({ telegramUserId: USER });
-		await resume.execute({ telegramUserId: USER });
+		await pause.execute({});
+		await pause.execute({});
+		await resume.execute({});
+		await resume.execute({});
 
 		expect(attemptCount(context.store)).toBe(1);
 	});
 
 	test("both reject a user with nothing unfinished", async () => {
-		await expect(pause.execute({ telegramUserId: USER })).rejects.toThrow(
-			NoActiveAttemptError,
-		);
-		await expect(resume.execute({ telegramUserId: USER })).rejects.toThrow(
-			NoActiveAttemptError,
-		);
+		await expect(pause.execute({})).rejects.toThrow(NoActiveAttemptError);
+		await expect(resume.execute({})).rejects.toThrow(NoActiveAttemptError);
 	});
 });
