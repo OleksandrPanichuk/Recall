@@ -1,16 +1,12 @@
-import type { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { openMigratedDatabase } from "@tests/fixtures/oauth-database";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { createMemoryOAuthStore } from "@tests/fixtures/memory-oauth.store";
 import type { Response } from "express";
-import { createDrizzleClient } from "@/adapters/persistence/sqlite/database";
-import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
-import { createSqliteTransaction } from "@/adapters/persistence/sqlite/sqlite-transaction";
 import { createOAuthProvider, type RecallOAuth } from "./provider";
 
 const STATIC_TOKEN = "s".repeat(40);
+const OWNER = "the-owner";
 const REDIRECT = "https://claude.ai/api/mcp/auth_callback";
 
-let database: Database;
 let oauth: RecallOAuth;
 let now: Date;
 
@@ -52,28 +48,19 @@ const pendingIdOf = (target: string): string =>
 
 const codeFor = async (client: { client_id: string }): Promise<string> => {
 	const pending = pendingIdOf(await redirectFrom(client));
-	const approved = oauth.consent.approve(pending) as string;
+	const approved = (await oauth.consent.approve(pending, OWNER)) as string;
 
 	return new URL(approved).searchParams.get("code") as string;
 };
 
 beforeEach(() => {
-	database = openMigratedDatabase();
 	now = new Date("2026-08-19T10:00:00.000Z");
-	const client = createDrizzleClient(database);
 	oauth = createOAuthProvider({
-		store: createSqliteOAuthStore(
-			client,
-			createSqliteTransaction(client),
-			() => now,
-		),
+		store: createMemoryOAuthStore(() => now),
 		staticToken: STATIC_TOKEN,
+		instanceOwner: async () => OWNER,
 		now: () => now,
 	});
-});
-
-afterEach(() => {
-	database.close();
 });
 
 describe("client registration", () => {
@@ -106,7 +93,9 @@ describe("authorization", () => {
 		const client = await clientOf();
 		const pending = pendingIdOf(await redirectFrom(client, "state-xyz"));
 
-		const approved = new URL(oauth.consent.approve(pending) as string);
+		const approved = new URL(
+			(await oauth.consent.approve(pending, OWNER)) as string,
+		);
 
 		expect(approved.origin + approved.pathname).toBe(REDIRECT);
 		expect(approved.searchParams.get("state")).toBe("state-xyz");
@@ -116,12 +105,12 @@ describe("authorization", () => {
 	test("a pending authorization can only be approved once", async () => {
 		const pending = pendingIdOf(await redirectFrom(await clientOf()));
 
-		expect(oauth.consent.approve(pending)).toBeTruthy();
-		expect(oauth.consent.approve(pending)).toBeUndefined();
+		expect(await oauth.consent.approve(pending, OWNER)).toBeTruthy();
+		expect(await oauth.consent.approve(pending, OWNER)).toBeUndefined();
 	});
 
-	test("an unknown pending id approves nothing", () => {
-		expect(oauth.consent.approve("never-issued")).toBeUndefined();
+	test("an unknown pending id approves nothing", async () => {
+		expect(await oauth.consent.approve("never-issued", OWNER)).toBeUndefined();
 	});
 });
 

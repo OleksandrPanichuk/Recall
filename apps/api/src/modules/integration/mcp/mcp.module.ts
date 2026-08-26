@@ -1,18 +1,16 @@
-import { Inject, Module, type OnApplicationShutdown } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { silentLogger } from "@recall/kit";
 import type { Express } from "express";
 import { createMcpHttpApp } from "@/adapters/mcp/http/app";
 import { createOAuthProvider } from "@/adapters/mcp/http/oauth/provider";
 import {
-	createOAuthDatabase,
-	type OAuthDatabase,
-} from "@/adapters/persistence/sqlite/oauth-database";
-import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
-import {
 	createUseCases,
 	systemClock,
 	uuidGenerator,
 } from "@/composition/create-application";
+import type { RecallAuth } from "@/modules/auth/build-auth";
+import { ownerOfSession } from "@/modules/auth/session-owner";
+import { AUTH } from "@/modules/auth/tokens";
 import {
 	findApiTokenPrincipal,
 	looksLikeApiToken,
@@ -20,6 +18,7 @@ import {
 } from "@/persistence/postgres/api-tokens";
 import type { PostgresConnection } from "@/persistence/postgres/client";
 import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
+import { createPostgresOAuthStore } from "@/persistence/postgres/oauth.store";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -31,17 +30,17 @@ export const MCP_SURFACE = Symbol("MCP_SURFACE");
 
 export interface McpSurface {
 	readonly app?: Express;
-	readonly database?: OAuthDatabase;
 }
 
 @Module({
 	providers: [
 		{
 			provide: MCP_SURFACE,
-			inject: [CONNECTION, INSTANCE_OWNER],
+			inject: [CONNECTION, INSTANCE_OWNER, AUTH],
 			useFactory: (
 				connection: PostgresConnection,
 				instanceOwner: OwnerResolver,
+				auth: RecallAuth | undefined,
 			): McpSurface => {
 				const environment = loadApiEnvironment();
 
@@ -49,13 +48,7 @@ export interface McpSurface {
 					return {};
 				}
 
-				// MCP client credentials are the one thing still on SQLite; phase 7
-				// replaces them with Better Auth. Their own file is what lets the quiz
-				// data live in Postgres without dragging the OAuth provider along.
-				const database = createOAuthDatabase(environment.oauthDatabasePath);
-
 				return {
-					database,
 					app: createMcpHttpApp({
 						// The tools are built for whoever the credential belongs to, so
 						// two people with two tokens see two different libraries.
@@ -68,12 +61,16 @@ export interface McpSurface {
 								timezone: process.env.APP_TIMEZONE ?? "UTC",
 							}),
 						logger: silentLogger,
+						instanceOwner,
+						// A logged-in browser approving the consent screen binds the grant
+						// to that person; without a session it is the instance owner, since
+						// knowing the passphrase is what proves that.
+						sessionOwner: (request) =>
+							auth === undefined
+								? Promise.resolve(undefined)
+								: ownerOfSession(auth, request),
 						oauth: createOAuthProvider({
-							store: createSqliteOAuthStore(
-								database.client,
-								database.transaction,
-								() => new Date(),
-							),
+							store: createPostgresOAuthStore(connection.db, () => new Date()),
 							staticToken: environment.mcpToken,
 							instanceOwner,
 							personalToken: async (token) => {
@@ -116,10 +113,4 @@ export interface McpSurface {
 	],
 	exports: [MCP_SURFACE],
 })
-export class McpModule implements OnApplicationShutdown {
-	constructor(@Inject(MCP_SURFACE) private readonly surface: McpSurface) {}
-
-	onApplicationShutdown(): void {
-		this.surface.database?.close();
-	}
-}
+export class McpModule {}

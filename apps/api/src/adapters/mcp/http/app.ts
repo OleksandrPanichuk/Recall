@@ -15,6 +15,9 @@ import {
 } from "./oauth/provider";
 
 export interface McpHttpAppDependencies {
+	// Who approved the consent screen, when a session cookie says so.
+	sessionOwner?(request: Request): Promise<OwnerId | undefined>;
+	instanceOwner?(): Promise<OwnerId>;
 	// Per request, not per process: which quizzes the tools can see depends on
 	// whose credential arrived.
 	applicationFor(owner: OwnerId): UseCases;
@@ -28,8 +31,16 @@ export interface McpHttpAppDependencies {
 export function createMcpHttpApp(
 	dependencies: McpHttpAppDependencies,
 ): Express {
-	const { applicationFor, logger, oauth, allowedHosts, issuer, passphrase } =
-		dependencies;
+	const {
+		applicationFor,
+		logger,
+		oauth,
+		allowedHosts,
+		issuer,
+		passphrase,
+		sessionOwner,
+		instanceOwner,
+	} = dependencies;
 	const app = express();
 
 	app.use(express.json());
@@ -61,7 +72,7 @@ export function createMcpHttpApp(
 			response.type("html").send(consentPage(id, pending));
 		});
 
-		app.post(CONSENT_PATH, (request: Request, response: Response) => {
+		app.post(CONSENT_PATH, async (request: Request, response: Response) => {
 			const id = String(request.body?.pending ?? "");
 			const offered = String(request.body?.passphrase ?? "");
 			const pending = oauth.consent.pending(id);
@@ -86,7 +97,13 @@ export function createMcpHttpApp(
 				return;
 			}
 
-			const target = oauth.consent.approve(id);
+			// Whoever is logged in here is who the grant belongs to. With no session
+			// it is the instance owner, because knowing the passphrase is what
+			// proves that on a single-owner install.
+			const target = await oauth.consent.approve(
+				id,
+				(await sessionOwner?.(request)) ?? (await instanceOwner?.()),
+			);
 
 			if (target === undefined) {
 				response.status(404).send("Запит на доступ уже використано.");

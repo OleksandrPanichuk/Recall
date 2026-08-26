@@ -16,6 +16,7 @@ export interface StoredAuthorizationCode {
 	readonly resource?: string;
 	readonly scopes: readonly string[];
 	readonly expiresAt: Date;
+	readonly ownerId?: string;
 }
 
 export interface StoredToken {
@@ -25,13 +26,15 @@ export interface StoredToken {
 	readonly ownerId?: string;
 }
 
+// Async throughout: the store lives in Postgres now. It was synchronous while it
+// was a local SQLite file, and that is what pinned this app to bun:sqlite.
 export interface OAuthStore {
-	saveClient(client: StoredClient): void;
-	findClient(clientId: string): StoredClient | undefined;
-	saveCode(code: string, data: StoredAuthorizationCode): void;
-	findCode(code: string): StoredAuthorizationCode | undefined;
-	consumeCode(code: string): StoredAuthorizationCode | undefined;
-	saveToken(token: string, kind: TokenKind, data: StoredToken): void;
-	findToken(token: string, kind: TokenKind): StoredToken | undefined;
-	revokeToken(token: string): void;
+	saveClient(client: StoredClient): Promise<void>;
+	findClient(clientId: string): Promise<StoredClient | undefined>;
+	saveCode(code: string, data: StoredAuthorizationCode): Promise<void>;
+	findCode(code: string): Promise<StoredAuthorizationCode | undefined>;
+	consumeCode(code: string): Promise<StoredAuthorizationCode | undefined>;
+	saveToken(token: string, kind: TokenKind, data: StoredToken): Promise<void>;
+	findToken(token: string, kind: TokenKind): Promise<StoredToken | undefined>;
+	revokeToken(token: string): Promise<void>;
 }

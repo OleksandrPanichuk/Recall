@@ -109,6 +109,18 @@ lets the http surfaces be built at boot, before anyone has linked. `ensureTelegr
 id to an owner; the ETL and the login flow both go through them, so an import cannot land under a
 different user than the one the bot will hand the platform to.
 
+**There is no SQLite left in the api's runtime.** The OAuth store lives in Postgres
+(`persistence/postgres/oauth.store.ts`) and its interface is **async** — it was synchronous only
+because it was a local file, and that is what used to pin this app to `bun:sqlite`. The one
+remaining `bun:sqlite` import is the ETL reading a v1 backup, which is a Bun script and not part
+of the server. `OAUTH_DATABASE_PATH` is gone.
+
+**An OAuth grant carries its owner from consent to every token minted off it** — including across
+refresh rotation, which is where this silently degrades into an unscoped token. `approve(id,
+ownerId)` binds the code; `issue(clientId, scopes, ownerId)` stamps both halves of the pair. A
+logged-in browser approving the consent screen binds that user; with no session it is the
+instance owner, because knowing the passphrase is what proves that on a single-owner install.
+
 **MCP is per credential, not per instance.** `createMcpHttpApp` takes `applicationFor(owner)`
 and builds the tools for whoever the bearer token belongs to, so two people with two tokens see
 two libraries. Verification returns a **principal**, never a boolean: a personal token

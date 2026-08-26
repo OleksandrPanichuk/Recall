@@ -6,11 +6,7 @@ import {
 } from "@tests/fixtures/application.fixture";
 import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
 import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
-import {
-	createOAuthDatabase,
-	type OAuthDatabase,
-} from "@/adapters/persistence/sqlite/oauth-database";
-import { createSqliteOAuthStore } from "@/adapters/persistence/sqlite/repositories/sqlite-oauth.store";
+import { createMemoryOAuthStore } from "@tests/fixtures/memory-oauth.store";
 import { createMcpHttpApp } from "./app";
 import { createOAuthProvider } from "./oauth/provider";
 
@@ -19,7 +15,6 @@ const OWNER = "the-owner";
 const PASSPHRASE = "correct horse battery staple";
 
 let application: MemoryApplication;
-let oauthDatabase: OAuthDatabase;
 let listener: Server;
 let origin: string;
 
@@ -41,14 +36,8 @@ beforeEach(async () => {
 	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("q"),
 	});
-	oauthDatabase = createOAuthDatabase(":memory:");
-
 	const oauth = createOAuthProvider({
-		store: createSqliteOAuthStore(
-			oauthDatabase.client,
-			oauthDatabase.transaction,
-			() => new Date(),
-		),
+		store: createMemoryOAuthStore(() => new Date()),
 		staticToken: STATIC_TOKEN,
 		instanceOwner: async () => OWNER,
 		now: () => new Date(),
@@ -79,7 +68,6 @@ afterEach(async () => {
 	await new Promise<void>((resolve) => {
 		listener.close(() => resolve());
 	});
-	oauthDatabase.close();
 	await application.close();
 });
 

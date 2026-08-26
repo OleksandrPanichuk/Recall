@@ -54,8 +54,10 @@
 - [Telegraf](https://telegraf.js.org) — запланований Telegram Bot framework;
 - Postgres 17 + [Drizzle ORM](https://orm.drizzle.team) над driver-ом `postgres` —
   quiz data, schema, versioned migrations і всі repository-запити;
-- `bun:sqlite` — залишився тільки під MCP OAuth client credentials
-  (`OAUTH_DATABASE_PATH`); phase 7 замінює його на Better Auth;
+- [Better Auth](https://better-auth.com) — сесії, вхід через Telegram-лінк,
+  особисті токени; усе в Postgres;
+- `bun:sqlite` — лишився **тільки** в ETL, який читає v1-бекап; сервер його не
+  імпортує;
 - Model Context Protocol — запланована інтеграція з Claude Desktop/Claude Code.
 
 ## Поточна локальна foundation
@@ -85,9 +87,8 @@ cp .env.example .env
 | `ALLOWED_TELEGRAM_USER_ID` | Єдиний Telegram user id, якому дозволено доступ |
 | `DATABASE_URL` | Postgres connection string для quiz data |
 | `APP_TIMEZONE` | IANA time zone для дат у звітах |
-| `OAUTH_DATABASE_PATH` | SQLite файл із MCP OAuth credentials (default `./data/oauth.sqlite`) |
 
-Перші чотири змінні обов'язкові, `OAUTH_DATABASE_PATH` має default. `apps/api/src/infrastructure/config/env.ts` валідує їх на
+Ці чотири змінні обов'язкові. `apps/api/src/modules/shared/config/api-env.ts` валідує їх на
 старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
 змінних і причини — секретні значення не логуються, тому токен не потрапляє в
@@ -139,54 +140,10 @@ read-only escape hatch — не видаляйте його.
 
 ### SQLite, що залишився
 
-Нижче — правила для `bun:sqlite` migrations. Після переходу на Postgres вони
-стосуються **тільки** OAuth-файла (`OAUTH_DATABASE_PATH`) і його schema в
-`apps/api/src/adapters/persistence/sqlite/schema.ts`; phase 7 прибирає і це.
-
-> **Важливо:** Drizzle schema builder не вміє виражати `STRICT`, тому в кожному
-> згенерованому `.sql` файлі кожен `CREATE TABLE` доводиться вручну завершувати
-> `) STRICT;`. Наслідки втрати цієї правки різні залежно від того, що згенерував
-> `drizzle-kit`:
->
-> - у новій таблиці SQLite почне приймати BLOB у TEXT column і `1.5` у
->   `telegram_user_id`;
-> - у table-rebuild migration (див. нижче) перестворена таблиця не лише втрачає
->   `STRICT`, а й **втрачає всі дочірні рows** через `ON DELETE CASCADE`.
->
-> Integration test `strict typing` падає, якщо правку втратити.
-
-### Table-rebuild migrations
-
-SQLite не вміє змінювати `CHECK`, тому будь-яка зміна enum-списку змушує
-`drizzle-kit generate` видати 12-step rebuild: `CREATE TABLE __new_<name>`,
-`INSERT ... SELECT`, `DROP TABLE <name>`, `ALTER TABLE ... RENAME TO`.
-
-Такий файл **не можна** застосовувати всередині однієї транзакції з рештою
-migrations: `PRAGMA foreign_keys` всередині транзакції — тихий no-op, тому
-foreign keys залишаються увімкненими на `DROP TABLE`, кожен `ON DELETE CASCADE`
-спрацьовує, і весь дочірній graph зникає — а migration завершується кодом `0`.
-
-Тому rebuild оголошується явно: **перший рядок файлу — `-- rebuild`**. Тоді
-`applyMigrations`:
-
-1. застосовує всі попередні safe migrations одним batch (усе або нічого);
-2. вимикає `PRAGMA foreign_keys` **поза** транзакцією, відкриває
-   `BEGIN IMMEDIATE` і виконує statements файлу (рядки `PRAGMA foreign_keys`
-   всередині файлу ігноруються — вони були б no-op);
-3. запускає `PRAGMA foreign_key_check`. Якщо є хоч один row — `ROLLBACK`,
-   `RebuildFailedError`, у ledger нічого не пишеться;
-4. якщо чисто — пише ledger record і робить `COMMIT`, потім вмикає
-   `PRAGMA foreign_keys` назад.
-
-Файл rebuild-у, у якому є `PRAGMA foreign_keys` або `__new_`, але немає
-директиви `-- rebuild`, відхиляється з `UnsafeMigrationError` — щоб випадковий
-rebuild не проїхав як звичайна migration.
-
-Не забудьте дописати `) STRICT;` до кожного `CREATE TABLE`, включно з
-`__new_*`: drizzle-kit його не генерує.
-
-> `questions.type` навмисно **не має** `CHECK`. Кожен новий тип питання
-> означав би новий rebuild; натомість значення валідує `createQuestion`.
+`bun:sqlite` лишився в одному місці: ETL читає ним v1-бекап
+(`apps/api/src/persistence/postgres/etl.ts`). Migrations у `apps/api/drizzle/` —
+це схема v1; вони потрібні лише для того, щоб тест ETL міг зібрати v1-файл.
+Нових SQLite-таблиць не додаємо: усе живе в Postgres.
 
 ## Команди
 
@@ -1024,9 +981,10 @@ docker exec recall-postgres pg_dump -U recall -d recall -Fc > quiz.dump
 docker exec -i recall-postgres pg_restore -U recall -d recall --clean < quiz.dump
 ```
 
-Окремо варто зберігати `OAUTH_DATABASE_PATH` — це звичайний SQLite файл із
-client credentials. Старий `data/quiz.before-postgres-*.sqlite` — read-only
-escape hatch на випадок, якщо в перенесених даних знайдеться проблема.
+`pg_dump` тепер забирає все: quiz data, користувачів, сесії, MCP OAuth
+credentials і особисті токени — окремого SQLite-файла більше немає. Старий
+`data/quiz.before-postgres-*.sqlite` — read-only escape hatch на випадок, якщо в
+перенесених даних знайдеться проблема.
 
 ### Graceful shutdown
 

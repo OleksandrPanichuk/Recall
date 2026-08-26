@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
-import { join } from "node:path";
 import type { INestApplication } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createApiApp } from "@/entrypoints/api";
@@ -89,7 +88,6 @@ beforeAll(async () => {
 	override("BOT_API_TOKEN", BOT_TOKEN);
 	override("MCP_HTTP_TOKEN", MCP_TOKEN);
 	override("ALLOWED_TELEGRAM_USER_ID", String(OWNER_TELEGRAM_ID));
-	override("OAUTH_DATABASE_PATH", join(directory, "oauth.sqlite"));
 	override("MCP_HTTP_ALLOWED_HOST", undefined);
 	override("MCP_OAUTH_ISSUER", undefined);
 	override("MCP_OAUTH_PASSPHRASE", undefined);

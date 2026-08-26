@@ -1436,6 +1436,43 @@ forged token got 401. Revoking through the bot turned a working token into a 401
 logged-in consent screen, moving that store off `bun:sqlite` (its interface is synchronous, which
 is what pins `apps/api` to Bun), and then the Node switch.
 
+## Phase 7c (second half): the grant carries its user, and SQLite leaves (r24)
+
+**The OAuth store is on Postgres and its interface is async.** That interface was synchronous
+only because it was a local file, and it is exactly what pinned `apps/api` to `bun:sqlite`. Three
+tables (`oauth_clients`, `oauth_codes`, `oauth_tokens`), codes and tokens carrying `owner_id`, and
+`consumeCode` is a single `UPDATE … RETURNING` so two exchanges of one code cannot both win.
+
+**The whole `adapters/persistence/sqlite/` tree is deleted** — store, database, migrator,
+transaction helper, schema — along with `OAUTH_DATABASE_PATH`, the sqlite drizzle config and its
+`db:generate` script. `drizzle/` stays: those are the v1 migrations, and the ETL test uses them to
+build a v1 file to import. The only `bun:sqlite` import left in the tree is the ETL reading that
+backup, which is a Bun script rather than part of the server.
+
+**The owner travels with the grant.** `approve(id, ownerId)` binds the code to whoever approved
+it, and `issue(clientId, scopes, ownerId)` stamps both halves of the token pair — including on
+refresh, which the plan flagged as the place this silently breaks. A logged-in browser binds that
+user (`ownerOfSession`, via Better Auth's `getSession`); with no session it is the instance owner,
+because knowing the consent passphrase is what proves that on a single-owner install.
+
+**Contract-tested, not just wired.** `tests/contracts/oauth-store.contract.ts` runs against the
+Postgres store and an in-memory double: a code carries its approver, is spendable once, expires;
+a token carries its owner, distinguishes access from refresh, honours revocation, and a refresh
+token without an expiry stays valid. The two provider tests that used a real SQLite file now use
+the double.
+
+**Proven by walking the grant.** A public PKCE client registered itself, `/authorize` redirected
+to the consent screen, the passphrase approved it, and the code came back bound to
+`owner=29b37104`. Exchanging it produced a pair whose access token listed the owner's **9** sets;
+refreshing produced a new pair that still carried the same owner and still listed 9, with the old
+refresh token revoked.
+
+**The Node switch is unblocked but not done.** Nothing in the server imports `bun:sqlite` any
+more, and the only Bun-specific things left in `apps/api/src` are `import.meta.main` in the api
+entrypoint and `Bun.CryptoHasher` in the ETL. What remains is a build: `node
+--experimental-strip-types` cannot resolve the `@/*` path aliases, so the switch needs a compile
+step (tsc + alias rewriting, or swc) and entrypoint scripts to match.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

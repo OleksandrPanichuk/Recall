@@ -40,7 +40,7 @@ export interface PendingAuthorization {
 
 export interface ConsentGate {
 	pending(id: string): PendingAuthorization | undefined;
-	approve(id: string): string | undefined;
+	approve(id: string, ownerId: string | undefined): Promise<string | undefined>;
 }
 
 export interface RecallOAuth {
@@ -94,16 +94,27 @@ export function createOAuthProvider(
 		return owner === undefined ? undefined : { ownerId: owner };
 	};
 
-	const issue = (clientId: string, scopes: readonly string[]): OAuthTokens => {
+	// The owner travels with both halves of the grant. Dropping it on refresh is
+	// the classic way this silently degrades into an unscoped token.
+	const issue = async (
+		clientId: string,
+		scopes: readonly string[],
+		ownerId: string | undefined,
+	): Promise<OAuthTokens> => {
 		const accessToken = secret();
 		const refreshToken = secret();
 
-		store.saveToken(accessToken, TokenKind.Access, {
+		await store.saveToken(accessToken, TokenKind.Access, {
 			clientId,
 			scopes,
+			ownerId,
 			expiresAt: new Date(now().getTime() + ACCESS_TTL_MS),
 		});
-		store.saveToken(refreshToken, TokenKind.Refresh, { clientId, scopes });
+		await store.saveToken(refreshToken, TokenKind.Refresh, {
+			clientId,
+			scopes,
+			ownerId,
+		});
 
 		return {
 			access_token: accessToken,
@@ -114,11 +125,11 @@ export function createOAuthProvider(
 		};
 	};
 
-	const codeOf = (
+	const codeOf = async (
 		code: string,
 		client: OAuthClientInformationFull,
-	): StoredAuthorizationCode => {
-		const stored = store.findCode(code);
+	): Promise<StoredAuthorizationCode> => {
+		const stored = await store.findCode(code);
 
 		if (stored === undefined || stored.clientId !== client.client_id) {
 			throw new InvalidGrantError("Unknown or expired authorization code");
@@ -128,22 +139,22 @@ export function createOAuthProvider(
 	};
 
 	const clientsStore: OAuthRegisteredClientsStore = {
-		getClient: (clientId) => {
-			const stored = store.findClient(clientId);
+		getClient: async (clientId) => {
+			const stored = await store.findClient(clientId);
 
 			return stored === undefined
 				? undefined
 				: (JSON.parse(stored.document) as OAuthClientInformationFull);
 		},
 
-		registerClient: (client) => {
+		registerClient: async (client) => {
 			const registered = {
 				...client,
 				client_id: secret(),
 				client_id_issued_at: Math.floor(now().getTime() / 1000),
 			} as OAuthClientInformationFull;
 
-			store.saveClient({
+			await store.saveClient({
 				clientId: registered.client_id,
 				document: JSON.stringify(registered),
 			});
@@ -177,7 +188,7 @@ export function createOAuthProvider(
 		},
 
 		challengeForAuthorizationCode: async (client, authorizationCode) =>
-			codeOf(authorizationCode, client).codeChallenge,
+			(await codeOf(authorizationCode, client)).codeChallenge,
 
 		exchangeAuthorizationCode: async (
 			client,
@@ -185,7 +196,7 @@ export function createOAuthProvider(
 			_codeVerifier,
 			redirectUri,
 		) => {
-			const stored = codeOf(authorizationCode, client);
+			const stored = await codeOf(authorizationCode, client);
 
 			if (redirectUri !== undefined && redirectUri !== stored.redirectUri) {
 				throw new InvalidGrantError(
@@ -193,25 +204,25 @@ export function createOAuthProvider(
 				);
 			}
 
-			const consumed = store.consumeCode(authorizationCode);
+			const consumed = await store.consumeCode(authorizationCode);
 
 			if (consumed === undefined) {
 				throw new InvalidGrantError("Authorization code was already used");
 			}
 
-			return issue(client.client_id, consumed.scopes);
+			return issue(client.client_id, consumed.scopes, consumed.ownerId);
 		},
 
 		exchangeRefreshToken: async (client, refreshToken, scopes) => {
-			const stored = store.findToken(refreshToken, TokenKind.Refresh);
+			const stored = await store.findToken(refreshToken, TokenKind.Refresh);
 
 			if (stored === undefined || stored.clientId !== client.client_id) {
 				throw new InvalidGrantError("Unknown or expired refresh token");
 			}
 
-			store.revokeToken(refreshToken);
+			await store.revokeToken(refreshToken);
 
-			return issue(client.client_id, scopes ?? stored.scopes);
+			return issue(client.client_id, scopes ?? stored.scopes, stored.ownerId);
 		},
 
 		verifyAccessToken: async (token): Promise<AuthInfo> => {
@@ -246,7 +257,7 @@ export function createOAuthProvider(
 				};
 			}
 
-			const stored = store.findToken(token, TokenKind.Access);
+			const stored = await store.findToken(token, TokenKind.Access);
 
 			if (stored === undefined) {
 				throw new InvalidTokenError("Unknown or expired access token");
@@ -268,7 +279,7 @@ export function createOAuthProvider(
 			_client: OAuthClientInformationFull,
 			request: OAuthTokenRevocationRequest,
 		) => {
-			store.revokeToken(request.token);
+			await store.revokeToken(request.token);
 		},
 	};
 
@@ -279,7 +290,7 @@ export function createOAuthProvider(
 			return pendings.get(id);
 		},
 
-		approve: (id) => {
+		approve: async (id, ownerId) => {
 			forget();
 
 			const pending = pendings.get(id);
@@ -292,8 +303,11 @@ export function createOAuthProvider(
 
 			const code = secret();
 
-			store.saveCode(code, {
+			// The code is bound to whoever approved it, and the grant carries that
+			// owner from here to every token minted off it.
+			await store.saveCode(code, {
 				clientId: pending.clientId,
+				ownerId,
 				codeChallenge: pending.codeChallenge,
 				redirectUri: pending.redirectUri,
 				resource: pending.resource,

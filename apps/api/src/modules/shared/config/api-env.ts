@@ -5,7 +5,6 @@ export interface ApiEnvironment {
 	readonly adminPassphrase?: string;
 	readonly allowedTelegramUserId: number;
 	readonly adminOrigin?: string;
-	readonly oauthDatabasePath: string;
 	readonly mcpToken?: string;
 	readonly botToken?: string;
 	readonly authSecret?: string;
@@ -25,7 +24,6 @@ const schema = z.object({
 	ADMIN_PASSPHRASE: z.string().trim().min(16).optional(),
 	ALLOWED_TELEGRAM_USER_ID: z.coerce.number().int().positive().default(0),
 	ADMIN_ORIGIN: z.string().trim().url().optional(),
-	OAUTH_DATABASE_PATH: z.string().trim().min(1).default("./data/oauth.sqlite"),
 	MCP_HTTP_TOKEN: z.string().trim().min(32).optional(),
 	BOT_API_TOKEN: z.string().trim().min(32).optional(),
 	BETTER_AUTH_SECRET: z.string().trim().min(32).optional(),
@@ -80,7 +78,6 @@ export function loadApiEnvironment(
 		adminPassphrase: parsed.data.ADMIN_PASSPHRASE,
 		allowedTelegramUserId: parsed.data.ALLOWED_TELEGRAM_USER_ID,
 		adminOrigin: parsed.data.ADMIN_ORIGIN,
-		oauthDatabasePath: parsed.data.OAUTH_DATABASE_PATH,
 		mcpToken: parsed.data.MCP_HTTP_TOKEN,
 		botToken: parsed.data.BOT_API_TOKEN,
 		authSecret: parsed.data.BETTER_AUTH_SECRET,

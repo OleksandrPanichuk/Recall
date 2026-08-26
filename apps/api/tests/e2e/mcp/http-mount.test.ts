@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
-import { join } from "node:path";
 import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/entrypoints/api";
 import {
@@ -69,7 +68,6 @@ beforeAll(async () => {
 	override("DATABASE_URL", harness.url);
 	override("ALLOWED_TELEGRAM_USER_ID", "42");
 	override("MCP_HTTP_TOKEN", TOKEN);
-	override("OAUTH_DATABASE_PATH", join(directory, "oauth.sqlite"));
 	// The port is chosen by the kernel, so an allowed host cannot be named ahead
 	// of time. Dropping it turns dns rebinding protection off for this run.
 	override("MCP_HTTP_ALLOWED_HOST", undefined);
