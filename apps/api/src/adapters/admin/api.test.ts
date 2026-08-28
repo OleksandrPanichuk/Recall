@@ -8,7 +8,6 @@ import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
 import { createAdminApi } from "./api";
 
 const PASSPHRASE = "correct horse battery staple";
-const TELEGRAM_USER_ID = 4242;
 
 let application: MemoryApplication;
 let server: ReturnType<typeof Bun.serve>;
