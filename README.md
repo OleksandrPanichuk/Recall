@@ -170,7 +170,7 @@ read-only escape hatch — не видаляйте його.
 | `bun run mcp` | stdio-мостик до MCP цього API (для Claude Desktop) |
 | `bun run admin` | Підняти веб-адмінку на `http://127.0.0.1:8766` |
 | `bun run build` | Зібрати packages і всі застосунки (`apps/api/dist`, `dist/*`) |
-| `bun run start` | Запустити попередньо зібраний `dist/bot/main.js` |
+| `bun run start` | Запустити попередньо зібраний `apps/bot/dist/main.js` |
 | `bun test` | Запустити Bun unit і contract tests |
 | `bun run verify` | Запустити повний local gate: Biome, typecheck, tests і build |
 

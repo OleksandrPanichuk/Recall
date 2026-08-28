@@ -28,7 +28,7 @@
 		"db:migrate": "bun run --filter '@recall/api' db:migrate:pg",
 		"up": "bun run ./scripts/up.ts",
 		"dev": "bun run --filter '@recall/bot' dev",
-		"start": "bun run ./dist/bot/main.js",
+		"start": "bun run ./apps/bot/dist/main.js",
 		"status": "bun run ./apps/api/src/entrypoints/status.ts",
 		"mcp": "bun run --filter '@recall/mcp' start",
 		"admin": "bun run --filter '@recall/admin' start",

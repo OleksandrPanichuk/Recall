@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "bun --hot ./src/server.ts",
 		"start": "bun run ./src/server.ts",
-		"build": "bun build ./src/index.html --outdir ../../dist/admin"
+		"build": "bun build ./src/index.html --outdir ./dist"
 	},
 	"dependencies": {
 		"ra-data-json-server": "^5.15.0",

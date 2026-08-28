@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "bun --watch ./src/main.ts",
 		"start": "bun run ./src/main.ts",
-		"build": "bun build ./src/main.ts --outdir ../../dist/bot --target bun"
+		"build": "bun build ./src/main.ts --outdir ./dist --target bun"
 	},
 	"dependencies": {
 		"@recall/contracts": "workspace:*",
