@@ -1,6 +1,6 @@
-# Handoff: phase 7 is done; the web app (phase 9) is next
+# Handoff: pages and summaries (plan §7) are done; analytics is next
 
-> Written 2026-08-26, replacing the handoff that announced the app split.
+> Written 2026-08-26, updated 2026-08-29 when the summaries context landed.
 >
 > **Background reading, in order:** `CLAUDE.md` (rules, and the traps — every one was paid for),
 > then `REWRITE_PLAN.md`, newest sections first: r25 (Node switch), r24 (oauth store + grant
@@ -14,15 +14,15 @@
 | branch | state | what it is |
 | --- | --- | --- |
 | `main` | untouched, v1 | frozen until the rewrite lands. Do not target it. |
-| `refactor/monorepo-split` | green | PR #76 → `rewrite`. |
-| `wip/postgres-cutover` | **green, 1295 tests** | everything below. PR #77 → `refactor/monorepo-split`. |
+| `refactor/monorepo-split` | merged into the PR below | was PR #76. |
+| `wip/postgres-cutover` | **green, 1337 + 24 tests** | everything below. PR #78 → `rewrite`. |
 
 ```bash
 git checkout wip/postgres-cutover
 bun install
 bun run db:up            # Postgres 17 in Docker on 55432
-bun run db:migrate       # five migrations
-bun run verify           # biome + tsc + 1295 tests + build, all green
+bun run db:migrate       # seven migrations
+bun run verify           # biome + tsc + 1337 tests + build, all green
 ```
 
 `bun run verify` also passes with Docker down — the Postgres tests skip. `TEST_DATABASE_URL`
@@ -93,25 +93,34 @@ ALLOWED_TELEGRAM_USER_ID=<your id> bun run ./scripts/migrate-to-postgres.ts \
 
 ---
 
-## 4. Phase 9 — the web app — is next
+## 4. Phases 9 and 10 landed; analytics (plan §4) is next
 
-`apps/web` does not exist. What is already in place for it:
+`apps/web` exists: TanStack Start on Nitro, Tailwind v4, shadcn primitives, every call through a
+server function that forwards the browser's cookie. It browses the library, practises every
+question type, and reads and writes page summaries.
 
-- **the wire shapes**: `packages/contracts` covers the whole practice flow (browse, start, current
-  question, answer, finish, statistics, attempt detail, settings, repetitions);
-- **identity**: `/api/auth/*` issues the cookie, and `better-auth/client` is the documented way to
-  consume it. `WEB_APP_URL` is where a login link lands;
-- **the decision already taken**: the API is the only issuer. `apps/web` forwards cookies; it must
-  not host its own Better Auth, and it must not touch the database (§5, and the hard rule in
-  `CLAUDE.md`).
+Plan §7 — the Notion-like pages — is done in the order the plan sequences it:
 
-The plan's §4 wants advanced statistics; the analytics *views* are phase 11, so the MVP is auth,
-browse, practice and attempt review.
+| step | where |
+| --- | --- |
+| markdown on a page, `icon` | `Folder` aggregate, `pages.content_md` / `pages.icon` |
+| MCP authoring | `quiz_write_summary`, `quiz_append_summary`, `quiz_read_summary` |
+| web reader | `PageView` / `PageSummary`, react-markdown + typography |
+| editor | `SummaryEditor` — a textarea with a preview, not a WYSIWYG yet |
+| quiz attachment | `quiz_attach_set` / `quiz_detach_set`, `BrowseView.attached` |
+| search | GIN over `to_tsvector('simple', title ‖ content_md)`, `quiz_search_pages` |
 
-**One thing to decide before writing code:** the practice flow currently keys attempts by
-`telegramUserId`, which a web-only user does not have. Either the web app resolves a synthetic id
-from the session, or `attempts.telegram_user_id` becomes nullable next to `owner_id` and the use
-cases key on the owner. The second is the honest fix and it touches the attempt aggregate.
+What §7 describes and this does **not** have: `position` is a column but nothing reorders by it;
+nested-page references are plain links, not `[[slug]]`; the editor is not Milkdown or TipTap; no
+`pgvector`. None of them block what the brief asked for.
+
+**Next is plan §4's analytics** — the dashboards over `GetQuizStatistics` and `GetAttemptDetail`,
+both of which already exist and are tested. After that, §5's second auth phase (email+password,
+which is deliberately disabled today) and FSRS.
+
+**Verified live, not only in tests** (2026-08-29): a scratch database, `drizzle-kit migrate` from
+empty through 0006, the API on Node, and every new tool driven over real HTTP MCP — write, append,
+read, search, attach, history — plus `/bot/pages/summary` and `/bot/pages/search` by curl.
 
 ---
 
@@ -131,6 +140,11 @@ cases key on the owner. The second is the honest fix and it touches the attempt 
   `packages/contracts`. A field the next screen needs goes in `DETAIL_KEYS`.
 - **Never regex a class body, and never run a scripted edit without asserting the match.** Both
   cost a revert; `assert s.count(old) == 1` before every replacement is the rule.
+- **A dev database that predates the journal cannot be migrated.** The local `recall_live` has
+  application tables but no `drizzle.__drizzle_migrations`, so `bun run db:migrate` fails with no
+  useful message. That database was built before the journal existed; recreate it
+  (`bun run db:reset`, then `db:migrate`, then the ETL) rather than trying to patch it. A scratch
+  database is the safe way to smoke-test without touching it.
 - **One flaky test seen once:** `apps/api/src/adapters/admin/api.test.ts` — "deletes one and
   answers with the record that went" failed a single full run and passed in isolation and on
   re-run. Nothing was changed for it. If it recurs, suspect cross-file env or port reuse.
