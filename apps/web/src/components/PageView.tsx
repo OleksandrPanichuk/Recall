@@ -1,20 +1,53 @@
 import type { BrowseView } from "@recall/contracts";
+import { Pencil } from "lucide-react";
+import { useState } from "react";
 import { EmptySummary } from "@/components/EmptySummary";
 import { LibraryList } from "@/components/LibraryList";
 import { PageSummary } from "@/components/PageSummary";
+import { SummaryEditor } from "@/components/SummaryEditor";
+import { Button } from "@/components/ui/Button";
 
-export function PageView({ view }: { readonly view: BrowseView }) {
+export interface PageViewProps {
+	readonly view: BrowseView;
+	readonly saving?: boolean;
+	readonly onSave?: (summary: string) => void;
+}
+
+export function PageView({ view, saving = false, onSave }: PageViewProps) {
+	const [editing, setEditing] = useState(false);
 	const hasItems =
 		view.children.length > 0 ||
 		view.sets.length > 0 ||
 		view.attached.length > 0;
 
+	const save = (summary: string) => {
+		onSave?.(summary);
+		setEditing(false);
+	};
+
 	return (
 		<div className="space-y-6">
-			{view.summary === undefined ? (
-				<EmptySummary />
+			{editing ? (
+				<SummaryEditor
+					summary={view.summary ?? ""}
+					saving={saving}
+					onSave={save}
+					onCancel={() => setEditing(false)}
+				/>
 			) : (
-				<PageSummary summary={view.summary} />
+				<div className="space-y-2">
+					{view.summary === undefined ? (
+						<EmptySummary />
+					) : (
+						<PageSummary summary={view.summary} />
+					)}
+					{onSave === undefined ? null : (
+						<Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+							<Pencil />
+							{view.summary === undefined ? "Написати конспект" : "Редагувати"}
+						</Button>
+					)}
+				</div>
 			)}
 			{hasItems ? (
 				<section className="space-y-2">

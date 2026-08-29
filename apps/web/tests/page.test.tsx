@@ -1,14 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { BrowseView } from "@recall/contracts";
 
-const { cleanup, render, screen } = await import("@testing-library/react");
+const { cleanup, fireEvent, render, screen } = await import(
+	"@testing-library/react"
+);
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
 const { PageView } = await import("@/components/PageView");
 
-const show = (view: BrowseView) => {
+const show = (view: BrowseView, onSave?: (summary: string) => void) => {
 	const rootRoute = createRootRoute({
-		component: () => <PageView view={view} />,
+		component: () => <PageView view={view} onSave={onSave} />,
 	});
 
 	return render(
@@ -99,5 +101,58 @@ describe("a page without a summary", () => {
 		);
 
 		expect(await screen.findByText("Bonds")).toBeDefined();
+	});
+});
+
+describe("editing a summary", () => {
+	test("stays hidden when the page cannot be saved", async () => {
+		show(aView({ summary: "Read only." }));
+
+		await screen.findByText("Read only.");
+		expect(screen.queryByText("Редагувати")).toBeNull();
+	});
+
+	test("opens on the existing markdown and hands back what was typed", async () => {
+		const written: string[] = [];
+
+		show(aView({ summary: "# Cells" }), (summary) => written.push(summary));
+
+		fireEvent.click(await screen.findByText("Редагувати"));
+
+		const field = screen.getByLabelText("Конспект") as HTMLTextAreaElement;
+
+		expect(field.value).toBe("# Cells");
+
+		fireEvent.change(field, { target: { value: "# Cells\n\nAnd nuclei." } });
+		fireEvent.click(screen.getByText("Зберегти"));
+
+		expect(written).toEqual(["# Cells\n\nAnd nuclei."]);
+	});
+
+	test("previews the draft as markdown before it is saved", async () => {
+		show(aView(), () => undefined);
+
+		fireEvent.click(await screen.findByText("Написати конспект"));
+		fireEvent.change(screen.getByLabelText("Конспект"), {
+			target: { value: "# Cells" },
+		});
+		fireEvent.click(screen.getByText("Перегляд"));
+
+		expect(screen.getByRole("heading", { name: "Cells" })).toBeDefined();
+	});
+
+	test("discards the draft on cancel", async () => {
+		const written: string[] = [];
+
+		show(aView({ summary: "# Cells" }), (summary) => written.push(summary));
+
+		fireEvent.click(await screen.findByText("Редагувати"));
+		fireEvent.change(screen.getByLabelText("Конспект"), {
+			target: { value: "throwaway" },
+		});
+		fireEvent.click(screen.getByText("Скасувати"));
+
+		expect(written).toEqual([]);
+		expect(await screen.findByRole("heading", { name: "Cells" })).toBeDefined();
 	});
 });

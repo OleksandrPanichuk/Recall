@@ -14,6 +14,18 @@ export const loadLibrary = createServerFn()
 	}))
 	.handler(async ({ data }) => api().browseFolder.execute(data));
 
+export const saveSummary = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => {
+		const input = value as { folderId: string; summary: string };
+
+		return { folderId: String(input.folderId), summary: String(input.summary) };
+	})
+	.handler(async ({ data }) => {
+		await api().writeSummary.execute(data);
+
+		return api().browseFolder.execute({ folderId: data.folderId });
+	});
+
 export const loadCurrentQuestion = createServerFn().handler(async () => ({
 	current: (await api().getCurrentQuestion.execute({})) ?? null,
 }));
