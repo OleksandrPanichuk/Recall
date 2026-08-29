@@ -158,6 +158,7 @@ export const ApiErrorName = {
 	QuestionNotInAttempt: "QuestionNotInAttemptError",
 	QuizSetNotPublished: "QuizSetNotPublishedError",
 	QuizSetNotFound: "QuizSetNotFoundError",
+	FolderNotFound: "FolderNotFoundError",
 	NothingToPractice: "NothingToPracticeError",
 	NothingDue: "NothingDueError",
 } as const;

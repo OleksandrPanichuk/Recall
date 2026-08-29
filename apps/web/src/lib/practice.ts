@@ -6,6 +6,21 @@ import { viewerOf } from "./session";
 
 const idInput = (value: unknown): { id: string } => ({ id: String(value) });
 
+const missingAsNull = async <T>(
+	load: () => Promise<T>,
+	names: readonly ApiErrorName[],
+): Promise<T | null> => {
+	try {
+		return await load();
+	} catch (error) {
+		if (names.some((name) => isApiError(error, name))) {
+			return null;
+		}
+
+		throw error;
+	}
+};
+
 export const loadSession = createServerFn().handler(async () => ({
 	viewer: (await viewerOf()) ?? null,
 }));
@@ -14,7 +29,12 @@ export const loadLibrary = createServerFn()
 	.inputValidator((value: unknown) => ({
 		folderId: value === undefined ? undefined : String(value),
 	}))
-	.handler(async ({ data }) => api().browseFolder.execute(data));
+	.handler(async ({ data }) =>
+		missingAsNull(
+			() => api().browseFolder.execute(data),
+			[ApiErrorName.FolderNotFound],
+		),
+	);
 
 export const saveSummary = createServerFn({ method: "POST" })
 	.inputValidator((value: unknown) => {
@@ -104,7 +124,10 @@ export const loadRepetitions = createServerFn().handler(async () => ({
 export const loadStatistics = createServerFn()
 	.inputValidator(idInput)
 	.handler(async ({ data }) =>
-		api().getQuizStatistics.execute({ quizSetId: data.id }),
+		missingAsNull(
+			() => api().getQuizStatistics.execute({ quizSetId: data.id }),
+			[ApiErrorName.QuizSetNotFound],
+		),
 	);
 
 export const loadAttempt = createServerFn()

@@ -1,5 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import { ErrorPanel } from "@/components/ErrorPanel";
+import { NotFound } from "@/components/NotFound";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
@@ -12,6 +14,8 @@ export function getRouter() {
 		context: { queryClient },
 		scrollRestoration: true,
 		defaultPreload: "intent",
+		defaultErrorComponent: ErrorPanel,
+		defaultNotFoundComponent: NotFound,
 	});
 }
 

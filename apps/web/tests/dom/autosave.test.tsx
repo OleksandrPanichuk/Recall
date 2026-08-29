@@ -63,6 +63,39 @@ describe("autosave", () => {
 		expect(result.current.unsaved()).toBe(true);
 	});
 
+	test("writes a pending edit when the editor goes away", async () => {
+		const written: string[] = [];
+		const { result, unmount } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+			}, 10_000),
+		);
+
+		act(() => result.current.schedule("typed then navigated"));
+		expect(written).toEqual([]);
+
+		unmount();
+		await settle(20);
+
+		expect(written).toEqual(["typed then navigated"]);
+	});
+
+	test("writes nothing on unmount when everything was already saved", async () => {
+		const written: string[] = [];
+		const { result, unmount } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+			}, 10),
+		);
+
+		act(() => result.current.schedule("saved"));
+		await settle(40);
+		unmount();
+		await settle(20);
+
+		expect(written).toEqual(["saved"]);
+	});
+
 	test("does nothing until something is scheduled", async () => {
 		const written: string[] = [];
 		const { result } = renderHook(() =>

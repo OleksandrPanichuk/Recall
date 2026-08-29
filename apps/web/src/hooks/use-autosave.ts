@@ -57,8 +57,10 @@ export function useAutosave(
 			if (timer.current !== null) {
 				clearTimeout(timer.current);
 			}
+
+			void flush();
 		},
-		[],
+		[flush],
 	);
 
 	return { state, schedule, flush, unsaved: () => pending.current !== null };

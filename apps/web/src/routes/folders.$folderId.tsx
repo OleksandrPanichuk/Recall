@@ -2,6 +2,7 @@ import type { BrowseView } from "@recall/contracts";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { EmojiPicker } from "@/components/EmojiPicker";
+import { NotFound } from "@/components/NotFound";
 import { PageActions } from "@/components/PageActions";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { PageTitle } from "@/components/PageTitle";
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/folders/$folderId")({
 
 function Page() {
 	const loaded = Route.useLoaderData();
+	const context = Route.useRouteContext();
 	const { folderId } = Route.useParams();
 	const router = useRouter();
 	const [written, setWritten] = useState<BrowseView | null>(null);
@@ -32,7 +34,7 @@ function Page() {
 	});
 
 	if (loaded === null) {
-		return <SignInPrompt />;
+		return context.viewer === null ? <SignInPrompt /> : <NotFound />;
 	}
 
 	const view = written?.folderId === folderId ? written : loaded;

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
 import { AttemptHistory } from "@/components/AttemptHistory";
+import { NotFound } from "@/components/NotFound";
 import { PageHeading } from "@/components/PageHeading";
 import { ScoreSummary } from "@/components/ScoreSummary";
 import { SignInPrompt } from "@/components/SignInPrompt";
@@ -17,10 +18,11 @@ export const Route = createFileRoute("/quizzes/$quizId")({
 
 function Quiz() {
 	const statistics = Route.useLoaderData();
+	const context = Route.useRouteContext();
 	const { quizId } = Route.useParams();
 
 	if (statistics === null) {
-		return <SignInPrompt />;
+		return context.viewer === null ? <SignInPrompt /> : <NotFound />;
 	}
 
 	const attempts = statistics.attempts.length;
