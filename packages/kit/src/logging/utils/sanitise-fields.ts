@@ -12,8 +12,6 @@ const SENSITIVE_SUBSTRINGS = [
 	"authorization",
 ] as const;
 
-// Flattening makes `TELEGRAM_BOT_KEY` and `telegramBotKey` one name. A trailing
-// "key" counts, a contained one does not — otherwise `keyboard` is redacted.
 function isSensitiveKey(key: string): boolean {
 	const flattened = key.toLowerCase().replaceAll(/[^a-z]/g, "");
 

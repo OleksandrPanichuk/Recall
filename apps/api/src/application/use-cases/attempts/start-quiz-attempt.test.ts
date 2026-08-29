@@ -151,8 +151,6 @@ describe("StartQuizAttemptUseCase", () => {
 		const quizSetId = await seedPublishedSet();
 		const first = await start.execute({ quizSetId, telegramUserId: USER });
 
-		// The telegram id is provenance, not a second identity that would get its
-		// own attempt on the same quiz.
 		const second = await start.execute({ quizSetId, telegramUserId: 7 });
 
 		expect(String(second.attemptId)).toBe(String(first.attemptId));

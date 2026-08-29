@@ -1,5 +1,3 @@
-// Seeded by question id so a re-render of the same screen keeps the same order.
-// A fresh shuffle on every render would move an item out from under the tap.
 function seedOf(source: string): number {
 	let hash = 2166136261;
 

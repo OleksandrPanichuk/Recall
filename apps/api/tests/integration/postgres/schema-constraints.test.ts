@@ -45,8 +45,6 @@ const insertPage = (
 		values (${id}, ${String(as())}, ${parentId}, ${slug}, ${slug})
 	`;
 
-// postgres.js queries are lazy thenables, and expect().rejects never settles
-// against them under bun test. Forcing them through catch() does.
 const failureOf = async (run: () => PromiseLike<unknown>): Promise<Error> => {
 	try {
 		await run();

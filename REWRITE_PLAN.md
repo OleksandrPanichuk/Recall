@@ -1615,6 +1615,36 @@ true/false renders two options; **typed answer renders a real text input** where
 nothing; ordering renders numbered click-to-order with a reset. The typed-answer path is pinned in
 `app-surface.test.ts`, which sends `typedAnswer` the way the ui now does and asserts it grades.
 
+## Phase 9, third pass: display order, and the comments come out (r29)
+
+**A second display bug, found by reading `QuestionCard` again.** The ui rendered options in the
+order the api sent them. For an **ordering** question the authored positions *are* the correct
+sequence, so the answer was displayed top to bottom and the question was free. For **matching**,
+the right column sat opposite its own left row. And the owner's `shuffleOptions` setting did
+nothing on the web at all.
+
+All three now shuffle for display with the same seeds the bot uses — `${attemptId}:${questionId}`
+for choice, the question id for ordering and matching — so a person moving between bot and web
+sees the same order within one attempt. `shuffled` reaches the browser through a new
+`@recall/kit/shuffle` subpath, because kit's index also carries the logger and the shutdown
+handler, which have no business in a client bundle.
+
+**Twelve component tests** now cover what server-rendering could not: a single choice answers on
+click, a multiple choice collects a set and answers only on submit (and a second click takes an
+option back out), a typed question offers a field and sends trimmed text, ordering sends positions
+in click order and refuses to submit early, matching flattens pairs left-right, and the display
+order is the shuffle for that seed rather than the authored order.
+
+**They cost a rule.** `GlobalRegistrator` replaces `globalThis` wholesale, so two happy-dom files
+in one `bun test` process fight: adding these broke all eight `apps/admin` tests, in either
+order. The web app's tests run in their own process now, and `bun run test` is the gate rather
+than `bun test`.
+
+**Every code comment is gone.** `CLAUDE.md` has forbidden them from the start and this session
+wrote 242 lines of them anyway. They are stripped repo-wide; only machine-readable directives
+(`biome-ignore`, `@ts-expect-error`, the generated route tree's header) remain. What the comments
+explained lives here and in the commit messages, which is where this document said it belonged.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

@@ -51,7 +51,6 @@ export class NothingDueError extends Error {
 
 export interface StartQuizAttemptCommand {
 	readonly quizSetId: QuizSetId;
-	// Kept as provenance on the row, not as an identity the api trusts.
 	readonly telegramUserId?: number;
 	readonly onlyDue?: boolean;
 }

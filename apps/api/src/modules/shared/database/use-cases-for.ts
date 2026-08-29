@@ -13,8 +13,6 @@ import {
 
 export type UseCasesFor = (owner: OwnerId) => UseCases;
 
-// One owner in, one application out. Every surface that authenticates somebody
-// builds its use cases through here, so the owner is decided once, at the edge.
 export const useCasesFor =
 	(connection: PostgresConnection): UseCasesFor =>
 	(owner) =>

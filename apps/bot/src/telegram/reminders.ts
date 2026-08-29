@@ -6,7 +6,6 @@ import { repetitionsScreen } from "./presenters/repetitions.presenter";
 export interface ReminderOptions {
 	readonly bot: Telegraf;
 	readonly listDueRepetitions: BotUseCases["listDueRepetitions"];
-	// Where to send it, not who is asking: the api answers for the token's owner.
 	readonly chatId: number;
 	readonly timezone: string;
 	readonly hour: number;

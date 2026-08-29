@@ -79,8 +79,6 @@ function main(): void {
 		timezone: environment.timezone,
 	});
 
-	// Telegram replays updates queued during downtime for up to 24 hours, and each
-	// would act on a screen the user moved past hours ago.
 	bot.launch({ dropPendingUpdates: true }).catch((error: unknown) => {
 		logger.error("bot stopped", { error });
 		void shutdown.trigger("launch-failed").then(() => {

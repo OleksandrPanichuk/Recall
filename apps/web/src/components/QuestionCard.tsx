@@ -25,8 +25,6 @@ const hint: Readonly<Record<string, string>> = {
 	[QuestionType.Cloze]: "Заповніть пропуск",
 };
 
-// One place decides how a question is answered. Every type has a way in — a row
-// of buttons only ever fitted the choice-shaped ones.
 export function QuestionCard({
 	view,
 	question,
@@ -61,7 +59,14 @@ export function QuestionCard({
 				</div>
 			</div>
 
-			<Answering question={question} disabled={disabled} onAnswer={onAnswer} />
+			<Answering
+				question={question}
+				disabled={disabled}
+				shuffleSeed={
+					view.shuffleOptions ? `${view.attemptId}:${question.id}` : undefined
+				}
+				onAnswer={onAnswer}
+			/>
 		</div>
 	);
 }
@@ -69,8 +74,9 @@ export function QuestionCard({
 function Answering({
 	question,
 	disabled,
+	shuffleSeed,
 	onAnswer,
-}: Omit<QuestionCardProps, "view">) {
+}: Omit<QuestionCardProps, "view"> & { readonly shuffleSeed?: string }) {
 	if (expectsTypedAnswer(question)) {
 		return (
 			<TypedAnswerField
@@ -108,6 +114,7 @@ function Answering({
 		<ChoiceOptions
 			question={question}
 			disabled={disabled}
+			shuffleSeed={shuffleSeed}
 			onAnswer={(selectedOptionPositions) =>
 				onAnswer({ selectedOptionPositions })
 			}

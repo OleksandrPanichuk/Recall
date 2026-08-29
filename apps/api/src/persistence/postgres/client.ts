@@ -18,8 +18,6 @@ export interface PostgresConnection {
 	close(): Promise<void>;
 }
 
-// prepare: false because Supabase's transaction-mode pooler rejects prepared
-// statements, and the same setting is harmless on a direct connection.
 export function createPostgresConnection(
 	options: PostgresOptions,
 ): PostgresConnection {

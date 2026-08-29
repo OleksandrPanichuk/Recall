@@ -15,7 +15,6 @@ import type { MemoryStore } from "./store";
 export function createMemoryAttemptRepository(
 	store: MemoryStore,
 ): AttemptRepository {
-	// This store belongs to one owner, so every attempt in it is theirs.
 	const forQuiz = (quizId: QuizSetId): readonly QuizAttempt[] =>
 		[...store.attempts.values()].filter(
 			(attempt) => String(attempt.quizSetId) === String(quizId),

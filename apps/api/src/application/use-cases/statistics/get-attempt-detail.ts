@@ -63,8 +63,6 @@ export class GetAttemptDetailUseCase
 		const { quizzes, attempts } = this.scope;
 		const attempt = await attempts.findById(request.attemptId);
 
-		// findById is already owner-scoped, so an attempt that belongs to someone
-		// else simply does not exist from here.
 		if (attempt === undefined) {
 			throw new AttemptNotFoundError(request.attemptId);
 		}

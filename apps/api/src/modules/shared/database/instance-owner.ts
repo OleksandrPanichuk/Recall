@@ -5,10 +5,6 @@ import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
 import { findTelegramOwner } from "@/persistence/postgres/owner";
 import { loadApiEnvironment } from "../config/api-env";
 
-// One instance, one owner: whoever holds the telegram account the bot admits.
-// Every surface here — rest, admin, mcp, bot — serves that person, so the owner
-// is resolved once and cached. Per-user credentials (phase 7c) turn this into a
-// per-request lookup; nothing above it has to change for that.
 export function instanceOwnerResolver(db: RecallDatabase): OwnerResolver {
 	let cached: OwnerId | undefined;
 

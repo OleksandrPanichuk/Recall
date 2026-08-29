@@ -15,11 +15,8 @@ import {
 } from "./oauth/provider";
 
 export interface McpHttpAppDependencies {
-	// Who approved the consent screen, when a session cookie says so.
 	sessionOwner?(request: Request): Promise<OwnerId | undefined>;
 	instanceOwner?(): Promise<OwnerId>;
-	// Per request, not per process: which quizzes the tools can see depends on
-	// whose credential arrived.
 	applicationFor(owner: OwnerId): UseCases;
 	readonly logger: Logger;
 	readonly oauth: RecallOAuth;
@@ -97,9 +94,6 @@ export function createMcpHttpApp(
 				return;
 			}
 
-			// Whoever is logged in here is who the grant belongs to. With no session
-			// it is the instance owner, because knowing the passphrase is what
-			// proves that on a single-owner install.
 			const target = await oauth.consent.approve(
 				id,
 				(await sessionOwner?.(request)) ?? (await instanceOwner?.()),
@@ -116,9 +110,6 @@ export function createMcpHttpApp(
 		});
 	}
 
-	// requireBearerAuth puts what the verifier returned on request.auth, so the
-	// owner the token belongs to travels with the request rather than being
-	// looked up again here.
 	const ownerOf = (request: Request): OwnerId | undefined => {
 		const extra = (request as { auth?: { extra?: unknown } }).auth?.extra;
 		const owner = (extra as { ownerId?: unknown } | undefined)?.ownerId;

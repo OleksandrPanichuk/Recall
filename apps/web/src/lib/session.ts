@@ -6,8 +6,6 @@ export interface Viewer {
 	readonly name: string;
 }
 
-// Asked of the api rather than decoded here: the cookie is signed with a secret
-// this app does not have, and should not.
 export async function viewerOf(): Promise<Viewer | undefined> {
 	const cookie = getRequestHeader("cookie");
 

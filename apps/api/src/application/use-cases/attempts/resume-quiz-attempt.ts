@@ -22,8 +22,6 @@ export class NoActiveAttemptError extends Error {
 	}
 }
 
-// The owner comes from the scope, so asking about "the current attempt" needs no
-// argument at all. A field here would be a caller naming a user again.
 export type AttemptOfUserCommand = Readonly<Record<string, never>>;
 
 export interface ResumeQuizAttemptResult {

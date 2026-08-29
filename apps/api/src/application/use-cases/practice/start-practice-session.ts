@@ -51,7 +51,6 @@ export class NothingToPracticeError extends Error {
 
 export interface StartPracticeSessionCommand {
 	readonly quizSetId: QuizSetId;
-	// Kept as provenance on the row, not as an identity the api trusts.
 	readonly telegramUserId?: number;
 	readonly mode: PracticeMode;
 }

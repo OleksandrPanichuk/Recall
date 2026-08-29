@@ -30,8 +30,6 @@ export interface ApiTokenPrincipal {
 	readonly expiresAt?: Date;
 }
 
-// Only the hash is stored: a leaked database does not hand anyone a working
-// credential, and the token itself is shown once at issue time.
 const hashOf = (token: string): string =>
 	createHash("sha256").update(token, "utf8").digest("hex");
 
@@ -76,9 +74,6 @@ export async function findApiTokenPrincipal(
 				isNull(apiTokens.revokedAt),
 				or(
 					isNull(apiTokens.expiresAt),
-					// An ISO string with an explicit cast: postgres.js picks its
-					// encoders from the first execution of a query string, and a raw
-					// Date makes it choose one that then fails.
 					sql`${apiTokens.expiresAt} > ${at.toISOString()}::timestamptz`,
 				),
 			),

@@ -54,15 +54,9 @@ const unreachableConnection = {
 	close: async () => {},
 };
 
-// The bot reaches the api over http now, so the harness runs the real thing:
-// the real controller, the real zod validation and the real error filter, over
-// an in-memory database. Nothing about a screen is asserted against a stub.
 async function startApi(
 	dependencies: unknown,
 ): Promise<{ readonly app: INestApplication; readonly origin: string }> {
-	// AUTH is absent on purpose: identity belongs to the api's own integration
-	// tests, and a bot test asserting "login is not configured here" is the honest
-	// screen for a deployment without it.
 	@Global()
 	@Module({
 		providers: [
@@ -76,8 +70,6 @@ async function startApi(
 	@Module({ imports: [MemoryDependenciesModule, AuthModule, BotModule] })
 	class TestApiModule {}
 
-	// abortOnError: false, or a resolution failure calls process.exit(1) and the
-	// suite dies with no output at all.
 	const app = await NestFactory.create(TestApiModule, {
 		logger: false,
 		abortOnError: false,
@@ -107,9 +99,6 @@ export interface BotHarness {
 
 let updateId = 0;
 
-// Telegraf builds a fresh Telegram instance per update, so stubbing bot.telegram
-// never reaches a handler. The prototype is the only shared seam, so calls route
-// to whichever harness is currently live.
 let activeCalls: ApiCall[] | undefined;
 let activeFailures: TelegramFailure[] | undefined;
 let prototypePatched = false;
@@ -192,8 +181,6 @@ export async function createBotHarness(
 
 	process.env.BOT_API_TOKEN = HARNESS_TOKEN;
 	process.env.DATABASE_URL ??= "postgres://unused@127.0.0.1:1/unused";
-	// The api refuses a request that names any other telegram account, so the
-	// harness has to be the account it serves.
 	process.env.ALLOWED_TELEGRAM_USER_ID = String(ALLOWED_USER);
 
 	const api = await startApi(application.context);

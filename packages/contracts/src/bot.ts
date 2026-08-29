@@ -249,9 +249,6 @@ export const revokedApiTokenSchema = z.object({ revoked: z.boolean() });
 
 export const browseCommandSchema = z.object({ folderId: optionalId });
 
-// The practice commands name no user: the api resolves the owner from the
-// credential. Only telegramUserId on an *auth* route names an account, because
-// there the account is the subject.
 export const startAttemptCommandSchema = z.object({
 	quizSetId: id,
 	telegramUserId: z.number().int().optional(),

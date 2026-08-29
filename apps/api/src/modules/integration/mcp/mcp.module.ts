@@ -50,8 +50,6 @@ export interface McpSurface {
 
 				return {
 					app: createMcpHttpApp({
-						// The tools are built for whoever the credential belongs to, so
-						// two people with two tokens see two different libraries.
 						applicationFor: (owner) =>
 							createUseCases({
 								unitOfWork: createPostgresUnitOfWork(connection.db, owner),
@@ -62,9 +60,6 @@ export interface McpSurface {
 							}),
 						logger: silentLogger,
 						instanceOwner,
-						// A logged-in browser approving the consent screen binds the grant
-						// to that person; without a session it is the instance owner, since
-						// knowing the passphrase is what proves that.
 						sessionOwner: (request) =>
 							auth === undefined
 								? Promise.resolve(undefined)

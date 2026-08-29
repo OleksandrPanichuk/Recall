@@ -2,8 +2,6 @@ import jsonServerProvider from "ra-data-json-server";
 import type { AuthProvider, DataProvider } from "react-admin";
 import { fetchUtils } from "react-admin";
 
-// The admin app is served from its own origin now, so every call is
-// cross-origin and must carry the session cookie explicitly.
 const loadApiUrl = async (): Promise<string> => {
 	try {
 		const response = await fetch("/config.json");

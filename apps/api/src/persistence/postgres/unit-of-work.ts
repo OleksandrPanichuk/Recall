@@ -12,8 +12,6 @@ export type Executor =
 	| RecallDatabase
 	| Parameters<Parameters<RecallDatabase["transaction"]>[0]>[0];
 
-// Every repository is built against one owner. A use case cannot reach another
-// owner's rows because it never holds anything that could name them.
 export const scopeFor = (
 	executor: Executor,
 	owner: OwnerId,

@@ -26,9 +26,6 @@ export class BotTokenGuard implements CanActivate {
 			throw new UnauthorizedException("that token is not the bot's token");
 		}
 
-		// The bot proves it is the bot, not who it is acting for. Whoever holds the
-		// token could otherwise name any telegram id and read that person's data,
-		// so the only id this surface accepts is the one this instance admits.
 		const named = (request.body as { telegramUserId?: unknown } | undefined)
 			?.telegramUserId;
 

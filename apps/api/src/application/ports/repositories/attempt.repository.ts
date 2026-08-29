@@ -22,8 +22,6 @@ export interface TopicAccuracy {
 export interface AttemptRepository {
 	save(attempt: QuizAttempt): Promise<void>;
 	findById(id: QuizAttemptId): Promise<QuizAttempt | undefined>;
-	// No method takes an identity: the scope is already built for one owner, and a
-	// parameter here would let a caller ask about somebody else.
 	findActive(): Promise<QuizAttempt | undefined>;
 	listCompletedForQuiz(
 		quizId: QuizSetId,

@@ -14,8 +14,6 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	// The report counts what the whole instance holds, so it reads the tables
-	// rather than an owner's repositories.
 	const connection = createPostgresConnection({ url: environment.databaseUrl });
 
 	try {

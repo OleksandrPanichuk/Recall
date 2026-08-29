@@ -124,8 +124,6 @@ export function createAttemptPostgresRepository(
 				.where(and(mine, eq(attempts.id, id)))
 				.limit(1);
 
-			// Applying a stale copy would rewind updated_at past answers already
-			// stored, leaving a row the restore factory rejects.
 			if (stored !== undefined && stored.updatedAt > row.updatedAt) {
 				return;
 			}

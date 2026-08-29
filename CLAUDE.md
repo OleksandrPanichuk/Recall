@@ -345,6 +345,13 @@ Tailwind v4 (through `@tailwindcss/vite`, no config file — the theme is CSS va
   buttons for every type leaves typed and cloze questions unanswerable — they have no options at
   all — and grades a multiple-choice question on the first click.
 
+**Only one test file per `bun test` process may register happy-dom.** `GlobalRegistrator`
+replaces `globalThis` wholesale; a second file registering, or the first unregistering while
+another still needs the DOM, breaks whichever file loses. `apps/admin` owns that registration in
+the root run, so `apps/web`'s component tests run in their own process — `bun run test` is the
+root suite **and** `bun run --filter '@recall/web' test`. Never call plain `bun test` as the gate;
+it silently skips the web app.
+
 ## Code comments
 
 Do not write code comments. Not header comments, not JSDoc, not a one-line note

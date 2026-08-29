@@ -149,9 +149,6 @@ export function recordResponse(
 	});
 }
 
-// Validates the snapshot rather than replaying transitions: pause and resume
-// timestamps are not stored, so a replay would have to invent a zero-length
-// pause/resume pair to land on a resumed attempt's `updatedAt`.
 export function restoreQuizAttempt(snapshot: QuizAttemptSnapshot): QuizAttempt {
 	if (snapshot.questionIds.length === 0) {
 		throw new EmptyQuizAttemptError();

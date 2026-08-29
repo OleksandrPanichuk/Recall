@@ -34,8 +34,6 @@ export class SessionGuard implements CanActivate {
 			throw new UnauthorizedException("sign in first");
 		}
 
-		// The owner travels on the request, so a handler cannot resolve a different
-		// one — and cannot forget to resolve one at all.
 		request.owner = owner;
 
 		return true;

@@ -220,8 +220,6 @@ describe("GetQuizStatisticsUseCase", () => {
 
 		const result = await statistics.execute({ quizSetId });
 
-		// Attempts belong to the owner, not to a telegram account. Another owner
-		// seeing nothing is proven in tests/contracts/ownership.contract.ts.
 		expect(result.attempts).toHaveLength(1);
 	});
 

@@ -17,10 +17,6 @@ import {
 } from "@/modules/shared/swagger/build-document";
 
 export async function createApiApp() {
-	// bodyParser: false, then json() mounted by hand below. better-auth reads the
-	// raw request body itself, and express's parser having consumed the stream
-	// first leaves it hanging — so the auth handler has to be mounted ahead of
-	// any parser, which is only possible if nest does not install one for us.
 	const app = await NestFactory.create(AppModule, {
 		bufferLogs: false,
 		bodyParser: false,
@@ -28,15 +24,10 @@ export async function createApiApp() {
 
 	const environment = loadApiEnvironment();
 
-	// The admin app is served from its own origin, so it needs credentialed CORS.
-	// Without an explicit origin nothing cross-origin is allowed at all.
 	if (environment.adminOrigin !== undefined) {
 		app.enableCors({ origin: environment.adminOrigin, credentials: true });
 	}
 
-	// The MCP surface is a whole Express app. Mounting it through Nest middleware
-	// would put it behind a path and Express would strip that prefix, so /mcp
-	// would never match. A path-less use() on the underlying instance does not.
 	const mcp = app.get<McpSurface>(MCP_SURFACE);
 
 	if (mcp.app !== undefined) {

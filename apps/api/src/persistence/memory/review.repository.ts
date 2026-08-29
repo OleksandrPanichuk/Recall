@@ -13,7 +13,6 @@ export const settingsKey = (scope: SettingsScope): string =>
 export function createMemoryReviewRepository(
 	store: MemoryStore,
 ): ReviewRepository {
-	// One store per owner: everything in it is theirs.
 	const all = (): readonly RepetitionSchedule[] => [
 		...store.schedules.values(),
 	];

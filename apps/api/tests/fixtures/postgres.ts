@@ -48,9 +48,6 @@ export interface PostgresHarness {
 
 let counter = 0;
 
-// drizzle-kit writes REFERENCES "public"."…" into every foreign key, so a
-// per-run schema leaves the constraints pointing at an empty public. Each run
-// gets its own database instead, where public is the right answer.
 export async function openPostgres(prefix: string): Promise<PostgresHarness> {
 	counter += 1;
 
@@ -122,8 +119,6 @@ export async function applyMigration(harness: PostgresHarness): Promise<void> {
 	}
 }
 
-// Owned rows point at a user, so a repository test needs one before it can
-// write anything. Two of them is what proves the scoping.
 export async function seedOwner(
 	harness: PostgresHarness,
 	name: string,
@@ -138,8 +133,6 @@ export async function seedOwner(
 	return toOwnerId(id);
 }
 
-// The api resolves its owner through the linked telegram account, so a test
-// that drives the api has to link one.
 export async function seedTelegramOwner(
 	harness: PostgresHarness,
 	telegramUserId: number,

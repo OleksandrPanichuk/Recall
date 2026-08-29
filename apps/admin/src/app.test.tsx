@@ -225,9 +225,6 @@ afterAll(async () => {
 	await harness?.close();
 	removeTempDirectory(directory);
 
-	// happy-dom replaces globalThis wholesale, fetch included. Leaving it
-	// registered pollutes every test file that runs after this one, and which
-	// files those are depends only on filename order.
 	globalThis.fetch = nativeFetch;
 	await GlobalRegistrator.unregister();
 });

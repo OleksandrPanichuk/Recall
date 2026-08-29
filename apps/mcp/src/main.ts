@@ -30,8 +30,6 @@ async function main(): Promise<void> {
 		},
 	});
 
-	// Every write goes through this chain: requests are answered concurrently, and
-	// two responses interleaving inside one line would break the framing.
 	let writes = Promise.resolve();
 	const writer = Bun.stdout.writer();
 

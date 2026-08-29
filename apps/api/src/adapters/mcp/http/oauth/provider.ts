@@ -58,10 +58,6 @@ export interface TokenPrincipal {
 export interface OAuthProviderDependencies {
 	readonly store: OAuthStore;
 	readonly staticToken?: string;
-	// A personal token names its own owner. The static token and an oauth grant
-	// belong to whoever runs the instance — the consent gate is a passphrase, and
-	// the person who knows it is that owner. When consent requires a session
-	// instead, the grant carries its own user and this stops being the fallback.
 	readonly instanceOwner?: () => Promise<string>;
 	readonly personalToken?: (
 		token: string,
@@ -94,8 +90,6 @@ export function createOAuthProvider(
 		return owner === undefined ? undefined : { ownerId: owner };
 	};
 
-	// The owner travels with both halves of the grant. Dropping it on refresh is
-	// the classic way this silently degrades into an unscoped token.
 	const issue = async (
 		clientId: string,
 		scopes: readonly string[],
@@ -246,9 +240,6 @@ export function createOAuthProvider(
 					token,
 					clientId: PERSONAL_CLIENT_ID,
 					scopes: [...personal.scopes],
-					// The sdk refuses an assertion with no expiry, and a personal
-					// token may legitimately have none. The token stays valid; only
-					// this assertion about it is short-lived, as the static token's is.
 					expiresAt: Math.floor(
 						(personal.expiresAt?.getTime() ?? now().getTime() + ACCESS_TTL_MS) /
 							1000,
@@ -303,8 +294,6 @@ export function createOAuthProvider(
 
 			const code = secret();
 
-			// The code is bound to whoever approved it, and the grant carries that
-			// owner from here to every token minted off it.
 			await store.saveCode(code, {
 				clientId: pending.clientId,
 				ownerId,

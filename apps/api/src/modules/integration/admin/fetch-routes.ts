@@ -29,15 +29,9 @@ const bodyOf = (request: ExpressRequest): string | undefined => {
 		return undefined;
 	}
 
-	// Nest's body parser has already drained the stream, so the Fetch Request is
-	// rebuilt from what it parsed rather than from the socket.
 	return request.body === undefined ? undefined : JSON.stringify(request.body);
 };
 
-// The admin route table is written against the Fetch API because it was served by
-// Bun.serve. Rather than rewrite six hundred lines of handlers to move the admin
-// API into the Nest app, they are adapted at the boundary. Replacing them with
-// native controllers is a separate, incremental job.
 export function fetchRoutes(routes: FetchRouteTable) {
 	const compiled = compile(routes);
 
@@ -46,8 +40,6 @@ export function fetchRoutes(routes: FetchRouteTable) {
 		response: ExpressResponse,
 		next: NextFunction,
 	): Promise<void> => {
-		// Nest mounts this middleware behind a wildcard, so request.path is relative
-		// to that mount and always "/". The real path is on originalUrl.
 		const url = new URL(
 			request.originalUrl,
 			`http://${request.headers.host ?? "localhost"}`,
@@ -93,8 +85,6 @@ export function fetchRoutes(routes: FetchRouteTable) {
 				response.append("set-cookie", cookie);
 			}
 
-			// content-length and transfer-encoding describe the Fetch response's own
-			// framing; Express sets its own and duplicates break strict clients.
 			const framing = new Set([
 				"set-cookie",
 				"content-length",

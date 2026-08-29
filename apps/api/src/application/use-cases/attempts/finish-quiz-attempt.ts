@@ -60,11 +60,6 @@ export class FinishQuizAttemptUseCase
 
 				await attempts.save(completed);
 
-				// An attempt abandoned without answering is not a repetition: advancing
-				// on it would push the interval out and, repeated, retire a question the
-				// owner never actually answered. A drill is not one either: it can be
-				// taken any number of times a day, so advancing on it would walk the
-				// interval out on massed practice.
 				if (
 					completed.responses.length === 0 ||
 					completed.mode !== QuizAttemptMode.Full

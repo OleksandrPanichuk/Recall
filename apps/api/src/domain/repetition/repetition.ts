@@ -116,8 +116,6 @@ export function scheduleAfter(
 		]);
 	}
 
-	// A wrong answer sends the question back to the start of the ladder: the
-	// point of the interval is that you remembered, and you did not.
 	const repetitionCount = answeredCorrectly
 		? (previous?.repetitionCount ?? 0) + 1
 		: 1;

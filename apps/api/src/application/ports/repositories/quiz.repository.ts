@@ -15,7 +15,6 @@ export interface QuizSummary {
 
 export interface QuizListFilter {
 	readonly statuses?: readonly QuizSetStatus[];
-	// null selects quizzes filed nowhere; omitted means every page
 	readonly pageId?: FolderId | null;
 }
 

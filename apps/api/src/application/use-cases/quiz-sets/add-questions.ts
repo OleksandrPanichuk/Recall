@@ -107,8 +107,6 @@ export class AddQuestionsUseCase
 			);
 			const present = new Set(stored.questions.map(questionFingerprint));
 
-			// A retried batch has identical content but fresh ids, and fingerprints
-			// ignore ids, so a fully-present batch is a replay rather than an error.
 			if (
 				questions.every((question) =>
 					present.has(questionFingerprint(question)),

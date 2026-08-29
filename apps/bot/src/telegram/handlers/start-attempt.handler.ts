@@ -12,8 +12,6 @@ export interface StartAttemptRequest {
 
 export function startAttemptHandler(useCases: TelegramUseCases) {
 	return async (ctx: Context, request: StartAttemptRequest): Promise<void> => {
-		// The id is provenance — which account started it — not how the api decides
-		// whose attempt this is.
 		await useCases.startQuizAttempt.execute({
 			...request,
 			telegramUserId: ctx.from?.id,

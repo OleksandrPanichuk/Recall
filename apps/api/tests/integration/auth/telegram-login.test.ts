@@ -232,8 +232,6 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("the bot cannot act for a telegram account this api does not serve", async () => {
-		// The practice routes no longer carry an identity, but a body that names
-		// one anyway must still be refused rather than quietly ignored.
 		const response = await fetch(`${origin}/bot/attempts/current`, {
 			method: "POST",
 			headers: {

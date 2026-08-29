@@ -1,6 +1,7 @@
 import type { Question, QuestionOption } from "@recall/contracts";
 import { matchingSides } from "@recall/contracts";
-import { useState } from "react";
+import { shuffled } from "@recall/kit/shuffle";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -10,14 +11,17 @@ export interface MatchingOptionsProps {
 	onAnswer(positions: readonly number[]): void;
 }
 
-// Pairs travel as a flat list — left, right, left, right — which is how the api
-// reads them back into pairs.
 export function MatchingOptions({
 	question,
 	disabled,
 	onAnswer,
 }: MatchingOptionsProps) {
-	const { left, right } = matchingSides(question);
+	const sides = matchingSides(question);
+	const left = sides.left;
+	const right = useMemo(
+		() => shuffled(sides.right, String(question.id)),
+		[sides.right, question.id],
+	);
 	const [pairs, setPairs] = useState<readonly (readonly number[])[]>([]);
 	const [pendingLeft, setPendingLeft] = useState<number | null>(null);
 

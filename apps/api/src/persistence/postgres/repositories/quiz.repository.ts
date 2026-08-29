@@ -86,8 +86,6 @@ export function createQuizPostgresRepository(
 
 			const keptIds = quiz.questions.map((question) => String(question.id));
 
-			// Only questions the aggregate dropped are removed. Survivors keep their
-			// id, so the answers and review state hanging off it stay attached.
 			await executor
 				.delete(questions)
 				.where(
@@ -100,8 +98,6 @@ export function createQuizPostgresRepository(
 					),
 				);
 
-			// position and fingerprint are unique per quiz and Postgres checks both
-			// per statement, so survivors are parked outside the unique space first.
 			await executor
 				.update(questions)
 				.set({
@@ -131,8 +127,6 @@ export function createQuizPostgresRepository(
 					.values(questionRow)
 					.onConflictDoUpdate({ target: questions.id, set: questionRow });
 
-				// Options carry no inbound foreign key, so replacing a question's own
-				// options loses nothing and avoids position collisions entirely.
 				await executor
 					.delete(questionOptions)
 					.where(eq(questionOptions.questionId, String(question.id)));

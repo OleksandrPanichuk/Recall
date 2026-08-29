@@ -74,7 +74,6 @@ export function createPostgresOAuthStore(
 		async consumeCode(
 			code: string,
 		): Promise<StoredAuthorizationCode | undefined> {
-			// One statement, so two exchanges of the same code cannot both win.
 			const [row] = await db
 				.update(oauthCodes)
 				.set({ consumedAt: now() })

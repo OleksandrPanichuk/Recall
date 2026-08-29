@@ -109,7 +109,6 @@ export function describeAttemptRepository(
 				startQuizAttempt({
 					id: toQuizAttemptId(uuid()),
 					quizSetId: toQuizSetId(quizId),
-					// Provenance: which telegram account started it. Not how it is found.
 					telegramUserId: USER,
 					mode: QuizAttemptMode.Full,
 					questionIds: [
@@ -190,8 +189,6 @@ export function describeAttemptRepository(
 
 				const active = await harness.scope.attempts.findActive();
 
-				// That another owner sees nothing is proven in ownership.contract.ts,
-				// where two scopes exist to compare.
 				expect(String(active?.id)).toBe(String(attempt.id));
 			});
 

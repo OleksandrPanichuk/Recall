@@ -24,7 +24,6 @@ import { type SupervisedProcess, superviseProcesses } from "./up.supervise";
 
 const READY_TIMEOUT_MS = 15_000;
 
-// Entries are repo-relative now that services live in different apps.
 const entrypoint = (entry: string): string =>
 	Bun.fileURLToPath(new URL(`../${entry}`, import.meta.url));
 

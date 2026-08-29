@@ -92,8 +92,6 @@ const hexOf = (prefix: string): string => {
 	return hash.toString(16).padStart(8, "0").slice(0, 8);
 };
 
-// Deterministic, uuid-shaped ids: Postgres columns are uuid, so a counter alone
-// will not do.
 export const sequentialId = (prefix: string, nth: number): string =>
 	`${hexOf(prefix)}-0000-4000-8000-${String(nth).padStart(12, "0")}`;
 

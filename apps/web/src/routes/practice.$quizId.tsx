@@ -59,9 +59,6 @@ function Practice() {
 			data: { questionId: question.id, ...answer },
 		});
 
-		// Answering already advanced the attempt and told us where it now stands,
-		// so moving on needs no request — and must not send another answer, which
-		// would grade the next question.
 		setVerdict(answered.result);
 		setPending(answered.current);
 		setBusy(false);

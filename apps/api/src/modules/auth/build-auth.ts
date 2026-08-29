@@ -22,13 +22,8 @@ export function createAuth(options: AuthOptions) {
 		baseURL: options.baseUrl,
 		basePath: AUTH_BASE_PATH,
 		trustedOrigins: [...options.trustedOrigins],
-		// Off until the plan's second auth phase. Enabling it opens
-		// POST /sign-up/email to anyone who can reach the api, and this instance
-		// admits exactly one person: whoever the bot vouches for.
 		emailAndPassword: { enabled: false },
 		session: {
-			// A year, re-issued on use: the "endless cookie" the owner asked for,
-			// but as a session row that can be revoked rather than a standing jwt.
 			expiresIn: 60 * 60 * 24 * 365,
 			updateAge: 60 * 60 * 24,
 		},

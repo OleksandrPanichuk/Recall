@@ -103,9 +103,6 @@ export class BotController {
 	@HttpCode(HttpStatus.OK)
 	async loginLink(@Body() body: unknown) {
 		const command = parseBody(loginLinkCommandSchema, body);
-		// The bot proves it is the bot with its own token and hands over the
-		// telegram id; the api is what maps that id to a user. No caller ever
-		// names a user id.
 		const link = await this.identity.issueLoginLink(
 			command.telegramUserId,
 			command.displayName,

@@ -9,6 +9,11 @@
 			"bun": "./src/index.ts",
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
+		},
+		"./shuffle": {
+			"bun": "./src/utils/shuffle.ts",
+			"types": "./dist/utils/shuffle.d.ts",
+			"default": "./dist/utils/shuffle.js"
 		}
 	},
 	"types": "./dist/index.d.ts",

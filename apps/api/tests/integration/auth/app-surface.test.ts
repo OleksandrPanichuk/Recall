@@ -45,8 +45,6 @@ let theirsOwner: string;
 let mineCookie: string;
 let theirsCookie: string;
 
-// The cookie is signed, so a test cannot forge one — it walks the real verify
-// endpoint instead, which is also the only code path a browser ever takes.
 const signIn = async (owner: string): Promise<string> => {
 	const token = randomUUID();
 	const db = drizzle({ client: harness.client, schema });

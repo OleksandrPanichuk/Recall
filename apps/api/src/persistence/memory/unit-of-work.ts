@@ -14,8 +14,6 @@ export interface MemoryPersistence {
 	readonly scope: RepositoryScope;
 }
 
-// Postgres isolates owners with a column; the double isolates them with a store
-// each, which cannot leak by a forgotten predicate.
 export interface MemoryStores {
 	of(owner: OwnerId): MemoryStore;
 	owners(): readonly OwnerId[];
@@ -42,8 +40,6 @@ export function createMemoryStores(): MemoryStores {
 	};
 }
 
-// The snapshot is what makes this a usable double rather than a fake: an
-// operation that throws must leave nothing behind, exactly as Postgres does.
 export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
 	const scope: RepositoryScope = {
 		pages: createMemoryPageRepository(store),

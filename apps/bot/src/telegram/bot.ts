@@ -91,8 +91,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 			return;
 		}
 
-		// Telegram spins the button until the query is answered. A replayed update
-		// is past the ~10s answer window and 400s, which must not abort dispatch.
 		await ctx.answerCbQuery().catch(() => {});
 
 		const _telegramUserId = ctx.from.id;
@@ -214,8 +212,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 		}
 	});
 
-	// A typed question is answered by sending a message, so text has to be
-	// offered to the attempt before it falls through to the menu.
 	bot.on("message", async (ctx) => {
 		const text =
 			"text" in ctx.message && typeof ctx.message.text === "string"

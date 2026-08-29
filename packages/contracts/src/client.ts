@@ -73,8 +73,6 @@ export type Fetch = (
 
 export interface RecallClientOptions {
 	readonly baseUrl: string | URL;
-	// What proves who the caller is: the bot's token, or a browser's cookie. Every
-	// operation below is identical either way — only this differs.
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly fetch?: Fetch;
 	readonly timeoutMs?: number;
@@ -124,9 +122,6 @@ export class BotApiContractError extends Error {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-// The api answers a refusal with the name of the error behind it, so a client
-// can tell "no active attempt" from "that set is not published" without
-// importing the api's error classes.
 export const ApiErrorName = {
 	NoActiveAttempt: "NoActiveAttemptError",
 	AttemptAlreadyInProgress: "AttemptAlreadyInProgressError",
@@ -168,8 +163,6 @@ export interface UseCaseLike<Command, Result> {
 	execute(command: Command): Promise<Result>;
 }
 
-// What a browser session can do. The bot does all of this too, plus mint the
-// credentials in BotUseCases below.
 export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly listDueRepetitions: UseCaseLike<
@@ -215,8 +208,6 @@ export interface PracticeUseCases {
 	>;
 }
 
-// The web app reaches the same use cases behind a session cookie instead of the
-// bot's token, so both surfaces share these route names.
 export const APP_ROUTE_PREFIX = "app";
 
 export interface BotUseCases extends PracticeUseCases {
@@ -434,7 +425,6 @@ function createClient(options: RecallClientOptions) {
 	};
 }
 
-// The bot proves itself with a token and may mint credentials.
 export function createBotClient(options: BotApiOptions): BotUseCases {
 	const client = createClient({
 		...options,
@@ -444,8 +434,6 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 	return { ...client.practice, ...client.credentials };
 }
 
-// A browser proves itself with the session cookie and may not. Same routes, same
-// schemas, different prefix — and no way to mint anything.
 export function createAppClient(options: AppApiOptions): PracticeUseCases {
 	return createClient({
 		...options,

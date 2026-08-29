@@ -12,8 +12,6 @@ interface Held {
 	revoked: boolean;
 }
 
-// The store's contract is what matters here, not where it lives. The postgres
-// implementation is held to the same suite.
 export function createMemoryOAuthStore(now: () => Date): OAuthStore {
 	const clients = new Map<string, StoredClient>();
 	const codes = new Map<

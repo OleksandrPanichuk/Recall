@@ -19,8 +19,6 @@ export interface ShutdownOptions {
 
 export const DEFAULT_SIGNALS: readonly NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
 
-// Reverse registration order, so polling stops before the database it writes to
-// closes — otherwise a signal mid-answer pulls the handle out of a transaction.
 export function createShutdown(options: ShutdownOptions): Shutdown {
 	const tasks: ShutdownTask[] = [];
 	let running: Promise<void> | undefined;

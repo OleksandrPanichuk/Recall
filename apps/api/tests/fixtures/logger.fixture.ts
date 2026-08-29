@@ -9,8 +9,6 @@ export interface RecordingLogger extends Logger {
 	text(): string;
 }
 
-// Records what the real logger would write, so a test sees the redacted and
-// clipped output rather than the fields the caller handed over.
 export function createRecordingLogger(
 	level: LogLevel = LogLevel.Debug,
 ): RecordingLogger {

@@ -6,10 +6,6 @@ import { scopeFor } from "./unit-of-work";
 
 export type OwnerResolver = () => Promise<OwnerId>;
 
-// Every repository method is async, so the owner can be resolved on the first
-// call rather than at wiring time. That is what lets the http surfaces be built
-// once at boot, before anyone has linked an account. When credentials become
-// per-user, the resolver becomes per-request and nothing else here changes.
 const lazyRepository = <TRepository extends object>(
 	resolve: () => Promise<TRepository>,
 ): TRepository =>

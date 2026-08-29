@@ -15,8 +15,6 @@ export const mintLoginToken = (): string =>
 	randomBytes(32).toString("base64url");
 
 export interface TelegramLinkOptions {
-	// Where the browser lands once the cookie is set. The token is spent by then,
-	// so this url never carries a credential.
 	readonly successUrl: string;
 	readonly failureUrl?: string;
 }
@@ -27,11 +25,6 @@ export const telegramLink = (options: TelegramLinkOptions) => {
 	return {
 		id: "telegram-link",
 		endpoints: {
-			// Issuing a link is deliberately NOT an endpoint. A route that turns a
-			// telegram id into a session is an authorization bypass the moment it is
-			// reachable, and better-auth's SERVER_ONLY only hides an endpoint from
-			// the generated client. The api issues links from its own bot surface,
-			// behind the bot token; this route only spends a token it did not mint.
 			verifyTelegramLogin: createAuthEndpoint(
 				"/telegram/verify",
 				{ method: "GET", query: verifyQuery, requireHeaders: true },

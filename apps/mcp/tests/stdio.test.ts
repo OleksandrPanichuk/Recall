@@ -101,9 +101,7 @@ beforeAll(async () => {
 			if (response.ok) {
 				break;
 			}
-		} catch {
-			// the api is not listening yet
-		}
+		} catch {}
 
 		await Bun.sleep(50);
 	}

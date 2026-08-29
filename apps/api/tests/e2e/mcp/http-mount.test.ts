@@ -68,8 +68,6 @@ beforeAll(async () => {
 	override("DATABASE_URL", harness.url);
 	override("ALLOWED_TELEGRAM_USER_ID", "42");
 	override("MCP_HTTP_TOKEN", TOKEN);
-	// The port is chosen by the kernel, so an allowed host cannot be named ahead
-	// of time. Dropping it turns dns rebinding protection off for this run.
 	override("MCP_HTTP_ALLOWED_HOST", undefined);
 	override("MCP_OAUTH_ISSUER", undefined);
 	override("MCP_OAUTH_PASSPHRASE", undefined);

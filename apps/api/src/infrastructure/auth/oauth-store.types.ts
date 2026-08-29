@@ -26,8 +26,6 @@ export interface StoredToken {
 	readonly ownerId?: string;
 }
 
-// Async throughout: the store lives in Postgres now. It was synchronous while it
-// was a local SQLite file, and that is what pinned this app to bun:sqlite.
 export interface OAuthStore {
 	saveClient(client: StoredClient): Promise<void>;
 	findClient(clientId: string): Promise<StoredClient | undefined>;

@@ -27,9 +27,6 @@ export async function findTelegramOwner(
 	return row === undefined ? undefined : toOwnerId(row.userId);
 }
 
-// One place decides which telegram id owns which rows. The bot's login flow and
-// the etl both go through here, so an import can never land under a different
-// user than the one the bot will hand the platform to.
 export async function ensureTelegramOwner(
 	db: RecallDatabase,
 	telegramUserId: number,

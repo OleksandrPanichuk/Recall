@@ -13,13 +13,10 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": source("./src"),
-			// The package's exports point node at dist; this app compiles the source
-			// instead, so editing a contract does not need a rebuild first.
 			"@recall/contracts": source("../../packages/contracts/src/index.ts"),
+			"@recall/kit/shuffle": source("../../packages/kit/src/utils/shuffle.ts"),
 		},
 	},
-	// Nitro turns the fetch handler into a server that actually listens; the bun
-	// preset is the one the plan settled on.
 	plugins: [
 		tailwindcss(),
 		tanstackStart(),

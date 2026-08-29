@@ -32,9 +32,6 @@ export function statusOf(error: Error): HttpStatus | undefined {
 	return byName[error.name];
 }
 
-// A refused call often carries what the caller needs to draw the next screen —
-// which mode had nothing to practise, which folder it was in. Only these keys
-// travel, so an error can never leak a field nobody vetted.
 const DETAIL_KEYS = [
 	"mode",
 	"folderId",

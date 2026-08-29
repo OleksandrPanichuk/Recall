@@ -7,8 +7,6 @@ export interface TypedAnswerFieldProps {
 	onAnswer(typed: string): void;
 }
 
-// Typed and cloze questions have no options at all — they were unanswerable
-// while every question rendered as a row of buttons.
 export function TypedAnswerField({
 	disabled,
 	onAnswer,

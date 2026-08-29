@@ -7,8 +7,6 @@ import { button } from "./utils/button";
 import { heading, hintLine } from "./utils/question-heading";
 import { truncated } from "./utils/truncate";
 
-// Selections arrive as a flat left, right, left, right sequence. An odd length
-// means a left is waiting for its partner, which is what drives the keyboard.
 export function matchingQuestionScreen(
 	view: CurrentQuestionView,
 	question: Question,

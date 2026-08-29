@@ -27,10 +27,6 @@ if (!Number.isSafeInteger(telegramUserId) || telegramUserId <= 0) {
 const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
 
 try {
-	// The schema is drizzle-kit's job. Applying it from here used to be possible
-	// with APPLY_SCHEMA=1, but it wrote the tables without recording them in
-	// drizzle's journal, so the next `db:migrate` on that database tried to create
-	// everything again and failed.
 	const [schema] = await client<{ present: boolean }[]>`
 		select to_regclass('public.quizzes') is not null as present
 	`;
@@ -42,9 +38,6 @@ try {
 		process.exit(1);
 	}
 
-	// The import has to land under a user, and it must be the same user the bot
-	// will hand the platform to — so it is resolved from the telegram id, and
-	// created if the owner has not linked yet.
 	const owner = await ensureTelegramOwner(drizzle({ client }), telegramUserId);
 
 	const report = await migrateSqliteToPostgres({ sqlitePath, client, owner });

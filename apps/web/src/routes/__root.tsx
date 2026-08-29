@@ -44,8 +44,6 @@ function Document({ children }: Readonly<{ children: ReactNode }>) {
 			<head>
 				<HeadContent />
 				<script
-					// The theme has to be on <html> before first paint, or the page
-					// flashes light before hydration corrects it.
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no input
 					dangerouslySetInnerHTML={{
 						__html: `try{if(matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark')}catch(e){}`,

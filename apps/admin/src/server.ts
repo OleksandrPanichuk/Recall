@@ -9,7 +9,6 @@ const server = Bun.serve({
 	port,
 	routes: {
 		"/": index,
-		// The bundle is static, so the API location is served rather than compiled in.
 		"/config.json": () => Response.json({ apiUrl }),
 	},
 	development: Bun.argv.includes("--debug"),

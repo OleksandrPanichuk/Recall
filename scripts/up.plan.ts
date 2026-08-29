@@ -4,8 +4,6 @@ export type ServiceName = (typeof SERVICE_NAMES)[number];
 
 export interface PlannedService {
 	readonly name: ServiceName;
-	// Most services are a file bun can run. The web app is a vite dev server, so
-	// it names a command instead.
 	readonly entry: string;
 	readonly command?: readonly string[];
 	readonly host?: string;

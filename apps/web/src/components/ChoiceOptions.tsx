@@ -1,25 +1,33 @@
 import type { Question } from "@recall/contracts";
 import { QuestionType } from "@recall/contracts";
+import { shuffled } from "@recall/kit/shuffle";
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 export interface ChoiceOptionsProps {
 	readonly question: Question;
 	readonly disabled: boolean;
+	readonly shuffleSeed?: string;
 	onAnswer(positions: readonly number[]): void;
 }
 
-// One click answers a single-choice question. Multiple choice collects a set
-// first, because answering on the first click would grade a half-made answer.
 export function ChoiceOptions({
 	question,
 	disabled,
+	shuffleSeed,
 	onAnswer,
 }: ChoiceOptionsProps) {
 	const many = question.type === QuestionType.MultipleChoice;
 	const [chosen, setChosen] = useState<readonly number[]>([]);
+	const shown = useMemo(
+		() =>
+			shuffleSeed === undefined
+				? question.options
+				: shuffled(question.options, shuffleSeed),
+		[question.options, shuffleSeed],
+	);
 
 	const toggle = (position: number): void => {
 		if (!many) {
@@ -37,7 +45,7 @@ export function ChoiceOptions({
 
 	return (
 		<div className="space-y-2">
-			{question.options.map((option) => {
+			{shown.map((option) => {
 				const picked = chosen.includes(option.position);
 
 				return (

@@ -131,8 +131,6 @@ export const oauthCodes = pgTable(
 	{
 		codeHash: text("code_hash").primaryKey(),
 		clientId: text("client_id").notNull(),
-		// Null only between registration and consent: a code is bound to whoever
-		// approved it, and an unbound code can never be exchanged.
 		ownerId: text("owner_id").references(() => user.id, {
 			onDelete: "cascade",
 		}),

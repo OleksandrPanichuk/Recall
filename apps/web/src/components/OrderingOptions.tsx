@@ -1,5 +1,6 @@
 import type { Question } from "@recall/contracts";
-import { useState } from "react";
+import { shuffled } from "@recall/kit/shuffle";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -9,8 +10,6 @@ export interface OrderingOptionsProps {
 	onAnswer(positions: readonly number[]): void;
 }
 
-// The api grades an ordering question by the order the positions arrive in, so
-// the ui records clicks as a sequence rather than a set.
 export function OrderingOptions({
 	question,
 	disabled,
@@ -18,10 +17,14 @@ export function OrderingOptions({
 }: OrderingOptionsProps) {
 	const [order, setOrder] = useState<readonly number[]>([]);
 	const complete = order.length === question.options.length;
+	const shown = useMemo(
+		() => shuffled(question.options, String(question.id)),
+		[question.options, question.id],
+	);
 
 	return (
 		<div className="space-y-2">
-			{question.options.map((option) => {
+			{shown.map((option) => {
 				const rank = order.indexOf(option.position);
 
 				return (

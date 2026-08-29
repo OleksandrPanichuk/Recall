@@ -65,9 +65,6 @@ const numbers = (raw: string | null): readonly number[] =>
 		.map((entry) => Number(entry))
 		.filter((entry) => Number.isSafeInteger(entry));
 
-// Timestamps travel as ISO strings, never Date objects: postgres.js picks an
-// encoder from the first execution of a query string, and a Date arriving where
-// a nullable column was null on the first row hits the text encoder and throws.
 const date = (raw: string | null): string | null => {
 	if (raw === null) {
 		return null;
@@ -215,8 +212,6 @@ export async function migrateSqliteToPostgres(options: {
 			.query<FolderRow, []>("select * from folders order by name")
 			.all();
 
-		// A folder can only be written after its parent, and parent_id order does
-		// not guarantee that beyond the first level.
 		const folders: FolderRow[] = [];
 		const placed = new Set<string>();
 		let remaining = [...allFolders];
@@ -566,9 +561,6 @@ export async function migrateSqliteToPostgres(options: {
 			count("study_settings", 1);
 		}
 
-		// v1 hashed question content with Bun.hash; this app hashes it with sha256,
-		// so a copied fingerprint would never collide with one the app computes.
-		// They are derived data, so they are recomputed rather than imported.
 		count("fingerprints", await recomputeFingerprints(client));
 
 		notes.push("oauth tables are not migrated: better auth owns identity now");
@@ -746,8 +738,6 @@ interface FingerprintOption {
 	readonly match_key: string | null;
 }
 
-// Read back out and hashed by the same function the repository uses, so an
-// imported question and an identical new one collide as they should.
 export async function recomputeFingerprints(
 	client: postgres.Sql,
 ): Promise<number> {

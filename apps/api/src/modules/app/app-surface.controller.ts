@@ -51,9 +51,6 @@ import { USE_CASES_FOR } from "../shared/database/tokens";
 import type { UseCasesFor } from "../shared/database/use-cases-for";
 import { SessionGuard, type SessionRequest } from "./session.guard";
 
-// The same practice flow the bot drives, behind a session cookie instead of the
-// bot's token. The routes are identical because the contract is: only who the
-// api believes the caller to be differs.
 @ApiExcludeController()
 @UseGuards(SessionGuard)
 @Controller(APP_ROUTE_PREFIX)
