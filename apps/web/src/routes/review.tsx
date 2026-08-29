@@ -5,6 +5,7 @@ import { ReviewView } from "@/features/review/ui/views/ReviewView";
 export const Route = createFileRoute("/review")({
 	loader: async ({ context }) =>
 		context.viewer === null ? null : loadRepetitions(),
+	head: () => ({ meta: [{ title: "Повторення · Recall" }] }),
 	component: Review,
 });
 

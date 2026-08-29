@@ -191,3 +191,31 @@
 .recall-editor .milkdown .milkdown-slash-menu .menu-group li.active svg {
 	fill: var(--foreground);
 }
+.viz {
+	--viz-surface: var(--card);
+	--viz-series: #2a78d6;
+	--viz-step-0: var(--muted);
+	--viz-step-1: #cde2fb;
+	--viz-step-2: #9ec5f4;
+	--viz-step-3: #5598e7;
+	--viz-step-4: #2a78d6;
+	--viz-step-5: #184f95;
+}
+
+.dark .viz {
+	--viz-series: #3987e5;
+	--viz-step-1: #184f95;
+	--viz-step-2: #256abf;
+	--viz-step-3: #3987e5;
+	--viz-step-4: #6da7ec;
+	--viz-step-5: #9ec5f4;
+}
+
+@keyframes recall-sweep {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(400%);
+	}
+}

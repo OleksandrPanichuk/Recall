@@ -1,6 +1,8 @@
 import type { CurrentQuestionView } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Eye, Flag } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { usePracticeSession } from "@/features/practice/hooks/use-practice-session";
 import { AttemptFinished } from "@/features/practice/ui/components/AttemptFinished";
@@ -22,6 +24,13 @@ interface Props {
 
 export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 	const session = usePracticeSession(started);
+	const verdictRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (session.verdict !== null) {
+			verdictRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+		}
+	}, [session.verdict]);
 
 	if (!signedIn) {
 		return <SignInPrompt />;
@@ -58,6 +67,10 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 				onAnswer={session.send}
 			/>
 
+			{session.failure === null ? null : (
+				<Alert variant="destructive">{session.failure}</Alert>
+			)}
+
 			{session.verdict === null ? (
 				<Button
 					variant="ghost"
@@ -69,7 +82,7 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 					Показати відповідь
 				</Button>
 			) : (
-				<div className="space-y-4">
+				<div ref={verdictRef} className="space-y-4 scroll-mt-4">
 					<VerdictPanel verdict={session.verdict} />
 					<Button
 						size="lg"

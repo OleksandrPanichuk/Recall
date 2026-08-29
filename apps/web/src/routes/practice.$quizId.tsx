@@ -5,6 +5,13 @@ import { PracticeView } from "@/features/practice/ui/views/PracticeView";
 export const Route = createFileRoute("/practice/$quizId")({
 	loader: async ({ context, params }) =>
 		context.viewer === null ? null : startAttempt({ data: params.quizId }),
+	head: ({ loaderData }) => ({
+		meta: [
+			{
+				title: `${loaderData?.current?.quizSetTitle ?? "Практика"} · Recall`,
+			},
+		],
+	}),
 	component: Practice,
 });
 

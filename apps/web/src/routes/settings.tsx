@@ -5,6 +5,7 @@ import { SettingsView } from "@/features/settings/ui/views/SettingsView";
 export const Route = createFileRoute("/settings")({
 	loader: async ({ context }) =>
 		context.viewer === null ? null : loadSettings({ data: undefined }),
+	head: () => ({ meta: [{ title: "Налаштування · Recall" }] }),
 	component: Settings,
 });
 

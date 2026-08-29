@@ -5,6 +5,7 @@ import { LibraryView } from "@/features/pages/ui/views/LibraryView";
 export const Route = createFileRoute("/")({
 	loader: async ({ context }) =>
 		context.viewer === null ? null : loadLibrary({ data: undefined }),
+	head: () => ({ meta: [{ title: "Бібліотека · Recall" }] }),
 	component: Library,
 });
 

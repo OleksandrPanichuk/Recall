@@ -23,6 +23,13 @@ export const Route = createFileRoute("/quizzes/$quizId")({
 				active.current?.quizSetId === params.quizId ? active.current : null,
 		};
 	},
+	head: ({ loaderData }) => ({
+		meta: [
+			{
+				title: `${loaderData?.statistics?.title ?? "Набір"} · Recall`,
+			},
+		],
+	}),
 	component: Quiz,
 });
 

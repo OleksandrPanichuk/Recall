@@ -7,6 +7,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { usePreloadPages } from "@/features/pages/hooks/use-preload-pages";
 import { loadPageTree } from "@/features/pages/lib/pages.api";
 import { PageTree } from "@/features/pages/ui/components/PageTree";
 import { loadSession } from "@/shared/lib/viewer";
@@ -40,6 +41,8 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
 	const { viewer } = Route.useRouteContext();
 	const { nodes } = Route.useLoaderData();
+
+	usePreloadPages(nodes);
 
 	return (
 		<Document>

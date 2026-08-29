@@ -9,6 +9,7 @@ import {
 	answerQuestion,
 	finishAttempt,
 } from "@/features/practice/lib/practice.api";
+import { messageFor } from "@/features/practice/lib/practice.errors";
 import type {
 	Answer,
 	FinishedAttempt,
@@ -21,23 +22,31 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 	const [verdict, setVerdict] = useState<AnswerQuestionResult | null>(null);
 	const [finished, setFinished] = useState<FinishedAttempt | null>(null);
 	const [busy, setBusy] = useState(false);
+	const [failure, setFailure] = useState<string | null>(null);
 
 	const finish = async (): Promise<void> => {
 		setBusy(true);
+		setFailure(null);
 
-		const result = await finishAttempt();
+		try {
+			const result = await finishAttempt();
 
-		setFinished({
-			attemptId: result.attemptId,
-			correct: result.score.correct,
-			total: result.score.total,
-			percentage: result.score.percentage,
-		});
-		setBusy(false);
+			setFinished({
+				attemptId: result.attemptId,
+				correct: result.score.correct,
+				total: result.score.total,
+				percentage: result.score.percentage,
+			});
+		} catch (error) {
+			setFailure(messageFor(error));
+		} finally {
+			setBusy(false);
+		}
 	};
 
 	return {
 		current,
+		failure,
 		pending,
 		verdict,
 		finished,
@@ -51,14 +60,20 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 			}
 
 			setBusy(true);
+			setFailure(null);
 
-			const answered = await answerQuestion({
-				data: { questionId: question.id, ...answer },
-			});
+			try {
+				const answered = await answerQuestion({
+					data: { questionId: question.id, ...answer },
+				});
 
-			setVerdict(answered.result);
-			setPending(answered.current);
-			setBusy(false);
+				setVerdict(answered.result);
+				setPending(answered.current);
+			} catch (error) {
+				setFailure(messageFor(error));
+			} finally {
+				setBusy(false);
+			}
 		},
 		next: (): void => {
 			setVerdict(null);
