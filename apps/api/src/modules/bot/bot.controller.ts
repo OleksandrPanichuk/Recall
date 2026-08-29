@@ -19,6 +19,7 @@ import {
 	deletePageCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
+	insightsCommandSchema,
 	issueApiTokenCommandSchema,
 	leechesCommandSchema,
 	listApiTokensCommandSchema,
@@ -35,6 +36,7 @@ import {
 	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
+import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -69,6 +71,7 @@ import {
 	currentQuestionToWire,
 	dueSetToWire,
 	finishResultToWire,
+	insightsToWire,
 	leechToWire,
 	pageTreeNodeToWire,
 	practiceResultToWire,
@@ -93,6 +96,8 @@ export class BotController {
 		private readonly writeSummary: WriteSummaryUseCase,
 		@Inject(SearchPagesUseCase)
 		private readonly searchPages: SearchPagesUseCase,
+		@Inject(GetInsightsUseCase)
+		private readonly getInsights: GetInsightsUseCase,
 		@Inject(CreateFolderUseCase)
 		private readonly createFolder: CreateFolderUseCase,
 		@Inject(RenameFolderUseCase)
@@ -279,6 +284,14 @@ export class BotController {
 		const nodes = await this.listFolderTree.execute({});
 
 		return nodes.map(pageTreeNodeToWire);
+	}
+
+	@Post(BOT_ROUTES.insights)
+	@HttpCode(HttpStatus.OK)
+	async insights(@Body() body: unknown) {
+		const command = parseBody(insightsCommandSchema, body);
+
+		return insightsToWire(await this.getInsights.execute(command));
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

@@ -87,6 +87,10 @@ export const saveSettings = createServerFn({ method: "POST" })
 		return api().resolveQuizSettings.execute({ quizSetId: data.quizSetId });
 	});
 
+export const loadInsights = createServerFn().handler(async () =>
+	api().getInsights.execute({}),
+);
+
 export const loadCurrentQuestion = createServerFn().handler(async () => ({
 	current: (await api().getCurrentQuestion.execute({})) ?? null,
 }));

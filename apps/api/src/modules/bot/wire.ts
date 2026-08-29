@@ -5,6 +5,7 @@ import type {
 	CurrentQuestionView as WireCurrentQuestion,
 	DueSet as WireDueSet,
 	FinishQuizAttemptResult as WireFinishResult,
+	Insights as WireInsights,
 	LeechView as WireLeech,
 	PageTreeNode as WirePageTreeNode,
 	StartPracticeSessionResult as WirePracticeResult,
@@ -16,6 +17,7 @@ import type {
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
 import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
+import type { Insights } from "@/application/use-cases/analytics/get-insights";
 import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answer-question";
 import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
@@ -60,6 +62,25 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 	status: summary.status,
 	questionCount: summary.questionCount,
 	updatedAt: summary.updatedAt.toISOString(),
+});
+
+export const insightsToWire = (insights: Insights): WireInsights => ({
+	from: insights.from,
+	to: insights.to,
+	activity: insights.activity.map((day) => ({ ...day })),
+	forecast: insights.forecast.map((day) => ({ ...day })),
+	hardest: insights.hardest.map((stat) => ({
+		questionId: String(stat.questionId),
+		quizSetId: String(stat.quizSetId),
+		quizSetTitle: stat.quizSetTitle,
+		prompt: stat.prompt,
+		answered: stat.answered,
+		correct: stat.correct,
+		lapses: stat.lapses,
+	})),
+	streak: insights.streak,
+	answered: insights.answered,
+	correct: insights.correct,
 });
 
 export const pageTreeNodeToWire = (node: FolderTreeNode): WirePageTreeNode => ({

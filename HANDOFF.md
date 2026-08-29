@@ -119,9 +119,13 @@ practice, attempt review, `/review` for due repetitions and leeches, `/settings`
 not-found. Page mutations — create, rename, icon, delete, tree — go over `/app/*` and
 `/bot/*` alike.
 
-**Next is plan §4's analytics** — the dashboards over `GetQuizStatistics` and `GetAttemptDetail`,
-both of which already exist and are tested. After that, §5's second auth phase (email+password,
-which is deliberately disabled today) and FSRS.
+Plan §4's analytics landed too: `/insights` shows a year-long activity heatmap, a
+fortnight's due forecast, and the questions that go wrong most, over an
+`AnalyticsRepository` that does real SQL aggregates rather than in-memory loops.
+
+**What is left** is §5's second auth phase (email+password, deliberately disabled
+today), sharing, and FSRS. §4's read models are computed on demand, not materialized — see the
+note below.
 
 **Verified live, not only in tests** (2026-08-29): a scratch database, `drizzle-kit migrate` from
 empty through 0006, the API on Node, and every new tool driven over real HTTP MCP — write, append,
@@ -158,6 +162,12 @@ overflows sideways. No console errors and no failed requests in any pass.
   useful message. That database was built before the journal existed; recreate it
   (`bun run db:reset`, then `db:migrate`, then the ETL) rather than trying to patch it. A scratch
   database is the safe way to smoke-test without touching it.
+- **The analytics read models are queries, not tables.** §4 sketches
+  `daily_activity` / `question_stats` as materialized read models refreshed on write. They are
+  three grouped queries instead: at personal scale a `group by` over `responses` is milliseconds,
+  and a table refreshed on write is a second thing to keep correct. If a query ever gets slow the
+  port is already the seam — `AnalyticsRepository` can be backed by a table without any caller
+  changing.
 - **One flaky test seen once:** `apps/api/src/adapters/admin/api.test.ts` — "deletes one and
   answers with the record that went" failed a single full run and passed in isolation and on
   re-run. Nothing was changed for it. If it recurs, suspect cross-file env or port reuse.

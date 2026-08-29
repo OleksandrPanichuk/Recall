@@ -287,6 +287,41 @@ export const pageTreeNodeSchema = z.object({
 	unpublishedCount: count,
 });
 
+export const insightsCommandSchema = z.object({
+	historyDays: z.number().int().optional(),
+	forecastDays: z.number().int().optional(),
+});
+
+export const dailyActivitySchema = z.object({
+	day: z.string(),
+	attempts: count,
+	answered: count,
+	correct: count,
+});
+
+export const dueForecastDaySchema = z.object({ day: z.string(), due: count });
+
+export const questionStatSchema = z.object({
+	questionId: id,
+	quizSetId: id,
+	quizSetTitle: z.string(),
+	prompt: z.string(),
+	answered: count,
+	correct: count,
+	lapses: count,
+});
+
+export const insightsSchema = z.object({
+	from: z.string(),
+	to: z.string(),
+	activity: z.array(dailyActivitySchema).readonly(),
+	forecast: z.array(dueForecastDaySchema).readonly(),
+	hardest: z.array(questionStatSchema).readonly(),
+	streak: count,
+	answered: count,
+	correct: count,
+});
+
 export const searchPagesCommandSchema = z.object({
 	query: z.string(),
 	limit: z.number().int().optional(),
@@ -394,6 +429,11 @@ export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;
 export type SetPageIconCommand = z.infer<typeof setPageIconCommandSchema>;
 export type DeletePageCommand = z.infer<typeof deletePageCommandSchema>;
 export type PageTreeNode = z.infer<typeof pageTreeNodeSchema>;
+export type GetInsightsCommand = z.infer<typeof insightsCommandSchema>;
+export type Insights = z.infer<typeof insightsSchema>;
+export type DailyActivity = z.infer<typeof dailyActivitySchema>;
+export type DueForecastDay = z.infer<typeof dueForecastDaySchema>;
+export type QuestionStat = z.infer<typeof questionStatSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;
 export type GetCurrentQuestionCommand = z.infer<

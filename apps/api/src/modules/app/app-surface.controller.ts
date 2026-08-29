@@ -20,6 +20,7 @@ import {
 	deletePageCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
+	insightsCommandSchema,
 	leechesCommandSchema,
 	practiceCommandSchema,
 	renamePageCommandSchema,
@@ -46,6 +47,7 @@ import {
 	currentQuestionToWire,
 	dueSetToWire,
 	finishResultToWire,
+	insightsToWire,
 	leechToWire,
 	pageTreeNodeToWire,
 	practiceResultToWire,
@@ -166,6 +168,14 @@ export class AppSurfaceController {
 		const nodes = await this.of(request).listFolderTree.execute({});
 
 		return nodes.map(pageTreeNodeToWire);
+	}
+
+	@Post(BOT_ROUTES.insights)
+	@HttpCode(HttpStatus.OK)
+	async insights(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(insightsCommandSchema, body);
+
+		return insightsToWire(await this.of(request).getInsights.execute(command));
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

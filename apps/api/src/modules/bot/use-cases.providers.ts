@@ -1,5 +1,6 @@
 import type { Provider } from "@nestjs/common";
 import type { ApplicationDependencies } from "@/application/use-case";
+import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -39,6 +40,7 @@ export const botUseCases: Provider[] = [
 	SetPageIconUseCase,
 	DeleteFolderUseCase,
 	ListFolderTreeUseCase,
+	GetInsightsUseCase,
 	StartQuizAttemptUseCase,
 	StartPracticeSessionUseCase,
 	GetCurrentQuestionUseCase,

@@ -1,6 +1,7 @@
 import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import { createMemoryAnalyticsRepository } from "./analytics.repository";
 import { createMemoryAttemptRepository } from "./attempt.repository";
 import { createMemoryPageRepository } from "./page.repository";
 import { createMemoryQuizRepository } from "./quiz.repository";
@@ -47,6 +48,7 @@ export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
 		attempts: createMemoryAttemptRepository(store),
 		reviews: createMemoryReviewRepository(store),
 		termPairs: createMemoryTermPairRepository(store),
+		analytics: createMemoryAnalyticsRepository(store),
 	};
 
 	return {

@@ -6,6 +6,7 @@ import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { ApplicationDependencies } from "@/application/use-case";
+import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -89,6 +90,7 @@ export interface UseCases {
 	readonly listRevisions: ListRevisionsUseCase;
 	readonly searchPages: SearchPagesUseCase;
 	readonly setPageIcon: SetPageIconUseCase;
+	readonly getInsights: GetInsightsUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly startQuizAttempt: StartQuizAttemptUseCase;
@@ -155,6 +157,7 @@ export function createUseCases(
 		listRevisions: new ListRevisionsUseCase(dependencies),
 		searchPages: new SearchPagesUseCase(dependencies),
 		setPageIcon: new SetPageIconUseCase(dependencies),
+		getInsights: new GetInsightsUseCase(dependencies),
 		attachQuiz: new AttachQuizUseCase(dependencies),
 		detachQuiz: new DetachQuizUseCase(dependencies),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),

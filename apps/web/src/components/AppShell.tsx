@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
 	BrainCircuit,
 	CalendarClock,
+	ChartColumn,
 	Library,
 	Menu,
 	Settings,
@@ -74,6 +75,14 @@ export function AppShell({ viewer, pages, children }: AppShellProps) {
 					>
 						<CalendarClock className="size-4" />
 						Повторення
+					</Link>
+					<Link
+						to="/insights"
+						className={navLink}
+						activeProps={{ className: "bg-accent/60 text-foreground" }}
+					>
+						<ChartColumn className="size-4" />
+						Статистика
 					</Link>
 					<Link
 						to="/settings"

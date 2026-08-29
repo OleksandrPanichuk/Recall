@@ -31,10 +31,14 @@ import {
 	finishResultSchema,
 	type GetAttemptDetailCommand,
 	type GetCurrentQuestionCommand,
+	type GetInsightsCommand,
 	type GetQuizStatisticsCommand,
+	type Insights,
 	type IssueApiTokenCommand,
 	type IssuedApiToken,
 	type IssueLoginLinkCommand,
+	insightsCommandSchema,
+	insightsSchema,
 	issueApiTokenCommandSchema,
 	issuedApiTokenSchema,
 	type LeechView,
@@ -187,6 +191,7 @@ export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
 	readonly searchPages: UseCaseLike<SearchPagesCommand, readonly PageMatch[]>;
+	readonly getInsights: UseCaseLike<GetInsightsCommand, Insights>;
 	readonly createPage: UseCaseLike<CreatePageCommand, CreatedPage>;
 	readonly renamePage: UseCaseLike<RenamePageCommand, void>;
 	readonly setPageIcon: UseCaseLike<SetPageIconCommand, void>;
@@ -258,6 +263,7 @@ export const BOT_ROUTES = {
 	browse: "browse",
 	writeSummary: "pages/summary",
 	searchPages: "pages/search",
+	insights: "insights",
 	createPage: "pages/create",
 	renamePage: "pages/rename",
 	setPageIcon: "pages/icon",
@@ -387,6 +393,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.searchPages,
 			searchPagesCommandSchema,
 			pageMatchSchema.array().readonly(),
+		),
+		getInsights: operation(
+			BOT_ROUTES.insights,
+			insightsCommandSchema,
+			insightsSchema,
 		),
 		createPage: operation(
 			BOT_ROUTES.createPage,
