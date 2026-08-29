@@ -223,6 +223,53 @@ describe.skipIf(!available)("the app surface, behind a session", () => {
 		expect(finished.score.correct).toBe(1);
 	});
 
+	test("accepts a typed answer, which the web app sends as text", async () => {
+		const db = drizzle({ client: harness.client, schema });
+		const application = createUseCases({
+			unitOfWork: createPostgresUnitOfWork(db, toOwnerId(mineOwner)),
+			scope: readOnlyScope(db, toOwnerId(mineOwner)),
+			clock: { now: () => new Date() },
+			idGenerator: { generate: () => randomUUID() },
+			timezone: "UTC",
+		});
+		const { quizSetId } = await application.createQuizSet.execute({
+			title: "Typed",
+			language: "en",
+		});
+
+		await application.addQuestions.execute({
+			quizSetId,
+			questions: [
+				{
+					type: "typed_answer",
+					prompt: "What does WAL stand for?",
+					difficulty: "medium",
+					options: [{ text: "write-ahead log", isCorrect: true }],
+				},
+			],
+		});
+		await application.publishQuizSet.execute({ quizSetId });
+		await call("attempts/finish", mineCookie);
+		await call("attempts/start", mineCookie, { quizSetId: String(quizSetId) });
+
+		const current = (await (
+			await call("attempts/current", mineCookie)
+		).json()) as { question: { id: string; type: string } };
+
+		expect(current.question.type).toBe("typed_answer");
+
+		const answered = (await (
+			await call("attempts/answer", mineCookie, {
+				questionId: current.question.id,
+				typedAnswer: "write-ahead log",
+			})
+		).json()) as { isCorrect: boolean };
+
+		expect(answered.isCorrect).toBe(true);
+
+		await call("attempts/finish", mineCookie);
+	});
+
 	test("the other user's attempt is invisible here", async () => {
 		expect((await call("attempts/current", theirsCookie)).status).toBe(204);
 	});

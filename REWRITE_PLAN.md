@@ -1580,6 +1580,41 @@ their own library, and one gets 404 on the other's attempt.
 **Not done here:** analytics dashboards (phase 11), the summary editor (phase 10), and any real
 visual design — this is the flow, in plain CSS, so the shape can be reviewed before it is dressed.
 
+## Phase 9, second pass: every question type, and a real interface (r28)
+
+**The bug worth naming.** The first cut rendered `question.options` as a row of buttons for every
+question type. That is only correct for single choice and true/false: a **typed answer or cloze
+question has no options at all**, so it rendered an empty screen with no way to answer — a dead
+end on real data, since the live library is full of them — and a **multiple choice** question was
+graded on the first click, before the rest of the set was chosen. Ordering and matching were
+meaningless as a flat list.
+
+Answering is now one component per type, chosen by `QuestionCard`, each encoding what the api
+grades: a set of positions for choice, the positions *in click order* for ordering, pairs
+flattened left-right for matching, and text for typed and cloze. A reveal button gives an exit
+from a question you cannot answer.
+
+**Tailwind v4 and shadcn/ui.** No config file — the theme is CSS variables in `app.css`, dark mode
+included, applied before first paint so the page does not flash. The primitives (`Button`, `Card`,
+`Badge`, `Progress`, `Input`, `Alert`) are copied in, as shadcn intends, and the app components
+sit beside them: `AppShell`, `LibraryList`, `QuestionCard`, `VerdictPanel`, `AnsweredQuestion`,
+`AttemptHistory`, `TopicAccuracyList`, `ScoreSummary`, `SignInPrompt`, `PageHeading`.
+
+**Component files are PascalCase** — the owner's call, and the convention shadcn snippets assume.
+Non-components stay kebab-case. Routes are now routing and data only; the markup lives in
+components.
+
+**Two toolchain facts this pass paid for.** Vite does not read tsconfig paths, so `@/` needs an
+explicit alias in `vite.config.ts`; and the root tsconfig already maps `@/` to the api's source,
+so `apps/web` is excluded from it and typechecked as its own project. Biome needed
+`css.parser.tailwindDirectives` to parse `@theme` and `@apply`.
+
+**Proven by walking all five types** against a seeded quiz on a live api: single choice renders
+plain options; multiple choice adds "Оберіть усі правильні варіанти" with checkboxes and a submit;
+true/false renders two options; **typed answer renders a real text input** where there was
+nothing; ordering renders numbered click-to-order with a reset. The typed-answer path is pinned in
+`app-surface.test.ts`, which sends `typedAnswer` the way the ui now does and asserts it grades.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

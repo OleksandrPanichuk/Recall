@@ -1,6 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { SignInPrompt } from "../components/sign-in-prompt";
-import { loadLibrary } from "../lib/practice";
+import { createFileRoute } from "@tanstack/react-router";
+import { LibraryList } from "@/components/LibraryList";
+import { PageHeading } from "@/components/PageHeading";
+import { SignInPrompt } from "@/components/SignInPrompt";
+import { loadLibrary } from "@/lib/practice";
 
 export const Route = createFileRoute("/")({
 	loader: async ({ context }) =>
@@ -15,43 +17,16 @@ function Library() {
 		return <SignInPrompt />;
 	}
 
+	const sets = view.sets.length;
+	const folders = view.children.length;
+
 	return (
 		<>
-			<h1>Ваша бібліотека</h1>
-			<p className="lede">
-				{view.sets.length} набор(ів) тут{" "}
-				{view.children.length > 0 ? `і ${view.children.length} папк(и)` : null}
-			</p>
-
-			{view.children.length > 0 ? (
-				<ul className="list" style={{ marginBottom: "1.5rem" }}>
-					{view.children.map((folder) => (
-						<li key={folder.id}>
-							<Link to="/folders/$folderId" params={{ folderId: folder.id }}>
-								📁 {folder.name}
-							</Link>
-							<small>{folder.itemCount}</small>
-						</li>
-					))}
-				</ul>
-			) : null}
-
-			<ul className="list">
-				{view.sets.map((set) => (
-					<li key={set.id}>
-						<Link to="/quizzes/$quizId" params={{ quizId: set.id }}>
-							{set.title}
-						</Link>
-						<small>{set.questionCount} питань</small>
-					</li>
-				))}
-			</ul>
-
-			{view.sets.length === 0 && view.children.length === 0 ? (
-				<p className="lede">
-					Тут поки порожньо. Створіть набір через бота або MCP.
-				</p>
-			) : null}
+			<PageHeading
+				title="Ваша бібліотека"
+				caption={`${sets} набор(ів)${folders > 0 ? `, ${folders} папк(и)` : ""}`}
+			/>
+			<LibraryList view={view} />
 		</>
 	);
 }

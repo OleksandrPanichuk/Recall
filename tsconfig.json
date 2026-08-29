@@ -9,5 +9,6 @@
 			"@recall/kit": ["./packages/kit/src/index.ts"],
 			"@recall/contracts": ["./packages/contracts/src/index.ts"]
 		}
-	}
+	},
+	"exclude": ["apps/web"]
 }

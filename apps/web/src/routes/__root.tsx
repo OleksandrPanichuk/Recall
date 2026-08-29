@@ -3,13 +3,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import {
 	createRootRouteWithContext,
 	HeadContent,
-	Link,
 	Outlet,
 	Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { loadSession } from "../lib/practice";
-import appCss from "../styles/app.css?url";
+import { AppShell } from "@/components/AppShell";
+import { loadSession } from "@/lib/practice";
+import appCss from "@/styles/app.css?url";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
@@ -30,27 +30,27 @@ function RootComponent() {
 	const { viewer } = Route.useRouteContext();
 
 	return (
-		<Shell>
-			<header className="bar">
-				<div>
-					<Link to="/">
-						<strong>Recall</strong>
-					</Link>
-					<small>{viewer === null ? "not signed in" : viewer.name}</small>
-				</div>
-			</header>
-			<main>
+		<Document>
+			<AppShell viewer={viewer}>
 				<Outlet />
-			</main>
-		</Shell>
+			</AppShell>
+		</Document>
 	);
 }
 
-function Shell({ children }: Readonly<{ children: ReactNode }>) {
+function Document({ children }: Readonly<{ children: ReactNode }>) {
 	return (
-		<html lang="uk">
+		<html lang="uk" suppressHydrationWarning>
 			<head>
 				<HeadContent />
+				<script
+					// The theme has to be on <html> before first paint, or the page
+					// flashes light before hydration corrects it.
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no input
+					dangerouslySetInnerHTML={{
+						__html: `try{if(matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark')}catch(e){}`,
+					}}
+				/>
 			</head>
 			<body>
 				{children}

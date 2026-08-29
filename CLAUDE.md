@@ -325,6 +325,26 @@ Beyond the conventions in `ARCHITECTURE.md`:
   stutters is worse than one that does not. This is the opposite of `*.handler.ts` /
   `*.presenter.ts` / `*.tool.ts`, which sit in directories that do **not** name their role.
 
+## `apps/web`
+
+Tailwind v4 (through `@tailwindcss/vite`, no config file — the theme is CSS variables in
+`src/styles/app.css`) and shadcn/ui components copied into `src/components/ui`.
+
+- **Component files are PascalCase and named for the component**: `QuestionCard.tsx`,
+  `ui/Button.tsx`. This is the opposite of the api's `answer-question.ts`, and deliberate — it is
+  the convention every shadcn snippet and React codebase assumes, and the file *is* the component.
+  Everything that is not a component keeps kebab-case: `lib/practice.ts`, `lib/session.ts`.
+- **A route file holds routing and data, not markup.** `createFileRoute`, its loader, and a thin
+  component that composes named components from `src/components`. If a route grows a second
+  screenful of JSX, that JSX is a component.
+- **`@/` means `apps/web/src`**, as shadcn expects. The root tsconfig maps `@/` to the api's
+  source, so `apps/web` is excluded there and typechecked as its own project — `bun run typecheck`
+  runs both.
+- **Every question type has its own answering component** (`ChoiceOptions`, `TypedAnswerField`,
+  `OrderingOptions`, `MatchingOptions`), chosen by `QuestionCard`. Rendering `question.options` as
+  buttons for every type leaves typed and cloze questions unanswerable — they have no options at
+  all — and grades a multiple-choice question on the first click.
+
 ## Code comments
 
 Do not write code comments. Not header comments, not JSDoc, not a one-line note

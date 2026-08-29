@@ -3,9 +3,16 @@ import type {
 	CurrentQuestionView,
 } from "@recall/contracts";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, Eye, Flag } from "lucide-react";
 import { useState } from "react";
-import { SignInPrompt } from "../components/sign-in-prompt";
-import { answerQuestion, finishAttempt, startAttempt } from "../lib/practice";
+import { PageHeading } from "@/components/PageHeading";
+import { QuestionCard } from "@/components/QuestionCard";
+import { ScoreSummary } from "@/components/ScoreSummary";
+import { SignInPrompt } from "@/components/SignInPrompt";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { VerdictPanel } from "@/components/VerdictPanel";
+import { answerQuestion, finishAttempt, startAttempt } from "@/lib/practice";
 
 export const Route = createFileRoute("/practice/$quizId")({
 	loader: async ({ context, params }) =>
@@ -13,44 +20,48 @@ export const Route = createFileRoute("/practice/$quizId")({
 	component: Practice,
 });
 
-interface Finished {
-	readonly correct: number;
-	readonly total: number;
-	readonly attemptId: string;
+interface Answer {
+	readonly selectedOptionPositions?: readonly number[];
+	readonly typedAnswer?: string;
+	readonly revealed?: boolean;
 }
 
 function Practice() {
 	const loaded = Route.useLoaderData();
 	const { quizId } = Route.useParams();
 	const [current, setCurrent] = useState<CurrentQuestionView | null>(
-		loaded === null ? null : loaded.current,
+		loaded?.current ?? null,
 	);
-	const [verdict, setVerdict] = useState<AnswerQuestionResult | null>(null);
 	const [pending, setPending] = useState<CurrentQuestionView | null>(null);
-	const [finished, setFinished] = useState<Finished | null>(null);
+	const [verdict, setVerdict] = useState<AnswerQuestionResult | null>(null);
+	const [finished, setFinished] = useState<{
+		readonly attemptId: string;
+		readonly correct: number;
+		readonly total: number;
+		readonly percentage: number;
+	} | null>(null);
 	const [busy, setBusy] = useState(false);
 
 	if (loaded === null) {
 		return <SignInPrompt />;
 	}
 
-	const answer = async (position: number): Promise<void> => {
-		if (current?.question === undefined || busy) {
+	const send = async (answer: Answer): Promise<void> => {
+		const question = current?.question;
+
+		if (question === undefined || busy) {
 			return;
 		}
 
 		setBusy(true);
 
 		const answered = await answerQuestion({
-			data: {
-				questionId: current.question.id,
-				selectedOptionPositions: [position],
-			},
+			data: { questionId: question.id, ...answer },
 		});
 
-		// Answering already advanced the attempt server-side and told us where it
-		// now stands, so moving on needs no second request — and must not send
-		// another answer, which would grade the next question.
+		// Answering already advanced the attempt and told us where it now stands,
+		// so moving on needs no request — and must not send another answer, which
+		// would grade the next question.
 		setVerdict(answered.result);
 		setPending(answered.current);
 		setBusy(false);
@@ -59,6 +70,7 @@ function Practice() {
 	const next = (): void => {
 		setVerdict(null);
 		setCurrent(pending);
+		setPending(null);
 	};
 
 	const finish = async (): Promise<void> => {
@@ -67,9 +79,10 @@ function Practice() {
 		const result = await finishAttempt();
 
 		setFinished({
+			attemptId: result.attemptId,
 			correct: result.score.correct,
 			total: result.score.total,
-			attemptId: result.attemptId,
+			percentage: result.score.percentage,
 		});
 		setBusy(false);
 	};
@@ -77,90 +90,97 @@ function Practice() {
 	if (finished !== null) {
 		return (
 			<>
-				<h1>Спроба завершена</h1>
-				<p className="lede">
-					{finished.correct} з {finished.total}
-				</p>
-				<Link
-					to="/attempts/$attemptId"
-					params={{ attemptId: finished.attemptId }}
-				>
-					<button type="button" className="primary">
-						Розібрати відповіді
-					</button>
-				</Link>
+				<PageHeading title="Спроба завершена" />
+				<Card>
+					<CardContent className="space-y-4 pt-5">
+						<ScoreSummary
+							score={{
+								correct: finished.correct,
+								total: finished.total,
+								percentage: finished.percentage,
+							}}
+						/>
+						<div className="flex flex-wrap gap-2">
+							<Link
+								to="/attempts/$attemptId"
+								params={{ attemptId: finished.attemptId }}
+							>
+								<Button>Розібрати відповіді</Button>
+							</Link>
+							<Link to="/quizzes/$quizId" params={{ quizId }}>
+								<Button variant="ghost">До набору</Button>
+							</Link>
+						</div>
+					</CardContent>
+				</Card>
 			</>
 		);
 	}
 
-	if (current === null || current.question === undefined) {
+	if (current?.question === undefined) {
 		return (
 			<>
-				<h1>Питання закінчились</h1>
-				<p className="lede">Завершіть спробу, щоб побачити результат.</p>
-				<button
-					type="button"
-					className="primary"
-					disabled={busy}
-					onClick={finish}
-				>
-					Завершити
-				</button>
+				<PageHeading
+					title="Питання закінчились"
+					caption="Завершіть спробу, щоб побачити результат."
+				/>
+				<Button size="lg" disabled={busy} onClick={finish}>
+					<Flag />
+					Завершити спробу
+				</Button>
 			</>
 		);
 	}
 
-	const question = current.question;
-
 	return (
-		<>
-			<div className="meta">
-				<span>{current.quizSetTitle}</span>
-				<span>
-					питання {current.index + 1}/{current.total}
-				</span>
-			</div>
-			<h1 style={{ marginTop: "0.75rem" }}>{question.prompt}</h1>
+		<div className="space-y-6">
+			<QuestionCard
+				view={current}
+				question={current.question}
+				disabled={busy || verdict !== null}
+				onAnswer={send}
+			/>
 
-			<div className="options">
-				{question.options.map((option) => (
-					<button
-						key={option.id}
-						type="button"
-						disabled={busy || verdict !== null}
-						onClick={() => answer(option.position)}
-					>
-						{option.text}
-					</button>
-				))}
-			</div>
-
-			{verdict === null ? null : (
-				<>
-					<div className={`verdict ${verdict.isCorrect ? "right" : "wrong"}`}>
-						<strong>
-							{verdict.isCorrect ? "✅ Правильно" : "❌ Неправильно"}
-						</strong>
-						{verdict.explanation === undefined ? null : (
-							<p style={{ margin: "0.5rem 0 0" }}>{verdict.explanation}</p>
-						)}
-					</div>
-					<button
-						type="button"
-						className="primary"
+			{verdict === null ? (
+				<Button
+					variant="ghost"
+					size="sm"
+					disabled={busy}
+					onClick={() => send({ revealed: true })}
+				>
+					<Eye />
+					Показати відповідь
+				</Button>
+			) : (
+				<div className="space-y-4">
+					<VerdictPanel verdict={verdict} />
+					<Button
+						size="lg"
+						className="w-full"
 						disabled={busy}
 						onClick={pending?.question === undefined ? finish : next}
 					>
-						{pending?.question === undefined ? "Завершити спробу" : "Далі"}
-					</button>
-				</>
+						{pending?.question === undefined ? (
+							<>
+								<Flag />
+								Завершити спробу
+							</>
+						) : (
+							<>
+								Далі
+								<ArrowRight />
+							</>
+						)}
+					</Button>
+				</div>
 			)}
 
-			<p className="lede" style={{ marginTop: "2rem" }}>
-				<Link to="/quizzes/$quizId" params={{ quizId }}>
-					← до набору
-				</Link>
-			</p>
-		</>
+			<Link to="/quizzes/$quizId" params={{ quizId }}>
+				<Button variant="ghost" size="sm">
+					<ArrowLeft />
+					до набору
+				</Button>
+			</Link>
+		</div>
 	);
 }
