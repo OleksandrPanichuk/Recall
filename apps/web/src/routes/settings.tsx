@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { PageHeading } from "@/components/PageHeading";
-import { SettingsForm } from "@/components/SettingsForm";
+import { SettingsEditor } from "@/components/SettingsEditor";
 import { SignInPrompt } from "@/components/SignInPrompt";
-import { loadSettings, saveSettings } from "@/lib/practice";
+import { loadSettings } from "@/lib/practice";
 
 export const Route = createFileRoute("/settings")({
 	loader: async ({ context }) =>
@@ -13,25 +12,10 @@ export const Route = createFileRoute("/settings")({
 
 function Settings() {
 	const loaded = Route.useLoaderData();
-	const [resolved, setResolved] = useState(loaded);
-	const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">(
-		"idle",
-	);
 
-	if (loaded === null || resolved === null) {
+	if (loaded === null) {
 		return <SignInPrompt />;
 	}
-
-	const change = async (patch: Record<string, unknown>) => {
-		setState("saving");
-
-		try {
-			setResolved(await saveSettings({ data: patch }));
-			setState("saved");
-		} catch {
-			setState("failed");
-		}
-	};
 
 	return (
 		<div className="space-y-6">
@@ -39,7 +23,7 @@ function Settings() {
 				title="Налаштування"
 				caption="Діють для всіх наборів, поки набір не має власних"
 			/>
-			<SettingsForm resolved={resolved} state={state} onChange={change} />
+			<SettingsEditor initial={loaded} />
 		</div>
 	);
 }

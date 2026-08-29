@@ -9,6 +9,7 @@ import type { SaveState as State } from "@/hooks/use-autosave";
 export interface SettingsFormProps {
 	readonly resolved: ResolvedQuizSettings;
 	readonly state: State;
+	readonly scoped?: boolean;
 	readonly onChange: (change: Record<string, unknown>) => void;
 }
 
@@ -18,8 +19,14 @@ const source: Record<string, string> = {
 	default: "типові значення",
 };
 
-export function SettingsForm({ resolved, state, onChange }: SettingsFormProps) {
+export function SettingsForm({
+	resolved,
+	state,
+	scoped = false,
+	onChange,
+}: SettingsFormProps) {
 	const { settings } = resolved;
+	const own = resolved.source === "set";
 	const [intervals, setIntervals] = useState(
 		settings.repetition.intervalsDays.join(", "),
 	);
@@ -32,6 +39,34 @@ export function SettingsForm({ resolved, state, onChange }: SettingsFormProps) {
 				</p>
 				<SaveState state={state} />
 			</div>
+
+			{scoped ? (
+				<Card>
+					<CardContent className="pt-2">
+						<Switch
+							label="Власні налаштування для цього набору"
+							hint={
+								own
+									? "Зміни нижче стосуються лише цього набору"
+									: "Зараз набір використовує спільні налаштування"
+							}
+							checked={own}
+							onChange={(wanted) =>
+								onChange(
+									wanted
+										? {
+												shuffleOptions: settings.shuffleOptions,
+												shuffleQuestions: settings.shuffleQuestions,
+												examMode: settings.examMode,
+												repetition: settings.repetition,
+											}
+										: { inheritGlobal: true },
+								)
+							}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
 
 			<Card>
 				<CardContent className="divide-y divide-border pt-2">

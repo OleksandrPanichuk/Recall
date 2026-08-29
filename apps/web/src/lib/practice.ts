@@ -98,7 +98,12 @@ export const loadSettings = createServerFn()
 	.inputValidator((value: unknown) => ({
 		quizSetId: value === undefined ? undefined : String(value),
 	}))
-	.handler(async ({ data }) => api().resolveQuizSettings.execute(data));
+	.handler(async ({ data }) =>
+		missingAsNull(
+			() => api().resolveQuizSettings.execute(data),
+			[ApiErrorName.QuizSetNotFound],
+		),
+	);
 
 export const saveSettings = createServerFn({ method: "POST" })
 	.inputValidator((value: unknown) => value as UpdateQuizSettingsCommand)

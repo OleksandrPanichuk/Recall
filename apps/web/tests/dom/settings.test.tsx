@@ -24,13 +24,14 @@ const resolved: ResolvedQuizSettings = {
 	},
 };
 
-const open = () => {
+const open = (over: Partial<ResolvedQuizSettings> = {}, scoped = false) => {
 	const changes: Record<string, unknown>[] = [];
 
 	render(
 		<SettingsForm
-			resolved={resolved}
+			resolved={{ ...resolved, ...over }}
 			state="idle"
+			scoped={scoped}
 			onChange={(change) => changes.push(change)}
 		/>,
 	);
@@ -80,5 +81,61 @@ describe("quiz settings", () => {
 
 		expect(changes).toEqual([]);
 		expect((field as HTMLInputElement).value).toBe("1, 3, 7");
+	});
+});
+
+describe("a single set's settings", () => {
+	const OWN = "Власні налаштування для цього набору";
+
+	test("is not offered at all when editing the shared settings", () => {
+		open();
+
+		expect(screen.queryByLabelText(OWN)).toBeNull();
+	});
+
+	test("shows the set as inheriting until it has its own", () => {
+		open({ source: "global" }, true);
+
+		expect((screen.getByLabelText(OWN) as HTMLInputElement).checked).toBe(
+			false,
+		);
+		expect(screen.getByText(/використовує спільні налаштування/)).toBeDefined();
+	});
+
+	test("taking ownership writes the values the set is inheriting", () => {
+		const changes = open({ source: "global" }, true);
+
+		fireEvent.click(screen.getByLabelText(OWN));
+
+		expect(changes).toEqual([
+			{
+				shuffleOptions: true,
+				shuffleQuestions: false,
+				examMode: false,
+				repetition: {
+					intervalsDays: [1, 3, 7],
+					maxIntervalDays: 30,
+					maxRepetitions: 5,
+				},
+			},
+		]);
+	});
+
+	test("giving it up asks to inherit again, and sends nothing else", () => {
+		const changes = open({ source: "set" }, true);
+
+		expect((screen.getByLabelText(OWN) as HTMLInputElement).checked).toBe(true);
+
+		fireEvent.click(screen.getByLabelText(OWN));
+
+		expect(changes).toEqual([{ inheritGlobal: true }]);
+	});
+
+	test("changing one toggle still sends only that toggle", () => {
+		const changes = open({ source: "global" }, true);
+
+		fireEvent.click(screen.getByLabelText("Режим іспиту"));
+
+		expect(changes).toEqual([{ examMode: true }]);
 	});
 });

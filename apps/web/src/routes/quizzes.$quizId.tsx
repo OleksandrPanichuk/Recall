@@ -1,42 +1,66 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Play } from "lucide-react";
+import { CirclePlay, Play } from "lucide-react";
 import { AttemptHistory } from "@/components/AttemptHistory";
 import { NotFound } from "@/components/NotFound";
 import { PageHeading } from "@/components/PageHeading";
 import { ScoreSummary } from "@/components/ScoreSummary";
+import { SettingsEditor } from "@/components/SettingsEditor";
 import { SignInPrompt } from "@/components/SignInPrompt";
 import { TopicAccuracyList } from "@/components/TopicAccuracyList";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { loadStatistics } from "@/lib/practice";
+import {
+	loadCurrentQuestion,
+	loadSettings,
+	loadStatistics,
+} from "@/lib/practice";
+import { quizCallToAction } from "@/lib/quiz-page";
 
 export const Route = createFileRoute("/quizzes/$quizId")({
-	loader: async ({ context, params }) =>
-		context.viewer === null ? null : loadStatistics({ data: params.quizId }),
+	loader: async ({ context, params }) => {
+		if (context.viewer === null) {
+			return null;
+		}
+
+		const [statistics, settings, active] = await Promise.all([
+			loadStatistics({ data: params.quizId }),
+			loadSettings({ data: params.quizId }),
+			loadCurrentQuestion(),
+		]);
+
+		return statistics === null
+			? null
+			: {
+					statistics,
+					settings,
+					active:
+						active.current?.quizSetId === params.quizId ? active.current : null,
+				};
+	},
 	component: Quiz,
 });
 
 function Quiz() {
-	const statistics = Route.useLoaderData();
+	const loaded = Route.useLoaderData();
 	const context = Route.useRouteContext();
 	const { quizId } = Route.useParams();
 
-	if (statistics === null) {
+	if (loaded === null) {
 		return context.viewer === null ? <SignInPrompt /> : <NotFound />;
 	}
 
+	const { statistics, settings, active } = loaded;
+
 	const attempts = statistics.attempts.length;
+	const action = quizCallToAction(attempts, active);
 
 	return (
 		<>
-			<PageHeading
-				title={statistics.title}
-				caption={attempts === 0 ? "Ще жодної спроби" : `${attempts} спроб(и)`}
-			>
+			<PageHeading title={statistics.title} caption={action.caption}>
 				<Link to="/practice/$quizId" params={{ quizId }}>
 					<Button size="lg">
-						<Play />
-						{attempts === 0 ? "Почати" : "Пройти ще раз"}
+						{action.resuming ? <CirclePlay /> : <Play />}
+						{action.label}
 					</Button>
 				</Link>
 			</PageHeading>
@@ -77,6 +101,15 @@ function Quiz() {
 					) : null}
 				</div>
 			) : null}
+
+			{settings === null ? null : (
+				<section className="mt-8 space-y-3">
+					<h2 className="text-sm font-medium text-muted-foreground">
+						Налаштування набору
+					</h2>
+					<SettingsEditor initial={settings} quizSetId={quizId} />
+				</section>
+			)}
 		</>
 	);
 }
