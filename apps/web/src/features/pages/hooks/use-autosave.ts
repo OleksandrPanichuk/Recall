@@ -62,5 +62,20 @@ export function useAutosave(
 		[flush],
 	);
 
+	useEffect(() => {
+		const leaving = (event: BeforeUnloadEvent): void => {
+			if (pending.current === null) {
+				return;
+			}
+
+			void flush();
+			event.preventDefault();
+		};
+
+		globalThis.addEventListener("beforeunload", leaving);
+
+		return () => globalThis.removeEventListener("beforeunload", leaving);
+	}, [flush]);
+
 	return { state, schedule, flush, unsaved: () => pending.current !== null };
 }

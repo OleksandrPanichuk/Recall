@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Eye, Flag } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { usePracticeKeys } from "@/features/practice/hooks/use-practice-keys";
 import { usePracticeSession } from "@/features/practice/hooks/use-practice-session";
 import { AttemptFinished } from "@/features/practice/ui/components/AttemptFinished";
 import { AttemptInProgress } from "@/features/practice/ui/components/AttemptInProgress";
@@ -31,6 +32,17 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 			verdictRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
 		}
 	}, [session.verdict]);
+
+	usePracticeKeys({
+		optionCount: 0,
+		onPick: () => undefined,
+		onAdvance:
+			session.verdict === null || session.busy
+				? null
+				: session.pending?.question === undefined
+					? session.finish
+					: session.next,
+	});
 
 	if (!signedIn) {
 		return <SignInPrompt />;

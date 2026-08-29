@@ -12,10 +12,16 @@ import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
 interface Props {
 	readonly folderId: string;
 	readonly page: BrowseView | null;
+	readonly inProgressQuizId?: string;
 	readonly signedIn: boolean;
 }
 
-export function PageDetailView({ folderId, page, signedIn }: Props) {
+export function PageDetailView({
+	folderId,
+	page,
+	inProgressQuizId,
+	signedIn,
+}: Props) {
 	const editing = usePageEditing(folderId, page);
 
 	if (editing.view === null) {
@@ -43,7 +49,11 @@ export function PageDetailView({ folderId, page, signedIn }: Props) {
 					<PageTitle name={view.name ?? ""} onRename={editing.rename} />
 				</div>
 			</div>
-			<PageBody view={view} onEdit={editing.schedule} />
+			<PageBody
+				view={view}
+				onEdit={editing.schedule}
+				inProgressQuizId={inProgressQuizId}
+			/>
 		</div>
 	);
 }

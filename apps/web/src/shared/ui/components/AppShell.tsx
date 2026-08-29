@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { navLink } from "./AppShell.constants";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface Props {
 	readonly viewer: { readonly name: string } | null;
@@ -93,9 +94,12 @@ export function AppShell({ viewer, pages, children }: Props) {
 					Сторінки
 				</p>
 				{pages}
-				<p className="mt-6 hidden px-2 text-xs text-muted-foreground lg:block">
-					{viewer === null ? "не увійшли" : viewer.name}
-				</p>
+				<div className="mt-6 hidden items-center justify-between gap-2 px-2 lg:flex">
+					<p className="min-w-0 truncate text-xs text-muted-foreground">
+						{viewer === null ? "не увійшли" : viewer.name}
+					</p>
+					<ThemeToggle />
+				</div>
 			</aside>
 
 			<main className="mx-auto w-full max-w-3xl px-5 py-8 pb-24 lg:py-12">

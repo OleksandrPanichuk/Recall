@@ -61,7 +61,7 @@ function Document({ children }: Readonly<{ children: ReactNode }>) {
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no input
 					dangerouslySetInnerHTML={{
-						__html: `try{if(matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark')}catch(e){}`,
+						__html: `try{var t=localStorage.getItem('recall.theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`,
 					}}
 				/>
 			</head>

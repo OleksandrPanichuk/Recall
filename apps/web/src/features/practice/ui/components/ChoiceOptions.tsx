@@ -4,6 +4,7 @@ import { shuffled } from "@recall/kit/shuffle";
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { usePracticeKeys } from "@/features/practice/hooks/use-practice-keys";
 import { cn } from "@/shared/lib/utils";
 
 interface Props {
@@ -43,9 +44,24 @@ export function ChoiceOptions({
 		);
 	};
 
+	usePracticeKeys({
+		optionCount: disabled ? 0 : shown.length,
+		onPick: (index) => {
+			const option = shown[index];
+
+			if (option !== undefined) {
+				toggle(option.position);
+			}
+		},
+		onAdvance:
+			many && !disabled && chosen.length > 0
+				? () => onAnswer([...chosen].sort((a, b) => a - b))
+				: null,
+	});
+
 	return (
 		<div className="space-y-2">
-			{shown.map((option) => {
+			{shown.map((option, index) => {
 				const picked = chosen.includes(option.position);
 
 				return (
@@ -60,6 +76,9 @@ export function ChoiceOptions({
 							picked && "border-primary bg-primary/5",
 						)}
 					>
+						<kbd className="hidden size-5 shrink-0 items-center justify-center rounded border border-border text-[10px] text-muted-foreground sm:flex">
+							{index + 1}
+						</kbd>
 						{many ? (
 							<span
 								className={cn(

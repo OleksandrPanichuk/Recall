@@ -12,9 +12,10 @@ const NotionEditor = lazy(async () => ({
 interface Props {
 	readonly view: BrowseView;
 	readonly onEdit?: (markdown: string) => void;
+	readonly inProgressQuizId?: string;
 }
 
-export function PageBody({ view, onEdit }: Props) {
+export function PageBody({ view, onEdit, inProgressQuizId }: Props) {
 	const hasItems =
 		view.children.length > 0 ||
 		view.sets.length > 0 ||
@@ -41,7 +42,7 @@ export function PageBody({ view, onEdit }: Props) {
 					<h2 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 						Всередині
 					</h2>
-					<LibraryList view={view} />
+					<LibraryList view={view} inProgressQuizId={inProgressQuizId} />
 				</section>
 			) : null}
 		</div>

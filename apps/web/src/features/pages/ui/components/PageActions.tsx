@@ -1,9 +1,10 @@
 import type { BrowseView } from "@recall/contracts";
 import { useNavigate } from "@tanstack/react-router";
-import { FilePlus2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { createPage, deletePage } from "@/features/pages/lib/pages.api";
+import { deletePage } from "@/features/pages/lib/pages.api";
+import { NewPageButton } from "@/features/pages/ui/components/NewPageButton";
 
 interface Props {
 	readonly view: BrowseView;
@@ -18,20 +19,6 @@ export function PageActions({ view, onChanged, onFlush }: Props) {
 		view.children.length === 0 &&
 		view.sets.length === 0 &&
 		view.attached.length === 0;
-
-	const add = async () => {
-		setBusy(true);
-
-		try {
-			const { folderId } = await createPage({
-				data: { name: "Без назви", parentId: view.folderId },
-			});
-
-			await navigate({ to: "/folders/$folderId", params: { folderId } });
-		} finally {
-			setBusy(false);
-		}
-	};
 
 	const remove = async () => {
 		setBusy(true);
@@ -52,10 +39,11 @@ export function PageActions({ view, onChanged, onFlush }: Props) {
 
 	return (
 		<div className="flex items-center gap-1">
-			<Button variant="ghost" size="sm" onClick={add} disabled={busy}>
-				<FilePlus2 />
-				Підсторінка
-			</Button>
+			<NewPageButton
+				parentId={view.folderId}
+				label="Підсторінка"
+				onCreated={onChanged}
+			/>
 			{empty ? (
 				<Button
 					variant="ghost"

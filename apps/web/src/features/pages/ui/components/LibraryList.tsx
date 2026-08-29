@@ -1,10 +1,16 @@
 import type { BrowseView } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Folder, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { row } from "./LibraryList.constants";
 
-export function LibraryList({ view }: { readonly view: BrowseView }) {
+interface Props {
+	readonly view: BrowseView;
+	readonly inProgressQuizId?: string;
+}
+
+export function LibraryList({ view, inProgressQuizId }: Props) {
 	const shown = view.attached.filter(
 		(set) => !view.sets.some((filed) => filed.id === set.id),
 	);
@@ -52,6 +58,9 @@ export function LibraryList({ view }: { readonly view: BrowseView }) {
 						<span className="truncate font-medium">{set.title}</span>
 					</span>
 					<span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+						{set.id === inProgressQuizId ? (
+							<Badge variant="outline">почато</Badge>
+						) : null}
 						{set.questionCount} питань
 						<ChevronRight className="size-4" />
 					</span>

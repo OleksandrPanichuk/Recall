@@ -51,10 +51,13 @@ interface Answer {
 	readonly typedAnswer?: string;
 }
 
+const withoutKeyHint = (text: string): string =>
+	text.replace(/^\d+/, "").trim();
+
 const optionLabels = (): readonly string[] =>
 	screen
 		.getAllByRole("button")
-		.map((element) => (element.textContent ?? "").trim())
+		.map((element) => withoutKeyHint(element.textContent ?? ""))
 		.filter(
 			(text) =>
 				text.length > 0 &&
@@ -103,7 +106,7 @@ const selectedLabels = (): readonly string[] =>
 	screen
 		.getAllByRole("button")
 		.filter((element) => element.className.includes("bg-primary/5"))
-		.map((element) => (element.textContent ?? "").trim());
+		.map((element) => withoutKeyHint(element.textContent ?? ""));
 
 describe("moving to the next question", () => {
 	test("carries no selection over from the question before it", () => {
