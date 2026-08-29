@@ -1,5 +1,6 @@
 import type { Logger } from "@recall/kit";
 import type { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
+import type { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import type { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
@@ -53,6 +54,7 @@ export interface McpUseCases {
 	readonly searchPages: SearchPagesUseCase;
 	readonly setPageIcon: SetPageIconUseCase;
 	readonly getInsights: GetInsightsUseCase;
+	readonly abandonQuizAttempt: AbandonQuizAttemptUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;

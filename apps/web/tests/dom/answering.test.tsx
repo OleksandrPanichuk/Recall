@@ -63,22 +63,28 @@ const optionLabels = (): readonly string[] =>
 
 const mount = (question: Question, view = aView()) => {
 	const answers: Answer[] = [];
-
-	render(
+	const card = (shown: Question) => (
 		<QuestionCard
 			view={view}
-			question={question}
+			question={shown}
 			disabled={false}
 			onAnswer={(answer) => answers.push(answer)}
-		/>,
+		/>
 	);
+	const { rerender } = render(card(question));
 
-	return answers;
+	return {
+		answers,
+		next: (shown: Question) => rerender(card(shown)),
+	};
 };
+
+const answersOf = (question: Question, view = aView()) =>
+	mount(question, view).answers;
 
 describe("single choice", () => {
 	test("answers on the first click", () => {
-		const answers = mount(
+		const answers = answersOf(
 			aQuestion(QuestionType.SingleChoice, [
 				option("Right", 0, true),
 				option("Wrong", 1),
@@ -91,9 +97,64 @@ describe("single choice", () => {
 	});
 });
 
+const selectedLabels = (): readonly string[] =>
+	screen
+		.getAllByRole("button")
+		.filter((element) => element.className.includes("bg-primary/5"))
+		.map((element) => (element.textContent ?? "").trim());
+
+describe("moving to the next question", () => {
+	test("carries no selection over from the question before it", () => {
+		const many = aQuestion(QuestionType.MultipleChoice, [
+			option("First", 0, true),
+			option("Second", 1, true),
+			option("Third", 2),
+		]);
+		const one = {
+			...aQuestion(QuestionType.SingleChoice, [
+				option("Right", 0, true),
+				option("Wrong", 1),
+			]),
+			id: "question-2",
+		};
+
+		const { next } = mount(many);
+
+		fireEvent.click(screen.getByText("First"));
+		fireEvent.click(screen.getByText("Second"));
+
+		expect(selectedLabels()).toEqual(["First", "Second"]);
+
+		next(one);
+
+		expect(selectedLabels()).toEqual([]);
+	});
+
+	test("starts the next multi-select empty too", () => {
+		const first = aQuestion(QuestionType.MultipleChoice, [
+			option("First", 0, true),
+			option("Second", 1),
+		]);
+		const second = {
+			...aQuestion(QuestionType.MultipleChoice, [
+				option("Third", 0, true),
+				option("Fourth", 1),
+			]),
+			id: "question-2",
+		};
+
+		const { next } = mount(first);
+
+		fireEvent.click(screen.getByText("First"));
+		next(second);
+
+		expect(selectedLabels()).toEqual([]);
+	});
+});
+
 describe("multiple choice", () => {
 	test("collects a set and answers once, on submit", () => {
-		const answers = mount(
+		const answers = answersOf(
 			aQuestion(QuestionType.MultipleChoice, [
 				option("First", 0, true),
 				option("Second", 1, true),
@@ -112,7 +173,7 @@ describe("multiple choice", () => {
 	});
 
 	test("a second click takes an option back out", () => {
-		const answers = mount(
+		const answers = answersOf(
 			aQuestion(QuestionType.MultipleChoice, [
 				option("First", 0, true),
 				option("Second", 1),
@@ -130,7 +191,7 @@ describe("multiple choice", () => {
 
 describe("typed answer", () => {
 	test("offers a field rather than a dead end, and sends the text", () => {
-		const answers = mount(
+		const answers = answersOf(
 			aQuestion(QuestionType.TypedAnswer, [option("write-ahead log", 0, true)]),
 		);
 		const field = screen.getByPlaceholderText("Ваша відповідь");
@@ -142,7 +203,7 @@ describe("typed answer", () => {
 	});
 
 	test("will not send an empty answer", () => {
-		const answers = mount(aQuestion(QuestionType.Cloze, []));
+		const answers = answersOf(aQuestion(QuestionType.Cloze, []));
 
 		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
 
@@ -160,7 +221,7 @@ describe("ordering", () => {
 	]);
 
 	test("sends the positions in the order they were clicked", () => {
-		const answers = mount(ordered);
+		const answers = answersOf(ordered);
 
 		for (const label of ["Third", "First", "Fifth", "Second", "Fourth"]) {
 			fireEvent.click(screen.getByText(label));
@@ -202,7 +263,7 @@ describe("matching", () => {
 	]);
 
 	test("sends pairs flattened left, right, left, right", () => {
-		const answers = mount(pairs);
+		const answers = answersOf(pairs);
 
 		fireEvent.click(screen.getByText("Left two"));
 		fireEvent.click(screen.getByText("Right one"));
@@ -214,7 +275,7 @@ describe("matching", () => {
 	});
 
 	test("cannot answer with a half-made pair", () => {
-		const answers = mount(pairs);
+		const answers = answersOf(pairs);
 
 		fireEvent.click(screen.getByText("Left one"));
 

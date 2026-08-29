@@ -147,6 +147,10 @@ export function createMemoryAttemptRepository(
 				.map(([, entry]) => entry.id);
 		},
 
+		async delete(id: QuizAttemptId): Promise<void> {
+			store.attempts.delete(String(id));
+		},
+
 		async answerCount(questionId: QuestionId): Promise<number> {
 			let total = 0;
 

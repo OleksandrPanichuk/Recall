@@ -10,6 +10,7 @@ const byName: Readonly<Record<string, HttpStatus>> = {
 	NoActiveAttemptError: HttpStatus.NOT_FOUND,
 	QuizSetTransitionError: HttpStatus.CONFLICT,
 	AttemptAlreadyInProgressError: HttpStatus.CONFLICT,
+	AttemptAlreadyFinishedError: HttpStatus.CONFLICT,
 	AttemptNotActiveError: HttpStatus.CONFLICT,
 	QuestionNotInAttemptError: HttpStatus.CONFLICT,
 	FolderNotEmptyError: HttpStatus.CONFLICT,

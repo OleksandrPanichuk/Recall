@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
+import { ErrorPanel } from "@/components/ErrorPanel";
 import { NotFound } from "@/components/NotFound";
 import { loadPageTree, loadSession } from "@/lib/practice";
 import appCss from "@/styles/app.css?url";
@@ -30,6 +31,7 @@ export const Route = createRootRouteWithContext<{
 	loader: async ({ context }) =>
 		context.viewer === null ? { nodes: [] } : loadPageTree(),
 	component: RootComponent,
+	errorComponent: ErrorPanel,
 	notFoundComponent: NotFound,
 });
 

@@ -7,7 +7,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"start": "bun run ./.output/server/index.mjs",
-		"test": "bun test tests/dom && RECALL_NO_DOM=1 bun test tests/server"
+		"test": "bun test --env-file=/dev/null tests/dom && RECALL_NO_DOM=1 bun test --env-file=/dev/null tests/server"
 	},
 	"dependencies": {
 		"@milkdown/crepe": "^7.22.1",

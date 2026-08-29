@@ -258,6 +258,12 @@ export const writeSummaryCommandSchema = z.object({
 	append: z.boolean().optional(),
 });
 
+export const abandonAttemptCommandSchema = z.object({
+	attemptId: optionalId,
+});
+
+export const abandonedAttemptSchema = z.object({ abandoned: z.boolean() });
+
 export const createPageCommandSchema = z.object({
 	name: z.string(),
 	parentId: optionalId,
@@ -423,6 +429,8 @@ export type WriteSummaryCommand = z.infer<typeof writeSummaryCommandSchema>;
 export type SummaryWritten = z.infer<typeof summaryWrittenSchema>;
 export type SearchPagesCommand = z.infer<typeof searchPagesCommandSchema>;
 export type PageMatch = z.infer<typeof pageMatchSchema>;
+export type AbandonAttemptCommand = z.infer<typeof abandonAttemptCommandSchema>;
+export type AbandonedAttempt = z.infer<typeof abandonedAttemptSchema>;
 export type CreatePageCommand = z.infer<typeof createPageCommandSchema>;
 export type CreatedPage = z.infer<typeof createdPageSchema>;
 export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;

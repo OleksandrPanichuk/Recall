@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
 import {
+	abandonAttemptCommandSchema,
 	answerCommandSchema,
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
@@ -37,6 +38,7 @@ import {
 } from "@recall/contracts";
 import type { Response } from "express";
 import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
+import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -98,6 +100,8 @@ export class BotController {
 		private readonly searchPages: SearchPagesUseCase,
 		@Inject(GetInsightsUseCase)
 		private readonly getInsights: GetInsightsUseCase,
+		@Inject(AbandonQuizAttemptUseCase)
+		private readonly abandonQuizAttempt: AbandonQuizAttemptUseCase,
 		@Inject(CreateFolderUseCase)
 		private readonly createFolder: CreateFolderUseCase,
 		@Inject(RenameFolderUseCase)
@@ -353,6 +357,19 @@ export class BotController {
 		const command = parseBody(finishCommandSchema, body);
 
 		return finishResultToWire(await this.finishQuizAttempt.execute(command));
+	}
+
+	@Post(BOT_ROUTES.abandon)
+	@HttpCode(HttpStatus.OK)
+	async abandon(@Body() body: unknown) {
+		const command = parseBody(abandonAttemptCommandSchema, body);
+
+		return this.abandonQuizAttempt.execute({
+			attemptId:
+				command.attemptId === undefined
+					? undefined
+					: toQuizAttemptId(command.attemptId),
+		});
 	}
 
 	@Post(BOT_ROUTES.statistics)

@@ -31,11 +31,16 @@ export class QuizSetNotPublishedError extends Error {
 }
 
 export class AttemptAlreadyInProgressError extends Error {
+	readonly attemptId: QuizAttemptId;
+	readonly quizSetId: QuizSetId;
+
 	constructor(attemptId: QuizAttemptId, quizSetId: QuizSetId) {
 		super(
 			`Attempt ${attemptId} on quiz set ${quizSetId} is still unfinished; finish or abandon it first`,
 		);
 		this.name = "AttemptAlreadyInProgressError";
+		this.attemptId = attemptId;
+		this.quizSetId = quizSetId;
 	}
 }
 

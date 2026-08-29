@@ -29,4 +29,5 @@ export interface AttemptRepository {
 	topicAccuracy(quizId: QuizSetId): Promise<readonly TopicAccuracy[]>;
 	incorrectQuestionIds(quizId: QuizSetId): Promise<readonly QuestionId[]>;
 	answerCount(questionId: QuestionId): Promise<number>;
+	delete(id: QuizAttemptId): Promise<void>;
 }

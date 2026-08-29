@@ -7,6 +7,7 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
+import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
@@ -91,6 +92,7 @@ export interface UseCases {
 	readonly searchPages: SearchPagesUseCase;
 	readonly setPageIcon: SetPageIconUseCase;
 	readonly getInsights: GetInsightsUseCase;
+	readonly abandonQuizAttempt: AbandonQuizAttemptUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly startQuizAttempt: StartQuizAttemptUseCase;
@@ -158,6 +160,7 @@ export function createUseCases(
 		searchPages: new SearchPagesUseCase(dependencies),
 		setPageIcon: new SetPageIconUseCase(dependencies),
 		getInsights: new GetInsightsUseCase(dependencies),
+		abandonQuizAttempt: new AbandonQuizAttemptUseCase(dependencies),
 		attachQuiz: new AttachQuizUseCase(dependencies),
 		detachQuiz: new DetachQuizUseCase(dependencies),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),

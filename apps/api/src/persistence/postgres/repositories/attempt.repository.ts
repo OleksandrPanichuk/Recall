@@ -293,6 +293,16 @@ export function createAttemptPostgresRepository(
 			return rows.map((row) => toQuestionId(row.questionId));
 		},
 
+		async delete(id: QuizAttemptId): Promise<void> {
+			if (!isUuid(String(id))) {
+				return;
+			}
+
+			await executor
+				.delete(attempts)
+				.where(and(mine, eq(attempts.id, String(id))));
+		},
+
 		async answerCount(questionId: QuestionId): Promise<number> {
 			if (!isUuid(String(questionId))) {
 				return 0;

@@ -12,6 +12,7 @@ import {
 import { ApiExcludeController } from "@nestjs/swagger";
 import {
 	APP_ROUTE_PREFIX,
+	abandonAttemptCommandSchema,
 	answerCommandSchema,
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
@@ -238,6 +239,19 @@ export class AppSurfaceController {
 		return finishResultToWire(
 			await this.of(request).finishQuizAttempt.execute({}),
 		);
+	}
+
+	@Post(BOT_ROUTES.abandon)
+	@HttpCode(HttpStatus.OK)
+	async abandon(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(abandonAttemptCommandSchema, body);
+
+		return this.of(request).abandonQuizAttempt.execute({
+			attemptId:
+				command.attemptId === undefined
+					? undefined
+					: toQuizAttemptId(command.attemptId),
+		});
 	}
 
 	@Post(BOT_ROUTES.statistics)

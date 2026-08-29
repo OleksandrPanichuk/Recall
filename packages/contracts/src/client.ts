@@ -1,9 +1,13 @@
 import { z } from "zod";
 import {
+	type AbandonAttemptCommand,
+	type AbandonedAttempt,
 	type AnswerQuestionCommand,
 	type AnswerQuestionResult,
 	type ApiToken,
 	type AttemptDetail,
+	abandonAttemptCommandSchema,
+	abandonedAttemptSchema,
 	answerCommandSchema,
 	answerResultSchema,
 	apiTokenSchema,
@@ -149,6 +153,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export const ApiErrorName = {
 	NoActiveAttempt: "NoActiveAttemptError",
 	AttemptAlreadyInProgress: "AttemptAlreadyInProgressError",
+	AttemptAlreadyFinished: "AttemptAlreadyFinishedError",
 	AttemptNotActive: "AttemptNotActiveError",
 	QuestionNotInAttempt: "QuestionNotInAttemptError",
 	QuizSetNotPublished: "QuizSetNotPublishedError",
@@ -192,6 +197,10 @@ export interface PracticeUseCases {
 	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
 	readonly searchPages: UseCaseLike<SearchPagesCommand, readonly PageMatch[]>;
 	readonly getInsights: UseCaseLike<GetInsightsCommand, Insights>;
+	readonly abandonQuizAttempt: UseCaseLike<
+		AbandonAttemptCommand,
+		AbandonedAttempt
+	>;
 	readonly createPage: UseCaseLike<CreatePageCommand, CreatedPage>;
 	readonly renamePage: UseCaseLike<RenamePageCommand, void>;
 	readonly setPageIcon: UseCaseLike<SetPageIconCommand, void>;
@@ -274,6 +283,7 @@ export const BOT_ROUTES = {
 	currentQuestion: "attempts/current",
 	answer: "attempts/answer",
 	finish: "attempts/finish",
+	abandon: "attempts/abandon",
 	statistics: "statistics",
 	attemptDetail: "attempts/detail",
 	dueRepetitions: "repetitions/due",
@@ -393,6 +403,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.searchPages,
 			searchPagesCommandSchema,
 			pageMatchSchema.array().readonly(),
+		),
+		abandonQuizAttempt: operation(
+			BOT_ROUTES.abandon,
+			abandonAttemptCommandSchema,
+			abandonedAttemptSchema,
 		),
 		getInsights: operation(
 			BOT_ROUTES.insights,

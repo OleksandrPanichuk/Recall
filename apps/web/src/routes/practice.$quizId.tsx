@@ -2,9 +2,10 @@ import type {
 	AnswerQuestionResult,
 	CurrentQuestionView,
 } from "@recall/contracts";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Eye, Flag } from "lucide-react";
 import { useState } from "react";
+import { AttemptInProgress } from "@/components/AttemptInProgress";
 import { PageHeading } from "@/components/PageHeading";
 import { QuestionCard } from "@/components/QuestionCard";
 import { ScoreSummary } from "@/components/ScoreSummary";
@@ -12,7 +13,12 @@ import { SignInPrompt } from "@/components/SignInPrompt";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { VerdictPanel } from "@/components/VerdictPanel";
-import { answerQuestion, finishAttempt, startAttempt } from "@/lib/practice";
+import {
+	abandonAttempt,
+	answerQuestion,
+	finishAttempt,
+	startAttempt,
+} from "@/lib/practice";
 
 export const Route = createFileRoute("/practice/$quizId")({
 	loader: async ({ context, params }) =>
@@ -29,6 +35,7 @@ interface Answer {
 function Practice() {
 	const loaded = Route.useLoaderData();
 	const { quizId } = Route.useParams();
+	const router = useRouter();
 	const [current, setCurrent] = useState<CurrentQuestionView | null>(
 		loaded?.current ?? null,
 	);
@@ -44,6 +51,19 @@ function Practice() {
 
 	if (loaded === null) {
 		return <SignInPrompt />;
+	}
+
+	if (loaded.blockedBy !== null && current === null) {
+		return (
+			<AttemptInProgress
+				title={loaded.blockedBy.title}
+				quizSetId={loaded.blockedBy.quizSetId}
+				onAbandon={async () => {
+					await abandonAttempt();
+					await router.invalidate();
+				}}
+			/>
+		);
 	}
 
 	const send = async (answer: Answer): Promise<void> => {

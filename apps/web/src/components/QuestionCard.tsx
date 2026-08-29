@@ -60,6 +60,7 @@ export function QuestionCard({
 			</div>
 
 			<Answering
+				key={question.id}
 				question={question}
 				disabled={disabled}
 				shuffleSeed={
