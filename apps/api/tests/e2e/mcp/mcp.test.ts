@@ -92,6 +92,7 @@ describe("MCP server (§4.1)", () => {
 		expect(tools.map((tool) => tool.name).toSorted()).toEqual([
 			"quiz_add_questions",
 			"quiz_add_vocabulary",
+			"quiz_append_summary",
 			"quiz_archive_set",
 			"quiz_attach_set",
 			"quiz_create_set",
@@ -109,6 +110,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_read_summary",
 			"quiz_rename_folder",
 			"quiz_set_settings",
+			"quiz_summary_history",
 			"quiz_update_question",
 			"quiz_update_set",
 			"quiz_update_vocabulary",
@@ -584,6 +586,44 @@ describe("folders over MCP", () => {
 		});
 
 		expect(result.isError).toBe(true);
+	});
+
+	test("appends section by section without resending what is there", async () => {
+		await call("quiz_append_summary", {
+			path: ["DDIA", "Chapter 5"],
+			summary: "## Leaders and followers",
+		});
+		await call("quiz_append_summary", {
+			path: ["DDIA", "Chapter 5"],
+			summary: "## Multi-leader replication",
+		});
+
+		expect(
+			(await call("quiz_read_summary", { path: ["DDIA", "Chapter 5"] })).text,
+		).toBe("## Leaders and followers\n\n## Multi-leader replication");
+	});
+
+	test("keeps what an overwrite replaced", async () => {
+		await call("quiz_write_summary", { path: ["DDIA"], summary: "first" });
+		await call("quiz_write_summary", { path: ["DDIA"], summary: "second" });
+
+		const history = await call("quiz_summary_history", { path: ["DDIA"] });
+		const revisions = history.structured.revisions as {
+			summary?: string;
+			authorKind: string;
+		}[];
+
+		expect(revisions.map((revision) => revision.summary)).toEqual(["first"]);
+		expect(revisions[0]?.authorKind).toBe("mcp");
+	});
+
+	test("records nothing for a page written for the first time", async () => {
+		await call("quiz_write_summary", { path: ["Fresh"], summary: "first" });
+
+		const history = await call("quiz_summary_history", { path: ["Fresh"] });
+
+		expect(history.structured.revisions).toEqual([]);
+		expect(history.text).toContain("never been rewritten");
 	});
 
 	test("deletes an empty folder", async () => {

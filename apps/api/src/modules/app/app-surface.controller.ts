@@ -88,6 +88,7 @@ export class AppSurfaceController {
 		const written = await this.of(request).writeSummary.execute({
 			folderId: toFolderId(command.folderId),
 			summary: command.summary,
+			append: command.append,
 		});
 
 		return { ...written, folderId: String(written.folderId) };

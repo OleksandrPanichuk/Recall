@@ -5,6 +5,17 @@ import type { QuizRepository } from "./quiz.repository";
 import type { ReviewRepository } from "./review.repository";
 import type { TermPairRepository } from "./term-pair.repository";
 
+export type RevisionAuthor = "user" | "mcp";
+
+export interface PageRevision {
+	readonly id: string;
+	readonly pageId: FolderId;
+	readonly title: string;
+	readonly summary?: string;
+	readonly authorKind: RevisionAuthor;
+	readonly createdAt: Date;
+}
+
 export interface PageRepository {
 	save(page: Folder): Promise<void>;
 	findById(id: FolderId): Promise<Folder | undefined>;
@@ -19,6 +30,8 @@ export interface PageRepository {
 	attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void>;
 	detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void>;
 	listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]>;
+	recordRevision(revision: PageRevision): Promise<void>;
+	listRevisions(id: FolderId, limit?: number): Promise<readonly PageRevision[]>;
 	delete(id: FolderId): Promise<void>;
 }
 

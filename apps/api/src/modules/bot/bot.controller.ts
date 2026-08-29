@@ -183,6 +183,7 @@ export class BotController {
 		const written = await this.writeSummary.execute({
 			folderId: toFolderId(command.folderId),
 			summary: command.summary,
+			append: command.append,
 		});
 
 		return { ...written, folderId: String(written.folderId) };

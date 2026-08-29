@@ -1,4 +1,7 @@
-import type { PageRepository } from "@/application/ports/repositories/page.repository";
+import type {
+	PageRepository,
+	PageRevision,
+} from "@/application/ports/repositories/page.repository";
 import {
 	type Folder,
 	type FolderId,
@@ -117,7 +120,26 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 				.map((quizId) => quizId as QuizSetId);
 		},
 
+		async recordRevision(revision: PageRevision): Promise<void> {
+			store.revisions.push(revision);
+		},
+
+		async listRevisions(
+			id: FolderId,
+			limit = 20,
+		): Promise<readonly PageRevision[]> {
+			return store.revisions
+				.filter((revision) => String(revision.pageId) === String(id))
+				.sort(
+					(left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+				)
+				.slice(0, limit);
+		},
+
 		async delete(id: FolderId): Promise<void> {
+			store.revisions = store.revisions.filter(
+				(revision) => String(revision.pageId) !== String(id),
+			);
 			store.attachments.delete(String(id));
 			store.pages.delete(String(id));
 		},

@@ -292,6 +292,46 @@ export function describePageRepository(
 				).toEqual([]);
 			});
 
+			test("keeps every revision of a page, newest first", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.save(page(id, "Chapter 2")),
+				);
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.recordRevision({
+						id: uuid(),
+						pageId: toFolderId(id),
+						title: "Chapter 2",
+						summary: "first",
+						authorKind: "mcp",
+						createdAt: at,
+					});
+					await pages.recordRevision({
+						id: uuid(),
+						pageId: toFolderId(id),
+						title: "Chapter 2",
+						summary: "second",
+						authorKind: "user",
+						createdAt: later,
+					});
+				});
+
+				const revisions = await harness.scope.pages.listRevisions(
+					toFolderId(id),
+				);
+
+				expect(revisions.map((revision) => revision.summary)).toEqual([
+					"second",
+					"first",
+				]);
+				expect(revisions[0]?.authorKind).toBe("user");
+				expect(
+					await harness.scope.pages.listRevisions(toFolderId(id), 1),
+				).toHaveLength(1);
+			});
+
 			test("rewrites the summary and can clear it", async () => {
 				const id = uuid();
 				const page = createFolder({

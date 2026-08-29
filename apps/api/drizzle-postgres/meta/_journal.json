@@ -36,6 +36,13 @@
 			"when": 1787737880663,
 			"tag": "0004_living_shocker",
 			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1787995893367,
+			"tag": "0005_fresh_karma",
+			"breakpoints": true
 		}
 	]
 }

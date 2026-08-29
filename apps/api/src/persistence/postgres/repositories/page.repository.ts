@@ -1,6 +1,10 @@
-import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { OwnerId } from "@/application/ports/owner";
-import type { PageRepository } from "@/application/ports/repositories/page.repository";
+import type {
+	PageRepository,
+	PageRevision,
+	RevisionAuthor,
+} from "@/application/ports/repositories/page.repository";
 import {
 	type Folder,
 	type FolderId,
@@ -13,7 +17,7 @@ import {
 	type QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import { pages, quizAttachments, quizzes } from "../schema";
+import { pageRevisions, pages, quizAttachments, quizzes } from "../schema";
 import type { Executor } from "../unit-of-work";
 import { isUuid } from "../uuid";
 
@@ -259,6 +263,64 @@ export function createPagePostgresRepository(
 				.orderBy(asc(quizAttachments.position), asc(quizAttachments.quizId));
 
 			return rows.map((row) => toQuizSetId(row.quizId));
+		},
+
+		async recordRevision(revision: PageRevision): Promise<void> {
+			if (!isUuid(String(revision.pageId))) {
+				return;
+			}
+
+			const [owned] = await executor
+				.select({ id: pages.id })
+				.from(pages)
+				.where(and(mine, eq(pages.id, String(revision.pageId))))
+				.limit(1);
+
+			if (owned === undefined) {
+				return;
+			}
+
+			await executor.insert(pageRevisions).values({
+				id: revision.id,
+				pageId: owned.id,
+				title: revision.title,
+				contentMd: revision.summary ?? null,
+				authorKind: revision.authorKind,
+				createdAt: revision.createdAt,
+			});
+		},
+
+		async listRevisions(
+			id: FolderId,
+			limit = 20,
+		): Promise<readonly PageRevision[]> {
+			if (!isUuid(String(id))) {
+				return [];
+			}
+
+			const rows = await executor
+				.select({
+					id: pageRevisions.id,
+					pageId: pageRevisions.pageId,
+					title: pageRevisions.title,
+					contentMd: pageRevisions.contentMd,
+					authorKind: pageRevisions.authorKind,
+					createdAt: pageRevisions.createdAt,
+				})
+				.from(pageRevisions)
+				.innerJoin(pages, eq(pages.id, pageRevisions.pageId))
+				.where(and(mine, eq(pageRevisions.pageId, String(id))))
+				.orderBy(desc(pageRevisions.createdAt), desc(pageRevisions.id))
+				.limit(limit);
+
+			return rows.map((row) => ({
+				id: row.id,
+				pageId: toFolderId(row.pageId),
+				title: row.title,
+				summary: row.contentMd ?? undefined,
+				authorKind: row.authorKind as RevisionAuthor,
+				createdAt: row.createdAt,
+			}));
 		},
 
 		async delete(id: FolderId): Promise<void> {

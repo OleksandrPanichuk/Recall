@@ -26,6 +26,16 @@ export const writeSummaryShape = {
 
 export const readSummaryShape = { path: folderPath };
 
+export const appendSummaryShape = {
+	path: folderPath,
+	summary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
+};
+
+export const summaryHistoryShape = {
+	path: folderPath,
+	limit: z.number().int().min(1).max(50).optional(),
+};
+
 export const attachSetShape = {
 	path: folderPath,
 	quizSetId: z.string().trim().min(1).max(64),

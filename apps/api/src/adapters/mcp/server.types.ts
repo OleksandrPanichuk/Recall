@@ -5,6 +5,7 @@ import type { DeleteFolderUseCase } from "@/application/use-cases/folders/delete
 import type { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
 import type { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
 import type { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
+import type { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
 import type { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import type { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
 import type { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
@@ -45,6 +46,7 @@ export interface McpUseCases {
 	readonly listFolderTree: ListFolderTreeUseCase;
 	readonly browseFolder: BrowseFolderUseCase;
 	readonly writeSummary: WriteSummaryUseCase;
+	readonly listRevisions: ListRevisionsUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;

@@ -255,6 +255,7 @@ export const browseCommandSchema = z.object({ folderId: optionalId });
 export const writeSummaryCommandSchema = z.object({
 	folderId: id,
 	summary: z.string(),
+	append: z.boolean().optional(),
 });
 
 export const summaryWrittenSchema = z.object({
