@@ -14,11 +14,14 @@ export const toFolderId = (value: string): FolderId =>
 
 export const MAX_FOLDER_DEPTH = 6;
 export const MAX_FOLDER_NAME = 60;
+export const MAX_SUMMARY_LENGTH = 200_000;
 
 export interface Folder {
 	readonly id: FolderId;
 	readonly name: string;
 	readonly parentId?: FolderId;
+	readonly summary?: string;
+	readonly icon?: string;
 	readonly createdAt: Date;
 	readonly updatedAt: Date;
 }
@@ -27,6 +30,8 @@ interface FolderDraft {
 	readonly id: FolderId;
 	readonly name: string;
 	readonly parentId?: FolderId;
+	readonly summary?: string;
+	readonly icon?: string;
 	readonly createdAt: Date;
 }
 
@@ -34,6 +39,8 @@ interface FolderSnapshot {
 	readonly id: FolderId;
 	readonly name: string;
 	readonly parentId?: FolderId;
+	readonly summary?: string;
+	readonly icon?: string;
 	readonly createdAt: Date;
 	readonly updatedAt: Date;
 }
@@ -92,8 +99,42 @@ export function createFolder(draft: FolderDraft): Folder {
 		id: draft.id,
 		name,
 		parentId: draft.parentId,
+		summary: summaryOf(draft.summary),
+		icon: trimmedOrUndefined(draft.icon),
 		createdAt: draft.createdAt,
 		updatedAt: draft.createdAt,
+	});
+}
+
+const trimmedOrUndefined = (value: string | undefined): string | undefined => {
+	const trimmed = value?.trim() ?? "";
+
+	return trimmed.length === 0 ? undefined : trimmed;
+};
+
+const summaryOf = (value: string | undefined): string | undefined => {
+	const summary = trimmedOrUndefined(value);
+
+	if (summary !== undefined && summary.length > MAX_SUMMARY_LENGTH) {
+		throw new FolderValidationError([
+			`summary must not exceed ${MAX_SUMMARY_LENGTH} characters`,
+		]);
+	}
+
+	return summary;
+};
+
+export function writeSummary(
+	folder: Folder,
+	summary: string | undefined,
+	at: Date,
+): Folder {
+	assertTransitionDate(folder, at);
+
+	return frozenFolder({
+		...folder,
+		summary: summaryOf(summary),
+		updatedAt: at,
 	});
 }
 
@@ -177,6 +218,8 @@ export function restoreFolder(snapshot: FolderSnapshot): Folder {
 		id: snapshot.id,
 		name,
 		parentId: snapshot.parentId,
+		summary: summaryOf(snapshot.summary),
+		icon: trimmedOrUndefined(snapshot.icon),
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
 	});

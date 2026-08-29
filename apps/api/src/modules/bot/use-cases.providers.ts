@@ -5,6 +5,7 @@ import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finis
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
@@ -25,6 +26,7 @@ const fromDependencies = (useCase: Constructor): Provider => ({
 
 export const botUseCases: Provider[] = [
 	BrowseFolderUseCase,
+	WriteSummaryUseCase,
 	StartQuizAttemptUseCase,
 	StartPracticeSessionUseCase,
 	GetCurrentQuestionUseCase,

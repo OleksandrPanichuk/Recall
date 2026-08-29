@@ -18,6 +18,8 @@ export interface BrowseView {
 	readonly folderId?: FolderId;
 	readonly name?: string;
 	readonly parentId?: FolderId;
+	readonly summary?: string;
+	readonly icon?: string;
 	readonly breadcrumb: readonly BrowseCrumb[];
 	readonly children: readonly BrowseChild[];
 	readonly sets: readonly QuizSummary[];
@@ -68,6 +70,8 @@ export class BrowseFolderUseCase
 			folderId: current?.id,
 			name: current?.name,
 			parentId: current?.parentId,
+			summary: current?.summary,
+			icon: current?.icon,
 			breadcrumb: ancestors.map((folder) => ({
 				id: folder.id,
 				name: folder.name,

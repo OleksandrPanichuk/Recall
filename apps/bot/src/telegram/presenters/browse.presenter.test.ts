@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { BrowseView } from "@recall/contracts";
 import { QuizSetStatus } from "@recall/contracts";
 import { CallbackAction } from "../callbacks/callback-data.constants";
-import { browseScreen } from "./browse.presenter";
+import { browseScreen, SUMMARY_EXCERPT } from "./browse.presenter";
 
 const aView = (titles: readonly string[]): BrowseView => ({
 	breadcrumb: [],
@@ -40,6 +40,44 @@ describe("set labels in the list", () => {
 	test("does not clip a title an option button would have moved aside", () => {
 		expect(labelsOf(["Twenty four characters!!"])).toContainEqual(
 			"📘 Twenty four characters!! (52)",
+		);
+	});
+});
+
+describe("a page's summary", () => {
+	const aPage = (summary?: string, icon?: string): BrowseView => ({
+		folderId: "folder-1",
+		name: "Chapter 1",
+		summary,
+		icon,
+		breadcrumb: [{ id: "folder-0", name: "Biology" }],
+		children: [],
+		sets: [],
+	});
+
+	const textOf = (view: BrowseView): string =>
+		browseScreen(view, CallbackAction.StartSet, 0).text;
+
+	test("sits between the breadcrumb and the folder contents", () => {
+		expect(textOf(aPage("Every living thing is made of cells."))).toBe(
+			"Biology › Chapter 1\n\nEvery living thing is made of cells.\n\nЦя папка порожня.",
+		);
+	});
+
+	test("is clipped, with a pointer to the web, when it is long", () => {
+		const text = textOf(aPage("щ".repeat(SUMMARY_EXCERPT + 1)));
+
+		expect(text).toContain("…");
+		expect(text).toContain("Читати повністю у вебі.");
+	});
+
+	test("is absent when the page has none", () => {
+		expect(textOf(aPage())).toBe("Biology › Chapter 1\n\nЦя папка порожня.");
+	});
+
+	test("puts the page icon in front of the breadcrumb", () => {
+		expect(textOf(aPage(undefined, "🧬"))).toStartWith(
+			"🧬 Biology › Chapter 1",
 		);
 	});
 });

@@ -104,11 +104,13 @@ describe("MCP server (§4.1)", () => {
 			"quiz_list_vocabulary",
 			"quiz_move_set",
 			"quiz_publish_set",
+			"quiz_read_summary",
 			"quiz_rename_folder",
 			"quiz_set_settings",
 			"quiz_update_question",
 			"quiz_update_set",
 			"quiz_update_vocabulary",
+			"quiz_write_summary",
 		]);
 	});
 
@@ -466,6 +468,59 @@ describe("folders over MCP", () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.text.toLowerCase()).toContain("already");
+	});
+
+	test("writes a summary onto a page it creates on the way", async () => {
+		const written = await call("quiz_write_summary", {
+			path: ["Biology", "Chapter 1"],
+			summary: "# Cells\n\nEvery living thing is made of them.",
+		});
+
+		expect(written.isError).toBe(false);
+		expect(written.structured.length).toBe(44);
+
+		const read = await call("quiz_read_summary", {
+			path: ["Biology", "Chapter 1"],
+		});
+
+		expect(read.text).toContain("Every living thing is made of them.");
+		expect(read.structured.name).toBe("Chapter 1");
+	});
+
+	test("replaces a summary and can clear it", async () => {
+		await call("quiz_write_summary", { path: ["Physics"], summary: "first" });
+		await call("quiz_write_summary", { path: ["Physics"], summary: "second" });
+
+		expect((await call("quiz_read_summary", { path: ["Physics"] })).text).toBe(
+			"second",
+		);
+
+		await call("quiz_write_summary", { path: ["Physics"], summary: "" });
+
+		const cleared = await call("quiz_read_summary", { path: ["Physics"] });
+
+		expect(cleared.structured.summary).toBeUndefined();
+		expect(cleared.text).toContain("no summary yet");
+	});
+
+	test("reads the pages and quizzes filed under a page", async () => {
+		await call("quiz_write_summary", {
+			path: ["Chemistry"],
+			summary: "Matter and its changes.",
+		});
+		await ensure(["Chemistry", "Bonds"]);
+		await publishedSetIn(["Chemistry"], "Periodic table");
+
+		const read = await call("quiz_read_summary", { path: ["Chemistry"] });
+
+		expect(read.structured.pages).toEqual(["Bonds"]);
+		expect(read.structured.quizzes).toEqual([
+			{
+				id: expect.any(String),
+				title: "Periodic table",
+				questionCount: 1,
+			},
+		]);
 	});
 
 	test("deletes an empty folder", async () => {

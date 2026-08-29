@@ -27,6 +27,7 @@ import {
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
+	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
@@ -34,6 +35,7 @@ import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finis
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
@@ -75,6 +77,8 @@ export class BotController {
 		private readonly tokens: ApiTokenService,
 		@Inject(BrowseFolderUseCase)
 		private readonly browseFolder: BrowseFolderUseCase,
+		@Inject(WriteSummaryUseCase)
+		private readonly writeSummary: WriteSummaryUseCase,
 		@Inject(StartQuizAttemptUseCase)
 		private readonly startQuizAttempt: StartQuizAttemptUseCase,
 		@Inject(StartPracticeSessionUseCase)
@@ -170,6 +174,18 @@ export class BotController {
 						: toFolderId(command.folderId),
 			}),
 		);
+	}
+
+	@Post(BOT_ROUTES.writeSummary)
+	@HttpCode(HttpStatus.OK)
+	async summary(@Body() body: unknown) {
+		const command = parseBody(writeSummaryCommandSchema, body);
+		const written = await this.writeSummary.execute({
+			folderId: toFolderId(command.folderId),
+			summary: command.summary,
+		});
+
+		return { ...written, folderId: String(written.folderId) };
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

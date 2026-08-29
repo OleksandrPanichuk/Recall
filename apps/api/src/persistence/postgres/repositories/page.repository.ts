@@ -20,6 +20,8 @@ const toPage = (row: PageRow): Folder =>
 		id: toFolderId(row.id),
 		name: row.title,
 		parentId: row.parentId === null ? undefined : toFolderId(row.parentId),
+		summary: row.contentMd ?? undefined,
+		icon: row.icon ?? undefined,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	});
@@ -62,6 +64,8 @@ export function createPagePostgresRepository(
 				parentId: page.parentId === undefined ? null : String(page.parentId),
 				title: page.name,
 				slug,
+				contentMd: page.summary ?? null,
+				icon: page.icon ?? null,
 				createdAt: page.createdAt,
 				updatedAt: page.updatedAt,
 			};
@@ -75,6 +79,8 @@ export function createPagePostgresRepository(
 						parentId: values.parentId,
 						title: values.title,
 						slug: values.slug,
+						contentMd: values.contentMd,
+						icon: values.icon,
 						updatedAt: values.updatedAt,
 					},
 				});

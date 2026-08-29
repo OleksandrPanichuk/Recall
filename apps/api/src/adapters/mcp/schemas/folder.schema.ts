@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_FOLDER_NAME } from "@/domain/folder/folder";
+import { MAX_FOLDER_NAME, MAX_SUMMARY_LENGTH } from "@/domain/folder/folder";
 
 const folderName = z.string().trim().min(1).max(MAX_FOLDER_NAME);
 
@@ -18,5 +18,12 @@ export const moveSetShape = {
 	quizSetId: z.string().trim().min(1).max(64),
 	folderPath: folderPath.optional(),
 };
+
+export const writeSummaryShape = {
+	path: folderPath,
+	summary: z.string().max(MAX_SUMMARY_LENGTH),
+};
+
+export const readSummaryShape = { path: folderPath };
 
 export const listFoldersShape = {};

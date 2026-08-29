@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { createFolder, renameFolder, toFolderId } from "@/domain/folder/folder";
+import {
+	createFolder,
+	renameFolder,
+	toFolderId,
+	writeSummary,
+} from "@/domain/folder/folder";
 import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 
 export interface PageRepositoryHarness {
@@ -12,6 +17,7 @@ export interface PageRepositoryHarness {
 }
 
 const at = new Date("2026-08-01T10:00:00.000Z");
+const later = new Date("2026-08-02T10:00:00.000Z");
 
 const page = (id: string, name: string, parentId?: string) =>
 	createFolder({
@@ -210,6 +216,55 @@ export function describePageRepository(
 				});
 
 				expect(await harness.scope.pages.listAll()).toEqual([]);
+			});
+			test("keeps a page's summary and icon", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.save(
+						createFolder({
+							id: toFolderId(id),
+							name: "Chapter 2",
+							summary: "# Data models\n\nRelational vs document.",
+							icon: "📘",
+							createdAt: at,
+						}),
+					),
+				);
+
+				const stored = await harness.scope.pages.findById(toFolderId(id));
+
+				expect(stored?.summary).toBe(
+					"# Data models\n\nRelational vs document.",
+				);
+				expect(stored?.icon).toBe("📘");
+			});
+
+			test("rewrites the summary and can clear it", async () => {
+				const id = uuid();
+				const page = createFolder({
+					id: toFolderId(id),
+					name: "Chapter 2",
+					summary: "first draft",
+					createdAt: at,
+				});
+
+				await harness.unitOfWork.run(({ pages }) => pages.save(page));
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.save(writeSummary(page, "second draft", later)),
+				);
+
+				expect(
+					(await harness.scope.pages.findById(toFolderId(id)))?.summary,
+				).toBe("second draft");
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.save(writeSummary(page, undefined, later)),
+				);
+
+				expect(
+					(await harness.scope.pages.findById(toFolderId(id)))?.summary,
+				).toBeUndefined();
 			});
 		},
 	);

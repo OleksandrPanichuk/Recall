@@ -22,6 +22,7 @@ import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-fold
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
+import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
@@ -79,6 +80,7 @@ export interface UseCases {
 	readonly resolveFolderPath: ResolveFolderPathUseCase;
 	readonly listFolderTree: ListFolderTreeUseCase;
 	readonly browseFolder: BrowseFolderUseCase;
+	readonly writeSummary: WriteSummaryUseCase;
 	readonly startQuizAttempt: StartQuizAttemptUseCase;
 	readonly startPracticeSession: StartPracticeSessionUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;
@@ -139,6 +141,7 @@ export function createUseCases(
 		resolveFolderPath: new ResolveFolderPathUseCase(dependencies),
 		listFolderTree: new ListFolderTreeUseCase(dependencies),
 		browseFolder: new BrowseFolderUseCase(dependencies),
+		writeSummary: new WriteSummaryUseCase(dependencies),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
 		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
 		updateQuestion: new UpdateQuestionUseCase(dependencies),

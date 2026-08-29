@@ -1,9 +1,11 @@
 import type { Logger } from "@recall/kit";
+import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import type { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
 import type { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
 import type { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
 import type { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import type { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
+import type { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import type { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import type { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import type { ArchiveQuizSetUseCase } from "@/application/use-cases/quiz-sets/archive-quiz-set";
@@ -39,6 +41,8 @@ export interface McpUseCases {
 	readonly renameFolder: RenameFolderUseCase;
 	readonly deleteFolder: DeleteFolderUseCase;
 	readonly listFolderTree: ListFolderTreeUseCase;
+	readonly browseFolder: BrowseFolderUseCase;
+	readonly writeSummary: WriteSummaryUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;
 	readonly deleteQuestion: DeleteQuestionUseCase;
 }

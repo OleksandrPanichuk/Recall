@@ -63,6 +63,8 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 export const browseViewToWire = (view: BrowseView): WireBrowseView => ({
 	folderId: view.folderId === undefined ? undefined : String(view.folderId),
 	name: text(view.name),
+	summary: text(view.summary),
+	icon: text(view.icon),
 	parentId: view.parentId === undefined ? undefined : String(view.parentId),
 	breadcrumb: view.breadcrumb.map((crumb) => ({
 		id: String(crumb.id),

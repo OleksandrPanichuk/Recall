@@ -74,6 +74,8 @@ export const browseCrumbSchema = z.object({ id, name: z.string() });
 export const browseViewSchema = z.object({
 	folderId: optionalId,
 	name: z.string().optional(),
+	summary: z.string().optional(),
+	icon: z.string().optional(),
 	parentId: optionalId,
 	breadcrumb: z.array(browseCrumbSchema).readonly(),
 	children: z.array(browseCrumbSchema.extend({ itemCount: count })).readonly(),
@@ -249,6 +251,17 @@ export const revokedApiTokenSchema = z.object({ revoked: z.boolean() });
 
 export const browseCommandSchema = z.object({ folderId: optionalId });
 
+export const writeSummaryCommandSchema = z.object({
+	folderId: id,
+	summary: z.string(),
+});
+
+export const summaryWrittenSchema = z.object({
+	folderId: id,
+	name: z.string(),
+	length: z.number().int(),
+});
+
 export const startAttemptCommandSchema = z.object({
 	quizSetId: id,
 	telegramUserId: z.number().int().optional(),
@@ -329,6 +342,8 @@ export type ListApiTokensCommand = z.infer<typeof listApiTokensCommandSchema>;
 export type RevokeApiTokenCommand = z.infer<typeof revokeApiTokenCommandSchema>;
 export type RevokedApiToken = z.infer<typeof revokedApiTokenSchema>;
 export type BrowseFolderCommand = z.infer<typeof browseCommandSchema>;
+export type WriteSummaryCommand = z.infer<typeof writeSummaryCommandSchema>;
+export type SummaryWritten = z.infer<typeof summaryWrittenSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;
 export type GetCurrentQuestionCommand = z.infer<

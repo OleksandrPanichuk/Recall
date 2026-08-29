@@ -1,12 +1,7 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { afterEach, describe, expect, test } from "bun:test";
 import type { CurrentQuestionView, Question } from "@recall/contracts";
 import { QuestionType } from "@recall/contracts";
 import { shuffled } from "@recall/kit/shuffle";
-
-const nativeFetch = globalThis.fetch;
-
-GlobalRegistrator.register({ url: "http://127.0.0.1/" });
 
 const { cleanup, fireEvent, render, screen } = await import(
 	"@testing-library/react"
@@ -15,11 +10,6 @@ const { QuestionCard } = await import("@/components/QuestionCard");
 
 afterEach(() => {
 	cleanup();
-});
-
-afterAll(async () => {
-	globalThis.fetch = nativeFetch;
-	await GlobalRegistrator.unregister();
 });
 
 const option = (text: string, position: number, isCorrect = false) => ({

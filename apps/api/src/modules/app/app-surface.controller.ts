@@ -24,6 +24,7 @@ import {
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
+	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
 import type { OwnerId } from "@/application/ports/owner";
@@ -78,6 +79,18 @@ export class AppSurfaceController {
 						: toFolderId(command.folderId),
 			}),
 		);
+	}
+
+	@Post(BOT_ROUTES.writeSummary)
+	@HttpCode(HttpStatus.OK)
+	async summary(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(writeSummaryCommandSchema, body);
+		const written = await this.of(request).writeSummary.execute({
+			folderId: toFolderId(command.folderId),
+			summary: command.summary,
+		});
+
+		return { ...written, folderId: String(written.folderId) };
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

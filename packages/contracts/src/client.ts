@@ -59,11 +59,15 @@ import {
 	type StartPracticeSessionResult,
 	type StartQuizAttemptCommand,
 	type StartQuizAttemptResult,
+	type SummaryWritten,
 	startAttemptCommandSchema,
 	startAttemptResultSchema,
 	statisticsCommandSchema,
+	summaryWrittenSchema,
 	type UpdateQuizSettingsCommand,
 	updateSettingsCommandSchema,
+	type WriteSummaryCommand,
+	writeSummaryCommandSchema,
 } from "./bot";
 
 export type Fetch = (
@@ -165,6 +169,7 @@ export interface UseCaseLike<Command, Result> {
 
 export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
+	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
 	readonly listDueRepetitions: UseCaseLike<
 		ListDueRepetitionsCommand,
 		readonly DueSet[]
@@ -226,6 +231,7 @@ export const BOT_ROUTES = {
 	listApiTokens: "auth/tokens/list",
 	revokeApiToken: "auth/tokens/revoke",
 	browse: "browse",
+	writeSummary: "pages/summary",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
 	currentQuestion: "attempts/current",
@@ -340,6 +346,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.browse,
 			browseCommandSchema,
 			browseViewSchema,
+		),
+		writeSummary: operation(
+			BOT_ROUTES.writeSummary,
+			writeSummaryCommandSchema,
+			summaryWrittenSchema,
 		),
 		listDueRepetitions: operation(
 			BOT_ROUTES.dueRepetitions,

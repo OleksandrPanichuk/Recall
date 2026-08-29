@@ -7,6 +7,8 @@ import { truncated } from "./utils/truncate";
 
 export const BROWSE_PAGE_SIZE = 8;
 
+export const SUMMARY_EXCERPT = 600;
+
 export type LeafAction =
 	| typeof CallbackAction.StartSet
 	| typeof CallbackAction.StatisticsFor
@@ -24,9 +26,23 @@ const breadcrumbOf = (view: BrowseView): string =>
 		.filter((name): name is string => name !== undefined)
 		.join(" › ");
 
+const excerptOf = (summary: string | undefined): string | undefined => {
+	if (summary === undefined) {
+		return undefined;
+	}
+
+	const characters = [...summary];
+
+	return characters.length <= SUMMARY_EXCERPT
+		? summary
+		: `${characters.slice(0, SUMMARY_EXCERPT).join("").trimEnd()}…\n\nЧитати повністю у вебі.`;
+};
+
 const headingOf = (view: BrowseView, leaf: LeafAction): string => {
 	if (view.folderId !== undefined) {
-		return breadcrumbOf(view);
+		const trail = breadcrumbOf(view);
+
+		return view.icon === undefined ? trail : `${view.icon} ${trail}`;
 	}
 
 	if (leaf === Action.StatisticsFor) {
@@ -120,6 +136,7 @@ export function browseScreen(
 	navigation.push([button("« Меню", { action: Action.Menu })]);
 
 	const heading = headingOf(view, leaf);
+	const excerpt = excerptOf(view.summary);
 	const clipped = shown.filter((entry) => entry.button.text !== entry.label);
 	const body =
 		entries.length === 0
@@ -136,7 +153,9 @@ export function browseScreen(
 					.join("\n\n");
 
 	return {
-		text: body.length === 0 ? heading : `${heading}\n\n${body}`,
+		text: [heading, excerpt, body.length === 0 ? undefined : body]
+			.filter((part) => part !== undefined)
+			.join("\n\n"),
 		keyboard: [
 			...shown.map((entry) => [entry.button]),
 			...(pager.length === 0 ? [] : [pager]),

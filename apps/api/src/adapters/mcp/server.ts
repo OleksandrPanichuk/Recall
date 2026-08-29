@@ -15,9 +15,11 @@ import { registerListVocabularyTool } from "./tools/list-vocabulary.tool";
 import { registerMoveSetTool } from "./tools/move-set.tool";
 import { registerPublishSetTool } from "./tools/publish-set.tool";
 import { registerQuizSettingsTools } from "./tools/quiz-settings.tool";
+import { registerReadSummaryTool } from "./tools/read-summary.tool";
 import { registerRenameFolderTool } from "./tools/rename-folder.tool";
 import { registerUpdateSetTool } from "./tools/update-set.tool";
 import { registerUpdateVocabularyTool } from "./tools/update-vocabulary.tool";
+import { registerWriteSummaryTool } from "./tools/write-summary.tool";
 import { createToolRunner } from "./utils/tool-logging";
 
 export type { McpServerOptions, McpUseCases } from "./server.types";
@@ -49,6 +51,8 @@ export function createMcpServer(
 	registerEnsureFolderPathTool(server, useCases, runTool);
 	registerMoveSetTool(server, useCases, runTool);
 	registerRenameFolderTool(server, useCases, runTool);
+	registerWriteSummaryTool(server, useCases, runTool);
+	registerReadSummaryTool(server, useCases, runTool);
 	registerQuizSettingsTools(server, useCases, runTool);
 	registerDeleteFolderTool(server, useCases, runTool);
 	registerEditQuestionTools(server, useCases, runTool);

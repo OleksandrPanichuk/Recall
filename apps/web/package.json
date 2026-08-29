@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@recall/contracts": "workspace:*",
 		"@recall/kit": "workspace:*",
+		"@tailwindcss/typography": "^0.5.20",
 		"@tailwindcss/vite": "^4.3.3",
 		"@tanstack/react-query": "^5.90.5",
 		"@tanstack/react-router": "^1.135.2",
@@ -21,6 +22,8 @@
 		"lucide-react": "^1.35.0",
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8",
+		"react-markdown": "^10.1.0",
+		"remark-gfm": "^4.0.1",
 		"tailwind-merge": "^3.6.0",
 		"tailwindcss": "^4.3.3"
 	},

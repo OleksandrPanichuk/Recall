@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LibraryList } from "@/components/LibraryList";
 import { PageHeading } from "@/components/PageHeading";
+import { PageView } from "@/components/PageView";
 import { SignInPrompt } from "@/components/SignInPrompt";
 import { loadLibrary } from "@/lib/practice";
 
@@ -17,15 +17,17 @@ function Folder() {
 		return <SignInPrompt />;
 	}
 
+	const name = view.name ?? "Сторінка";
+
 	return (
 		<>
 			<PageHeading
-				title={view.name ?? "Папка"}
+				title={view.icon === undefined ? name : `${view.icon} ${name}`}
 				caption={
 					view.breadcrumb.map((crumb) => crumb.name).join(" / ") || "Бібліотека"
 				}
 			/>
-			<LibraryList view={view} />
+			<PageView view={view} />
 		</>
 	);
 }
