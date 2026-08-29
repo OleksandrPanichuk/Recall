@@ -21,6 +21,8 @@
 		"better-auth": "^1.7.1",
 		"drizzle-orm": "^0.45.2",
 		"express": "^5",
+		"minio": "^8.0.7",
+		"multer": "^2.3.0",
 		"postgres": "^3.4.9",
 		"reflect-metadata": "^0.2.2",
 		"rxjs": "^7.8.2",
@@ -29,6 +31,7 @@
 	},
 	"devDependencies": {
 		"@types/express": "^5.0.6",
+		"@types/multer": "^2.2.0",
 		"drizzle-kit": "^0.31.10",
 		"tsc-alias": "^1.8.16"
 	}

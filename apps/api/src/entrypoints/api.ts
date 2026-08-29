@@ -24,8 +24,13 @@ export async function createApiApp() {
 
 	const environment = loadApiEnvironment();
 
-	if (environment.adminOrigin !== undefined) {
-		app.enableCors({ origin: environment.adminOrigin, credentials: true });
+	const browserOrigins = [
+		environment.adminOrigin,
+		environment.webAppUrl,
+	].filter((origin): origin is string => origin !== undefined);
+
+	if (browserOrigins.length > 0) {
+		app.enableCors({ origin: browserOrigins, credentials: true });
 	}
 
 	const mcp = app.get<McpSurface>(MCP_SURFACE);

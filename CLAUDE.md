@@ -381,6 +381,13 @@ src/
   buttons for every type leaves typed and cloze questions unanswerable — they have no options at
   all — and grades a multiple-choice question on the first click.
 
+- **Images live in MinIO, and the markdown stores a relative path.** `/app/uploads/<id>`, never
+  an absolute URL — an origin baked into a summary rots the moment the app moves, which is the
+  same bug as the `blob:` URL this replaced. Crepe's `proxyDomURL` and react-markdown's
+  `urlTransform` resolve it against the API for display. The upload is the one place the browser
+  talks to the API directly rather than through a server function: an `<img>` needs a real GET,
+  so `WEB_APP_URL` is a CORS origin with credentials. Objects are keyed `<owner>/<id>` and the
+  `attachments` row is owner-scoped, so serving checks ownership before it streams.
 - **The page editor is Milkdown's Crepe**, and it is *uncontrolled on purpose*. Markdown is the
   document model — the same `content_md` an AI writes over MCP — so there is no lossy block-JSON
   round-trip, but it also means the editor owns the document once it is created. It takes the

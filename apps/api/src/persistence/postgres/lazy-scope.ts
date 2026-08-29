@@ -41,6 +41,7 @@ export const lazyScope = (
 		reviews: lazyRepository(async () => (await scope()).reviews),
 		termPairs: lazyRepository(async () => (await scope()).termPairs),
 		analytics: lazyRepository(async () => (await scope()).analytics),
+		attachments: lazyRepository(async () => (await scope()).attachments),
 	};
 };
 

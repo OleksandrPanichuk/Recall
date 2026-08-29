@@ -2,6 +2,7 @@ import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import { useEffect, useRef, useState } from "react";
 import { slashMenu } from "@/features/pages/constants/editor-menu";
+import { displayUrl, uploadImage } from "@/features/pages/lib/uploads";
 
 interface Props {
 	readonly markdown: string;
@@ -34,6 +35,12 @@ export function NotionEditor({ markdown, onChange }: Props) {
 					mode: "block",
 				},
 				[Crepe.Feature.BlockEdit]: slashMenu,
+				[Crepe.Feature.ImageBlock]: {
+					onUpload: uploadImage,
+					blockOnUpload: uploadImage,
+					inlineOnUpload: uploadImage,
+					proxyDomURL: displayUrl,
+				},
 			},
 		});
 

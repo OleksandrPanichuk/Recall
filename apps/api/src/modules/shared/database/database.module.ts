@@ -4,8 +4,10 @@ import {
 	Module,
 	type OnApplicationShutdown,
 } from "@nestjs/common";
+import type { ObjectStore } from "@/application/ports/object-store";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { systemClock, uuidGenerator } from "@/composition/create-application";
+import { createMinioObjectStore } from "@/persistence/objects/minio.object-store";
 import {
 	createPostgresConnection,
 	type PostgresConnection,
@@ -20,6 +22,7 @@ import { instanceOwnerResolver } from "./instance-owner";
 import {
 	CONNECTION,
 	INSTANCE_OWNER,
+	OBJECT_STORE,
 	USE_CASE_DEPENDENCIES,
 	USE_CASES_FOR,
 } from "./tokens";
@@ -41,6 +44,19 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 				instanceOwnerResolver(connection.db),
 		},
 		{
+			provide: OBJECT_STORE,
+			useFactory: (): ObjectStore => {
+				const environment = loadApiEnvironment();
+
+				return createMinioObjectStore({
+					endpoint: environment.objectStoreEndpoint,
+					accessKey: environment.objectStoreAccessKey,
+					secretKey: environment.objectStoreSecretKey,
+					bucket: environment.objectStoreBucket,
+				});
+			},
+		},
+		{
 			provide: CONNECTION,
 			useFactory: (): PostgresConnection =>
 				createPostgresConnection({ url: loadApiEnvironment().databaseUrl }),
@@ -60,7 +76,13 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 			}),
 		},
 	],
-	exports: [CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES, USE_CASES_FOR],
+	exports: [
+		CONNECTION,
+		INSTANCE_OWNER,
+		OBJECT_STORE,
+		USE_CASE_DEPENDENCIES,
+		USE_CASES_FOR,
+	],
 })
 export class DatabaseModule implements OnApplicationShutdown {
 	constructor(

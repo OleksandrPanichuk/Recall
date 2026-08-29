@@ -15,6 +15,11 @@ export interface ApiEnvironment {
 	readonly mcpIssuer?: URL;
 	readonly mcpPassphrase?: string;
 	readonly mcpAllowedHosts: readonly string[];
+	readonly webAppUrl?: string;
+	readonly objectStoreEndpoint: URL;
+	readonly objectStoreAccessKey: string;
+	readonly objectStoreSecretKey: string;
+	readonly objectStoreBucket: string;
 	readonly host: string;
 	readonly port: number;
 }
@@ -38,6 +43,10 @@ const schema = z.object({
 	MCP_OAUTH_ISSUER: z.string().trim().url().optional(),
 	MCP_OAUTH_PASSPHRASE: z.string().trim().min(16).optional(),
 	MCP_HTTP_ALLOWED_HOST: z.string().trim().min(1).optional(),
+	OBJECT_STORE_URL: z.string().trim().url().default("http://127.0.0.1:55090"),
+	OBJECT_STORE_ACCESS_KEY: z.string().trim().min(1).default("recall"),
+	OBJECT_STORE_SECRET_KEY: z.string().trim().min(1).default("recall-secret"),
+	OBJECT_STORE_BUCKET: z.string().trim().min(1).default("recall-uploads"),
 	API_HOST: z.string().trim().min(1).default("127.0.0.1"),
 	API_PORT: z.coerce.number().int().positive().max(65535).default(8767),
 });
@@ -100,6 +109,11 @@ export function loadApiEnvironment(
 			parsed.data.MCP_HTTP_ALLOWED_HOST === undefined
 				? []
 				: [parsed.data.MCP_HTTP_ALLOWED_HOST],
+		webAppUrl: parsed.data.WEB_APP_URL,
+		objectStoreEndpoint: new URL(parsed.data.OBJECT_STORE_URL),
+		objectStoreAccessKey: parsed.data.OBJECT_STORE_ACCESS_KEY,
+		objectStoreSecretKey: parsed.data.OBJECT_STORE_SECRET_KEY,
+		objectStoreBucket: parsed.data.OBJECT_STORE_BUCKET,
 		host: parsed.data.API_HOST,
 		port: parsed.data.API_PORT,
 	};

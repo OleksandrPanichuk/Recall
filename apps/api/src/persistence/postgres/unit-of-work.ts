@@ -3,6 +3,7 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { RecallDatabase } from "./client";
 import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
+import { createAttachmentPostgresRepository } from "./repositories/attachment.repository";
 import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
 import { createPagePostgresRepository } from "./repositories/page.repository";
 import { createQuizPostgresRepository } from "./repositories/quiz.repository";
@@ -23,6 +24,7 @@ export const scopeFor = (
 	reviews: createReviewPostgresRepository(executor, owner),
 	termPairs: createTermPairPostgresRepository(executor, owner),
 	analytics: createAnalyticsPostgresRepository(executor, owner),
+	attachments: createAttachmentPostgresRepository(executor, owner),
 });
 
 export function createPostgresUnitOfWork(
