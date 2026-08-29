@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { AnsweredQuestion } from "@/components/AnsweredQuestion";
+import { BackLink } from "@/components/BackLink";
 import { PageHeading } from "@/components/PageHeading";
 import { ScoreSummary } from "@/components/ScoreSummary";
 import { SignInPrompt } from "@/components/SignInPrompt";
@@ -22,6 +23,7 @@ function AttemptReview() {
 
 	return (
 		<>
+			<BackLink quizId={attempt.quizSetId} label={attempt.quizSetTitle} />
 			<PageHeading title={attempt.quizSetTitle}>
 				<ScoreSummary score={attempt.score} />
 			</PageHeading>
