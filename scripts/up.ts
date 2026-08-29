@@ -80,10 +80,16 @@ function start(
 	width: number,
 	index: number,
 ): SupervisedProcess {
-	const child = Bun.spawn([process.execPath, entrypoint(service.entry)], {
-		stdout: "pipe",
-		stderr: "pipe",
-	});
+	const child = Bun.spawn(
+		service.command === undefined
+			? [process.execPath, entrypoint(service.entry)]
+			: [...service.command],
+		{
+			cwd: service.command === undefined ? undefined : root(),
+			stdout: "pipe",
+			stderr: "pipe",
+		},
+	);
 	const render = (line: string): string =>
 		raw
 			? `${service.name.padEnd(width)}  ${line}`

@@ -1,10 +1,13 @@
-export const SERVICE_NAMES = ["api", "bot", "admin"] as const;
+export const SERVICE_NAMES = ["api", "bot", "web", "admin"] as const;
 
 export type ServiceName = (typeof SERVICE_NAMES)[number];
 
 export interface PlannedService {
 	readonly name: ServiceName;
+	// Most services are a file bun can run. The web app is a vite dev server, so
+	// it names a command instead.
 	readonly entry: string;
+	readonly command?: readonly string[];
 	readonly host?: string;
 	readonly port?: number;
 	readonly url?: string;
@@ -15,6 +18,7 @@ export type EnvironmentSource = Readonly<Record<string, string | undefined>>;
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_ADMIN_PORT = 8766;
+const DEFAULT_WEB_PORT = 3000;
 
 const text = (value: string | undefined): string => (value ?? "").trim();
 
@@ -75,6 +79,8 @@ export function planServices(
 			: "not selected by --only";
 
 	const adminHost = hostOf(env.ADMIN_HOST);
+	const webHost = hostOf(env.WEB_HOST);
+	const webPort = portOf(env.WEB_PORT, DEFAULT_WEB_PORT);
 	const adminPort = portOf(env.ADMIN_PORT, DEFAULT_ADMIN_PORT);
 
 	const botSkipped =
@@ -105,6 +111,18 @@ export function planServices(
 			name: "bot",
 			entry: "apps/bot/src/main.ts",
 			skipped: botSkipped,
+		},
+		{
+			name: "web",
+			entry: "apps/web",
+			command: ["bun", "run", "--filter", "@recall/web", "dev"],
+			...(wanted("web") === undefined
+				? {
+						host: webHost,
+						port: webPort,
+						url: `http://${reachable(webHost)}:${webPort}`,
+					}
+				: { skipped: wanted("web") }),
 		},
 		{
 			name: "admin",

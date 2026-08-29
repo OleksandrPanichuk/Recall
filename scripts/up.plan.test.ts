@@ -13,6 +13,7 @@ describe("planning what to start", () => {
 		expect(running(plan).map((service) => service.name)).toEqual([
 			"api",
 			"bot",
+			"web",
 			"admin",
 		]);
 	});
@@ -20,10 +21,14 @@ describe("planning what to start", () => {
 	test("keeps the api alone when nothing else is configured", () => {
 		const plan = planServices({});
 
-		expect(running(plan).map((service) => service.name)).toEqual(["api"]);
+		expect(running(plan).map((service) => service.name)).toEqual([
+			"api",
+			"web",
+		]);
 		expect(describePlan(plan)).toEqual([
 			"api    http://127.0.0.1:8767/docs",
 			"bot    skipped — BOT_API_TOKEN is not set",
+			"web    http://127.0.0.1:3000",
 			"admin  skipped — neither ADMIN_PASSPHRASE nor MCP_OAUTH_PASSPHRASE is set",
 		]);
 	});
@@ -35,6 +40,7 @@ describe("planning what to start", () => {
 
 		expect(running(plan).map((service) => service.name)).toEqual([
 			"api",
+			"web",
 			"admin",
 		]);
 	});
@@ -45,6 +51,7 @@ describe("planning what to start", () => {
 		expect(describePlan(plan)).toEqual([
 			"api    http://127.0.0.1:8767/docs",
 			"bot    starting",
+			"web    http://127.0.0.1:3000",
 			"admin  http://127.0.0.1:8766",
 		]);
 	});
@@ -59,6 +66,7 @@ describe("planning what to start", () => {
 		expect(describePlan(plan)).toEqual([
 			"api    http://127.0.0.1:8767/docs",
 			"bot    starting",
+			"web    http://127.0.0.1:3000",
 			"admin  http://192.168.1.10:9100",
 		]);
 	});
@@ -81,7 +89,10 @@ describe("planning what to start", () => {
 	test("treats a blank value as unset", () => {
 		const plan = planServices({ ADMIN_PASSPHRASE: "   ", BOT_API_TOKEN: "  " });
 
-		expect(running(plan).map((service) => service.name)).toEqual(["api"]);
+		expect(running(plan).map((service) => service.name)).toEqual([
+			"api",
+			"web",
+		]);
 	});
 });
 
@@ -93,6 +104,7 @@ describe("restricting the plan", () => {
 		expect(describePlan(plan)).toEqual([
 			"api    skipped — not selected by --only",
 			"bot    skipped — not selected by --only",
+			"web    skipped — not selected by --only",
 			"admin  http://127.0.0.1:8766",
 		]);
 	});

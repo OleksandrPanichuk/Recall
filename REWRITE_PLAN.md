@@ -1544,6 +1544,42 @@ and the screens still render (*"питання 1/20"*, an answer graded). A fres
 Telegram id anywhere. The remaining web-specific work is the app itself: TanStack Start, the
 practice screens, and an auth boundary that forwards the cookie.
 
+## Phase 9: the web app exists (r27)
+
+`apps/web` is a TanStack Start app — the stack decision from r3 — serving browse, quiz, practice
+and attempt review against the same contract the bot uses.
+
+**The API grew a second surface first.** `/bot/*` is bot-token guarded and resolves the *instance*
+owner, which a browser user is not. `/app/*` carries the same twelve routes behind `SessionGuard`,
+which reads the Better Auth session and puts the owner on the request; `USE_CASES_FOR` then builds
+the use cases for that owner. Same schemas, same wire mappers, same routes — the only difference
+is who the api believes the caller to be.
+
+**The web app holds no credential.** Every call is a server function that forwards the browser's
+cookie to the api. The browser therefore talks to one origin, there is no CORS to configure, and
+the api stays the only issuer. `viewerOf()` asks the api who is signed in rather than decoding the
+cookie, which is signed with a secret `apps/web` does not have.
+
+**The client split enforces it.** `createAppClient` returns `PracticeUseCases` — browse, practice,
+statistics, attempt detail, settings, repetitions. `createBotClient` returns those plus
+`issueLoginLink` and the token operations. Both are the same implementation with different
+headers, so a route cannot drift between them, and the web app has no way to mint anything.
+
+**One bug worth recording**, caught before it shipped: the practice screen's "next" button first
+re-sent `answerQuestion` to advance, which would have graded the following question with an empty
+answer. Answering already returns where the attempt now stands, so moving on needs no request at
+all.
+
+**Proven against a live api.** With the api on a fresh database and a session minted through the
+real login link: signed out, the app renders *"Увійдіть, щоб продовжити"*; signed in, *"Ваша
+бібліотека · DDIA — Розділ 2 · 2 питань"*; the quiz screen offers to start; and `/practice/$id`
+server-renders *"питання 1/2 · Хто запропонував реляційну модель?"* with both options. The
+two-user isolation is pinned by `app-surface.test.ts`: two cookies, one endpoint, each sees only
+their own library, and one gets 404 on the other's attempt.
+
+**Not done here:** analytics dashboards (phase 11), the summary editor (phase 10), and any real
+visual design — this is the flow, in plain CSS, so the shape can be reviewed before it is dressed.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.

@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AppSurfaceModule } from "./app/app-surface.module";
 import { AuthModule } from "./auth/auth.module";
 import { BotModule } from "./bot/bot.module";
 import { ContentModule } from "./content/content.module";
@@ -12,6 +13,7 @@ import { HealthController } from "./shared/health/health.controller";
 		DatabaseModule,
 		AuthModule,
 		ContentModule,
+		AppSurfaceModule,
 		BotModule,
 		AdminModule,
 		McpModule,

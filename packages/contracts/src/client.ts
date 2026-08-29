@@ -71,11 +71,21 @@ export type Fetch = (
 	init?: RequestInit,
 ) => Promise<Response>;
 
-export interface BotApiOptions {
+export interface RecallClientOptions {
 	readonly baseUrl: string | URL;
-	readonly token: string;
+	// What proves who the caller is: the bot's token, or a browser's cookie. Every
+	// operation below is identical either way — only this differs.
+	readonly headers?: Readonly<Record<string, string>>;
 	readonly fetch?: Fetch;
 	readonly timeoutMs?: number;
+}
+
+export interface BotApiOptions extends Omit<RecallClientOptions, "headers"> {
+	readonly token: string;
+}
+
+export interface AppApiOptions extends Omit<RecallClientOptions, "headers"> {
+	readonly cookie?: string;
 }
 
 export class BotApiError extends Error {
@@ -158,14 +168,9 @@ export interface UseCaseLike<Command, Result> {
 	execute(command: Command): Promise<Result>;
 }
 
-export interface BotUseCases {
-	readonly issueLoginLink: UseCaseLike<IssueLoginLinkCommand, LoginLink>;
-	readonly issueApiToken: UseCaseLike<IssueApiTokenCommand, IssuedApiToken>;
-	readonly listApiTokens: UseCaseLike<
-		ListApiTokensCommand,
-		readonly ApiToken[]
-	>;
-	readonly revokeApiToken: UseCaseLike<RevokeApiTokenCommand, RevokedApiToken>;
+// What a browser session can do. The bot does all of this too, plus mint the
+// credentials in BotUseCases below.
+export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly listDueRepetitions: UseCaseLike<
 		ListDueRepetitionsCommand,
@@ -210,6 +215,20 @@ export interface BotUseCases {
 	>;
 }
 
+// The web app reaches the same use cases behind a session cookie instead of the
+// bot's token, so both surfaces share these route names.
+export const APP_ROUTE_PREFIX = "app";
+
+export interface BotUseCases extends PracticeUseCases {
+	readonly issueLoginLink: UseCaseLike<IssueLoginLinkCommand, LoginLink>;
+	readonly issueApiToken: UseCaseLike<IssueApiTokenCommand, IssuedApiToken>;
+	readonly listApiTokens: UseCaseLike<
+		ListApiTokensCommand,
+		readonly ApiToken[]
+	>;
+	readonly revokeApiToken: UseCaseLike<RevokeApiTokenCommand, RevokedApiToken>;
+}
+
 export const BOT_ROUTES = {
 	loginLink: "auth/login-link",
 	issueApiToken: "auth/tokens/issue",
@@ -229,7 +248,7 @@ export const BOT_ROUTES = {
 	updateSettings: "settings/update",
 } as const;
 
-export function createBotClient(options: BotApiOptions): BotUseCases {
+function createClient(options: RecallClientOptions) {
 	const send = options.fetch ?? fetch;
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const base = new URL(
@@ -246,10 +265,7 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 		try {
 			response = await send(endpoint, {
 				method: "POST",
-				headers: {
-					authorization: `Bearer ${options.token}`,
-					"content-type": "application/json",
-				},
+				headers: { ...options.headers, "content-type": "application/json" },
 				body: JSON.stringify(command ?? {}),
 				signal: AbortSignal.timeout(timeoutMs),
 			});
@@ -328,27 +344,7 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 		},
 	});
 
-	return {
-		issueLoginLink: operation(
-			BOT_ROUTES.loginLink,
-			loginLinkCommandSchema,
-			loginLinkSchema,
-		),
-		issueApiToken: operation(
-			BOT_ROUTES.issueApiToken,
-			issueApiTokenCommandSchema,
-			issuedApiTokenSchema,
-		),
-		listApiTokens: operation(
-			BOT_ROUTES.listApiTokens,
-			listApiTokensCommandSchema,
-			apiTokenSchema.array().readonly(),
-		),
-		revokeApiToken: operation(
-			BOT_ROUTES.revokeApiToken,
-			revokeApiTokenCommandSchema,
-			revokedApiTokenSchema,
-		),
+	const practice: PracticeUseCases = {
 		browseFolder: operation(
 			BOT_ROUTES.browse,
 			browseCommandSchema,
@@ -410,4 +406,50 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 			quizSettingsSchema,
 		),
 	};
+
+	return {
+		practice,
+		credentials: {
+			issueLoginLink: operation(
+				BOT_ROUTES.loginLink,
+				loginLinkCommandSchema,
+				loginLinkSchema,
+			),
+			issueApiToken: operation(
+				BOT_ROUTES.issueApiToken,
+				issueApiTokenCommandSchema,
+				issuedApiTokenSchema,
+			),
+			listApiTokens: operation(
+				BOT_ROUTES.listApiTokens,
+				listApiTokensCommandSchema,
+				apiTokenSchema.array().readonly(),
+			),
+			revokeApiToken: operation(
+				BOT_ROUTES.revokeApiToken,
+				revokeApiTokenCommandSchema,
+				revokedApiTokenSchema,
+			),
+		},
+	};
+}
+
+// The bot proves itself with a token and may mint credentials.
+export function createBotClient(options: BotApiOptions): BotUseCases {
+	const client = createClient({
+		...options,
+		headers: { authorization: `Bearer ${options.token}` },
+	});
+
+	return { ...client.practice, ...client.credentials };
+}
+
+// A browser proves itself with the session cookie and may not. Same routes, same
+// schemas, different prefix — and no way to mint anything.
+export function createAppClient(options: AppApiOptions): PracticeUseCases {
+	return createClient({
+		...options,
+		baseUrl: new URL(`${APP_ROUTE_PREFIX}/`, `${String(options.baseUrl)}/`),
+		headers: options.cookie === undefined ? {} : { cookie: options.cookie },
+	}).practice;
 }

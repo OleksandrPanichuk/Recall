@@ -114,6 +114,18 @@ ownership.contract.ts` runs against both engines and is the proof.
 Every unique constraint that used to be instance-wide is now per owner — a legacy id, a page
 slug, an instance-wide settings row. Two people may import the same v1 export.
 
+**`apps/web` never holds a credential, and never talks to the database.** Every call goes
+through a TanStack Start **server function**, which forwards the browser's cookie to the API and
+returns the answer — so the browser talks to one origin, there is no CORS, and the API stays the
+only issuer of identity. `viewerOf()` asks the API `/api/auth/get-session` rather than decoding
+the cookie: it is signed with a secret this app does not have and should not.
+
+**Two surfaces, one contract.** `/bot/*` (bot token) and `/app/*` (session cookie) serve the same
+practice routes from the same schemas and the same wire mappers; only who the API believes the
+caller to be differs. `createBotClient` and `createAppClient` are the same implementation with
+different headers — and `createAppClient` returns `PracticeUseCases`, which has **no** way to
+mint a login link or a token. Adding a practice route means adding it to both controllers.
+
 **No practice command carries an identity.** `getCurrentQuestion`, `answerQuestion`,
 `finishQuizAttempt`, `listDueRepetitions`, `listLeeches`, `getQuizStatistics` and
 `getAttemptDetail` take no user at all — the repository scope already knows the owner, and

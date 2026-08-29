@@ -167,6 +167,7 @@ read-only escape hatch — не видаляйте його.
 | `bun run up` | Підняти все, що налаштоване: API (з MCP), бот, адмінка |
 | `bun run api` | Підняти API з TypeScript (dev) — REST, Swagger, адмін-API, MCP |
 | `bun run api:node` | Підняти зібраний API під `node` (як у production) |
+| `bun run web` | Підняти веб-платформу (TanStack Start) на `http://127.0.0.1:3000` |
 | `bun run mcp` | stdio-мостик до MCP цього API (для Claude Desktop) |
 | `bun run admin` | Підняти веб-адмінку на `http://127.0.0.1:8766` |
 | `bun run build` | Зібрати packages і всі застосунки (`apps/api/dist`, `dist/*`) |

@@ -17,11 +17,23 @@ import {
 } from "@/persistence/postgres/lazy-scope";
 import { loadApiEnvironment } from "../config/api-env";
 import { instanceOwnerResolver } from "./instance-owner";
-import { CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES } from "./tokens";
+import {
+	CONNECTION,
+	INSTANCE_OWNER,
+	USE_CASE_DEPENDENCIES,
+	USE_CASES_FOR,
+} from "./tokens";
+import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 
 @Global()
 @Module({
 	providers: [
+		{
+			provide: USE_CASES_FOR,
+			inject: [CONNECTION],
+			useFactory: (connection: PostgresConnection): UseCasesFor =>
+				useCasesFor(connection),
+		},
 		{
 			provide: INSTANCE_OWNER,
 			inject: [CONNECTION],
@@ -48,7 +60,7 @@ import { CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES } from "./tokens";
 			}),
 		},
 	],
-	exports: [CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES],
+	exports: [CONNECTION, INSTANCE_OWNER, USE_CASE_DEPENDENCIES, USE_CASES_FOR],
 })
 export class DatabaseModule implements OnApplicationShutdown {
 	constructor(

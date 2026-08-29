@@ -14,7 +14,7 @@
 		"typescript": "^7.0.2"
 	},
 	"scripts": {
-		"build": "bun run --filter '@recall/kit' build && bun run --filter '@recall/contracts' build && bun run --filter '@recall/api' build && bun run --filter '@recall/bot' build && bun run --filter '@recall/admin' build && bun run --filter '@recall/mcp' build",
+		"build": "bun run --filter '@recall/kit' build && bun run --filter '@recall/contracts' build && bun run --filter '@recall/api' build && bun run --filter '@recall/bot' build && bun run --filter '@recall/web' build && bun run --filter '@recall/admin' build && bun run --filter '@recall/mcp' build",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"format": "biome format --write .",
@@ -38,6 +38,7 @@
 		"db:reset": "docker compose down -v && docker compose up -d --wait",
 		"etl": "bun run --filter '@recall/api' etl --",
 		"bot": "bun run --filter '@recall/bot' start",
-		"api:node": "node ./apps/api/dist/entrypoints/serve.js"
+		"api:node": "node ./apps/api/dist/entrypoints/serve.js",
+		"web": "bun run --filter '@recall/web' dev"
 	}
 }
