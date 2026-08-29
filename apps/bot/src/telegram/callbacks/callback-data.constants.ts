@@ -6,6 +6,7 @@ export const CallbackAction = {
 	Answer: "a",
 	Toggle: "t",
 	Finish: "f",
+	Abandon: "q",
 	Statistics: "x",
 	StatisticsFor: "y",
 	Browse: "b",

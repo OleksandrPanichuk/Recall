@@ -12,6 +12,9 @@ export interface ResumeCallback {
 export interface FinishCallback {
 	readonly action: typeof CallbackAction.Finish;
 }
+export interface AbandonCallback {
+	readonly action: typeof CallbackAction.Abandon;
+}
 export interface StatisticsCallback {
 	readonly action: typeof CallbackAction.Statistics;
 }
@@ -97,6 +100,7 @@ export type Callback =
 	| SetsCallback
 	| ResumeCallback
 	| FinishCallback
+	| AbandonCallback
 	| StatisticsCallback
 	| StartSetCallback
 	| StatisticsForCallback

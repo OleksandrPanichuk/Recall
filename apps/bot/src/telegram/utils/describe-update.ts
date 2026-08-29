@@ -13,6 +13,7 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.Answer]: "answer",
 	[CallbackAction.Toggle]: "toggle",
 	[CallbackAction.Finish]: "finish",
+	[CallbackAction.Abandon]: "abandon",
 	[CallbackAction.Statistics]: "statistics",
 	[CallbackAction.StatisticsFor]: "statistics-for",
 	[CallbackAction.Browse]: "browse",

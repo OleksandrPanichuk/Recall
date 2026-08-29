@@ -33,6 +33,7 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Sets:
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
+		case CallbackAction.Abandon:
 		case CallbackAction.Statistics:
 		case CallbackAction.Repetitions:
 		case CallbackAction.Settings:
@@ -105,6 +106,7 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Sets:
 		case CallbackAction.Resume:
 		case CallbackAction.Finish:
+		case CallbackAction.Abandon:
 		case CallbackAction.Statistics:
 		case CallbackAction.Repetitions:
 		case CallbackAction.Settings:

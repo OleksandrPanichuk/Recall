@@ -9,7 +9,10 @@ const source = (path: string): string =>
 	fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
-	server: { port: Number(process.env.WEB_PORT ?? 3000) },
+	server: {
+		host: process.env.WEB_HOST ?? "127.0.0.1",
+		port: Number(process.env.WEB_PORT ?? 3000),
+	},
 	resolve: {
 		alias: {
 			"@": source("./src"),

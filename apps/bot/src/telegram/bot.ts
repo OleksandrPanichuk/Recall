@@ -4,6 +4,7 @@ import { normaliseForComparison } from "@recall/kit";
 import { Telegraf } from "telegraf";
 import { decodeCallback } from "./callbacks/callback-data";
 import { CallbackAction } from "./callbacks/callback-data.constants";
+import { abandonHandler } from "./handlers/abandon-attempt.handler";
 import {
 	answerHandler,
 	revealHandler,
@@ -207,6 +208,10 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.Finish:
 				await finishHandler(useCases)(ctx);
+
+				return;
+			case CallbackAction.Abandon:
+				await abandonHandler(useCases)(ctx);
 
 				return;
 		}
