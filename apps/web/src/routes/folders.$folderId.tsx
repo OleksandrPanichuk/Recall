@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { loadLibrary } from "@/features/pages/lib/pages.api";
 import { PageDetailView } from "@/features/pages/ui/views/PageDetailView";
 import { loadCurrentQuestion } from "@/features/practice/lib/practice.api";
@@ -28,12 +28,14 @@ function Page() {
 	const loaded = Route.useLoaderData();
 	const context = Route.useRouteContext();
 	const { folderId } = Route.useParams();
+	const { nodes } = useLoaderData({ from: "__root__" });
 
 	return (
 		<PageDetailView
 			folderId={folderId}
 			page={loaded}
 			inProgressQuizId={loaded?.inProgressQuizId}
+			pages={nodes}
 			signedIn={context.viewer !== null}
 		/>
 	);

@@ -25,6 +25,7 @@ import {
 	leechesCommandSchema,
 	listApiTokensCommandSchema,
 	loginLinkCommandSchema,
+	movePageCommandSchema,
 	practiceCommandSchema,
 	renamePageCommandSchema,
 	resolveSettingsCommandSchema,
@@ -47,6 +48,7 @@ import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-fold
 import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
 import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
+import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
 import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
@@ -112,6 +114,8 @@ export class BotController {
 		private readonly deleteFolder: DeleteFolderUseCase,
 		@Inject(ListFolderTreeUseCase)
 		private readonly listFolderTree: ListFolderTreeUseCase,
+		@Inject(MoveFolderUseCase)
+		private readonly moveFolder: MoveFolderUseCase,
 		@Inject(StartQuizAttemptUseCase)
 		private readonly startQuizAttempt: StartQuizAttemptUseCase,
 		@Inject(StartPracticeSessionUseCase)
@@ -279,6 +283,20 @@ export class BotController {
 
 		await this.deleteFolder.execute({
 			folderId: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.movePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async movePage(@Body() body: unknown) {
+		const command = parseBody(movePageCommandSchema, body);
+
+		await this.moveFolder.execute({
+			folderId: toFolderId(command.folderId),
+			parentId:
+				command.parentId === undefined
+					? undefined
+					: toFolderId(command.parentId),
 		});
 	}
 

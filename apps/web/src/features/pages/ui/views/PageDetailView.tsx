@@ -1,4 +1,4 @@
-import type { BrowseView } from "@recall/contracts";
+import type { BrowseView, PageTreeNode } from "@recall/contracts";
 import { usePageEditing } from "@/features/pages/hooks/use-page-editing";
 import { EmojiPicker } from "@/features/pages/ui/components/EmojiPicker";
 import { PageActions } from "@/features/pages/ui/components/PageActions";
@@ -13,6 +13,7 @@ interface Props {
 	readonly folderId: string;
 	readonly page: BrowseView | null;
 	readonly inProgressQuizId?: string;
+	readonly pages: readonly PageTreeNode[];
 	readonly signedIn: boolean;
 }
 
@@ -20,6 +21,7 @@ export function PageDetailView({
 	folderId,
 	page,
 	inProgressQuizId,
+	pages,
 	signedIn,
 }: Props) {
 	const editing = usePageEditing(folderId, page);
@@ -38,6 +40,7 @@ export function PageDetailView({
 					<SaveState state={editing.state} />
 					<PageActions
 						view={view}
+						pages={pages}
 						onChanged={editing.invalidate}
 						onFlush={editing.flush}
 					/>

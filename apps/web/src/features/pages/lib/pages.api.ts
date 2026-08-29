@@ -68,6 +68,16 @@ export const deletePage = createServerFn({ method: "POST" })
 		await api().deletePage.execute({ folderId: data.id });
 	});
 
+export const movePage = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => {
+		const input = value as { folderId: string; parentId?: string };
+
+		return { folderId: String(input.folderId), parentId: input.parentId };
+	})
+	.handler(async ({ data }) => {
+		await api().movePage.execute(data);
+	});
+
 export const loadPageTree = createServerFn().handler(async () => ({
 	nodes: await api().listPageTree.execute({}),
 }));

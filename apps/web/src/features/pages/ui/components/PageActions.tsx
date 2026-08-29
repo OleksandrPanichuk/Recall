@@ -1,18 +1,20 @@
-import type { BrowseView } from "@recall/contracts";
+import type { BrowseView, PageTreeNode } from "@recall/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { deletePage } from "@/features/pages/lib/pages.api";
+import { MovePage } from "@/features/pages/ui/components/MovePage";
 import { NewPageButton } from "@/features/pages/ui/components/NewPageButton";
 
 interface Props {
 	readonly view: BrowseView;
+	readonly pages: readonly PageTreeNode[];
 	readonly onChanged: () => void;
 	readonly onFlush: () => Promise<void>;
 }
 
-export function PageActions({ view, onChanged, onFlush }: Props) {
+export function PageActions({ view, pages, onChanged, onFlush }: Props) {
 	const navigate = useNavigate();
 	const [busy, setBusy] = useState(false);
 	const empty =
@@ -44,6 +46,14 @@ export function PageActions({ view, onChanged, onFlush }: Props) {
 				label="Підсторінка"
 				onCreated={onChanged}
 			/>
+			{view.folderId === undefined ? null : (
+				<MovePage
+					folderId={view.folderId}
+					parentId={view.parentId}
+					pages={pages}
+					onMoved={onChanged}
+				/>
+			)}
 			{empty ? (
 				<Button
 					variant="ghost"

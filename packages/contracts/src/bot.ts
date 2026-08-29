@@ -283,6 +283,11 @@ export const setPageIconCommandSchema = z.object({
 
 export const deletePageCommandSchema = z.object({ folderId: id });
 
+export const movePageCommandSchema = z.object({
+	folderId: id,
+	parentId: optionalId,
+});
+
 export const pageTreeNodeSchema = z.object({
 	id,
 	name: z.string(),
@@ -436,6 +441,7 @@ export type CreatedPage = z.infer<typeof createdPageSchema>;
 export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;
 export type SetPageIconCommand = z.infer<typeof setPageIconCommandSchema>;
 export type DeletePageCommand = z.infer<typeof deletePageCommandSchema>;
+export type MovePageCommand = z.infer<typeof movePageCommandSchema>;
 export type PageTreeNode = z.infer<typeof pageTreeNodeSchema>;
 export type GetInsightsCommand = z.infer<typeof insightsCommandSchema>;
 export type Insights = z.infer<typeof insightsSchema>;

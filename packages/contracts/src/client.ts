@@ -55,6 +55,8 @@ import {
 	listApiTokensCommandSchema,
 	loginLinkCommandSchema,
 	loginLinkSchema,
+	type MovePageCommand,
+	movePageCommandSchema,
 	type PageMatch,
 	type PageTreeNode,
 	pageMatchSchema,
@@ -159,6 +161,10 @@ export const ApiErrorName = {
 	QuizSetNotPublished: "QuizSetNotPublishedError",
 	QuizSetNotFound: "QuizSetNotFoundError",
 	FolderNotFound: "FolderNotFoundError",
+	FolderCycle: "FolderCycleError",
+	FolderDepth: "FolderDepthError",
+	DuplicateFolderName: "DuplicateFolderNameError",
+	FolderNotEmpty: "FolderNotEmptyError",
 	NothingToPractice: "NothingToPracticeError",
 	NothingDue: "NothingDueError",
 } as const;
@@ -206,6 +212,7 @@ export interface PracticeUseCases {
 	readonly renamePage: UseCaseLike<RenamePageCommand, void>;
 	readonly setPageIcon: UseCaseLike<SetPageIconCommand, void>;
 	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
+	readonly movePage: UseCaseLike<MovePageCommand, void>;
 	readonly listPageTree: UseCaseLike<
 		Record<string, never>,
 		readonly PageTreeNode[]
@@ -278,6 +285,7 @@ export const BOT_ROUTES = {
 	renamePage: "pages/rename",
 	setPageIcon: "pages/icon",
 	deletePage: "pages/delete",
+	movePage: "pages/move",
 	pageTree: "pages/tree",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
@@ -435,6 +443,7 @@ function createClient(options: RecallClientOptions) {
 			deletePageCommandSchema,
 			z.void(),
 		),
+		movePage: operation(BOT_ROUTES.movePage, movePageCommandSchema, z.void()),
 		listPageTree: operation(
 			BOT_ROUTES.pageTree,
 			z.object({}),

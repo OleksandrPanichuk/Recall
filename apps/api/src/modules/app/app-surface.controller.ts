@@ -23,6 +23,7 @@ import {
 	finishCommandSchema,
 	insightsCommandSchema,
 	leechesCommandSchema,
+	movePageCommandSchema,
 	practiceCommandSchema,
 	renamePageCommandSchema,
 	resolveSettingsCommandSchema,
@@ -160,6 +161,20 @@ export class AppSurfaceController {
 
 		await this.of(request).deleteFolder.execute({
 			folderId: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.movePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async movePage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(movePageCommandSchema, body);
+
+		await this.of(request).moveFolder.execute({
+			folderId: toFolderId(command.folderId),
+			parentId:
+				command.parentId === undefined
+					? undefined
+					: toFolderId(command.parentId),
 		});
 	}
 
