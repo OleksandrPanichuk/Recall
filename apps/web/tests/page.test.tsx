@@ -34,7 +34,16 @@ const aView = (over: Partial<BrowseView> = {}): BrowseView => ({
 	breadcrumb: [],
 	children: [],
 	sets: [],
+	attached: [],
 	...over,
+});
+
+const aQuiz = (id: string, title: string) => ({
+	id,
+	title,
+	status: "published" as const,
+	questionCount: 1,
+	updatedAt: "2026-08-20T00:00:00.000Z",
 });
 
 describe("a page with a summary", () => {
@@ -52,20 +61,28 @@ describe("a page with a summary", () => {
 			aView({
 				summary: "Matter and its changes.",
 				children: [{ id: "folder-2", name: "Bonds", itemCount: 0 }],
-				sets: [
-					{
-						id: "quiz-1",
-						title: "Periodic table",
-						status: "published",
-						questionCount: 1,
-						updatedAt: "2026-08-20T00:00:00.000Z",
-					},
-				],
+				sets: [aQuiz("quiz-1", "Periodic table")],
 			}),
 		);
 
 		expect(await screen.findByText("Bonds")).toBeDefined();
 		expect(await screen.findByText("Periodic table")).toBeDefined();
+	});
+
+	test("lists a quiz that is only shown here, alongside the filed ones", async () => {
+		show(
+			aView({
+				sets: [aQuiz("quiz-1", "Filed here")],
+				attached: [
+					aQuiz("quiz-1", "Filed here"),
+					aQuiz("quiz-2", "Shown here"),
+				],
+			}),
+		);
+
+		expect(await screen.findByText("Filed here")).toBeDefined();
+		expect(await screen.findByText("Shown here")).toBeDefined();
+		expect(screen.getAllByText("Filed here")).toHaveLength(1);
 	});
 });
 

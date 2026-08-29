@@ -4,6 +4,7 @@ import type { McpServerOptions, McpUseCases } from "./server.types";
 import { registerAddQuestionsTool } from "./tools/add-questions.tool";
 import { registerAddVocabularyTool } from "./tools/add-vocabulary.tool";
 import { registerArchiveSetTool } from "./tools/archive-set.tool";
+import { registerAttachSetTool } from "./tools/attach-set.tool";
 import { registerCreateSetTool } from "./tools/create-set.tool";
 import { registerDeleteFolderTool } from "./tools/delete-folder.tool";
 import { registerEditQuestionTools } from "./tools/edit-question.tool";
@@ -53,6 +54,7 @@ export function createMcpServer(
 	registerRenameFolderTool(server, useCases, runTool);
 	registerWriteSummaryTool(server, useCases, runTool);
 	registerReadSummaryTool(server, useCases, runTool);
+	registerAttachSetTool(server, useCases, runTool);
 	registerQuizSettingsTools(server, useCases, runTool);
 	registerDeleteFolderTool(server, useCases, runTool);
 	registerEditQuestionTools(server, useCases, runTool);

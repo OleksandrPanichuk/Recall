@@ -203,6 +203,16 @@ export function createQuizPostgresRepository(
 				conditions.push(eq(quizzes.pageId, String(filter.pageId)));
 			}
 
+			if (filter?.ids !== undefined) {
+				const ids = filter.ids.map(String).filter(isUuid);
+
+				if (ids.length === 0) {
+					return [];
+				}
+
+				conditions.push(inArray(quizzes.id, ids));
+			}
+
 			const rows = await executor
 				.select({
 					id: quizzes.id,

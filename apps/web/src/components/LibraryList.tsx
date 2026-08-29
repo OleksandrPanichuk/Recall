@@ -7,7 +7,15 @@ const row =
 	"flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-accent/60";
 
 export function LibraryList({ view }: { readonly view: BrowseView }) {
-	if (view.children.length === 0 && view.sets.length === 0) {
+	const shown = view.attached.filter(
+		(set) => !view.sets.some((filed) => filed.id === set.id),
+	);
+
+	if (
+		view.children.length === 0 &&
+		view.sets.length === 0 &&
+		shown.length === 0
+	) {
 		return (
 			<Card className="p-8 text-center text-sm text-muted-foreground">
 				Тут поки порожньо. Створіть набір через бота або MCP.
@@ -34,7 +42,7 @@ export function LibraryList({ view }: { readonly view: BrowseView }) {
 					</span>
 				</Link>
 			))}
-			{view.sets.map((set) => (
+			{[...view.sets, ...shown].map((set) => (
 				<Link
 					key={set.id}
 					to="/quizzes/$quizId"

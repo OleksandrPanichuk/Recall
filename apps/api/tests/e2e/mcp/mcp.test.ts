@@ -93,9 +93,11 @@ describe("MCP server (§4.1)", () => {
 			"quiz_add_questions",
 			"quiz_add_vocabulary",
 			"quiz_archive_set",
+			"quiz_attach_set",
 			"quiz_create_set",
 			"quiz_delete_folder",
 			"quiz_delete_question",
+			"quiz_detach_set",
 			"quiz_ensure_folder_path",
 			"quiz_get_set",
 			"quiz_get_settings",
@@ -521,6 +523,67 @@ describe("folders over MCP", () => {
 				questionCount: 1,
 			},
 		]);
+	});
+
+	test("shows a quiz under a page it is not filed in", async () => {
+		const quizSetId = await publishedSetIn(["Books", "JS basics"], "JS words");
+
+		await call("quiz_write_summary", {
+			path: ["Programming", "JS", "Chapter 1"],
+			summary: "Scopes and closures.",
+		});
+
+		const attached = await call("quiz_attach_set", {
+			path: ["Programming", "JS", "Chapter 1"],
+			quizSetId,
+		});
+
+		expect(attached.isError).toBe(false);
+
+		const read = await call("quiz_read_summary", {
+			path: ["Programming", "JS", "Chapter 1"],
+		});
+
+		expect(read.structured.attached).toEqual([
+			{ id: quizSetId, title: "JS words", questionCount: 1 },
+		]);
+		expect(read.structured.quizzes).toEqual([]);
+
+		const filed = await call("quiz_read_summary", {
+			path: ["Books", "JS basics"],
+		});
+
+		expect(filed.structured.quizzes).toEqual([
+			{ id: quizSetId, title: "JS words", questionCount: 1 },
+		]);
+	});
+
+	test("stops showing a quiz without moving or deleting it", async () => {
+		const quizSetId = await publishedSetIn(["Books"], "JS words");
+
+		await call("quiz_attach_set", { path: ["Notes"], quizSetId });
+		const detached = await call("quiz_detach_set", {
+			path: ["Notes"],
+			quizSetId,
+		});
+
+		expect(detached.isError).toBe(false);
+		expect(
+			(await call("quiz_read_summary", { path: ["Notes"] })).structured
+				.attached,
+		).toEqual([]);
+		expect(
+			(await call("quiz_read_summary", { path: ["Books"] })).structured.quizzes,
+		).toEqual([{ id: quizSetId, title: "JS words", questionCount: 1 }]);
+	});
+
+	test("refuses to show a quiz that does not exist", async () => {
+		const result = await call("quiz_attach_set", {
+			path: ["Notes"],
+			quizSetId: "missing",
+		});
+
+		expect(result.isError).toBe(true);
 	});
 
 	test("deletes an empty folder", async () => {

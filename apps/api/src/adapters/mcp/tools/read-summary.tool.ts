@@ -1,8 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import { ok } from "../presenters/tool-result.presenter";
 import { readSummaryShape } from "../schemas/folder.schema";
 import type { McpUseCases } from "../server.types";
 import type { ToolRunner } from "../utils/tool-logging";
+
+const summaryOf = (set: QuizSummary) => ({
+	id: String(set.id),
+	title: set.title,
+	questionCount: set.questionCount,
+});
 
 export function registerReadSummaryTool(
 	server: McpServer,
@@ -31,11 +38,8 @@ export function registerReadSummaryTool(
 						name: view.name,
 						summary: view.summary,
 						pages: view.children.map((child) => child.name),
-						quizzes: view.sets.map((set) => ({
-							id: String(set.id),
-							title: set.title,
-							questionCount: set.questionCount,
-						})),
+						quizzes: view.sets.map(summaryOf),
+						attached: view.attached.map(summaryOf),
 					},
 				);
 			}),

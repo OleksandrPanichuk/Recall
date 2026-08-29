@@ -23,6 +23,7 @@ export interface BrowseView {
 	readonly breadcrumb: readonly BrowseCrumb[];
 	readonly children: readonly BrowseChild[];
 	readonly sets: readonly QuizSummary[];
+	readonly attached: readonly QuizSummary[];
 }
 
 export interface BrowseFolderCommand {
@@ -81,6 +82,13 @@ export class BrowseFolderUseCase
 				statuses: published,
 				pageId: current?.id ?? null,
 			}),
+			attached:
+				current === undefined
+					? []
+					: await quizzes.list({
+							statuses: published,
+							ids: await pages.listAttachedQuizIds(current.id),
+						}),
 		};
 	}
 }

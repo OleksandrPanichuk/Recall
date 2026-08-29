@@ -88,6 +88,16 @@ export function browseScreen(
 				button: button(truncated(label), { action: leaf, quizSetId: set.id }),
 			};
 		}),
+		...view.attached
+			.filter((set) => !view.sets.some((filed) => filed.id === set.id))
+			.map((set) => {
+				const label = `🔗 ${set.title} (${set.questionCount})`;
+
+				return {
+					label,
+					button: button(truncated(label), { action: leaf, quizSetId: set.id }),
+				};
+			}),
 	];
 
 	const pageCount = Math.max(1, Math.ceil(entries.length / BROWSE_PAGE_SIZE));

@@ -7,13 +7,13 @@ import {
 	toFolderId,
 	writeSummary,
 } from "@/domain/folder/folder";
-import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { type QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 
 export interface PageRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	readonly scope: RepositoryScope;
 	reset(): Promise<void>;
-	seedQuiz(pageId: string, status: QuizSetStatus): Promise<void>;
+	seedQuiz(pageId: string, status: QuizSetStatus): Promise<string>;
 }
 
 const at = new Date("2026-08-01T10:00:00.000Z");
@@ -238,6 +238,58 @@ export function describePageRepository(
 					"# Data models\n\nRelational vs document.",
 				);
 				expect(stored?.icon).toBe("📘");
+			});
+
+			test("shows a quiz that is filed under another page", async () => {
+				const notes = uuid();
+				const books = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(notes, "Chapter 1"));
+					await pages.save(page(books, "Books"));
+				});
+
+				const quizId = await harness.seedQuiz(books, "published");
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.attachQuiz(toFolderId(notes), toQuizSetId(quizId)),
+				);
+
+				expect(
+					(
+						await harness.scope.pages.listAttachedQuizIds(toFolderId(notes))
+					).map(String),
+				).toEqual([quizId]);
+				expect(
+					await harness.scope.pages.countQuizzesIn(toFolderId(notes)),
+				).toBe(0);
+			});
+
+			test("attaching twice leaves one attachment, and detaching removes it", async () => {
+				const notes = uuid();
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.save(page(notes, "Chapter 1")),
+				);
+
+				const quizId = await harness.seedQuiz(notes, "published");
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.attachQuiz(toFolderId(notes), toQuizSetId(quizId));
+					await pages.attachQuiz(toFolderId(notes), toQuizSetId(quizId));
+				});
+
+				expect(
+					await harness.scope.pages.listAttachedQuizIds(toFolderId(notes)),
+				).toHaveLength(1);
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.detachQuiz(toFolderId(notes), toQuizSetId(quizId)),
+				);
+
+				expect(
+					await harness.scope.pages.listAttachedQuizIds(toFolderId(notes)),
+				).toEqual([]);
 			});
 
 			test("rewrites the summary and can clear it", async () => {

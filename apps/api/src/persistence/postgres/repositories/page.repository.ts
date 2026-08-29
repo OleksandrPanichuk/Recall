@@ -8,8 +8,12 @@ import {
 	restoreFolder,
 	toFolderId,
 } from "@/domain/folder/folder";
-import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { pages, quizzes } from "../schema";
+import {
+	type QuizSetId,
+	type QuizSetStatus,
+	toQuizSetId,
+} from "@/domain/quiz-set/quiz-set";
+import { pages, quizAttachments, quizzes } from "../schema";
 import type { Executor } from "../unit-of-work";
 import { isUuid } from "../uuid";
 
@@ -41,6 +45,29 @@ export function createPagePostgresRepository(
 	owner: OwnerId,
 ): PageRepository {
 	const mine = eq(pages.ownerId, owner);
+	const ownedPair = async (
+		id: FolderId,
+		quizId: QuizSetId,
+	): Promise<{ pageId: string; quizId: string } | undefined> => {
+		if (!isUuid(String(id)) || !isUuid(String(quizId))) {
+			return undefined;
+		}
+
+		const [page] = await executor
+			.select({ id: pages.id })
+			.from(pages)
+			.where(and(mine, eq(pages.id, String(id))))
+			.limit(1);
+		const [quiz] = await executor
+			.select({ id: quizzes.id })
+			.from(quizzes)
+			.where(and(eq(quizzes.ownerId, owner), eq(quizzes.id, String(quizId))))
+			.limit(1);
+
+		return page === undefined || quiz === undefined
+			? undefined
+			: { pageId: page.id, quizId: quiz.id };
+	};
 	const byId = async (id: string): Promise<Folder | undefined> => {
 		if (!isUuid(id)) {
 			return undefined;
@@ -180,6 +207,58 @@ export function createPagePostgresRepository(
 				.where(and(mine, eq(pages.parentId, String(id))));
 
 			return Number(row?.total ?? 0);
+		},
+
+		async attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+			const owned = await ownedPair(id, quizId);
+
+			if (owned === undefined) {
+				return;
+			}
+
+			await executor
+				.insert(quizAttachments)
+				.values({ pageId: owned.pageId, quizId: owned.quizId })
+				.onConflictDoNothing();
+		},
+
+		async detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+			const owned = await ownedPair(id, quizId);
+
+			if (owned === undefined) {
+				return;
+			}
+
+			await executor
+				.delete(quizAttachments)
+				.where(
+					and(
+						eq(quizAttachments.pageId, owned.pageId),
+						eq(quizAttachments.quizId, owned.quizId),
+					),
+				);
+		},
+
+		async listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]> {
+			if (!isUuid(String(id))) {
+				return [];
+			}
+
+			const rows = await executor
+				.select({ quizId: quizAttachments.quizId })
+				.from(quizAttachments)
+				.innerJoin(pages, eq(pages.id, quizAttachments.pageId))
+				.innerJoin(quizzes, eq(quizzes.id, quizAttachments.quizId))
+				.where(
+					and(
+						mine,
+						eq(quizzes.ownerId, owner),
+						eq(quizAttachments.pageId, String(id)),
+					),
+				)
+				.orderBy(asc(quizAttachments.position), asc(quizAttachments.quizId));
+
+			return rows.map((row) => toQuizSetId(row.quizId));
 		},
 
 		async delete(id: FolderId): Promise<void> {

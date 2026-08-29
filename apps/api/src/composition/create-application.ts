@@ -14,9 +14,11 @@ import {
 	ResumeQuizAttemptUseCase,
 } from "@/application/use-cases/attempts/resume-quiz-attempt";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
 import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
+import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
 import { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
@@ -81,6 +83,8 @@ export interface UseCases {
 	readonly listFolderTree: ListFolderTreeUseCase;
 	readonly browseFolder: BrowseFolderUseCase;
 	readonly writeSummary: WriteSummaryUseCase;
+	readonly attachQuiz: AttachQuizUseCase;
+	readonly detachQuiz: DetachQuizUseCase;
 	readonly startQuizAttempt: StartQuizAttemptUseCase;
 	readonly startPracticeSession: StartPracticeSessionUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;
@@ -142,6 +146,8 @@ export function createUseCases(
 		listFolderTree: new ListFolderTreeUseCase(dependencies),
 		browseFolder: new BrowseFolderUseCase(dependencies),
 		writeSummary: new WriteSummaryUseCase(dependencies),
+		attachQuiz: new AttachQuizUseCase(dependencies),
+		detachQuiz: new DetachQuizUseCase(dependencies),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
 		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
 		updateQuestion: new UpdateQuestionUseCase(dependencies),

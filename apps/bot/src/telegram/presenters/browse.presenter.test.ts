@@ -7,6 +7,7 @@ import { browseScreen, SUMMARY_EXCERPT } from "./browse.presenter";
 const aView = (titles: readonly string[]): BrowseView => ({
 	breadcrumb: [],
 	children: [],
+	attached: [],
 	sets: titles.map((title, index) => ({
 		id: `set-${index}`,
 		title,
@@ -53,6 +54,7 @@ describe("a page's summary", () => {
 		breadcrumb: [{ id: "folder-0", name: "Biology" }],
 		children: [],
 		sets: [],
+		attached: [],
 	});
 
 	const textOf = (view: BrowseView): string =>

@@ -76,6 +76,11 @@ export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
 
 					return String(quiz.folderId ?? "") === String(filter.pageId);
 				})
+				.filter(
+					(quiz) =>
+						filter?.ids === undefined ||
+						filter.ids.some((id) => String(id) === String(quiz.id)),
+				)
 				.sort((left, right) => left.title.localeCompare(right.title))
 				.map((quiz) => ({
 					id: quiz.id,

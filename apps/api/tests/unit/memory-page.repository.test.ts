@@ -16,5 +16,7 @@ describePageRepository("in-memory", () => ({
 		const id = crypto.randomUUID();
 
 		store.quizzes.set(id, { id, pageId, status });
+
+		return id;
 	},
 }));

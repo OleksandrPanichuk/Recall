@@ -4,7 +4,10 @@ import { LibraryList } from "@/components/LibraryList";
 import { PageSummary } from "@/components/PageSummary";
 
 export function PageView({ view }: { readonly view: BrowseView }) {
-	const hasItems = view.children.length > 0 || view.sets.length > 0;
+	const hasItems =
+		view.children.length > 0 ||
+		view.sets.length > 0 ||
+		view.attached.length > 0;
 
 	return (
 		<div className="space-y-6">

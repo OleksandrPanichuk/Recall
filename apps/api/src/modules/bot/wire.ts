@@ -76,6 +76,7 @@ export const browseViewToWire = (view: BrowseView): WireBrowseView => ({
 		itemCount: child.itemCount,
 	})),
 	sets: view.sets.map(quizSummaryToWire),
+	attached: view.attached.map(quizSummaryToWire),
 });
 
 export const currentQuestionToWire = (

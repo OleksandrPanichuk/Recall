@@ -16,6 +16,7 @@ export interface QuizSummary {
 export interface QuizListFilter {
 	readonly statuses?: readonly QuizSetStatus[];
 	readonly pageId?: FolderId | null;
+	readonly ids?: readonly QuizSetId[];
 }
 
 export class QuizVersionConflictError extends Error {

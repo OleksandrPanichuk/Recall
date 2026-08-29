@@ -4,7 +4,7 @@ import {
 	type FolderId,
 	MAX_FOLDER_DEPTH,
 } from "@/domain/folder/folder";
-import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { slugOf } from "../postgres/repositories/page.repository";
 import type { MemoryStore } from "./store";
 
@@ -100,7 +100,25 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 			).length;
 		},
 
+		async attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+			const attached = store.attachments.get(String(id)) ?? new Set<string>();
+
+			attached.add(String(quizId));
+			store.attachments.set(String(id), attached);
+		},
+
+		async detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+			store.attachments.get(String(id))?.delete(String(quizId));
+		},
+
+		async listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]> {
+			return [...(store.attachments.get(String(id)) ?? [])]
+				.sort()
+				.map((quizId) => quizId as QuizSetId);
+		},
+
 		async delete(id: FolderId): Promise<void> {
+			store.attachments.delete(String(id));
 			store.pages.delete(String(id));
 		},
 	};

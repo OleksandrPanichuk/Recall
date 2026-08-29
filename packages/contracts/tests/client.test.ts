@@ -31,7 +31,7 @@ const recording = (
 	};
 };
 
-const emptyBrowse = { breadcrumb: [], children: [], sets: [] };
+const emptyBrowse = { breadcrumb: [], children: [], sets: [], attached: [] };
 
 describe("the app client", () => {
 	test("posts under the app prefix and sends the cookie", async () => {

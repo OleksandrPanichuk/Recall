@@ -80,6 +80,7 @@ export const browseViewSchema = z.object({
 	breadcrumb: z.array(browseCrumbSchema).readonly(),
 	children: z.array(browseCrumbSchema.extend({ itemCount: count })).readonly(),
 	sets: z.array(quizSummarySchema).readonly(),
+	attached: z.array(quizSummarySchema).readonly(),
 });
 
 export const currentQuestionSchema = z.object({

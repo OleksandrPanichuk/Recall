@@ -13,6 +13,7 @@ export interface MemoryQuiz {
 
 export interface MemoryStore {
 	pages: Map<string, Folder>;
+	attachments: Map<string, Set<string>>;
 	quizzes: Map<string, MemoryQuiz>;
 	quizAggregates: Map<string, QuizSet>;
 	quizVersions: Map<string, number>;
@@ -25,6 +26,7 @@ export interface MemoryStore {
 
 export const emptyStore = (): MemoryStore => ({
 	pages: new Map(),
+	attachments: new Map(),
 	quizzes: new Map(),
 	quizAggregates: new Map(),
 	quizVersions: new Map(),
@@ -37,6 +39,9 @@ export const emptyStore = (): MemoryStore => ({
 
 export const snapshotOf = (store: MemoryStore): MemoryStore => ({
 	pages: new Map(store.pages),
+	attachments: new Map(
+		[...store.attachments].map(([page, ids]) => [page, new Set(ids)]),
+	),
 	quizzes: new Map(store.quizzes),
 	quizAggregates: new Map(store.quizAggregates),
 	quizVersions: new Map(store.quizVersions),
@@ -52,6 +57,9 @@ export const restoreInto = (
 	snapshot: MemoryStore,
 ): void => {
 	store.pages = new Map(snapshot.pages);
+	store.attachments = new Map(
+		[...snapshot.attachments].map(([page, ids]) => [page, new Set(ids)]),
+	);
 	store.quizzes = new Map(snapshot.quizzes);
 	store.quizAggregates = new Map(snapshot.quizAggregates);
 	store.quizVersions = new Map(snapshot.quizVersions);

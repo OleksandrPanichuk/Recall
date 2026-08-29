@@ -26,4 +26,9 @@ export const writeSummaryShape = {
 
 export const readSummaryShape = { path: folderPath };
 
+export const attachSetShape = {
+	path: folderPath,
+	quizSetId: z.string().trim().min(1).max(64),
+};
+
 export const listFoldersShape = {};

@@ -1,5 +1,5 @@
 import type { Folder, FolderId } from "@/domain/folder/folder";
-import type { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import type { AttemptRepository } from "./attempt.repository";
 import type { QuizRepository } from "./quiz.repository";
 import type { ReviewRepository } from "./review.repository";
@@ -16,6 +16,9 @@ export interface PageRepository {
 		statuses?: readonly QuizSetStatus[],
 	): Promise<number>;
 	countChildPages(id: FolderId): Promise<number>;
+	attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void>;
+	detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void>;
+	listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]>;
 	delete(id: FolderId): Promise<void>;
 }
 

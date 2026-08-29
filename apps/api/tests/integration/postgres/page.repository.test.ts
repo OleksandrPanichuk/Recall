@@ -46,13 +46,17 @@ describePageRepository(
 			await harness.client.unsafe("truncate pages, quizzes cascade");
 		},
 		seedQuiz: async (pageId, status) => {
+			const id = crypto.randomUUID();
+
 			await harness.client`
 				insert into quizzes (id, owner_id, page_id, title, language, status)
 				values (
-					${crypto.randomUUID()}::uuid, ${String(owner)}::text, ${pageId}::uuid,
+					${id}::uuid, ${String(owner)}::text, ${pageId}::uuid,
 					${status}::text, 'en'::text, ${status}::text
 				)
 			`;
+
+			return id;
 		},
 	}),
 	{ skip: !available },
