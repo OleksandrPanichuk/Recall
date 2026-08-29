@@ -25,6 +25,7 @@ import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revis
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
+import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
 import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
@@ -85,6 +86,7 @@ export interface UseCases {
 	readonly browseFolder: BrowseFolderUseCase;
 	readonly writeSummary: WriteSummaryUseCase;
 	readonly listRevisions: ListRevisionsUseCase;
+	readonly searchPages: SearchPagesUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly startQuizAttempt: StartQuizAttemptUseCase;
@@ -149,6 +151,7 @@ export function createUseCases(
 		browseFolder: new BrowseFolderUseCase(dependencies),
 		writeSummary: new WriteSummaryUseCase(dependencies),
 		listRevisions: new ListRevisionsUseCase(dependencies),
+		searchPages: new SearchPagesUseCase(dependencies),
 		attachQuiz: new AttachQuizUseCase(dependencies),
 		detachQuiz: new DetachQuizUseCase(dependencies),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),

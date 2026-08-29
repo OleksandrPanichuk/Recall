@@ -109,6 +109,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_publish_set",
 			"quiz_read_summary",
 			"quiz_rename_folder",
+			"quiz_search_pages",
 			"quiz_set_settings",
 			"quiz_summary_history",
 			"quiz_update_question",
@@ -624,6 +625,44 @@ describe("folders over MCP", () => {
 
 		expect(history.structured.revisions).toEqual([]);
 		expect(history.text).toContain("never been rewritten");
+	});
+
+	test("finds a page by a word in its summary, with an excerpt", async () => {
+		await call("quiz_write_summary", {
+			path: ["DDIA", "Chapter 5"],
+			summary:
+				"Replication means keeping a copy of the same data on several machines.",
+		});
+
+		const found = await call("quiz_search_pages", { query: "replication" });
+		const matches = found.structured.matches as {
+			name: string;
+			excerpt?: string;
+		}[];
+
+		expect(matches.map((match) => match.name)).toEqual(["Chapter 5"]);
+		expect(matches[0]?.excerpt).toContain("several machines");
+	});
+
+	test("finds a page by its title even when it has no summary", async () => {
+		await ensure(["Designing Data-Intensive Applications"]);
+
+		const found = await call("quiz_search_pages", { query: "data-intensive" });
+
+		expect(
+			(found.structured.matches as { name: string }[]).map(
+				(match) => match.name,
+			),
+		).toEqual(["Designing Data-Intensive Applications"]);
+	});
+
+	test("says so when nothing matches", async () => {
+		await ensure(["English"]);
+
+		const found = await call("quiz_search_pages", { query: "quantum" });
+
+		expect(found.structured.matches).toEqual([]);
+		expect(found.text).toContain("Nothing matches");
 	});
 
 	test("deletes an empty folder", async () => {

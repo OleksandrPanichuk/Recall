@@ -59,6 +59,10 @@ export const pages = pgTable(
 			sql`${table.visibility} in ('private', 'unlisted', 'public')`,
 		),
 		index("pages_parent_idx").on(table.parentId),
+		index("pages_search_idx").using(
+			"gin",
+			sql`to_tsvector('simple', ${table.title} || ' ' || coalesce(${table.contentMd}, ''))`,
+		),
 	],
 );
 

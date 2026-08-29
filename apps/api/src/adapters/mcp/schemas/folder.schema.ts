@@ -41,4 +41,9 @@ export const attachSetShape = {
 	quizSetId: z.string().trim().min(1).max(64),
 };
 
+export const searchPagesShape = {
+	query: z.string().trim().min(1).max(200),
+	limit: z.number().int().min(1).max(50).optional(),
+};
+
 export const listFoldersShape = {};

@@ -21,6 +21,7 @@ import {
 	leechesCommandSchema,
 	practiceCommandSchema,
 	resolveSettingsCommandSchema,
+	searchPagesCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
@@ -92,6 +93,19 @@ export class AppSurfaceController {
 		});
 
 		return { ...written, folderId: String(written.folderId) };
+	}
+
+	@Post(BOT_ROUTES.searchPages)
+	@HttpCode(HttpStatus.OK)
+	async search(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(searchPagesCommandSchema, body);
+		const matches = await this.of(request).searchPages.execute(command);
+
+		return matches.map((match) => ({
+			folderId: String(match.id),
+			name: match.name,
+			excerpt: match.excerpt,
+		}));
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

@@ -1,6 +1,7 @@
-import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { OwnerId } from "@/application/ports/owner";
 import type {
+	PageMatch,
 	PageRepository,
 	PageRevision,
 	RevisionAuthor,
@@ -33,6 +34,26 @@ const toPage = (row: PageRow): Folder =>
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	});
+
+export const EXCERPT_RADIUS = 120;
+
+export const excerptAround = (
+	content: string | null,
+	query: string,
+): string | undefined => {
+	if (content === null || content.length === 0) {
+		return undefined;
+	}
+
+	const found = content.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
+	const start = found === -1 ? 0 : Math.max(0, found - EXCERPT_RADIUS);
+	const excerpt = content
+		.slice(start, start + EXCERPT_RADIUS * 2)
+		.replace(/\s+/g, " ")
+		.trim();
+
+	return `${start === 0 ? "" : "…"}${excerpt}${start + EXCERPT_RADIUS * 2 >= content.length ? "" : "…"}`;
+};
 
 export const slugOf = (name: string): string => {
 	const slug = name
@@ -320,6 +341,40 @@ export function createPagePostgresRepository(
 				summary: row.contentMd ?? undefined,
 				authorKind: row.authorKind as RevisionAuthor,
 				createdAt: row.createdAt,
+			}));
+		},
+
+		async search(query: string, limit = 20): Promise<readonly PageMatch[]> {
+			const trimmed = query.trim();
+
+			if (trimmed.length === 0) {
+				return [];
+			}
+
+			const rows = await executor
+				.select({
+					id: pages.id,
+					title: pages.title,
+					contentMd: pages.contentMd,
+				})
+				.from(pages)
+				.where(
+					and(
+						mine,
+						sql`(
+							to_tsvector('simple', ${pages.title} || ' ' || coalesce(${pages.contentMd}, ''))
+							@@ plainto_tsquery('simple', ${trimmed})
+							or ${pages.title} ilike ${`%${trimmed}%`}
+						)`,
+					),
+				)
+				.orderBy(asc(pages.title))
+				.limit(limit);
+
+			return rows.map((row) => ({
+				id: toFolderId(row.id),
+				name: row.title,
+				excerpt: excerptAround(row.contentMd, trimmed),
 			}));
 		},
 

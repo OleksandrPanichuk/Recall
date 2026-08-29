@@ -258,6 +258,17 @@ export const writeSummaryCommandSchema = z.object({
 	append: z.boolean().optional(),
 });
 
+export const searchPagesCommandSchema = z.object({
+	query: z.string(),
+	limit: z.number().int().optional(),
+});
+
+export const pageMatchSchema = z.object({
+	folderId: id,
+	name: z.string(),
+	excerpt: z.string().optional(),
+});
+
 export const summaryWrittenSchema = z.object({
 	folderId: id,
 	name: z.string(),
@@ -346,6 +357,8 @@ export type RevokedApiToken = z.infer<typeof revokedApiTokenSchema>;
 export type BrowseFolderCommand = z.infer<typeof browseCommandSchema>;
 export type WriteSummaryCommand = z.infer<typeof writeSummaryCommandSchema>;
 export type SummaryWritten = z.infer<typeof summaryWrittenSchema>;
+export type SearchPagesCommand = z.infer<typeof searchPagesCommandSchema>;
+export type PageMatch = z.infer<typeof pageMatchSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;
 export type GetCurrentQuestionCommand = z.infer<

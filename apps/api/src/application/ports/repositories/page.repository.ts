@@ -16,6 +16,12 @@ export interface PageRevision {
 	readonly createdAt: Date;
 }
 
+export interface PageMatch {
+	readonly id: FolderId;
+	readonly name: string;
+	readonly excerpt?: string;
+}
+
 export interface PageRepository {
 	save(page: Folder): Promise<void>;
 	findById(id: FolderId): Promise<Folder | undefined>;
@@ -32,6 +38,7 @@ export interface PageRepository {
 	listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]>;
 	recordRevision(revision: PageRevision): Promise<void>;
 	listRevisions(id: FolderId, limit?: number): Promise<readonly PageRevision[]>;
+	search(query: string, limit?: number): Promise<readonly PageMatch[]>;
 	delete(id: FolderId): Promise<void>;
 }
 

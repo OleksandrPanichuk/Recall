@@ -41,6 +41,8 @@ import {
 	listApiTokensCommandSchema,
 	loginLinkCommandSchema,
 	loginLinkSchema,
+	type PageMatch,
+	pageMatchSchema,
 	practiceCommandSchema,
 	practiceResultSchema,
 	type QuizSettings,
@@ -55,11 +57,13 @@ import {
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
 	revokedApiTokenSchema,
+	type SearchPagesCommand,
 	type StartPracticeSessionCommand,
 	type StartPracticeSessionResult,
 	type StartQuizAttemptCommand,
 	type StartQuizAttemptResult,
 	type SummaryWritten,
+	searchPagesCommandSchema,
 	startAttemptCommandSchema,
 	startAttemptResultSchema,
 	statisticsCommandSchema,
@@ -170,6 +174,7 @@ export interface UseCaseLike<Command, Result> {
 export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
+	readonly searchPages: UseCaseLike<SearchPagesCommand, readonly PageMatch[]>;
 	readonly listDueRepetitions: UseCaseLike<
 		ListDueRepetitionsCommand,
 		readonly DueSet[]
@@ -232,6 +237,7 @@ export const BOT_ROUTES = {
 	revokeApiToken: "auth/tokens/revoke",
 	browse: "browse",
 	writeSummary: "pages/summary",
+	searchPages: "pages/search",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
 	currentQuestion: "attempts/current",
@@ -351,6 +357,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.writeSummary,
 			writeSummaryCommandSchema,
 			summaryWrittenSchema,
+		),
+		searchPages: operation(
+			BOT_ROUTES.searchPages,
+			searchPagesCommandSchema,
+			pageMatchSchema.array().readonly(),
 		),
 		listDueRepetitions: operation(
 			BOT_ROUTES.dueRepetitions,

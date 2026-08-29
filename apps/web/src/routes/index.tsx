@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LibraryList } from "@/components/LibraryList";
 import { PageHeading } from "@/components/PageHeading";
+import { PageSearch } from "@/components/PageSearch";
 import { SignInPrompt } from "@/components/SignInPrompt";
-import { loadLibrary } from "@/lib/practice";
+import { loadLibrary, searchPages } from "@/lib/practice";
 
 export const Route = createFileRoute("/")({
 	loader: async ({ context }) =>
@@ -26,7 +27,10 @@ function Library() {
 				title="Ваша бібліотека"
 				caption={`${sets} набор(ів)${folders > 0 ? `, ${folders} папк(и)` : ""}`}
 			/>
-			<LibraryList view={view} />
+			<div className="space-y-4">
+				<PageSearch onSearch={(query) => searchPages({ data: query })} />
+				<LibraryList view={view} />
+			</div>
 		</>
 	);
 }

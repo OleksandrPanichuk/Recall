@@ -1,4 +1,5 @@
 import type {
+	PageMatch,
 	PageRepository,
 	PageRevision,
 } from "@/application/ports/repositories/page.repository";
@@ -8,7 +9,10 @@ import {
 	MAX_FOLDER_DEPTH,
 } from "@/domain/folder/folder";
 import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { slugOf } from "../postgres/repositories/page.repository";
+import {
+	excerptAround,
+	slugOf,
+} from "../postgres/repositories/page.repository";
 import type { MemoryStore } from "./store";
 
 export class DuplicateSlugError extends Error {
@@ -134,6 +138,28 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 					(left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
 				)
 				.slice(0, limit);
+		},
+
+		async search(query: string, limit = 20): Promise<readonly PageMatch[]> {
+			const trimmed = query.trim().toLocaleLowerCase();
+
+			if (trimmed.length === 0) {
+				return [];
+			}
+
+			return [...store.pages.values()]
+				.filter(
+					(page) =>
+						page.name.toLocaleLowerCase().includes(trimmed) ||
+						(page.summary ?? "").toLocaleLowerCase().includes(trimmed),
+				)
+				.sort(byName)
+				.slice(0, limit)
+				.map((page) => ({
+					id: page.id,
+					name: page.name,
+					excerpt: excerptAround(page.summary ?? null, trimmed),
+				}));
 		},
 
 		async delete(id: FolderId): Promise<void> {

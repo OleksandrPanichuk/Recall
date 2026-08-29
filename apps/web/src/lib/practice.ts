@@ -26,6 +26,10 @@ export const saveSummary = createServerFn({ method: "POST" })
 		return api().browseFolder.execute({ folderId: data.folderId });
 	});
 
+export const searchPages = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => ({ query: String(value) }))
+	.handler(async ({ data }) => api().searchPages.execute(data));
+
 export const loadCurrentQuestion = createServerFn().handler(async () => ({
 	current: (await api().getCurrentQuestion.execute({})) ?? null,
 }));

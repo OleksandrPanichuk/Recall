@@ -24,6 +24,7 @@ import {
 	practiceCommandSchema,
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
+	searchPagesCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
@@ -35,6 +36,7 @@ import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finis
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
 import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
@@ -79,6 +81,8 @@ export class BotController {
 		private readonly browseFolder: BrowseFolderUseCase,
 		@Inject(WriteSummaryUseCase)
 		private readonly writeSummary: WriteSummaryUseCase,
+		@Inject(SearchPagesUseCase)
+		private readonly searchPages: SearchPagesUseCase,
 		@Inject(StartQuizAttemptUseCase)
 		private readonly startQuizAttempt: StartQuizAttemptUseCase,
 		@Inject(StartPracticeSessionUseCase)
@@ -187,6 +191,19 @@ export class BotController {
 		});
 
 		return { ...written, folderId: String(written.folderId) };
+	}
+
+	@Post(BOT_ROUTES.searchPages)
+	@HttpCode(HttpStatus.OK)
+	async search(@Body() body: unknown) {
+		const command = parseBody(searchPagesCommandSchema, body);
+		const matches = await this.searchPages.execute(command);
+
+		return matches.map((match) => ({
+			folderId: String(match.id),
+			name: match.name,
+			excerpt: match.excerpt,
+		}));
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

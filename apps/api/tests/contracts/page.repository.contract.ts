@@ -332,6 +332,35 @@ export function describePageRepository(
 				).toHaveLength(1);
 			});
 
+			test("finds a page by its title or its summary", async () => {
+				const withSummary = uuid();
+				const byTitle = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(
+						createFolder({
+							id: toFolderId(withSummary),
+							name: "Chapter 5",
+							summary: "Replication keeps a copy on several machines.",
+							createdAt: at,
+						}),
+					);
+					await pages.save(page(byTitle, "Replication notes"));
+					await pages.save(page(uuid(), "Unrelated"));
+				});
+
+				expect(
+					(await harness.scope.pages.search("replication"))
+						.map((match) => match.name)
+						.sort(),
+				).toEqual(["Chapter 5", "Replication notes"]);
+				expect(await harness.scope.pages.search("quantum")).toEqual([]);
+				expect(await harness.scope.pages.search("   ")).toEqual([]);
+				expect(await harness.scope.pages.search("replication", 1)).toHaveLength(
+					1,
+				);
+			});
+
 			test("rewrites the summary and can clear it", async () => {
 				const id = uuid();
 				const page = createFolder({
