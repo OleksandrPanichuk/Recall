@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
+import { NotFound } from "@/components/NotFound";
 import { loadPageTree, loadSession } from "@/lib/practice";
 import appCss from "@/styles/app.css?url";
 
@@ -20,12 +21,16 @@ export const Route = createRootRouteWithContext<{
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
 			{ title: "Recall" },
 		],
-		links: [{ rel: "stylesheet", href: appCss }],
+		links: [
+			{ rel: "stylesheet", href: appCss },
+			{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+		],
 	}),
 	beforeLoad: async () => loadSession(),
 	loader: async ({ context }) =>
 		context.viewer === null ? { nodes: [] } : loadPageTree(),
 	component: RootComponent,
+	notFoundComponent: NotFound,
 });
 
 function RootComponent() {

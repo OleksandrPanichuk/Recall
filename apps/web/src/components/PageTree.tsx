@@ -51,7 +51,13 @@ function Branch({
 					activeProps={{ className: "font-medium text-foreground" }}
 					className="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-sm text-muted-foreground"
 				>
-					<FileText className="size-3.5 shrink-0" />
+					{node.icon === undefined ? (
+						<FileText className="size-3.5 shrink-0" />
+					) : (
+						<span className="w-3.5 shrink-0 text-center text-sm leading-none">
+							{node.icon}
+						</span>
+					)}
 					<span className="truncate">{node.name}</span>
 					{node.setCount === 0 ? null : (
 						<span className="shrink-0 text-xs opacity-60">{node.setCount}</span>

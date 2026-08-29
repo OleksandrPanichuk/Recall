@@ -280,6 +280,7 @@ export const deletePageCommandSchema = z.object({ folderId: id });
 export const pageTreeNodeSchema = z.object({
 	id,
 	name: z.string(),
+	icon: z.string().optional(),
 	parentId: optionalId,
 	depth: z.number().int(),
 	setCount: count,

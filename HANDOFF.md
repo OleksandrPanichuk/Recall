@@ -106,7 +106,7 @@ Plan §7 — the Notion-like pages — is done in the order the plan sequences i
 | markdown on a page, `icon` | `Folder` aggregate, `pages.content_md` / `pages.icon` |
 | MCP authoring | `quiz_write_summary`, `quiz_append_summary`, `quiz_read_summary` |
 | web reader | `PageView` / `PageSummary`, react-markdown + typography |
-| editor | `SummaryEditor` → Milkdown Crepe: slash menu, drag handles, live blocks |
+| editor | Milkdown Crepe, always on, autosaving: slash menu, drag handles, live blocks |
 | quiz attachment | `quiz_attach_set` / `quiz_detach_set`, `BrowseView.attached` |
 | search | GIN over `to_tsvector('simple', title ‖ content_md)`, `quiz_search_pages` |
 
@@ -114,13 +114,26 @@ What §7 describes and this does **not** have: `position` is a column but nothin
 nested-page references are plain links, not `[[slug]]`; no `pgvector`. None of them block what
 the brief asked for.
 
+`apps/web` has every route the API can serve: library (with search), page, quiz,
+practice, attempt review, `/review` for due repetitions and leeches, `/settings`, and a
+not-found. Page mutations — create, rename, icon, delete, tree — go over `/app/*` and
+`/bot/*` alike.
+
 **Next is plan §4's analytics** — the dashboards over `GetQuizStatistics` and `GetAttemptDetail`,
 both of which already exist and are tested. After that, §5's second auth phase (email+password,
 which is deliberately disabled today) and FSRS.
 
 **Verified live, not only in tests** (2026-08-29): a scratch database, `drizzle-kit migrate` from
 empty through 0006, the API on Node, and every new tool driven over real HTTP MCP — write, append,
-read, search, attach, history — plus `/bot/pages/summary` and `/bot/pages/search` by curl.
+read, search, attach, history — plus every `/bot/pages/*` route by curl.
+
+The web app was then driven in a real Chrome (puppeteer-core against the installed browser,
+installed for the session and removed again): editor mounts and autosaves — typed text survives a
+reload; the slash menu opens, filters on Ukrainian, and inserts; block drag handles appear; title
+rename, icon pick and sub-page creation all land and refresh the sidebar; a whole quiz is
+practised, answered, finished, and read back through statistics and attempt detail; `/review`,
+`/settings` and search work; at 390px the drawer opens, closes on navigation, and nothing
+overflows sideways. No console errors and no failed requests in any pass.
 
 ---
 

@@ -1,6 +1,13 @@
 import type { PageTreeNode } from "@recall/contracts";
 import { Link, useLocation } from "@tanstack/react-router";
-import { BrainCircuit, CalendarClock, Library, Menu, X } from "lucide-react";
+import {
+	BrainCircuit,
+	CalendarClock,
+	Library,
+	Menu,
+	Settings,
+	X,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { PageTree } from "@/components/PageTree";
 
@@ -67,6 +74,14 @@ export function AppShell({ viewer, pages, children }: AppShellProps) {
 					>
 						<CalendarClock className="size-4" />
 						Повторення
+					</Link>
+					<Link
+						to="/settings"
+						className={navLink}
+						activeProps={{ className: "bg-accent/60 text-foreground" }}
+					>
+						<Settings className="size-4" />
+						Налаштування
 					</Link>
 				</nav>
 				<p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

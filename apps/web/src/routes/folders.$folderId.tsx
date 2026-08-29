@@ -55,6 +55,7 @@ function Page() {
 					icon={view.icon}
 					onPick={async (icon) => {
 						setWritten(await setPageIcon({ data: { folderId, icon } }));
+						await router.invalidate();
 					}}
 				/>
 				<div className="min-w-0 flex-1 pt-1.5">

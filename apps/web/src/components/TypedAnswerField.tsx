@@ -26,6 +26,8 @@ export function TypedAnswerField({
 		>
 			<Input
 				autoFocus
+				type="text"
+				aria-label="Ваша відповідь"
 				value={typed}
 				disabled={disabled}
 				placeholder="Ваша відповідь"

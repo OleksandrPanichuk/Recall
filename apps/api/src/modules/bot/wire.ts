@@ -65,6 +65,7 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 export const pageTreeNodeToWire = (node: FolderTreeNode): WirePageTreeNode => ({
 	id: String(node.id),
 	name: node.name,
+	icon: text(node.icon),
 	parentId: node.parentId === undefined ? undefined : String(node.parentId),
 	depth: node.depth,
 	setCount: node.setCount,

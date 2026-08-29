@@ -1,3 +1,4 @@
+import type { UpdateQuizSettingsCommand } from "@recall/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { api } from "./api";
 import { viewerOf } from "./session";
@@ -71,6 +72,20 @@ export const deletePage = createServerFn({ method: "POST" })
 export const loadPageTree = createServerFn().handler(async () => ({
 	nodes: await api().listPageTree.execute({}),
 }));
+
+export const loadSettings = createServerFn()
+	.inputValidator((value: unknown) => ({
+		quizSetId: value === undefined ? undefined : String(value),
+	}))
+	.handler(async ({ data }) => api().resolveQuizSettings.execute(data));
+
+export const saveSettings = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => value as UpdateQuizSettingsCommand)
+	.handler(async ({ data }) => {
+		await api().updateQuizSettings.execute(data);
+
+		return api().resolveQuizSettings.execute({ quizSetId: data.quizSetId });
+	});
 
 export const loadCurrentQuestion = createServerFn().handler(async () => ({
 	current: (await api().getCurrentQuestion.execute({})) ?? null,

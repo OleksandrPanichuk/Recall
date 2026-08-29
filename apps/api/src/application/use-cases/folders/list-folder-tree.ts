@@ -6,6 +6,7 @@ import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 export interface FolderTreeNode {
 	readonly id: FolderId;
 	readonly name: string;
+	readonly icon?: string;
 	readonly parentId?: FolderId;
 	readonly depth: number;
 	readonly setCount: number;
@@ -57,6 +58,7 @@ export class ListFolderTreeUseCase
 				nodes.push({
 					id: folder.id,
 					name: folder.name,
+					icon: folder.icon,
 					parentId: folder.parentId,
 					depth,
 					setCount,
