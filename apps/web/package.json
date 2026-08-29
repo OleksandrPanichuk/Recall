@@ -7,9 +7,12 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"start": "bun run ./.output/server/index.mjs",
-		"test": "bun test"
+		"test": "bun test tests/dom && RECALL_NO_DOM=1 bun test tests/server"
 	},
 	"dependencies": {
+		"@milkdown/crepe": "^7.22.1",
+		"@milkdown/kit": "^7.22.1",
+		"@milkdown/react": "^7.22.1",
 		"@recall/contracts": "workspace:*",
 		"@recall/kit": "workspace:*",
 		"@tailwindcss/typography": "^0.5.20",

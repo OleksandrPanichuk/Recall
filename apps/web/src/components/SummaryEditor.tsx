@@ -1,9 +1,18 @@
-import { Eye, Pencil, Save, X } from "lucide-react";
-import { useState } from "react";
-import { PageSummary } from "@/components/PageSummary";
+import { ClientOnly } from "@tanstack/react-router";
+import { Save, X } from "lucide-react";
+import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Textarea } from "@/components/ui/Textarea";
+
+const NotionEditor = lazy(async () => ({
+	default: (await import("@/components/NotionEditor")).NotionEditor,
+}));
+
+const loading = (
+	<p className="px-4 py-3 text-sm text-muted-foreground">
+		Редактор завантажується…
+	</p>
+);
 
 export interface SummaryEditorProps {
 	readonly summary: string;
@@ -18,40 +27,39 @@ export function SummaryEditor({
 	onSave,
 	onCancel,
 }: SummaryEditorProps) {
-	const [draft, setDraft] = useState(summary);
-	const [previewing, setPreviewing] = useState(false);
+	const [read, setRead] = useState<(() => string) | null>(null);
+	const [dirty, setDirty] = useState(false);
 
 	return (
 		<div className="space-y-3">
-			{previewing ? (
-				<PageSummary summary={draft} />
-			) : (
-				<Card className="p-2">
-					<Textarea
-						aria-label="Конспект"
-						value={draft}
-						onChange={(event) => setDraft(event.target.value)}
-						placeholder="# Заголовок&#10;&#10;Текст у Markdown."
-					/>
-				</Card>
-			)}
+			<Card className="overflow-hidden">
+				<ClientOnly fallback={loading}>
+					<Suspense fallback={loading}>
+						<NotionEditor
+							markdown={summary}
+							onReady={(reader) => setRead(() => reader)}
+							onChange={() => setDirty(true)}
+						/>
+					</Suspense>
+				</ClientOnly>
+			</Card>
 			<div className="flex flex-wrap items-center gap-2">
-				<Button onClick={() => onSave(draft)} disabled={saving}>
+				<Button
+					onClick={() => onSave(read === null ? summary : read())}
+					disabled={saving || read === null}
+				>
 					<Save />
 					{saving ? "Збереження…" : "Зберегти"}
-				</Button>
-				<Button
-					variant="outline"
-					onClick={() => setPreviewing(!previewing)}
-					disabled={saving}
-				>
-					{previewing ? <Pencil /> : <Eye />}
-					{previewing ? "Редагувати" : "Перегляд"}
 				</Button>
 				<Button variant="ghost" onClick={onCancel} disabled={saving}>
 					<X />
 					Скасувати
 				</Button>
+				{dirty && !saving ? (
+					<span className="text-xs text-muted-foreground">
+						Незбережені зміни
+					</span>
+				) : null}
 			</div>
 		</div>
 	);

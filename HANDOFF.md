@@ -106,13 +106,13 @@ Plan §7 — the Notion-like pages — is done in the order the plan sequences i
 | markdown on a page, `icon` | `Folder` aggregate, `pages.content_md` / `pages.icon` |
 | MCP authoring | `quiz_write_summary`, `quiz_append_summary`, `quiz_read_summary` |
 | web reader | `PageView` / `PageSummary`, react-markdown + typography |
-| editor | `SummaryEditor` — a textarea with a preview, not a WYSIWYG yet |
+| editor | `SummaryEditor` → Milkdown Crepe: slash menu, drag handles, live blocks |
 | quiz attachment | `quiz_attach_set` / `quiz_detach_set`, `BrowseView.attached` |
 | search | GIN over `to_tsvector('simple', title ‖ content_md)`, `quiz_search_pages` |
 
 What §7 describes and this does **not** have: `position` is a column but nothing reorders by it;
-nested-page references are plain links, not `[[slug]]`; the editor is not Milkdown or TipTap; no
-`pgvector`. None of them block what the brief asked for.
+nested-page references are plain links, not `[[slug]]`; no `pgvector`. None of them block what
+the brief asked for.
 
 **Next is plan §4's analytics** — the dashboards over `GetQuizStatistics` and `GetAttemptDetail`,
 both of which already exist and are tested. After that, §5's second auth phase (email+password,

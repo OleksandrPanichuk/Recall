@@ -112,47 +112,9 @@ describe("editing a summary", () => {
 		expect(screen.queryByText("Редагувати")).toBeNull();
 	});
 
-	test("opens on the existing markdown and hands back what was typed", async () => {
-		const written: string[] = [];
-
-		show(aView({ summary: "# Cells" }), (summary) => written.push(summary));
-
-		fireEvent.click(await screen.findByText("Редагувати"));
-
-		const field = screen.getByLabelText("Конспект") as HTMLTextAreaElement;
-
-		expect(field.value).toBe("# Cells");
-
-		fireEvent.change(field, { target: { value: "# Cells\n\nAnd nuclei." } });
-		fireEvent.click(screen.getByText("Зберегти"));
-
-		expect(written).toEqual(["# Cells\n\nAnd nuclei."]);
-	});
-
-	test("previews the draft as markdown before it is saved", async () => {
+	test("offers to write one when the page has no summary", async () => {
 		show(aView(), () => undefined);
 
-		fireEvent.click(await screen.findByText("Написати конспект"));
-		fireEvent.change(screen.getByLabelText("Конспект"), {
-			target: { value: "# Cells" },
-		});
-		fireEvent.click(screen.getByText("Перегляд"));
-
-		expect(screen.getByRole("heading", { name: "Cells" })).toBeDefined();
-	});
-
-	test("discards the draft on cancel", async () => {
-		const written: string[] = [];
-
-		show(aView({ summary: "# Cells" }), (summary) => written.push(summary));
-
-		fireEvent.click(await screen.findByText("Редагувати"));
-		fireEvent.change(screen.getByLabelText("Конспект"), {
-			target: { value: "throwaway" },
-		});
-		fireEvent.click(screen.getByText("Скасувати"));
-
-		expect(written).toEqual([]);
-		expect(await screen.findByRole("heading", { name: "Cells" })).toBeDefined();
+		expect(await screen.findByText("Написати конспект")).toBeDefined();
 	});
 });

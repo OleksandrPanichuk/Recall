@@ -345,12 +345,31 @@ Tailwind v4 (through `@tailwindcss/vite`, no config file — the theme is CSS va
   buttons for every type leaves typed and cloze questions unanswerable — they have no options at
   all — and grades a multiple-choice question on the first click.
 
+- **The page editor is Milkdown's Crepe**, and it is *uncontrolled on purpose*. Markdown is the
+  document model — the same `content_md` an AI writes over MCP — so there is no lossy block-JSON
+  round-trip, but it also means the editor owns the document once it is created. It takes the
+  markdown through a ref captured at first render and is read back with `getMarkdown()` on save;
+  never pass the prop into the effect's dependencies, or every keystroke in the parent rebuilds
+  the editor. Readiness is **state**, not a ref: a ref set from `onReady` does not re-render, so
+  the Save button stays disabled forever. Crepe is loaded through `lazy()` inside `ClientOnly`,
+  which keeps 1.3 MB of ProseMirror out of the page route and off the server.
+- **Theme Crepe with our tokens, not its shipped themes.** A theme is only a block of
+  `--crepe-*` variables on `.milkdown`; `styles/app.css` maps them to the shadcn tokens, so light
+  and dark follow the app. Importing `theme/frame.css` *and* `frame-dark.css` would fight over
+  the same variables.
+
 **Only one test file per `bun test` process may register happy-dom.** `GlobalRegistrator`
 replaces `globalThis` wholesale; a second file registering, or the first unregistering while
 another still needs the DOM, breaks whichever file loses. `apps/admin` owns that registration in
 the root run, so `apps/web`'s component tests run in their own process — `bun run test` is the
 root suite **and** `bun run --filter '@recall/web' test`. Never call plain `bun test` as the gate;
 it silently skips the web app.
+
+Inside `apps/web` the registration is a preload (`tests/register-dom.ts`, via `bunfig.toml`), so
+every file in `tests/dom/` shares one DOM. `tests/server/` proves the opposite — that the editor
+renders server-side with no DOM at all — and runs in a second process with `RECALL_NO_DOM=1`,
+which is the only thing that turns the preload off. `bun --config` does **not** override it; the
+flag was the only mechanism that worked.
 
 ## Code comments
 
