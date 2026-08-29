@@ -258,6 +258,34 @@ export const writeSummaryCommandSchema = z.object({
 	append: z.boolean().optional(),
 });
 
+export const createPageCommandSchema = z.object({
+	name: z.string(),
+	parentId: optionalId,
+});
+
+export const createdPageSchema = z.object({ folderId: id });
+
+export const renamePageCommandSchema = z.object({
+	folderId: id,
+	name: z.string(),
+});
+
+export const setPageIconCommandSchema = z.object({
+	folderId: id,
+	icon: z.string().optional(),
+});
+
+export const deletePageCommandSchema = z.object({ folderId: id });
+
+export const pageTreeNodeSchema = z.object({
+	id,
+	name: z.string(),
+	parentId: optionalId,
+	depth: z.number().int(),
+	setCount: count,
+	unpublishedCount: count,
+});
+
 export const searchPagesCommandSchema = z.object({
 	query: z.string(),
 	limit: z.number().int().optional(),
@@ -359,6 +387,12 @@ export type WriteSummaryCommand = z.infer<typeof writeSummaryCommandSchema>;
 export type SummaryWritten = z.infer<typeof summaryWrittenSchema>;
 export type SearchPagesCommand = z.infer<typeof searchPagesCommandSchema>;
 export type PageMatch = z.infer<typeof pageMatchSchema>;
+export type CreatePageCommand = z.infer<typeof createPageCommandSchema>;
+export type CreatedPage = z.infer<typeof createdPageSchema>;
+export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;
+export type SetPageIconCommand = z.infer<typeof setPageIconCommandSchema>;
+export type DeletePageCommand = z.infer<typeof deletePageCommandSchema>;
+export type PageTreeNode = z.infer<typeof pageTreeNodeSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;
 export type GetCurrentQuestionCommand = z.infer<

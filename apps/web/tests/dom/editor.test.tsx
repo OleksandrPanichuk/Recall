@@ -1,38 +1,26 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-const { cleanup, fireEvent, render, screen, waitFor } = await import(
+const { cleanup, render, screen, waitFor } = await import(
 	"@testing-library/react"
 );
-const { SummaryEditor } = await import("@/components/SummaryEditor");
+const { NotionEditor } = await import("@/components/NotionEditor");
 
 afterEach(() => {
 	cleanup();
 });
 
-const open = (summary: string) => {
-	const saved: string[] = [];
-	const cancelled: true[] = [];
+const open = (markdown: string) => {
+	const written: string[] = [];
 
 	render(
-		<SummaryEditor
-			summary={summary}
-			saving={false}
-			onSave={(written) => saved.push(written)}
-			onCancel={() => cancelled.push(true)}
+		<NotionEditor
+			markdown={markdown}
+			onChange={(next) => written.push(next)}
 		/>,
 	);
 
-	return { saved, cancelled };
+	return written;
 };
-
-const ready = async () =>
-	waitFor(() => {
-		const save = screen.getByText("Зберегти").closest("button");
-
-		expect(save?.disabled).toBe(false);
-
-		return save as HTMLButtonElement;
-	});
 
 describe("the page editor", () => {
 	test("renders the markdown as blocks, not as source text", async () => {
@@ -52,31 +40,20 @@ describe("the page editor", () => {
 		expect(heading.closest('[contenteditable="true"]')).not.toBeNull();
 	});
 
-	test("hands back the markdown the editor holds", async () => {
-		const { saved } = open("# Cells\n\nAnd nuclei.");
+	test("reports nothing while the document has not changed", async () => {
+		const written = open("# Cells");
 
-		fireEvent.click(await ready());
-
-		expect(saved).toHaveLength(1);
-		expect(saved[0]?.trim()).toBe("# Cells\n\nAnd nuclei.");
+		await screen.findByRole("heading", { name: "Cells" });
+		await waitFor(() => expect(written).toEqual([]));
 	});
 
-	test("cannot be saved before the editor has loaded", () => {
-		open("# Cells");
+	test("renders a list as list items", async () => {
+		open("- membrane\n- nucleus");
 
 		expect(
-			(screen.getByText("Зберегти").closest("button") as HTMLButtonElement)
-				.disabled,
-		).toBe(true);
-	});
-
-	test("saves nothing when the edit is cancelled", async () => {
-		const { saved, cancelled } = open("# Cells");
-
-		await ready();
-		fireEvent.click(screen.getByText("Скасувати"));
-
-		expect(saved).toEqual([]);
-		expect(cancelled).toEqual([true]);
+			(await screen.findAllByRole("listitem")).map((item) =>
+				(item.textContent ?? "").trim(),
+			),
+		).toEqual(["membrane", "nucleus"]);
 	});
 });

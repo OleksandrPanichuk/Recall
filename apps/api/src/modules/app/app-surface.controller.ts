@@ -16,12 +16,16 @@ import {
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
 	browseCommandSchema,
+	createPageCommandSchema,
+	deletePageCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
 	leechesCommandSchema,
 	practiceCommandSchema,
+	renamePageCommandSchema,
 	resolveSettingsCommandSchema,
 	searchPagesCommandSchema,
+	setPageIconCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
@@ -43,6 +47,7 @@ import {
 	dueSetToWire,
 	finishResultToWire,
 	leechToWire,
+	pageTreeNodeToWire,
 	practiceResultToWire,
 	resolvedSettingsToWire,
 	settingsToWire,
@@ -106,6 +111,61 @@ export class AppSurfaceController {
 			name: match.name,
 			excerpt: match.excerpt,
 		}));
+	}
+
+	@Post(BOT_ROUTES.createPage)
+	@HttpCode(HttpStatus.OK)
+	async createPage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(createPageCommandSchema, body);
+		const created = await this.of(request).createFolder.execute({
+			name: command.name,
+			parentId:
+				command.parentId === undefined
+					? undefined
+					: toFolderId(command.parentId),
+		});
+
+		return { folderId: String(created.folderId) };
+	}
+
+	@Post(BOT_ROUTES.renamePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async renamePage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(renamePageCommandSchema, body);
+
+		await this.of(request).renameFolder.execute({
+			folderId: toFolderId(command.folderId),
+			name: command.name,
+		});
+	}
+
+	@Post(BOT_ROUTES.setPageIcon)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async setPageIcon(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(setPageIconCommandSchema, body);
+
+		await this.of(request).setPageIcon.execute({
+			folderId: toFolderId(command.folderId),
+			icon: command.icon,
+		});
+	}
+
+	@Post(BOT_ROUTES.deletePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async deletePage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(deletePageCommandSchema, body);
+
+		await this.of(request).deleteFolder.execute({
+			folderId: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.pageTree)
+	@HttpCode(HttpStatus.OK)
+	async pageTree(@Req() request: SessionRequest) {
+		const nodes = await this.of(request).listFolderTree.execute({});
+
+		return nodes.map(pageTreeNodeToWire);
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

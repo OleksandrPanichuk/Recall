@@ -14,7 +14,9 @@ import {
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
 	browseCommandSchema,
+	createPageCommandSchema,
 	currentQuestionCommandSchema,
+	deletePageCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
 	issueApiTokenCommandSchema,
@@ -22,9 +24,11 @@ import {
 	listApiTokensCommandSchema,
 	loginLinkCommandSchema,
 	practiceCommandSchema,
+	renamePageCommandSchema,
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
 	searchPagesCommandSchema,
+	setPageIconCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
 	updateSettingsCommandSchema,
@@ -36,7 +40,12 @@ import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finis
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
+import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
+import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
+import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
+import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
 import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
@@ -61,6 +70,7 @@ import {
 	dueSetToWire,
 	finishResultToWire,
 	leechToWire,
+	pageTreeNodeToWire,
 	practiceResultToWire,
 	resolvedSettingsToWire,
 	settingsToWire,
@@ -83,6 +93,16 @@ export class BotController {
 		private readonly writeSummary: WriteSummaryUseCase,
 		@Inject(SearchPagesUseCase)
 		private readonly searchPages: SearchPagesUseCase,
+		@Inject(CreateFolderUseCase)
+		private readonly createFolder: CreateFolderUseCase,
+		@Inject(RenameFolderUseCase)
+		private readonly renameFolder: RenameFolderUseCase,
+		@Inject(SetPageIconUseCase)
+		private readonly setIcon: SetPageIconUseCase,
+		@Inject(DeleteFolderUseCase)
+		private readonly deleteFolder: DeleteFolderUseCase,
+		@Inject(ListFolderTreeUseCase)
+		private readonly listFolderTree: ListFolderTreeUseCase,
 		@Inject(StartQuizAttemptUseCase)
 		private readonly startQuizAttempt: StartQuizAttemptUseCase,
 		@Inject(StartPracticeSessionUseCase)
@@ -204,6 +224,61 @@ export class BotController {
 			name: match.name,
 			excerpt: match.excerpt,
 		}));
+	}
+
+	@Post(BOT_ROUTES.createPage)
+	@HttpCode(HttpStatus.OK)
+	async createPage(@Body() body: unknown) {
+		const command = parseBody(createPageCommandSchema, body);
+		const created = await this.createFolder.execute({
+			name: command.name,
+			parentId:
+				command.parentId === undefined
+					? undefined
+					: toFolderId(command.parentId),
+		});
+
+		return { folderId: String(created.folderId) };
+	}
+
+	@Post(BOT_ROUTES.renamePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async renamePage(@Body() body: unknown) {
+		const command = parseBody(renamePageCommandSchema, body);
+
+		await this.renameFolder.execute({
+			folderId: toFolderId(command.folderId),
+			name: command.name,
+		});
+	}
+
+	@Post(BOT_ROUTES.setPageIcon)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async setPageIcon(@Body() body: unknown) {
+		const command = parseBody(setPageIconCommandSchema, body);
+
+		await this.setIcon.execute({
+			folderId: toFolderId(command.folderId),
+			icon: command.icon,
+		});
+	}
+
+	@Post(BOT_ROUTES.deletePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async deletePage(@Body() body: unknown) {
+		const command = parseBody(deletePageCommandSchema, body);
+
+		await this.deleteFolder.execute({
+			folderId: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.pageTree)
+	@HttpCode(HttpStatus.OK)
+	async pageTree() {
+		const nodes = await this.listFolderTree.execute({});
+
+		return nodes.map(pageTreeNodeToWire);
 	}
 
 	@Post(BOT_ROUTES.startAttempt)

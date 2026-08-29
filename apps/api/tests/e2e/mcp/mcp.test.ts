@@ -110,6 +110,7 @@ describe("MCP server (§4.1)", () => {
 			"quiz_read_summary",
 			"quiz_rename_folder",
 			"quiz_search_pages",
+			"quiz_set_page_icon",
 			"quiz_set_settings",
 			"quiz_summary_history",
 			"quiz_update_question",
@@ -663,6 +664,24 @@ describe("folders over MCP", () => {
 
 		expect(found.structured.matches).toEqual([]);
 		expect(found.text).toContain("Nothing matches");
+	});
+
+	test("marks a page with an icon, and can take it off again", async () => {
+		await ensure(["Biology"]);
+
+		expect(
+			(await call("quiz_set_page_icon", { path: ["Biology"], icon: "🧬" }))
+				.isError,
+		).toBe(false);
+		expect(
+			(await call("quiz_read_summary", { path: ["Biology"] })).structured.icon,
+		).toBe("🧬");
+
+		await call("quiz_set_page_icon", { path: ["Biology"] });
+
+		expect(
+			(await call("quiz_read_summary", { path: ["Biology"] })).structured.icon,
+		).toBeUndefined();
 	});
 
 	test("deletes an empty folder", async () => {

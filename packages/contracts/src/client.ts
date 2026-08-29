@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import {
 	type AnswerQuestionCommand,
 	type AnswerQuestionResult,
@@ -13,10 +13,16 @@ import {
 	type BrowseView,
 	browseCommandSchema,
 	browseViewSchema,
+	type CreatedPage,
+	type CreatePageCommand,
 	type CurrentQuestionView,
+	createdPageSchema,
+	createPageCommandSchema,
 	currentQuestionCommandSchema,
 	currentQuestionSchema,
+	type DeletePageCommand,
 	type DueSet,
+	deletePageCommandSchema,
 	dueRepetitionsCommandSchema,
 	dueSetSchema,
 	type FinishQuizAttemptCommand,
@@ -42,28 +48,34 @@ import {
 	loginLinkCommandSchema,
 	loginLinkSchema,
 	type PageMatch,
+	type PageTreeNode,
 	pageMatchSchema,
+	pageTreeNodeSchema,
 	practiceCommandSchema,
 	practiceResultSchema,
 	type QuizSettings,
 	type QuizStatistics,
 	quizSettingsSchema,
 	quizStatisticsSchema,
+	type RenamePageCommand,
 	type ResolvedQuizSettings,
 	type ResolveQuizSettingsCommand,
 	type RevokeApiTokenCommand,
 	type RevokedApiToken,
+	renamePageCommandSchema,
 	resolvedSettingsSchema,
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
 	revokedApiTokenSchema,
 	type SearchPagesCommand,
+	type SetPageIconCommand,
 	type StartPracticeSessionCommand,
 	type StartPracticeSessionResult,
 	type StartQuizAttemptCommand,
 	type StartQuizAttemptResult,
 	type SummaryWritten,
 	searchPagesCommandSchema,
+	setPageIconCommandSchema,
 	startAttemptCommandSchema,
 	startAttemptResultSchema,
 	statisticsCommandSchema,
@@ -175,6 +187,14 @@ export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
 	readonly searchPages: UseCaseLike<SearchPagesCommand, readonly PageMatch[]>;
+	readonly createPage: UseCaseLike<CreatePageCommand, CreatedPage>;
+	readonly renamePage: UseCaseLike<RenamePageCommand, void>;
+	readonly setPageIcon: UseCaseLike<SetPageIconCommand, void>;
+	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
+	readonly listPageTree: UseCaseLike<
+		Record<string, never>,
+		readonly PageTreeNode[]
+	>;
 	readonly listDueRepetitions: UseCaseLike<
 		ListDueRepetitionsCommand,
 		readonly DueSet[]
@@ -238,6 +258,11 @@ export const BOT_ROUTES = {
 	browse: "browse",
 	writeSummary: "pages/summary",
 	searchPages: "pages/search",
+	createPage: "pages/create",
+	renamePage: "pages/rename",
+	setPageIcon: "pages/icon",
+	deletePage: "pages/delete",
+	pageTree: "pages/tree",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
 	currentQuestion: "attempts/current",
@@ -362,6 +387,31 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.searchPages,
 			searchPagesCommandSchema,
 			pageMatchSchema.array().readonly(),
+		),
+		createPage: operation(
+			BOT_ROUTES.createPage,
+			createPageCommandSchema,
+			createdPageSchema,
+		),
+		renamePage: operation(
+			BOT_ROUTES.renamePage,
+			renamePageCommandSchema,
+			z.void(),
+		),
+		setPageIcon: operation(
+			BOT_ROUTES.setPageIcon,
+			setPageIconCommandSchema,
+			z.void(),
+		),
+		deletePage: operation(
+			BOT_ROUTES.deletePage,
+			deletePageCommandSchema,
+			z.void(),
+		),
+		listPageTree: operation(
+			BOT_ROUTES.pageTree,
+			z.object({}),
+			pageTreeNodeSchema.array().readonly(),
 		),
 		listDueRepetitions: operation(
 			BOT_ROUTES.dueRepetitions,

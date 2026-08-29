@@ -5,22 +5,15 @@ import { slashMenu } from "@/lib/editor-menu";
 
 export interface NotionEditorProps {
 	readonly markdown: string;
-	readonly onReady: (read: () => string) => void;
-	readonly onChange?: () => void;
+	readonly onChange: (markdown: string) => void;
 }
 
-export function NotionEditor({
-	markdown,
-	onReady,
-	onChange,
-}: NotionEditorProps) {
+export function NotionEditor({ markdown, onChange }: NotionEditorProps) {
 	const host = useRef<HTMLDivElement>(null);
 	const initial = useRef(markdown);
-	const ready = useRef(onReady);
 	const changed = useRef(onChange);
 	const [loading, setLoading] = useState(true);
 
-	ready.current = onReady;
 	changed.current = onChange;
 
 	useEffect(() => {
@@ -45,13 +38,16 @@ export function NotionEditor({
 		});
 
 		crepe.on((listener) => {
-			listener.markdownUpdated(() => changed.current?.());
+			listener.markdownUpdated((_ctx, next, previous) => {
+				if (next !== previous) {
+					changed.current(next);
+				}
+			});
 		});
 
 		const created = crepe.create().then(() => {
 			if (live) {
 				setLoading(false);
-				ready.current(() => crepe.getMarkdown());
 			}
 		});
 
@@ -65,7 +61,7 @@ export function NotionEditor({
 		<div className="relative">
 			<div ref={host} className="recall-editor" />
 			{loading ? (
-				<p className="px-4 py-3 text-sm text-muted-foreground">
+				<p className="px-1 py-3 text-sm text-muted-foreground">
 					Редактор завантажується…
 				</p>
 			) : null}

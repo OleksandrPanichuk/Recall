@@ -6,6 +6,7 @@ import type {
 	DueSet as WireDueSet,
 	FinishQuizAttemptResult as WireFinishResult,
 	LeechView as WireLeech,
+	PageTreeNode as WirePageTreeNode,
 	StartPracticeSessionResult as WirePracticeResult,
 	Question as WireQuestion,
 	QuizSettings as WireQuizSettings,
@@ -20,6 +21,7 @@ import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/f
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttemptResult } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
+import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
 import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
 import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
@@ -58,6 +60,15 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 	status: summary.status,
 	questionCount: summary.questionCount,
 	updatedAt: summary.updatedAt.toISOString(),
+});
+
+export const pageTreeNodeToWire = (node: FolderTreeNode): WirePageTreeNode => ({
+	id: String(node.id),
+	name: node.name,
+	parentId: node.parentId === undefined ? undefined : String(node.parentId),
+	depth: node.depth,
+	setCount: node.setCount,
+	unpublishedCount: node.unpublishedCount,
 });
 
 export const browseViewToWire = (view: BrowseView): WireBrowseView => ({

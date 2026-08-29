@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
-import { loadSession } from "@/lib/practice";
+import { loadPageTree, loadSession } from "@/lib/practice";
 import appCss from "@/styles/app.css?url";
 
 export const Route = createRootRouteWithContext<{
@@ -23,15 +23,18 @@ export const Route = createRootRouteWithContext<{
 		links: [{ rel: "stylesheet", href: appCss }],
 	}),
 	beforeLoad: async () => loadSession(),
+	loader: async ({ context }) =>
+		context.viewer === null ? { nodes: [] } : loadPageTree(),
 	component: RootComponent,
 });
 
 function RootComponent() {
 	const { viewer } = Route.useRouteContext();
+	const { nodes } = Route.useLoaderData();
 
 	return (
 		<Document>
-			<AppShell viewer={viewer}>
+			<AppShell viewer={viewer} pages={nodes}>
 				<Outlet />
 			</AppShell>
 		</Document>

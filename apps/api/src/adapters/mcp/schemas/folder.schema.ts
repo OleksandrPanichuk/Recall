@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { MAX_FOLDER_NAME, MAX_SUMMARY_LENGTH } from "@/domain/folder/folder";
+import {
+	MAX_FOLDER_NAME,
+	MAX_ICON_LENGTH,
+	MAX_SUMMARY_LENGTH,
+} from "@/domain/folder/folder";
 
 const folderName = z.string().trim().min(1).max(MAX_FOLDER_NAME);
 
@@ -39,6 +43,11 @@ export const summaryHistoryShape = {
 export const attachSetShape = {
 	path: folderPath,
 	quizSetId: z.string().trim().min(1).max(64),
+};
+
+export const setPageIconShape = {
+	path: folderPath,
+	icon: z.string().trim().max(MAX_ICON_LENGTH).optional(),
 };
 
 export const searchPagesShape = {

@@ -138,6 +138,26 @@ export function writeSummary(
 	});
 }
 
+export const MAX_ICON_LENGTH = 8;
+
+export function setIcon(
+	folder: Folder,
+	icon: string | undefined,
+	at: Date,
+): Folder {
+	assertTransitionDate(folder, at);
+
+	const trimmed = trimmedOrUndefined(icon);
+
+	if (trimmed !== undefined && [...trimmed].length > MAX_ICON_LENGTH) {
+		throw new FolderValidationError([
+			`icon must not exceed ${MAX_ICON_LENGTH} characters`,
+		]);
+	}
+
+	return frozenFolder({ ...folder, icon: trimmed, updatedAt: at });
+}
+
 export function renameFolder(folder: Folder, name: string, at: Date): Folder {
 	assertTransitionDate(folder, at);
 

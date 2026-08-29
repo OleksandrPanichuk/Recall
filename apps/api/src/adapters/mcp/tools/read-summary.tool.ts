@@ -36,6 +36,7 @@ export function registerReadSummaryTool(
 					{
 						folderId,
 						name: view.name,
+						icon: view.icon,
 						summary: view.summary,
 						pages: view.children.map((child) => child.name),
 						quizzes: view.sets.map(summaryOf),

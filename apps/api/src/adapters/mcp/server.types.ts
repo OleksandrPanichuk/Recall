@@ -9,6 +9,7 @@ import type { ListRevisionsUseCase } from "@/application/use-cases/folders/list-
 import type { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import type { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
 import type { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
+import type { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
 import type { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import type { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import type { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
@@ -49,6 +50,7 @@ export interface McpUseCases {
 	readonly writeSummary: WriteSummaryUseCase;
 	readonly listRevisions: ListRevisionsUseCase;
 	readonly searchPages: SearchPagesUseCase;
+	readonly setPageIcon: SetPageIconUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;

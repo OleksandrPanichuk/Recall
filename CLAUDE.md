@@ -334,6 +334,8 @@ Tailwind v4 (through `@tailwindcss/vite`, no config file — the theme is CSS va
   `ui/Button.tsx`. This is the opposite of the api's `answer-question.ts`, and deliberate — it is
   the convention every shadcn snippet and React codebase assumes, and the file *is* the component.
   Everything that is not a component keeps kebab-case: `lib/practice.ts`, `lib/session.ts`.
+- **Hooks live in `src/hooks/`**, one per file, named for the hook:
+  `hooks/use-autosave.ts`. Not in `lib/` — `lib/` is for things that do not touch React.
 - **A route file holds routing and data, not markup.** `createFileRoute`, its loader, and a thin
   component that composes named components from `src/components`. If a route grows a second
   screenful of JSX, that JSX is a component.

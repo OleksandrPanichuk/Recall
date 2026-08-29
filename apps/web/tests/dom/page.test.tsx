@@ -1,16 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { BrowseView } from "@recall/contracts";
 
-const { cleanup, fireEvent, render, screen } = await import(
-	"@testing-library/react"
-);
+const { cleanup, render, screen } = await import("@testing-library/react");
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
 const { PageView } = await import("@/components/PageView");
 
-const show = (view: BrowseView, onSave?: (summary: string) => void) => {
+const show = (view: BrowseView) => {
 	const rootRoute = createRootRoute({
-		component: () => <PageView view={view} onSave={onSave} />,
+		component: () => <PageView view={view} />,
 	});
 
 	return render(
@@ -89,10 +87,12 @@ describe("a page with a summary", () => {
 });
 
 describe("a page without a summary", () => {
-	test("points at the MCP tool that writes one", async () => {
+	test("invites the first line to be written", async () => {
 		show(aView());
 
-		expect(await screen.findByText("quiz_write_summary")).toBeDefined();
+		expect(
+			await screen.findByText("Напишіть щось або натисніть «/» для команд"),
+		).toBeDefined();
 	});
 
 	test("still lists what is filed under it", async () => {
@@ -101,20 +101,5 @@ describe("a page without a summary", () => {
 		);
 
 		expect(await screen.findByText("Bonds")).toBeDefined();
-	});
-});
-
-describe("editing a summary", () => {
-	test("stays hidden when the page cannot be saved", async () => {
-		show(aView({ summary: "Read only." }));
-
-		await screen.findByText("Read only.");
-		expect(screen.queryByText("Редагувати")).toBeNull();
-	});
-
-	test("offers to write one when the page has no summary", async () => {
-		show(aView(), () => undefined);
-
-		expect(await screen.findByText("Написати конспект")).toBeDefined();
 	});
 });

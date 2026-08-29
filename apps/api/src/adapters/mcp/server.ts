@@ -19,6 +19,7 @@ import { registerQuizSettingsTools } from "./tools/quiz-settings.tool";
 import { registerReadSummaryTool } from "./tools/read-summary.tool";
 import { registerRenameFolderTool } from "./tools/rename-folder.tool";
 import { registerSearchPagesTool } from "./tools/search-pages.tool";
+import { registerSetPageIconTool } from "./tools/set-page-icon.tool";
 import { registerUpdateSetTool } from "./tools/update-set.tool";
 import { registerUpdateVocabularyTool } from "./tools/update-vocabulary.tool";
 import {
@@ -61,6 +62,7 @@ export function createMcpServer(
 	registerReadSummaryTool(server, useCases, runTool);
 	registerAttachSetTool(server, useCases, runTool);
 	registerSearchPagesTool(server, useCases, runTool);
+	registerSetPageIconTool(server, useCases, runTool);
 	registerQuizSettingsTools(server, useCases, runTool);
 	registerDeleteFolderTool(server, useCases, runTool);
 	registerEditQuestionTools(server, useCases, runTool);
