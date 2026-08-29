@@ -7,10 +7,12 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { AppShell } from "@/components/AppShell";
-import { ErrorPanel } from "@/components/ErrorPanel";
-import { NotFound } from "@/components/NotFound";
-import { loadPageTree, loadSession } from "@/lib/practice";
+import { loadPageTree } from "@/features/pages/lib/pages.api";
+import { PageTree } from "@/features/pages/ui/components/PageTree";
+import { loadSession } from "@/shared/lib/viewer";
+import { AppShell } from "@/shared/ui/components/AppShell";
+import { ErrorPanel } from "@/shared/ui/components/ErrorPanel";
+import { NotFound } from "@/shared/ui/components/NotFound";
 import appCss from "@/styles/app.css?url";
 
 export const Route = createRootRouteWithContext<{
@@ -41,7 +43,7 @@ function RootComponent() {
 
 	return (
 		<Document>
-			<AppShell viewer={viewer} pages={nodes}>
+			<AppShell viewer={viewer} pages={<PageTree nodes={nodes} />}>
 				<Outlet />
 			</AppShell>
 		</Document>

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 const { act, cleanup, renderHook, waitFor } = await import(
 	"@testing-library/react"
 );
-const { useAutosave } = await import("@/hooks/use-autosave");
+const { useAutosave } = await import("@/features/pages/hooks/use-autosave");
 
 afterEach(() => {
 	cleanup();

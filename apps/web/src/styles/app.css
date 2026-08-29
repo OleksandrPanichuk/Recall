@@ -164,11 +164,6 @@
 	line-height: 1.25rem;
 }
 
-.recall-editor .milkdown .milkdown-slash-menu .menu-groups .menu-group li svg {
-	width: 1rem;
-	height: 1rem;
-}
-
 .recall-editor .milkdown .milkdown-slash-menu svg,
 .recall-editor .milkdown .milkdown-toolbar .toolbar-item svg,
 .recall-editor .milkdown .milkdown-block-handle .operation-item svg {
@@ -180,6 +175,11 @@
 .recall-editor .milkdown .milkdown-block-handle .operation-item svg {
 	width: 1.125rem;
 	height: 1.125rem;
+}
+
+.recall-editor .milkdown .milkdown-slash-menu .menu-groups .menu-group li svg {
+	width: 1rem;
+	height: 1rem;
 }
 
 .recall-editor .milkdown .milkdown-toolbar .toolbar-item:hover svg {

@@ -6,9 +6,11 @@ const { cleanup, fireEvent, render, screen } = await import(
 );
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
-const { EmojiPicker } = await import("@/components/EmojiPicker");
-const { PageTitle } = await import("@/components/PageTitle");
-const { PageTree } = await import("@/components/PageTree");
+const { EmojiPicker } = await import(
+	"@/features/pages/ui/components/EmojiPicker"
+);
+const { PageTitle } = await import("@/features/pages/ui/components/PageTitle");
+const { PageTree } = await import("@/features/pages/ui/components/PageTree");
 
 afterEach(() => {
 	cleanup();

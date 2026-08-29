@@ -6,7 +6,9 @@ import { shuffled } from "@recall/kit/shuffle";
 const { cleanup, fireEvent, render, screen } = await import(
 	"@testing-library/react"
 );
-const { QuestionCard } = await import("@/components/QuestionCard");
+const { QuestionCard } = await import(
+	"@/features/practice/ui/components/QuestionCard"
+);
 
 afterEach(() => {
 	cleanup();

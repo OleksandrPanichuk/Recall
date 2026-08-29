@@ -3,7 +3,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 const { cleanup, render, screen, waitFor } = await import(
 	"@testing-library/react"
 );
-const { NotionEditor } = await import("@/components/NotionEditor");
+const { NotionEditor } = await import(
+	"@/features/pages/ui/components/NotionEditor"
+);
 
 afterEach(() => {
 	cleanup();

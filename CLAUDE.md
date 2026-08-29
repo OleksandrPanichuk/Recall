@@ -330,18 +330,52 @@ Beyond the conventions in `ARCHITECTURE.md`:
 Tailwind v4 (through `@tailwindcss/vite`, no config file — the theme is CSS variables in
 `src/styles/app.css`) and shadcn/ui components copied into `src/components/ui`.
 
+### The shape of the tree
+
+```text
+src/
+  features/<feature>/          pages · practice · statistics · review · settings
+    ui/views/                  one per screen: QuizStatisticsView, PracticeView
+    ui/components/             the parts a view composes
+    hooks/                     use-autosave, use-practice-session
+    lib/                       server functions (*.api.ts), pure helpers, types
+    constants/                 feature-wide constants
+  shared/
+    ui/components/             AppShell, PageHeading, SignInPrompt, NotFound, ErrorPanel
+    lib/                       api, session, request, viewer, utils
+  components/ui/               shadcn primitives — where `components.json` points
+  routes/                      file routing only
+```
+
+- **A route file holds routing and data, nothing else.** `createFileRoute`, its loader, and a
+  component that returns one view with props taken off the Route: `return <QuizStatisticsView
+  quizId={quizId} statistics={…} />`. Markup, state and branching live in the view. A route that
+  grew a `useState` is a view waiting to be extracted.
+- **A view belongs to exactly one feature** and is named for the screen, ending in `View`. It may
+  import components from another feature — the quiz screen shows `SettingsEditor` — but never
+  another feature's view.
+- **`shared/` never imports a feature.** It is the bottom of the graph. `AppShell` takes the page
+  tree as a rendered node rather than importing `PageTree`, which is what keeps that true.
+- **A component file contains `interface Props` and the component. Nothing else.** No second
+  type, no constant, no helper, no sub-component. They go beside it as
+  `ComponentName.constants.ts`, `ComponentName.lib.ts` (pure helpers) or
+  `ComponentName.types.ts`, or into the feature's `constants/` and `lib/` when more than one
+  component needs them. The props type is always called `Props` — it is never read outside its
+  own file, so a longer name buys nothing.
 - **Component files are PascalCase and named for the component**: `QuestionCard.tsx`,
   `ui/Button.tsx`. This is the opposite of the api's `answer-question.ts`, and deliberate — it is
   the convention every shadcn snippet and React codebase assumes, and the file *is* the component.
-  Everything that is not a component keeps kebab-case: `lib/practice.ts`, `lib/session.ts`.
-- **Hooks live in `src/hooks/`**, one per file, named for the hook:
-  `hooks/use-autosave.ts`. Not in `lib/` — `lib/` is for things that do not touch React.
-- **A route file holds routing and data, not markup.** `createFileRoute`, its loader, and a thin
-  component that composes named components from `src/components`. If a route grows a second
-  screenful of JSX, that JSX is a component.
+  Everything that is not a component keeps kebab-case: `lib/pages.api.ts`, `hooks/use-autosave.ts`.
+- **Hooks live in the feature's `hooks/`**, one per file, named for the hook. Not in `lib/` —
+  `lib/` is for things that do not touch React.
+- **Server functions live in `<feature>/lib/<feature>.api.ts`**, so the thing that fetches sits
+  with the screens that need it. `shared/lib/api.ts` builds the client, `shared/lib/request.ts`
+  holds `missingAsNull` and `idInput`, and only `shared/lib/viewer.ts` knows about the session.
 - **`@/` means `apps/web/src`**, as shadcn expects. The root tsconfig maps `@/` to the api's
   source, so `apps/web` is excluded there and typechecked as its own project — `bun run typecheck`
   runs both.
+- **shadcn primitives stay in `src/components/ui`** because `components.json` points there, so
+  `shadcn add` keeps working. They are the only components outside `features/` and `shared/`.
 - **Every question type has its own answering component** (`ChoiceOptions`, `TypedAnswerField`,
   `OrderingOptions`, `MatchingOptions`), chosen by `QuestionCard`. Rendering `question.options` as
   buttons for every type leaves typed and cloze questions unanswerable — they have no options at

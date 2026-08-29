@@ -4,7 +4,9 @@ import type { ResolvedQuizSettings } from "@recall/contracts";
 const { cleanup, fireEvent, render, screen } = await import(
 	"@testing-library/react"
 );
-const { SettingsForm } = await import("@/components/SettingsForm");
+const { SettingsForm } = await import(
+	"@/features/settings/ui/components/SettingsForm"
+);
 
 afterEach(() => {
 	cleanup();

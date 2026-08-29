@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { CurrentQuestionView } from "@recall/contracts";
-import { quizCallToAction } from "@/lib/quiz-page";
+import { quizCallToAction } from "@/features/statistics/lib/quiz-page";
 
 const active = (over: Partial<CurrentQuestionView> = {}): CurrentQuestionView =>
 	({

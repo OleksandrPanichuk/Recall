@@ -6,7 +6,9 @@ const { cleanup, fireEvent, render, screen } = await import(
 );
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
-const { PageSearch } = await import("@/components/PageSearch");
+const { PageSearch } = await import(
+	"@/features/pages/ui/components/PageSearch"
+);
 
 afterEach(() => {
 	cleanup();

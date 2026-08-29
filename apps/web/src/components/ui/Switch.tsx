@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
-export interface SwitchProps {
+interface Props {
 	readonly checked: boolean;
 	readonly label: string;
 	readonly hint?: string;
@@ -14,7 +14,7 @@ export function Switch({
 	hint,
 	disabled = false,
 	onChange,
-}: SwitchProps) {
+}: Props) {
 	return (
 		<label className="flex cursor-pointer items-start justify-between gap-4 py-3">
 			<span className="min-w-0">

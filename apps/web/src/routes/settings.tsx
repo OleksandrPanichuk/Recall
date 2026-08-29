@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHeading } from "@/components/PageHeading";
-import { SettingsEditor } from "@/components/SettingsEditor";
-import { SignInPrompt } from "@/components/SignInPrompt";
-import { loadSettings } from "@/lib/practice";
+import { loadSettings } from "@/features/settings/lib/settings.api";
+import { SettingsView } from "@/features/settings/ui/views/SettingsView";
 
 export const Route = createFileRoute("/settings")({
 	loader: async ({ context }) =>
@@ -11,19 +9,5 @@ export const Route = createFileRoute("/settings")({
 });
 
 function Settings() {
-	const loaded = Route.useLoaderData();
-
-	if (loaded === null) {
-		return <SignInPrompt />;
-	}
-
-	return (
-		<div className="space-y-6">
-			<PageHeading
-				title="Налаштування"
-				caption="Діють для всіх наборів, поки набір не має власних"
-			/>
-			<SettingsEditor initial={loaded} />
-		</div>
-	);
+	return <SettingsView settings={Route.useLoaderData()} />;
 }

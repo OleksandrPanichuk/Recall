@@ -5,7 +5,9 @@ const { cleanup, fireEvent, render, screen } = await import(
 );
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
-const { AttemptInProgress } = await import("@/components/AttemptInProgress");
+const { AttemptInProgress } = await import(
+	"@/features/practice/ui/components/AttemptInProgress"
+);
 
 afterEach(() => {
 	cleanup();

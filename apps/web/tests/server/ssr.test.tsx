@@ -4,10 +4,10 @@ test("a page renders its summary on the server, without a DOM", async () => {
 	expect("document" in globalThis).toBe(false);
 
 	const { renderToString } = await import("react-dom/server");
-	const { PageView } = await import("@/components/PageView");
+	const { PageBody } = await import("@/features/pages/ui/components/PageBody");
 
 	const html = renderToString(
-		<PageView
+		<PageBody
 			view={{
 				folderId: "folder-1",
 				name: "Chapter 1",

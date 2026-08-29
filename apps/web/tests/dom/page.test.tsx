@@ -4,11 +4,11 @@ import type { BrowseView } from "@recall/contracts";
 const { cleanup, render, screen } = await import("@testing-library/react");
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
-const { PageView } = await import("@/components/PageView");
+const { PageBody } = await import("@/features/pages/ui/components/PageBody");
 
 const show = (view: BrowseView) => {
 	const rootRoute = createRootRoute({
-		component: () => <PageView view={view} />,
+		component: () => <PageBody view={view} />,
 	});
 
 	return render(

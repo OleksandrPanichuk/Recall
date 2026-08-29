@@ -4,11 +4,17 @@ import type { DailyActivity, QuestionStat } from "@recall/contracts";
 const { cleanup, render, screen } = await import("@testing-library/react");
 const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router");
-const { ActivityHeatmap } = await import("@/components/ActivityHeatmap");
-const { DueForecast } = await import("@/components/DueForecast");
-const { HardestQuestions } = await import("@/components/HardestQuestions");
+const { ActivityHeatmap } = await import(
+	"@/features/statistics/ui/components/ActivityHeatmap"
+);
+const { DueForecast } = await import(
+	"@/features/statistics/ui/components/DueForecast"
+);
+const { HardestQuestions } = await import(
+	"@/features/statistics/ui/components/HardestQuestions"
+);
 const { HEATMAP_WEEKS, heatmapWeeks, levelOf, forecastDays } = await import(
-	"@/lib/insights"
+	"@/features/statistics/lib/insights"
 );
 
 afterEach(() => {
