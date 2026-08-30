@@ -1,6 +1,6 @@
 import type { Insights } from "@recall/contracts";
 import { Flame, ListChecks, Target } from "lucide-react";
-import type { Stat } from "@/features/statistics/ui/components/StatTiles.types";
+import type { Stat } from "@/features/statistics/lib/tiles.types";
 
 export const insightTiles = (insights: Insights): readonly Stat[] => [
 	{

@@ -1,0 +1,1 @@
+export { NewPageButton } from "./NewPageButton";

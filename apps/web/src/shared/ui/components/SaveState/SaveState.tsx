@@ -1,5 +1,5 @@
 import { Check, CircleAlert, LoaderCircle } from "lucide-react";
-import type { SaveState as State } from "./SaveState.types";
+import type { SaveState as State } from "@/shared/lib/save-state.types";
 
 const label: Record<Exclude<State, "idle">, string> = {
 	pending: "Зміни не збережені",

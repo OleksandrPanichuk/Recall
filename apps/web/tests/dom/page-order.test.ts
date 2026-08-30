@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { PageTreeNode } from "@recall/contracts";
-import { slotFor } from "@/features/pages/ui/components/PageTree.lib";
+import { slotFor } from "@/features/pages/ui/components/PageTree/PageTree.lib";
 
 const node = (id: string, parentId?: string): PageTreeNode => ({
 	id,

@@ -4,7 +4,7 @@ import {
 	descendantsOf,
 	project,
 	visibleNodes,
-} from "@/features/pages/ui/components/PageTree.projection";
+} from "@/features/pages/ui/components/PageTree/PageTree.projection";
 
 const INDENT = 12;
 

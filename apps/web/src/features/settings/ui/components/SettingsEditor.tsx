@@ -2,7 +2,7 @@ import type { ResolvedQuizSettings } from "@recall/contracts";
 import { useState } from "react";
 import { saveSettings } from "@/features/settings/lib/settings.api";
 import { SettingsForm } from "@/features/settings/ui/components/SettingsForm";
-import type { SaveState } from "@/shared/ui/components/SaveState.types";
+import type { SaveState } from "@/shared/lib/save-state.types";
 
 interface Props {
 	readonly initial: ResolvedQuizSettings;

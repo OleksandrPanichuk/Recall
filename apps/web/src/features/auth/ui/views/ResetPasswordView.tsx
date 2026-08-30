@@ -5,8 +5,8 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { MIN_PASSWORD_LENGTH } from "@/features/auth/constants/passwords";
 import { resetPassword } from "@/features/auth/lib/auth.api";
-import { MIN_PASSWORD_LENGTH } from "@/features/auth/ui/components/CredentialsForm.constants";
 import { failureText } from "./auth-views.constants";
 
 interface Props {

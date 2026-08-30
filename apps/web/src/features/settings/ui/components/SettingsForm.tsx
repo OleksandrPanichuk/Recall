@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import { RetentionChoice } from "@/features/settings/ui/components/RetentionChoice";
 import { SchedulerChoice } from "@/features/settings/ui/components/SchedulerChoice";
+import type { SaveState as State } from "@/shared/lib/save-state.types";
 import { SaveState } from "@/shared/ui/components/SaveState";
-import type { SaveState as State } from "@/shared/ui/components/SaveState.types";
 
 interface Props {
 	readonly resolved: ResolvedQuizSettings;

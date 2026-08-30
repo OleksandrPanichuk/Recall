@@ -9,8 +9,8 @@ import {
 	X,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { ThemeToggle } from "../ThemeToggle";
 import { navLink } from "./AppShell.constants";
-import { ThemeToggle } from "./ThemeToggle";
 
 interface Props {
 	readonly viewer: { readonly name: string } | null;

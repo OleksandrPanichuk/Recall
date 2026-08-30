@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { MIN_PASSWORD_LENGTH } from "@/features/auth/constants/passwords";
 import type { Credentials } from "@/features/auth/lib/auth.types";
-import { MIN_PASSWORD_LENGTH } from "./CredentialsForm.constants";
 
 interface Props {
 	readonly submitLabel: string;
