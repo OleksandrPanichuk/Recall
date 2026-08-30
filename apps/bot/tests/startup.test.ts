@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { EMPTY_ENV_FILE } from "@tests/fixtures/env-file";
+import { BotEnvironmentError, loadBotEnvironment } from "../src/config";
 
 const entrypoint = Bun.fileURLToPath(
 	new URL("../src/main.ts", import.meta.url),
@@ -91,4 +92,47 @@ test("refuses an api url that is not a url", async () => {
 
 	expect(exitCode).toBe(1);
 	expect(stderr).toContain("RECALL_API_URL");
+});
+
+describe("choosing how telegram delivers updates", () => {
+	const base = {
+		TELEGRAM_BOT_KEY: "key",
+		ALLOWED_TELEGRAM_USER_ID: "42",
+		BOT_API_TOKEN: "b".repeat(40),
+		APP_TIMEZONE: "Europe/Kyiv",
+	};
+
+	test("no webhook url means long polling, which is what a laptop wants", () => {
+		expect(loadBotEnvironment(base).webhook).toBeUndefined();
+	});
+
+	test("a url and a secret together turn the webhook on", () => {
+		const environment = loadBotEnvironment({
+			...base,
+			TELEGRAM_WEBHOOK_URL: "https://bot.example.com/telegram/updates",
+			TELEGRAM_WEBHOOK_SECRET: "a-secret-long-enough",
+		});
+
+		expect(environment.webhook?.url.pathname).toBe("/telegram/updates");
+		expect(environment.webhook?.port).toBe(8768);
+	});
+
+	test("a url without a secret is refused, not quietly left open", () => {
+		expect(() =>
+			loadBotEnvironment({
+				...base,
+				TELEGRAM_WEBHOOK_URL: "https://bot.example.com/telegram/updates",
+			}),
+		).toThrow(BotEnvironmentError);
+	});
+
+	test("a secret too short to be worth having is refused", () => {
+		expect(() =>
+			loadBotEnvironment({
+				...base,
+				TELEGRAM_WEBHOOK_URL: "https://bot.example.com/telegram/updates",
+				TELEGRAM_WEBHOOK_SECRET: "short",
+			}),
+		).toThrow(BotEnvironmentError);
+	});
 });
