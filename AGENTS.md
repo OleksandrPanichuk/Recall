@@ -10,12 +10,11 @@ This repository is a cleaned foundation for a personal learning quiz bot. The fo
 
 ## Branch and pull requests
 
-- The v2 rewrite happens on **`rewrite`**. `main` is frozen at v1 until the rewrite lands.
-- **Every pull request targets `rewrite`.** Do not open one against `main`, and do not merge
-  v2 work into `main` piecemeal.
-- Branch from `rewrite` with the existing naming (`feat/…`, `fix/…`, `refactor/…`, `docs/…`).
-- Do not break v1: `apps/api` must keep passing `bun run verify` for as long as it carries the
-  v1 code, even while new apps are being built beside it.
+- **`main` is the trunk.** The v2 rewrite landed on it in #85 and the `rewrite` branch is gone.
+- **Every pull request targets `main`.** Branch from it with the existing naming
+  (`feat/…`, `fix/…`, `refactor/…`, `docs/…`).
+- `bun run verify` is the gate and must stay green. Note the order: it **builds before it
+  typechecks**, because `apps/web`'s route tree is generated during the build.
 - The repository is a Bun workspace (`apps/*`, `packages/*`). `bun run verify` at the root
   still runs the whole gate; per-workspace scripts go through `bun run --filter`.
 

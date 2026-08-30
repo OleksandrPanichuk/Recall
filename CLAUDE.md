@@ -1,33 +1,33 @@
 
 Default to using Bun instead of Node.js.
 
-## A rewrite is in progress — know which code you are touching
+## The rewrite landed — know which code you are touching
 
-This branch (`rewrite`) is where the v2 platform is built. `main` is frozen at v1 and stays
-that way until the rewrite lands. Every pull request targets `rewrite`, never `main`.
+**`main` is the trunk.** v2 shipped on it in #85; the `rewrite` branch is gone. Branch off
+`main`, and open pull requests against `main`.
 
-| | v1 | v2 |
+The v1 and v2 shapes still coexist *inside* `apps/api/src`, so the distinction below is
+about code, not branches:
+
+| | v1 shape | v2 shape |
 | --- | --- | --- |
-| Lives in | `apps/api/src/**` (as re-housed in phase 2) | `apps/*`, `packages/*` |
+| Lives in | `apps/api/src/{adapters,composition,entrypoints}` | `apps/*`, `packages/*`, and `apps/api/src/{modules,persistence}` |
 | Binding doc | `ARCHITECTURE.md` | **`REWRITE_PLAN.md`** |
-| Runtime | Bun everywhere, `bun:sqlite` | Bun everywhere **except `apps/api`** (Node + NestJS) |
-| Status | works, 1375 tests green — do not break it | under construction |
+| Runtime | Bun | Bun everywhere **except `apps/api`** (Node + NestJS) |
 
-Where the two conflict **on this branch, `REWRITE_PLAN.md` wins**; `ARCHITECTURE.md` stays
-binding for the layering *inside* `apps/api/src` for as long as it keeps its v1 shape
-(`adapters/`, `composition/`, `entrypoints/`). Phase 2 moved that tree from `src/` to
-`apps/api/src/` without changing anything inside it.
+Where the two conflict, `REWRITE_PLAN.md` wins; `ARCHITECTURE.md` stays binding for the
+layering inside the three directories that still keep their v1 shape. Phase 2 moved that
+tree from `src/` to `apps/api/src/` without changing anything inside it.
 
-The dependency direction is now **enforced, not just documented**: `biome.json` carries
+The dependency direction is **enforced, not just documented**: `biome.json` carries
 `noRestrictedImports` overrides that fail the build when `domain` imports outward or
-`application` imports adapters. Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md` has been deleted — its role is
-taken by the Sequencing section of `REWRITE_PLAN.md`.
+`application` imports adapters. Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md`
+has been deleted — its role is taken by the Sequencing section of `REWRITE_PLAN.md`.
 
-**If you are picking this up mid-rewrite, read `HANDOFF.md` first** — it says which branch to
-work on, what is already done, and what is left. The Postgres cutover is in progress on
-`wip/postgres-cutover`.
+`HANDOFF.md` is a record of how the rewrite was carried out, not current instructions. Read
+it for context on why something is the way it is; do not follow its branch table.
 
-Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `REWRITE_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, and folder ownership in v1 code, and `REWRITE_PLAN.md` as binding for the same questions in v2 code. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
+Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `REWRITE_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, and folder ownership in the v1-shaped directories, and `REWRITE_PLAN.md` as binding for the same questions everywhere else. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
 - Use `bun test` instead of `jest` or `vitest`
