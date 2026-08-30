@@ -1669,10 +1669,11 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | 6 | ~~Rehearsed cutover~~ — **merged into phase 5** (r15) and **done** with it (r17). | 5 | L |
 | 7 | ~~**Identity, ownership, sessions, bot login link**~~ — **done** (r21–r25). Better Auth on Postgres, the Telegram login link, `owner_id` on seven tables bound into the repository scope, personal access tokens, the OAuth grant carrying its user, and `apps/api` on Node. | 6 | L |
 | 8 | ~~**Bot, MCP and admin become API clients**~~ — **done** (r19, r20, r23); the MCP user dimension landed with phase 7. | 7 | L |
-| 9 | **Web MVP: auth, browse, practice, attempt review (§4)** — next. `packages/contracts` already carries the practice flow; `apps/web` does not exist yet. | 8 | L |
-| 10 | Pages/summaries + MCP page tools + attachments (§7) | 8 | L |
-| 11 | Analytics views and dashboards (§4) | 9 | M |
-| 12 | Email/password auth, sharing, FSRS (§5, §3, §6) | 9 | M |
+| 9 | ~~**Web MVP: auth, browse, practice, attempt review (§4)**~~ — **done**. TanStack Start, server functions forwarding the session cookie, and `apps/web` never touching the database. | 8 | L |
+| 10 | ~~Pages/summaries + MCP page tools + attachments (§7)~~ — **done**. Milkdown Crepe over markdown, images in MinIO, and page order made real (#82). | 8 | L |
+| 11 | ~~Analytics views and dashboards (§4)~~ — **done**. Real SQL aggregates behind `AnalyticsRepository`, not materialized read models — see `HANDOFF.md`. | 9 | M |
+| 12 | ~~Email/password auth, sharing, FSRS (§5, §3, §6)~~ — **done**, with one deliberate omission. Open registration and reset over SMTP (#80); FSRS beside the ladder (#81). **Sharing stays unbuilt on purpose** — decision 7 reserves `visibility` and builds nothing until a marketplace is real. | 9 | M |
+| 13 | **The cutover** — ~~`rewrite` → `main`~~ **done** (#85). `main` is the trunk again. | 12 | S |
 
 Phase 1 was deliberately first and standalone: a real bug, cheap to fix, and fixing it before
 the ETL means the migration does not carry the defect forward. It came in far smaller than

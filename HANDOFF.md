@@ -1,4 +1,8 @@
-# Handoff: pages and summaries (plan §7) are done; analytics is next
+# Handoff: a record of how the rewrite was carried out
+
+> **This is history, not instructions.** The rewrite landed on `main` in #85 and the
+> `rewrite` branch is gone. Every branch table and "what is next" line below describes the
+> state at the time it was written. For current rules read `CLAUDE.md`.
 
 > Written 2026-08-26, updated 2026-08-29 when the summaries context landed.
 >
@@ -13,9 +17,10 @@
 
 | branch | state | what it is |
 | --- | --- | --- |
-| `main` | untouched, v1 | frozen until the rewrite lands. Do not target it. |
+| `main` | **the trunk** | v2 landed here in #85. Branch off it, and target it. |
 | `refactor/monorepo-split` | merged into the PR below | was PR #76. |
-| `wip/postgres-cutover` | **green, 1337 + 24 tests** | everything below. PR #78 → `rewrite`. |
+| `wip/postgres-cutover` | merged and gone | was PR #78 → `rewrite`. |
+| `rewrite` | merged and gone | was the v2 branch; #85 put it on `main`. |
 
 ```bash
 git checkout wip/postgres-cutover
