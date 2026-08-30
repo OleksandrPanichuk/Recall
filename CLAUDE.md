@@ -107,8 +107,8 @@ password currently cannot recover it.
 Login links are minted **only** from `/bot/auth/login-link`, behind the bot token. Do not move
 that into a Better Auth endpoint: `SERVER_ONLY` merely hides an endpoint from the generated
 client, so a route that turns a Telegram id into a session would be reachable by anyone. The
-plugin's job is only to *spend* a token it did not mint. Email+password stays disabled until the
-plan's second auth phase — enabling it opens `POST /sign-up/email` to the world.
+plugin's job is only to *spend* a token it did not mint. It remains the only way a Telegram id
+becomes a session, and it is unaffected by open registration.
 
 **Ownership lives in the repository scope, not in the use cases.** Seven tables carry
 `owner_id` (`pages`, `quizzes`, `questions`, `attempts`, `term_pairs`, `review_states`,
