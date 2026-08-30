@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { WARM_EDITOR_DELAY_MS } from "./use-warm-editor.constants";
+
+const WARM_EDITOR_DELAY_MS = 1500;
 
 export function useWarmEditor(): void {
 	useEffect(() => {
