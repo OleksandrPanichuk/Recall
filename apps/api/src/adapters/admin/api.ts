@@ -202,9 +202,11 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 			shuffleOptions: resolved.settings.shuffleOptions,
 			shuffleQuestions: resolved.settings.shuffleQuestions,
 			examMode: resolved.settings.examMode,
+			scheduler: resolved.settings.repetition.scheduler,
 			intervalsDays: [...resolved.settings.repetition.intervalsDays],
 			maxIntervalDays: resolved.settings.repetition.maxIntervalDays,
 			maxRepetitions: resolved.settings.repetition.maxRepetitions,
+			desiredRetention: resolved.settings.repetition.desiredRetention,
 		};
 	};
 
@@ -555,18 +557,31 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 				const body = await bodyOf<Record<string, unknown>>(request);
 				const quizSetId = id === "global" ? undefined : toQuizSetId(id);
 				const intervals = numbers(body.intervalsDays);
+				const current = await application.resolveQuizSettings.execute(
+					quizSetId === undefined ? {} : { quizSetId },
+				);
 				const repetition =
 					intervals === undefined || intervals.length === 0
 						? undefined
 						: {
+								scheduler:
+									body.scheduler === "fsrs"
+										? ("fsrs" as const)
+										: body.scheduler === "ladder"
+											? ("ladder" as const)
+											: current.settings.repetition.scheduler,
 								intervalsDays: intervals,
 								maxIntervalDays: Number(body.maxIntervalDays),
 								maxRepetitions: Number(body.maxRepetitions),
+								desiredRetention:
+									body.desiredRetention === undefined
+										? current.settings.repetition.desiredRetention
+										: Number(body.desiredRetention),
 							};
 
 				await application.updateQuizSettings.execute({
 					quizSetId,
-					repetition: repetition as never,
+					repetition,
 					shuffleOptions: body.shuffleOptions as boolean | undefined,
 					shuffleQuestions: body.shuffleQuestions as boolean | undefined,
 					examMode: body.examMode as boolean | undefined,

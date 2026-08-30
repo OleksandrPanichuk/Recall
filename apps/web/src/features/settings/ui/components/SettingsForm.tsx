@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
+import { RetentionChoice } from "@/features/settings/ui/components/RetentionChoice";
+import { SchedulerChoice } from "@/features/settings/ui/components/SchedulerChoice";
 import { SaveState } from "@/shared/ui/components/SaveState";
 import type { SaveState as State } from "@/shared/ui/components/SaveState.types";
 
@@ -93,37 +95,71 @@ export function SettingsForm({
 
 			<Card>
 				<CardContent className="space-y-4 pt-5">
-					<div className="space-y-1.5">
-						<label htmlFor="intervals" className="block text-sm font-medium">
-							Інтервали повторення, дні
-						</label>
-						<Input
-							id="intervals"
-							value={intervals}
-							onChange={(event) => setIntervals(event.target.value)}
-							onBlur={() => {
-								const days = intervals
-									.split(",")
-									.map((part) => Number.parseInt(part.trim(), 10))
-									.filter((day) => Number.isFinite(day) && day > 0);
-
-								if (days.length === 0) {
-									setIntervals(settings.repetition.intervalsDays.join(", "));
-
-									return;
-								}
-
-								setIntervals(days.join(", "));
+					<div className="space-y-2">
+						<span className="block text-sm font-medium">
+							Як рахувати наступне повторення
+						</span>
+						<SchedulerChoice
+							value={settings.repetition.scheduler}
+							onChange={(scheduler) =>
 								onChange({
-									repetition: { ...settings.repetition, intervalsDays: days },
-								});
-							}}
+									repetition: { ...settings.repetition, scheduler },
+								})
+							}
 						/>
-						<p className="text-xs text-muted-foreground">
-							Через скільки днів питання повертається після кожної правильної
-							відповіді.
-						</p>
 					</div>
+
+					{settings.repetition.scheduler === "fsrs" ? (
+						<div className="space-y-2">
+							<span className="block text-sm font-medium">
+								Цільове запам'ятовування
+							</span>
+							<RetentionChoice
+								value={settings.repetition.desiredRetention}
+								onChange={(desiredRetention) =>
+									onChange({
+										repetition: { ...settings.repetition, desiredRetention },
+									})
+								}
+							/>
+							<p className="text-xs text-muted-foreground">
+								Яку частку питань ви хочете пам'ятати на момент повторення. Вище
+								— повторень більше, інтервали коротші.
+							</p>
+						</div>
+					) : (
+						<div className="space-y-1.5">
+							<label htmlFor="intervals" className="block text-sm font-medium">
+								Інтервали повторення, дні
+							</label>
+							<Input
+								id="intervals"
+								value={intervals}
+								onChange={(event) => setIntervals(event.target.value)}
+								onBlur={() => {
+									const days = intervals
+										.split(",")
+										.map((part) => Number.parseInt(part.trim(), 10))
+										.filter((day) => Number.isFinite(day) && day > 0);
+
+									if (days.length === 0) {
+										setIntervals(settings.repetition.intervalsDays.join(", "));
+
+										return;
+									}
+
+									setIntervals(days.join(", "));
+									onChange({
+										repetition: { ...settings.repetition, intervalsDays: days },
+									});
+								}}
+							/>
+							<p className="text-xs text-muted-foreground">
+								Через скільки днів питання повертається після кожної правильної
+								відповіді.
+							</p>
+						</div>
+					)}
 				</CardContent>
 			</Card>
 		</div>

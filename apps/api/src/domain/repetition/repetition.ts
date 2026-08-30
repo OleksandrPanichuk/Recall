@@ -1,12 +1,18 @@
 import { copiedDate, isValidDate } from "@/shared/utils/date";
 import type { QuestionId } from "../quiz-set/question";
+import { fsrsScheduleAfter } from "./fsrs";
 import {
+	DAY_MS,
+	DEFAULT_DESIRED_RETENTION,
 	DEFAULT_INTERVALS_DAYS,
 	DEFAULT_MAX_INTERVAL_DAYS,
 	DEFAULT_MAX_REPETITIONS,
+	DEFAULT_SCHEDULER,
+	MAX_DESIRED_RETENTION,
 	MAX_INTERVAL_LIMIT_DAYS,
 	MAX_INTERVALS,
 	MAX_REPETITIONS_LIMIT,
+	MIN_DESIRED_RETENTION,
 } from "./repetition.constants";
 import { RepetitionSettingsValidationError } from "./repetition.errors";
 import type {
@@ -16,13 +22,17 @@ import type {
 } from "./repetition.types";
 
 export {
+	DEFAULT_DESIRED_RETENTION,
 	DEFAULT_INTERVALS_DAYS,
 	DEFAULT_LEECH_THRESHOLD,
 	DEFAULT_MAX_INTERVAL_DAYS,
 	DEFAULT_MAX_REPETITIONS,
+	DEFAULT_SCHEDULER,
+	MAX_DESIRED_RETENTION,
 	MAX_INTERVAL_LIMIT_DAYS,
 	MAX_INTERVALS,
 	MAX_REPETITIONS_LIMIT,
+	MIN_DESIRED_RETENTION,
 } from "./repetition.constants";
 export { RepetitionSettingsValidationError } from "./repetition.errors";
 export type {
@@ -30,15 +40,16 @@ export type {
 	Leech,
 	RepetitionSchedule,
 	RepetitionSettings,
+	SchedulerKind,
 } from "./repetition.types";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const defaultRepetitionSettings = (): RepetitionSettings =>
 	Object.freeze({
+		scheduler: DEFAULT_SCHEDULER,
 		intervalsDays: Object.freeze([...DEFAULT_INTERVALS_DAYS]),
 		maxIntervalDays: DEFAULT_MAX_INTERVAL_DAYS,
 		maxRepetitions: DEFAULT_MAX_REPETITIONS,
+		desiredRetention: DEFAULT_DESIRED_RETENTION,
 	});
 
 const isPositiveInteger = (value: number): boolean =>
@@ -79,14 +90,30 @@ export function createRepetitionSettings(
 		);
 	}
 
+	if (draft.scheduler !== "ladder" && draft.scheduler !== "fsrs") {
+		issues.push("scheduler must be either 'ladder' or 'fsrs'");
+	}
+
+	if (
+		!Number.isFinite(draft.desiredRetention) ||
+		draft.desiredRetention < MIN_DESIRED_RETENTION ||
+		draft.desiredRetention > MAX_DESIRED_RETENTION
+	) {
+		issues.push(
+			`desiredRetention must be between ${MIN_DESIRED_RETENTION} and ${MAX_DESIRED_RETENTION}`,
+		);
+	}
+
 	if (issues.length > 0) {
 		throw new RepetitionSettingsValidationError(issues);
 	}
 
 	return Object.freeze({
+		scheduler: draft.scheduler,
 		intervalsDays: Object.freeze([...draft.intervalsDays]),
 		maxIntervalDays: draft.maxIntervalDays,
 		maxRepetitions: draft.maxRepetitions,
+		desiredRetention: draft.desiredRetention,
 	});
 }
 
@@ -114,6 +141,18 @@ export function scheduleAfter(
 		throw new RepetitionSettingsValidationError([
 			"completedAt must be a valid date",
 		]);
+	}
+
+	if (settings.scheduler === "fsrs") {
+		return fsrsScheduleAfter(
+			previous,
+			questionId,
+			telegramUserId,
+			settings,
+			completedAt,
+			completedDayStart,
+			answeredCorrectly,
+		);
 	}
 
 	const repetitionCount = answeredCorrectly

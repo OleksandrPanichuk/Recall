@@ -196,6 +196,20 @@ MCP tools themselves live in `apps/api` and are mounted on the underlying Expres
 then strips, so `/mcp` never matches and every request 404s. `/mcp` exists only when
 `MCP_HTTP_TOKEN` is set.
 
+**Two schedulers, one seam.** `study_settings.scheduler` is `ladder` or `fsrs`, and
+`scheduleAfter` dispatches on it; the ladder stays the default. FSRS is `ts-fsrs` rather than a
+hand-rolled memory model, configured with `enable_short_term: false` so every interval is a whole
+day and `enable_fuzz: false` so the same history always schedules the same day. The app knows only
+right and wrong, so the four FSRS grades collapse to **Again / Good** — adding Hard and Easy means
+a richer answer model first, not a scheduler change.
+
+Three behaviours differ between them, and all three are pinned by tests. **`maxRepetitions` retires
+a question under the ladder only** — FSRS keeps scheduling, bounded by `maxIntervalDays`. **A first
+wrong answer is a lapse under the ladder but not under FSRS**, which counts a lapse only when
+something already learned is forgotten; that makes the leech list stricter under FSRS. And FSRS
+writes `review_states.stability` / `difficulty`, which the ladder leaves null — a schedule the
+ladder wrote is picked up by FSRS as a fresh card, which is the honest reading of no memory state.
+
 **Postgres.** `bun run db:up` starts Postgres 17 in Docker on
 port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it discover it via
 `TEST_DATABASE_URL` (falling back to the Docker default) and **skip** when it is unreachable,

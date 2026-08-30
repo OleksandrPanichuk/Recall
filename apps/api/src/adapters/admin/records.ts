@@ -67,9 +67,11 @@ export interface SettingsRecord {
 	readonly shuffleOptions: boolean;
 	readonly shuffleQuestions: boolean;
 	readonly examMode: boolean;
+	readonly scheduler: string;
 	readonly intervalsDays: readonly number[];
 	readonly maxIntervalDays: number;
 	readonly maxRepetitions: number;
+	readonly desiredRetention: number;
 }
 
 const text = (value: string | undefined): string => value ?? "";

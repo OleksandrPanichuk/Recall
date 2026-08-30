@@ -242,9 +242,11 @@ export const leechToWire = (leech: LeechView): WireLeech => ({
 
 export const settingsToWire = (settings: QuizSettings): WireQuizSettings => ({
 	repetition: {
+		scheduler: settings.repetition.scheduler,
 		intervalsDays: [...settings.repetition.intervalsDays],
 		maxIntervalDays: settings.repetition.maxIntervalDays,
 		maxRepetitions: settings.repetition.maxRepetitions,
+		desiredRetention: settings.repetition.desiredRetention,
 	},
 	shuffleOptions: settings.shuffleOptions,
 	shuffleQuestions: settings.shuffleQuestions,

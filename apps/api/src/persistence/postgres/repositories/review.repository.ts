@@ -21,14 +21,18 @@ const toSchedule = (row: ReviewRow): RepetitionSchedule => ({
 	lapses: row.lapses,
 	lastCompletedAt: row.lastReviewedAt ?? row.updatedAt,
 	dueAt: row.dueAt ?? undefined,
+	stability: row.stability === null ? undefined : Number(row.stability),
+	difficulty: row.difficulty === null ? undefined : Number(row.difficulty),
 });
 
 const toSettings = (row: SettingsRow): QuizSettings =>
 	createQuizSettings({
 		repetition: {
+			scheduler: row.scheduler === "fsrs" ? "fsrs" : "ladder",
 			intervalsDays: row.intervalsDays,
 			maxIntervalDays: row.maxIntervalDays,
 			maxRepetitions: row.maxRepetitions,
+			desiredRetention: Number(row.desiredRetention),
 		},
 		shuffleOptions: row.shuffleOptions,
 		shuffleQuestions: row.shuffleQuestions,
@@ -68,6 +72,14 @@ export function createReviewPostgresRepository(
 					lapses: schedule.lapses,
 					lastReviewedAt: schedule.lastCompletedAt,
 					dueAt: schedule.dueAt ?? null,
+					stability:
+						schedule.stability === undefined
+							? null
+							: String(schedule.stability),
+					difficulty:
+						schedule.difficulty === undefined
+							? null
+							: String(schedule.difficulty),
 					updatedAt: schedule.lastCompletedAt,
 				};
 
@@ -126,9 +138,11 @@ export function createReviewPostgresRepository(
 				ownerId: owner,
 				scopeType: scope.kind,
 				scopeId: scopeId(scope),
+				scheduler: settings.repetition.scheduler,
 				intervalsDays: [...settings.repetition.intervalsDays],
 				maxIntervalDays: settings.repetition.maxIntervalDays,
 				maxRepetitions: settings.repetition.maxRepetitions,
+				desiredRetention: String(settings.repetition.desiredRetention),
 				shuffleOptions: settings.shuffleOptions,
 				shuffleQuestions: settings.shuffleQuestions,
 				examMode: settings.examMode,
@@ -145,9 +159,11 @@ export function createReviewPostgresRepository(
 						studySettings.scopeId,
 					],
 					set: {
+						scheduler: row.scheduler,
 						intervalsDays: row.intervalsDays,
 						maxIntervalDays: row.maxIntervalDays,
 						maxRepetitions: row.maxRepetitions,
+						desiredRetention: row.desiredRetention,
 						shuffleOptions: row.shuffleOptions,
 						shuffleQuestions: row.shuffleQuestions,
 						examMode: row.examMode,

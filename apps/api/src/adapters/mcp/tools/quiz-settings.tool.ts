@@ -117,6 +117,8 @@ async function repetitionFrom(
 	useCases: McpUseCases,
 	quizSetId: ReturnType<typeof toQuizSetId> | undefined,
 	args: {
+		scheduler?: "ladder" | "fsrs";
+		desiredRetention?: number;
 		intervalsDays?: readonly number[];
 		maxIntervalDays?: number;
 		maxRepetitions?: number;
@@ -127,6 +129,9 @@ async function repetitionFrom(
 	});
 
 	return {
+		scheduler: args.scheduler ?? settings.repetition.scheduler,
+		desiredRetention:
+			args.desiredRetention ?? settings.repetition.desiredRetention,
 		intervalsDays: args.intervalsDays ?? settings.repetition.intervalsDays,
 		maxIntervalDays:
 			args.maxIntervalDays ?? settings.repetition.maxIntervalDays,
