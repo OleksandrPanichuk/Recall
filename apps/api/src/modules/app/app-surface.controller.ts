@@ -13,18 +13,24 @@ import { ApiExcludeController } from "@nestjs/swagger";
 import {
 	APP_ROUTE_PREFIX,
 	abandonAttemptCommandSchema,
+	addQuestionsCommandSchema,
 	answerCommandSchema,
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
 	browseCommandSchema,
 	createPageCommandSchema,
+	createSetCommandSchema,
 	deletePageCommandSchema,
+	deleteQuestionCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
 	insightsCommandSchema,
 	leechesCommandSchema,
+	listSetsCommandSchema,
 	movePageCommandSchema,
+	moveSetCommandSchema,
 	practiceCommandSchema,
+	quizSetIdCommandSchema,
 	renamePageCommandSchema,
 	reorderPageCommandSchema,
 	resolveSettingsCommandSchema,
@@ -32,6 +38,8 @@ import {
 	setPageIconCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
+	updateQuestionCommandSchema,
+	updateSetCommandSchema,
 	updateSettingsCommandSchema,
 	writeSummaryCommandSchema,
 } from "@recall/contracts";
@@ -42,6 +50,10 @@ import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import {
+	answerOptionsOf,
+	toQuestionInput,
+} from "@/modules/shared/authoring/question-input";
 import { parseBody } from "../bot/parse-body";
 import {
 	answerResultToWire,
@@ -54,6 +66,8 @@ import {
 	leechToWire,
 	pageTreeNodeToWire,
 	practiceResultToWire,
+	quizDetailToWire,
+	quizSummaryToWire,
 	resolvedSettingsToWire,
 	settingsToWire,
 	startResultToWire,
@@ -75,6 +89,131 @@ export class AppSurfaceController {
 		const owner = request.owner as OwnerId;
 
 		return this.useCasesFor(owner);
+	}
+
+	@Post(BOT_ROUTES.createQuizSet)
+	@HttpCode(HttpStatus.OK)
+	async createQuizSet(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(createSetCommandSchema, body);
+		const { quizSetId } = await this.of(request).createQuizSet.execute({
+			...command,
+			folderId:
+				command.folderId === undefined
+					? undefined
+					: toFolderId(command.folderId),
+		});
+
+		return { quizSetId: String(quizSetId) };
+	}
+
+	@Post(BOT_ROUTES.updateQuizSet)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async updateQuizSet(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(updateSetCommandSchema, body);
+
+		await this.of(request).updateQuizSet.execute({
+			...command,
+			quizSetId: toQuizSetId(command.quizSetId),
+		});
+	}
+
+	@Post(BOT_ROUTES.moveQuizSet)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async moveQuizSet(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(moveSetCommandSchema, body);
+
+		await this.of(request).moveQuizSet.execute({
+			quizSetId: toQuizSetId(command.quizSetId),
+			folderId:
+				command.folderId === undefined
+					? undefined
+					: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.publishQuizSet)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async publishQuizSet(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(quizSetIdCommandSchema, body);
+
+		await this.of(request).publishQuizSet.execute({
+			quizSetId: toQuizSetId(command.quizSetId),
+		});
+	}
+
+	@Post(BOT_ROUTES.archiveQuizSet)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async archiveQuizSet(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(quizSetIdCommandSchema, body);
+
+		await this.of(request).archiveQuizSet.execute({
+			quizSetId: toQuizSetId(command.quizSetId),
+		});
+	}
+
+	@Post(BOT_ROUTES.getQuizSet)
+	@HttpCode(HttpStatus.OK)
+	async getQuizSet(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(quizSetIdCommandSchema, body);
+
+		return quizDetailToWire(
+			await this.of(request).getQuizSet.execute({
+				quizSetId: toQuizSetId(command.quizSetId),
+			}),
+		);
+	}
+
+	@Post(BOT_ROUTES.listQuizSets)
+	@HttpCode(HttpStatus.OK)
+	async listQuizSets(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(listSetsCommandSchema, body);
+
+		return (await this.of(request).listQuizSets.execute(command)).map(
+			quizSummaryToWire,
+		);
+	}
+
+	@Post(BOT_ROUTES.addQuestions)
+	@HttpCode(HttpStatus.OK)
+	async addQuestions(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(addQuestionsCommandSchema, body);
+		const result = await this.of(request).addQuestions.execute({
+			quizSetId: toQuizSetId(command.quizSetId),
+			questions: command.questions.map(toQuestionInput),
+		});
+
+		return {
+			addedQuestionIds: result.addedQuestionIds.map(String),
+			alreadyPresent: result.alreadyPresent,
+		};
+	}
+
+	@Post(BOT_ROUTES.updateQuestion)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async updateQuestion(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(updateQuestionCommandSchema, body);
+
+		await this.of(request).updateQuestion.execute({
+			...command,
+			quizSetId: toQuizSetId(command.quizSetId),
+			questionId: toQuestionId(command.questionId),
+			options: answerOptionsOf(command),
+		});
+	}
+
+	@Post(BOT_ROUTES.deleteQuestion)
+	@HttpCode(HttpStatus.OK)
+	async deleteQuestion(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(deleteQuestionCommandSchema, body);
+		const result = await this.of(request).deleteQuestion.execute({
+			quizSetId: toQuizSetId(command.quizSetId),
+			questionId: toQuestionId(command.questionId),
+		});
+
+		return {
+			questionId: String(result.questionId),
+			remaining: result.remaining,
+		};
 	}
 
 	@Post(BOT_ROUTES.browse)

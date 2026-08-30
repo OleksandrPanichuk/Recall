@@ -1,5 +1,31 @@
 import { z } from "zod";
 import {
+	type AddedQuestions,
+	type AddQuestionsCommand,
+	addedQuestionsSchema,
+	addQuestionsCommandSchema,
+	type CreatedSet,
+	type CreateSetCommand,
+	createdSetSchema,
+	createSetCommandSchema,
+	type DeletedQuestion,
+	type DeleteQuestionCommand,
+	deletedQuestionSchema,
+	deleteQuestionCommandSchema,
+	type ListSetsCommand,
+	listSetsCommandSchema,
+	type MoveSetCommand,
+	moveSetCommandSchema,
+	type QuizDetail,
+	type QuizSetIdCommand,
+	quizDetailSchema,
+	quizSetIdCommandSchema,
+	type UpdateQuestionCommand,
+	type UpdateSetCommand,
+	updateQuestionCommandSchema,
+	updateSetCommandSchema,
+} from "./authoring";
+import {
 	type AbandonAttemptCommand,
 	type AbandonedAttempt,
 	type AnswerQuestionCommand,
@@ -65,8 +91,10 @@ import {
 	practiceResultSchema,
 	type QuizSettings,
 	type QuizStatistics,
+	type QuizSummary,
 	quizSettingsSchema,
 	quizStatisticsSchema,
+	quizSummarySchema,
 	type RenamePageCommand,
 	type ReorderPageCommand,
 	type ResolvedQuizSettings,
@@ -201,7 +229,20 @@ export interface UseCaseLike<Command, Result> {
 	execute(command: Command): Promise<Result>;
 }
 
-export interface PracticeUseCases {
+export interface AuthoringUseCases {
+	readonly createQuizSet: UseCaseLike<CreateSetCommand, CreatedSet>;
+	readonly updateQuizSet: UseCaseLike<UpdateSetCommand, void>;
+	readonly moveQuizSet: UseCaseLike<MoveSetCommand, void>;
+	readonly publishQuizSet: UseCaseLike<QuizSetIdCommand, void>;
+	readonly archiveQuizSet: UseCaseLike<QuizSetIdCommand, void>;
+	readonly getQuizSet: UseCaseLike<QuizSetIdCommand, QuizDetail>;
+	readonly listQuizSets: UseCaseLike<ListSetsCommand, readonly QuizSummary[]>;
+	readonly addQuestions: UseCaseLike<AddQuestionsCommand, AddedQuestions>;
+	readonly updateQuestion: UseCaseLike<UpdateQuestionCommand, void>;
+	readonly deleteQuestion: UseCaseLike<DeleteQuestionCommand, DeletedQuestion>;
+}
+
+export interface PracticeUseCases extends AuthoringUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
 	readonly searchPages: UseCaseLike<SearchPagesCommand, readonly PageMatch[]>;
@@ -280,6 +321,16 @@ export const BOT_ROUTES = {
 	issueApiToken: "auth/tokens/issue",
 	listApiTokens: "auth/tokens/list",
 	revokeApiToken: "auth/tokens/revoke",
+	createQuizSet: "sets/create",
+	updateQuizSet: "sets/update",
+	moveQuizSet: "sets/move",
+	publishQuizSet: "sets/publish",
+	archiveQuizSet: "sets/archive",
+	getQuizSet: "sets/get",
+	listQuizSets: "sets/list",
+	addQuestions: "sets/questions/add",
+	updateQuestion: "sets/questions/update",
+	deleteQuestion: "sets/questions/delete",
 	browse: "browse",
 	writeSummary: "pages/summary",
 	searchPages: "pages/search",
@@ -402,6 +453,56 @@ function createClient(options: RecallClientOptions) {
 	});
 
 	const practice: PracticeUseCases = {
+		createQuizSet: operation(
+			BOT_ROUTES.createQuizSet,
+			createSetCommandSchema,
+			createdSetSchema,
+		),
+		updateQuizSet: operation(
+			BOT_ROUTES.updateQuizSet,
+			updateSetCommandSchema,
+			z.void(),
+		),
+		moveQuizSet: operation(
+			BOT_ROUTES.moveQuizSet,
+			moveSetCommandSchema,
+			z.void(),
+		),
+		publishQuizSet: operation(
+			BOT_ROUTES.publishQuizSet,
+			quizSetIdCommandSchema,
+			z.void(),
+		),
+		archiveQuizSet: operation(
+			BOT_ROUTES.archiveQuizSet,
+			quizSetIdCommandSchema,
+			z.void(),
+		),
+		getQuizSet: operation(
+			BOT_ROUTES.getQuizSet,
+			quizSetIdCommandSchema,
+			quizDetailSchema,
+		),
+		listQuizSets: operation(
+			BOT_ROUTES.listQuizSets,
+			listSetsCommandSchema,
+			quizSummarySchema.array().readonly(),
+		),
+		addQuestions: operation(
+			BOT_ROUTES.addQuestions,
+			addQuestionsCommandSchema,
+			addedQuestionsSchema,
+		),
+		updateQuestion: operation(
+			BOT_ROUTES.updateQuestion,
+			updateQuestionCommandSchema,
+			z.void(),
+		),
+		deleteQuestion: operation(
+			BOT_ROUTES.deleteQuestion,
+			deleteQuestionCommandSchema,
+			deletedQuestionSchema,
+		),
 		browseFolder: operation(
 			BOT_ROUTES.browse,
 			browseCommandSchema,

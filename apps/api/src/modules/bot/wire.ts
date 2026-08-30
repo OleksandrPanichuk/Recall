@@ -10,6 +10,7 @@ import type {
 	PageTreeNode as WirePageTreeNode,
 	StartPracticeSessionResult as WirePracticeResult,
 	Question as WireQuestion,
+	QuizDetail as WireQuizDetail,
 	QuizSettings as WireQuizSettings,
 	QuizSummary as WireQuizSummary,
 	ResolvedQuizSettings as WireResolvedSettings,
@@ -30,6 +31,7 @@ import type { ResolvedQuizSettings } from "@/application/use-cases/settings/reso
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import type { Question } from "@/domain/quiz-set/question";
+import type { QuizSet } from "@/domain/quiz-set/quiz-set";
 import type { DueSet } from "@/domain/repetition/repetition.types";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
 
@@ -62,6 +64,20 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 	status: summary.status,
 	questionCount: summary.questionCount,
 	updatedAt: summary.updatedAt.toISOString(),
+});
+
+export const quizDetailToWire = (quiz: QuizSet): WireQuizDetail => ({
+	id: String(quiz.id),
+	title: quiz.title,
+	language: quiz.language,
+	status: quiz.status,
+	description: text(quiz.description),
+	source: text(quiz.source),
+	sourceChapters: text(quiz.sourceChapters),
+	tags: [...quiz.tags],
+	folderId: quiz.folderId === undefined ? undefined : String(quiz.folderId),
+	questions: quiz.questions.map(questionToWire),
+	updatedAt: quiz.updatedAt.toISOString(),
 });
 
 export const insightsToWire = (insights: Insights): WireInsights => ({
