@@ -6,6 +6,13 @@ export interface BotEnvironment {
 	readonly apiUrl: URL;
 	readonly apiToken: string;
 	readonly timezone: string;
+	readonly webhook?: WebhookSettings;
+}
+
+export interface WebhookSettings {
+	readonly url: URL;
+	readonly secret: string;
+	readonly port: number;
 }
 
 export class BotEnvironmentError extends Error {
@@ -18,7 +25,9 @@ export class BotEnvironmentError extends Error {
 }
 
 const MIN_TOKEN_LENGTH = 32;
+const MIN_WEBHOOK_SECRET_LENGTH = 16;
 const DEFAULT_API_URL = "http://127.0.0.1:8767";
+const DEFAULT_BOT_PORT = 8768;
 
 const supportedTimezone = (value: string): boolean => {
 	try {
@@ -36,6 +45,18 @@ const schema = z.object({
 	RECALL_API_URL: z.string().trim().url().default(DEFAULT_API_URL),
 	BOT_API_TOKEN: z.string().trim().min(MIN_TOKEN_LENGTH),
 	APP_TIMEZONE: z.string().trim().min(1).refine(supportedTimezone),
+	TELEGRAM_WEBHOOK_URL: z.string().trim().url().optional(),
+	TELEGRAM_WEBHOOK_SECRET: z
+		.string()
+		.trim()
+		.min(MIN_WEBHOOK_SECRET_LENGTH)
+		.optional(),
+	BOT_PORT: z.coerce
+		.number()
+		.int()
+		.positive()
+		.max(65535)
+		.default(DEFAULT_BOT_PORT),
 });
 
 const messages: Record<keyof z.input<typeof schema>, string> = {
@@ -45,6 +66,10 @@ const messages: Record<keyof z.input<typeof schema>, string> = {
 	RECALL_API_URL: `RECALL_API_URL must be the url of the recall api (default ${DEFAULT_API_URL})`,
 	BOT_API_TOKEN: `BOT_API_TOKEN is required and must be at least ${MIN_TOKEN_LENGTH} characters — the same token the api was given`,
 	APP_TIMEZONE: "APP_TIMEZONE must be a supported IANA timezone",
+	TELEGRAM_WEBHOOK_URL:
+		"TELEGRAM_WEBHOOK_URL must be the public https url telegram should post updates to; leave it unset to long-poll instead",
+	TELEGRAM_WEBHOOK_SECRET: `TELEGRAM_WEBHOOK_SECRET is required alongside TELEGRAM_WEBHOOK_URL and must be at least ${MIN_WEBHOOK_SECRET_LENGTH} characters`,
+	BOT_PORT: "BOT_PORT must be a port number",
 };
 
 export function loadBotEnvironment(
@@ -64,11 +89,26 @@ export function loadBotEnvironment(
 		);
 	}
 
+	const webhookUrl = parsed.data.TELEGRAM_WEBHOOK_URL;
+	const webhookSecret = parsed.data.TELEGRAM_WEBHOOK_SECRET;
+
+	if (webhookUrl !== undefined && webhookSecret === undefined) {
+		throw new BotEnvironmentError([messages.TELEGRAM_WEBHOOK_SECRET]);
+	}
+
 	return {
 		telegramBotKey: parsed.data.TELEGRAM_BOT_KEY,
 		allowedTelegramUserId: parsed.data.ALLOWED_TELEGRAM_USER_ID,
 		apiUrl: new URL(parsed.data.RECALL_API_URL),
 		apiToken: parsed.data.BOT_API_TOKEN,
 		timezone: parsed.data.APP_TIMEZONE,
+		webhook:
+			webhookUrl === undefined || webhookSecret === undefined
+				? undefined
+				: {
+						url: new URL(webhookUrl),
+						secret: webhookSecret,
+						port: parsed.data.BOT_PORT,
+					},
 	};
 }

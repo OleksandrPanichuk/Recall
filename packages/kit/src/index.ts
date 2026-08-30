@@ -12,6 +12,7 @@ export {
 	LogLevel,
 	type LogRecord,
 } from "./logging/logger.types";
+export { matchesSecret } from "./utils/secret";
 export { shuffled } from "./utils/shuffle";
 export { normaliseForComparison, trimmedOrUndefined } from "./utils/text";
 export {

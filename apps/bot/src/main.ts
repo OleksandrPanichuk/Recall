@@ -7,6 +7,7 @@ import {
 } from "./config";
 import { createBot } from "./telegram/bot";
 import { startDailyReminder } from "./telegram/reminders";
+import { createWebhookHandler } from "./telegram/webhook";
 
 const REMINDER_HOUR = 9;
 
@@ -74,17 +75,57 @@ function main(): void {
 	});
 	shutdown.listen();
 
-	logger.info("starting bot", {
-		api: environment.apiUrl.href,
-		timezone: environment.timezone,
-	});
-
-	bot.launch({ dropPendingUpdates: true }).catch((error: unknown) => {
+	const fail = (error: unknown): void => {
 		logger.error("bot stopped", { error });
 		void shutdown.trigger("launch-failed").then(() => {
 			process.exitCode = 1;
 		});
+	};
+
+	logger.info("starting bot", {
+		api: environment.apiUrl.href,
+		timezone: environment.timezone,
+		delivery: environment.webhook === undefined ? "polling" : "webhook",
 	});
+
+	if (environment.webhook === undefined) {
+		bot.launch({ dropPendingUpdates: true }).catch(fail);
+
+		return;
+	}
+
+	const { url, secret, port } = environment.webhook;
+	const server = Bun.serve({
+		port,
+		fetch: createWebhookHandler({
+			path: url.pathname,
+			secret,
+			handleUpdate: (update) => bot.handleUpdate(update),
+			onError: (error) => {
+				logger.error("update failed", { error });
+			},
+		}),
+	});
+
+	shutdown.register({
+		name: "webhook",
+		run: async () => {
+			await server.stop();
+		},
+	});
+
+	bot.telegram
+		.setWebhook(url.href, {
+			secret_token: secret,
+			drop_pending_updates: true,
+		})
+		.then(() => {
+			logger.info("listening for telegram updates", {
+				url: url.href,
+				port,
+			});
+		})
+		.catch(fail);
 }
 
 main();

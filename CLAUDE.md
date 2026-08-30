@@ -439,6 +439,22 @@ src/
   and dark follow the app. Importing `theme/frame.css` *and* `frame-dark.css` would fight over
   the same variables.
 
+**Telegram delivery is polling locally and a webhook in production, chosen by config.**
+`TELEGRAM_WEBHOOK_URL` plus `TELEGRAM_WEBHOOK_SECRET` turns the webhook on; with neither the
+bot long-polls, which is what a laptop wants and what every test assumes. A url without a
+secret is refused at startup rather than left open — the secret is the *only* thing standing
+between that route and anyone who guesses the path.
+
+Two properties the handler must keep. It **marks an `update_id` seen before it awaits the
+handler**, not after: Telegram retries an update whose response is slow, and marking
+afterwards means the retry arrives while the first is still running and the update is taken
+twice. And it **answers 200 even when the handler throws**, because a non-200 is a request to
+redeliver — an error that will fail again forever becomes an infinite retry loop. The error
+goes to the log, not to Telegram. `apps/bot/tests/webhook.test.ts` pins both, including three
+concurrent retries of one update being handled exactly once.
+
+Do not delete the webhook on shutdown; that drops updates for the length of a deploy.
+
 **Never assert that a shuffle came out different.** `shuffled(items, seed)` is a seeded
 Fisher-Yates, so it is deterministic — but an attempt seeds it with its own id, which is a
 fresh uuid every run, and identity is a legitimate outcome (1 in 5040 for seven questions).
