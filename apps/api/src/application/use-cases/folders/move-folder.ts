@@ -7,11 +7,13 @@ import {
 	type Folder,
 	type FolderId,
 	MAX_FOLDER_DEPTH,
+	reorderFolder,
 	reparentFolder,
 } from "@/domain/folder/folder";
 import { FolderDepthError } from "@/domain/folder/folder.errors";
 import {
 	type FolderDependencies,
+	lastPositionAmong,
 	parentChain,
 	requireFolder,
 } from "./create-folder";
@@ -60,14 +62,14 @@ export class MoveFolderUseCase
 	async execute(request: Command<MoveFolderCommand>): Promise<void> {
 		await this.unitOfWork.run(async ({ pages }) => {
 			const stored = await requireFolder(pages, request.folderId);
-			const moved = reparentFolder(stored, request.parentId, this.clock.now());
+			const at = this.clock.now();
+			const moved = reparentFolder(stored, request.parentId, at);
 			const ancestors = await parentChain(pages, request.parentId);
-
-			assertPlacement(
-				moved,
-				ancestors,
-				await pages.listChildren(request.parentId),
+			const siblings = (await pages.listChildren(request.parentId)).filter(
+				(sibling) => sibling.id !== moved.id,
 			);
+
+			assertPlacement(moved, ancestors, siblings);
 
 			const deepestLeaf =
 				ancestors.length + subtreeHeight(await pages.listAll(), moved.id);
@@ -76,7 +78,11 @@ export class MoveFolderUseCase
 				throw new FolderDepthError(deepestLeaf, MAX_FOLDER_DEPTH);
 			}
 
-			await pages.save(moved);
+			await pages.save(
+				stored.parentId === request.parentId
+					? moved
+					: reorderFolder(moved, lastPositionAmong(siblings), at),
+			);
 		});
 	}
 }

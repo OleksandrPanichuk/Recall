@@ -419,6 +419,23 @@ src/
   says so and `ReorderFolderUseCase` renumbers that parent instead of rounding two pages onto
   the same position. Never place a page by writing a position from the caller — pass the two
   siblings it should land between and let the use case pick, or the exhaustion check is bypassed.
+- **The page tree drags with `@dnd-kit`, and it renders flat.** A tree that reparents needs a
+  single sortable list, so `PageTree` renders every visible page as one `<li>` indented by
+  `depth` — there is no recursive branch component, and the open/closed state has to live in
+  the tree, not in each row, because the flattened list depends on it. Three things it is easy
+  to get wrong, each paid for once:
+  - **dnd-kit's `over` means "take that row's place", not "go after it".** Projecting from
+    `overIndex + 1` makes dragging *upwards* a no-op — the projection lands exactly where the
+    page already was. `arrayMove` first, then read the neighbours at `overIndex`, as dnd-kit's
+    own tree example does.
+  - **Give `DndContext` an explicit `id`.** Without one it numbers its `aria-describedby`
+    targets from a counter that differs between the server render and the client, and every
+    page load logs a hydration mismatch.
+  - **Expand a parent when something is dropped into it**, or the page silently disappears —
+    it is under a collapsed parent, and it looks exactly like data loss.
+
+  Keyboard dragging is the reason for the library: the handle is focusable, space picks a page
+  up, arrows move it. The announcements must name the page, not its uuid.
 - **Images live in MinIO, and the markdown stores a relative path.** `/app/uploads/<id>`, never
   an absolute URL — an origin baked into a summary rots the moment the app moves, which is the
   same bug as the `blob:` URL this replaced. Crepe's `proxyDomURL` and react-markdown's
