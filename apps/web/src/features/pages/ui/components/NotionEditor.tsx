@@ -1,21 +1,23 @@
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { slashMenu } from "@/features/pages/constants/editor-menu";
 import { displayUrl, uploadImage } from "@/features/pages/lib/uploads";
 
 interface Props {
 	readonly markdown: string;
 	readonly onChange: (markdown: string) => void;
+	readonly onReady?: () => void;
 }
 
-export function NotionEditor({ markdown, onChange }: Props) {
+export function NotionEditor({ markdown, onChange, onReady }: Props) {
 	const host = useRef<HTMLDivElement>(null);
 	const initial = useRef(markdown);
 	const changed = useRef(onChange);
-	const [loading, setLoading] = useState(true);
+	const ready = useRef(onReady);
 
 	changed.current = onChange;
+	ready.current = onReady;
 
 	useEffect(() => {
 		const root = host.current;
@@ -54,7 +56,7 @@ export function NotionEditor({ markdown, onChange }: Props) {
 
 		const created = crepe.create().then(() => {
 			if (live) {
-				setLoading(false);
+				ready.current?.();
 			}
 		});
 
@@ -64,14 +66,5 @@ export function NotionEditor({ markdown, onChange }: Props) {
 		};
 	}, []);
 
-	return (
-		<div className="relative">
-			<div ref={host} className="recall-editor" />
-			{loading ? (
-				<p className="px-1 py-3 text-sm text-muted-foreground">
-					Редактор завантажується…
-				</p>
-			) : null}
-		</div>
-	);
+	return <div ref={host} className="recall-editor" />;
 }
