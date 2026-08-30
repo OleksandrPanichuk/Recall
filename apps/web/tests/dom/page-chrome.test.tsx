@@ -145,4 +145,44 @@ describe("the page tree", () => {
 
 		expect(await screen.findByText("Сторінок ще немає.")).toBeDefined();
 	});
+
+	test("the ends of a list cannot be pushed past them", async () => {
+		routed(
+			<PageTree
+				nodes={[
+					node("a", "Biology", 0),
+					node("b", "Chemistry", 0),
+					node("c", "Physics", 0),
+				]}
+			/>,
+		);
+
+		const disabled = (label: string) =>
+			(screen.getByLabelText(label) as HTMLButtonElement).disabled;
+
+		expect(await screen.findByLabelText("Підняти Biology")).toBeDefined();
+		expect(disabled("Підняти Biology")).toBe(true);
+		expect(disabled("Опустити Biology")).toBe(false);
+		expect(disabled("Підняти Chemistry")).toBe(false);
+		expect(disabled("Опустити Chemistry")).toBe(false);
+		expect(disabled("Підняти Physics")).toBe(false);
+		expect(disabled("Опустити Physics")).toBe(true);
+	});
+
+	test("a lone child of its parent cannot be moved either way", async () => {
+		routed(
+			<PageTree
+				nodes={[node("a", "Biology", 0), node("b", "Chapter 1", 1, "a")]}
+			/>,
+		);
+
+		expect(
+			((await screen.findByLabelText("Підняти Chapter 1")) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+		expect(
+			(screen.getByLabelText("Опустити Chapter 1") as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+	});
 });

@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("ListFolderTreeUseCase", () => {
-	test("walks depth-first, name-ordered, with the depth of each node", async () => {
+	test("walks depth-first, in the order the owner put them, with each depth", async () => {
 		const english = await create("English");
 		const vocabulary = await create("Vocabulary", english);
 		await create("By levels", vocabulary);
@@ -28,9 +28,9 @@ describe("ListFolderTreeUseCase", () => {
 			(await listFolderTree.execute({})).map((node) => [node.name, node.depth]),
 		).toEqual([
 			["English", 0],
-			["Grammar", 1],
 			["Vocabulary", 1],
 			["By levels", 2],
+			["Grammar", 1],
 			["Programming", 0],
 		]);
 	});

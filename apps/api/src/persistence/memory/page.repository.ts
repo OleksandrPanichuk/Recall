@@ -29,6 +29,11 @@ const byName = (left: Folder, right: Folder): number =>
 		? String(left.id).localeCompare(String(right.id))
 		: left.name.localeCompare(right.name);
 
+const byPosition = (left: Folder, right: Folder): number =>
+	left.position === right.position
+		? byName(left, right)
+		: left.position - right.position;
+
 export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 	return {
 		async save(page: Folder): Promise<void> {
@@ -61,7 +66,7 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 				.filter(
 					(page) => String(page.parentId ?? "") === String(parentId ?? ""),
 				)
-				.sort(byName);
+				.sort(byPosition);
 		},
 
 		async listAncestors(id: FolderId): Promise<readonly Folder[]> {
@@ -87,7 +92,7 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 		},
 
 		async listAll(): Promise<readonly Folder[]> {
-			return [...store.pages.values()].sort(byName);
+			return [...store.pages.values()].sort(byPosition);
 		},
 
 		async countQuizzesIn(

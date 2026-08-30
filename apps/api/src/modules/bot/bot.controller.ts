@@ -28,6 +28,7 @@ import {
 	movePageCommandSchema,
 	practiceCommandSchema,
 	renamePageCommandSchema,
+	reorderPageCommandSchema,
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
 	searchPagesCommandSchema,
@@ -50,6 +51,7 @@ import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-fold
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
+import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
 import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
 import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
 import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
@@ -116,6 +118,8 @@ export class BotController {
 		private readonly listFolderTree: ListFolderTreeUseCase,
 		@Inject(MoveFolderUseCase)
 		private readonly moveFolder: MoveFolderUseCase,
+		@Inject(ReorderFolderUseCase)
+		private readonly reorderFolder: ReorderFolderUseCase,
 		@Inject(StartQuizAttemptUseCase)
 		private readonly startQuizAttempt: StartQuizAttemptUseCase,
 		@Inject(StartPracticeSessionUseCase)
@@ -283,6 +287,22 @@ export class BotController {
 
 		await this.deleteFolder.execute({
 			folderId: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.reorderPage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async reorderPage(@Body() body: unknown) {
+		const command = parseBody(reorderPageCommandSchema, body);
+
+		await this.reorderFolder.execute({
+			folderId: toFolderId(command.folderId),
+			afterId:
+				command.afterId === undefined ? undefined : toFolderId(command.afterId),
+			beforeId:
+				command.beforeId === undefined
+					? undefined
+					: toFolderId(command.beforeId),
 		});
 	}
 

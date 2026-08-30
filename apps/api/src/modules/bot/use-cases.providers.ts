@@ -12,6 +12,7 @@ import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-fold
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
+import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
 import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
 import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
 import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
@@ -43,6 +44,7 @@ export const botUseCases: Provider[] = [
 	DeleteFolderUseCase,
 	ListFolderTreeUseCase,
 	MoveFolderUseCase,
+	ReorderFolderUseCase,
 	GetInsightsUseCase,
 	AbandonQuizAttemptUseCase,
 	StartQuizAttemptUseCase,

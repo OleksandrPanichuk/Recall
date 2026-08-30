@@ -68,11 +68,13 @@ import {
 	quizSettingsSchema,
 	quizStatisticsSchema,
 	type RenamePageCommand,
+	type ReorderPageCommand,
 	type ResolvedQuizSettings,
 	type ResolveQuizSettingsCommand,
 	type RevokeApiTokenCommand,
 	type RevokedApiToken,
 	renamePageCommandSchema,
+	reorderPageCommandSchema,
 	resolvedSettingsSchema,
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
@@ -213,6 +215,7 @@ export interface PracticeUseCases {
 	readonly setPageIcon: UseCaseLike<SetPageIconCommand, void>;
 	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
 	readonly movePage: UseCaseLike<MovePageCommand, void>;
+	readonly reorderPage: UseCaseLike<ReorderPageCommand, void>;
 	readonly listPageTree: UseCaseLike<
 		Record<string, never>,
 		readonly PageTreeNode[]
@@ -286,6 +289,7 @@ export const BOT_ROUTES = {
 	setPageIcon: "pages/icon",
 	deletePage: "pages/delete",
 	movePage: "pages/move",
+	reorderPage: "pages/reorder",
 	pageTree: "pages/tree",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
@@ -444,6 +448,11 @@ function createClient(options: RecallClientOptions) {
 			z.void(),
 		),
 		movePage: operation(BOT_ROUTES.movePage, movePageCommandSchema, z.void()),
+		reorderPage: operation(
+			BOT_ROUTES.reorderPage,
+			reorderPageCommandSchema,
+			z.void(),
+		),
 		listPageTree: operation(
 			BOT_ROUTES.pageTree,
 			z.object({}),

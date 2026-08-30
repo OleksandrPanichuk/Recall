@@ -31,6 +31,7 @@ const toPage = (row: PageRow): Folder =>
 		parentId: row.parentId === null ? undefined : toFolderId(row.parentId),
 		summary: row.contentMd ?? undefined,
 		icon: row.icon ?? undefined,
+		position: Number(row.position),
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	});
@@ -118,6 +119,7 @@ export function createPagePostgresRepository(
 				slug,
 				contentMd: page.summary ?? null,
 				icon: page.icon ?? null,
+				position: String(page.position),
 				createdAt: page.createdAt,
 				updatedAt: page.updatedAt,
 			};
@@ -133,6 +135,7 @@ export function createPagePostgresRepository(
 						slug: values.slug,
 						contentMd: values.contentMd,
 						icon: values.icon,
+						position: values.position,
 						updatedAt: values.updatedAt,
 					},
 				});
@@ -160,7 +163,7 @@ export function createPagePostgresRepository(
 							: eq(pages.parentId, String(parentId)),
 					),
 				)
-				.orderBy(asc(pages.title), asc(pages.id));
+				.orderBy(asc(pages.position), asc(pages.title), asc(pages.id));
 
 			return rows.map(toPage);
 		},
@@ -192,7 +195,7 @@ export function createPagePostgresRepository(
 				.select()
 				.from(pages)
 				.where(mine)
-				.orderBy(asc(pages.title), asc(pages.id));
+				.orderBy(asc(pages.position), asc(pages.title), asc(pages.id));
 
 			return rows.map(toPage);
 		},
