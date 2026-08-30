@@ -15,10 +15,11 @@ import { ThemeToggle } from "./ThemeToggle";
 interface Props {
 	readonly viewer: { readonly name: string } | null;
 	readonly pages: ReactNode;
+	readonly account: ReactNode;
 	readonly children: ReactNode;
 }
 
-export function AppShell({ viewer, pages, children }: Props) {
+export function AppShell({ viewer, pages, account, children }: Props) {
 	const { pathname } = useLocation();
 	const [openOn, setOpenOn] = useState<string | null>(null);
 	const open = openOn === pathname;
@@ -98,7 +99,10 @@ export function AppShell({ viewer, pages, children }: Props) {
 					<p className="min-w-0 truncate text-xs text-muted-foreground">
 						{viewer === null ? "не увійшли" : viewer.name}
 					</p>
-					<ThemeToggle />
+					<div className="flex shrink-0 items-center gap-1">
+						{account}
+						<ThemeToggle />
+					</div>
 				</div>
 			</aside>
 

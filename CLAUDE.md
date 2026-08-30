@@ -96,6 +96,14 @@ is an internal RPC surface, not public REST.
 mounted by hand afterwards. Better Auth reads the raw request body itself, and a parser that has
 already consumed the stream leaves it hanging.
 
+**Registration is open** (`emailAndPassword.enabled`), so `POST /api/auth/sign-up/email` is
+reachable by anyone — that is now a product decision, not an oversight. What holds the line is
+the rate limit (`AUTH_RATE_LIMIT`, `SIGN_UPS_PER_HOUR`) and the fact that ownership is resolved
+from the session, so a new account starts empty and can never name another owner's rows. **What
+is still missing before this is genuinely public: no mailer.** Email verification and password
+reset are both configured off because there is nothing to send with; a user who forgets a
+password currently cannot recover it.
+
 Login links are minted **only** from `/bot/auth/login-link`, behind the bot token. Do not move
 that into a Better Auth endpoint: `SERVER_ONLY` merely hides an endpoint from the generated
 client, so a route that turns a Telegram id into a session would be reachable by anyone. The

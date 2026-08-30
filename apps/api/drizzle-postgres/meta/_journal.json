@@ -57,6 +57,13 @@
 			"when": 1788033940410,
 			"tag": "0007_old_moonstone",
 			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1788097395957,
+			"tag": "0008_gorgeous_lyja",
+			"breakpoints": true
 		}
 	]
 }

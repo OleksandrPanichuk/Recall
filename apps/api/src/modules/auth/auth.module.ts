@@ -26,6 +26,8 @@ import { AUTH } from "./tokens";
 					baseUrl: environment.authBaseUrl,
 					successUrl: environment.authSuccessUrl,
 					trustedOrigins: environment.authTrustedOrigins,
+					signUpsPerHour: environment.signUpsPerHour,
+					rateLimit: environment.authRateLimit,
 				});
 			},
 		},
