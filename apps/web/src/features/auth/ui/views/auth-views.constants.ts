@@ -6,6 +6,7 @@ const MESSAGES: Readonly<Record<string, string>> = {
 	USER_ALREADY_EXISTS: "Акаунт із такою поштою вже існує.",
 	PASSWORD_TOO_SHORT: "Пароль закороткий.",
 	INVALID_TOKEN: "Посилання прострочене або вже використане.",
+	INVALID_PASSWORD: "Теперішній пароль невірний.",
 	RESET_PASSWORD_DISABLED:
 		"Відновлення пароля не налаштоване на цьому сервері.",
 };
