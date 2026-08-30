@@ -123,9 +123,17 @@ Plan §4's analytics landed too: `/insights` shows a year-long activity heatmap,
 fortnight's due forecast, and the questions that go wrong most, over an
 `AnalyticsRepository` that does real SQL aggregates rather than in-memory loops.
 
-**What is left** is §5's second auth phase (email+password, deliberately disabled
-today), sharing, and FSRS. §4's read models are computed on demand, not materialized — see the
-note below.
+§5's second auth phase landed too: `emailAndPassword` is on, so anyone can sign up, and
+a forgotten password is recoverable over SMTP. **Email verification is deliberately off** —
+the owner's call. The bot surface stays single-tenant on purpose: `BotTokenGuard` refuses a
+body naming any `telegramUserId` but `ALLOWED_TELEGRAM_USER_ID`, and `instanceOwnerResolver`
+reads the owner from that same variable. Multi-user means the **web** app; the bot is the
+owner's own. Making it serve many people is not a small change — it moves owner resolution
+off the environment and onto the request, which is the property that stops a leaked bot token
+from reading every account.
+
+**What is left** is sharing and FSRS. §4's read models are computed on demand, not
+materialized — see the note below.
 
 **Verified live, not only in tests** (2026-08-29): a scratch database, `drizzle-kit migrate` from
 empty through 0006, the API on Node, and every new tool driven over real HTTP MCP — write, append,
