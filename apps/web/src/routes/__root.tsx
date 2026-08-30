@@ -12,6 +12,7 @@ import { usePreloadPages } from "@/features/pages/hooks/use-preload-pages";
 import { useWarmEditor } from "@/features/pages/hooks/use-warm-editor";
 import { loadPageTree } from "@/features/pages/lib/pages.api";
 import { PageTree } from "@/features/pages/ui/components/PageTree";
+import { noFlashScript } from "@/shared/constants/theme";
 import { loadSession } from "@/shared/lib/viewer";
 import { AppShell } from "@/shared/ui/components/AppShell";
 import { ErrorPanel } from "@/shared/ui/components/ErrorPanel";
@@ -68,7 +69,7 @@ function Document({ children }: Readonly<{ children: ReactNode }>) {
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no input
 					dangerouslySetInnerHTML={{
-						__html: `try{var t=localStorage.getItem('recall.theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`,
+						__html: noFlashScript(),
 					}}
 				/>
 			</head>

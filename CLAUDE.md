@@ -412,7 +412,10 @@ src/
   the convention every shadcn snippet and React codebase assumes, and the file *is* the component.
   Everything that is not a component keeps kebab-case: `lib/pages.api.ts`, `hooks/use-autosave.ts`.
 - **Hooks live in the feature's `hooks/`**, one per file, named for the hook. Not in `lib/` —
-  `lib/` is for things that do not touch React.
+  `lib/` is for things that do not touch React. **A hook never gets a `.constants` file** —
+  unlike a component, a hook file may hold its own constants. One it alone uses goes at the top
+  of the hook; one anything else needs goes in `constants/`, in a file named for the subject
+  (`shared/constants/theme.ts`), not for the hook.
 - **Server functions live in `<feature>/lib/<feature>.api.ts`**, so the thing that fetches sits
   with the screens that need it. `shared/lib/api.ts` builds the client, `shared/lib/request.ts`
   holds `missingAsNull` and `idInput`, and only `shared/lib/viewer.ts` knows about the session.

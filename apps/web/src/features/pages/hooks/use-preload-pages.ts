@@ -1,7 +1,9 @@
 import type { PageTreeNode } from "@recall/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { PRELOAD_DEPTH, PRELOAD_GAP_MS } from "./use-preload-pages.constants";
+
+const PRELOAD_DEPTH = 1;
+const PRELOAD_GAP_MS = 120;
 
 export function usePreloadPages(nodes: readonly PageTreeNode[]): void {
 	const router = useRouter();
