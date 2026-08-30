@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { shuffled } from "@recall/kit";
 import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
@@ -306,6 +307,11 @@ describe("question order", () => {
 			false,
 			false,
 		]);
+		await startMistakes(quizSetId);
+
+		const unshuffled = await harness.plannedPrompts(quizSetId);
+
+		await harness.finish.execute({});
 		await harness.context.unitOfWork.run(({ reviews }) =>
 			reviews.saveSettings(quizScope(quizSetId), {
 				...defaultQuizSettings(),
@@ -313,10 +319,10 @@ describe("question order", () => {
 			}),
 		);
 
-		await startMistakes(quizSetId);
+		const { attemptId } = await startMistakes(quizSetId);
 
-		expect(await harness.plannedPrompts(quizSetId)).not.toEqual(
-			await harness.promptsOf(quizSetId),
+		expect(await harness.plannedPrompts(quizSetId)).toEqual(
+			shuffled(unshuffled, String(attemptId)),
 		);
 	});
 });

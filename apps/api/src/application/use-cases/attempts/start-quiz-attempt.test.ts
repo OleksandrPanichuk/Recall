@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { shuffled } from "@recall/kit";
 import {
 	attemptCount,
 	type MemoryContext,
@@ -192,13 +193,18 @@ describe("shuffled question order", () => {
 		expect(await plannedPrompts(quizSetId)).toEqual(PROMPTS);
 	});
 
-	test("plans a different order once the toggle is on", async () => {
+	test("plans the shuffle of the authored order, seeded by the attempt", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
 		await enableShuffle(quizSetId);
 
-		await start.execute({ quizSetId, telegramUserId: USER });
+		const { attemptId } = await start.execute({
+			quizSetId,
+			telegramUserId: USER,
+		});
 
-		expect(await plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
+		expect(await plannedPrompts(quizSetId)).toEqual(
+			shuffled(PROMPTS, String(attemptId)),
+		);
 		expect([...(await plannedPrompts(quizSetId))].toSorted()).toEqual(
 			[...PROMPTS].toSorted(),
 		);
@@ -237,9 +243,14 @@ describe("shuffled question order", () => {
 			}),
 		);
 
-		await start.execute({ quizSetId, telegramUserId: USER });
+		const { attemptId } = await start.execute({
+			quizSetId,
+			telegramUserId: USER,
+		});
 
-		expect(await plannedPrompts(quizSetId)).not.toEqual(PROMPTS);
+		expect(await plannedPrompts(quizSetId)).toEqual(
+			shuffled(PROMPTS, String(attemptId)),
+		);
 	});
 
 	test("shuffles a repetition run too, without letting undue questions in", async () => {
@@ -262,9 +273,15 @@ describe("shuffled question order", () => {
 			),
 		);
 
-		await start.execute({ quizSetId, telegramUserId: USER, onlyDue: true });
+		const { attemptId } = await start.execute({
+			quizSetId,
+			telegramUserId: USER,
+			onlyDue: true,
+		});
 
-		expect(await plannedPrompts(quizSetId)).not.toEqual(PROMPTS.slice(0, 6));
+		expect(await plannedPrompts(quizSetId)).toEqual(
+			shuffled(PROMPTS.slice(0, 6), String(attemptId)),
+		);
 		expect([...(await plannedPrompts(quizSetId))].toSorted()).toEqual(
 			[...PROMPTS.slice(0, 6)].toSorted(),
 		);
