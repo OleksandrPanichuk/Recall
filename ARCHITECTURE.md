@@ -1,10 +1,38 @@
-# Personal Learning Quiz Bot — architecture
+# Personal Learning Quiz Bot — architecture (v1)
+
+> ## Superseded for v2 — read this first
+>
+> This document describes **v1**: the single-package Bun application under `src/`. It stays
+> binding for that code, which still works and still has 1375 passing tests. Do not
+> "modernise" `src/` against v2 decisions.
+>
+> **For anything under `apps/` or `packages/`, `REWRITE_PLAN.md` is binding instead.** Where
+> the two disagree on the `rewrite` branch, `REWRITE_PLAN.md` wins.
+>
+> The v2 decisions that overrule specific sections below:
+>
+> | This document says | v2 says | Where |
+> | --- | --- | --- |
+> | Ports are synchronous; `Transaction.run()` must not cross an `await` | ports return `Promise`; the callback stays synchronous until Postgres, then widens per context | `REWRITE_PLAN.md` §2 |
+> | SQLite behind repository ports | Postgres (Supabase), drizzle, one schema in `apps/api/src/persistence` | §2, §6 |
+> | Two input adapters, Telegram and MCP | five surfaces; only `apps/api` owns the database, everything else is an HTTP client | §1 |
+> | The `src/` target folder structure below | monorepo: `apps/{api,web,bot,mcp,admin}` + `packages/{contracts,tooling}` | §1, §8 |
+> | Manual DI in `src/composition/create-application.ts` | NestJS factory providers, partitioned per module | §8 |
+> | Observer / domain events "reserved for later" | in-process events, **after commit only**, best-effort | §8 |
+> | Single user, `ALLOWED_TELEGRAM_USER_ID` | multi-user; `UserId` from Better Auth; ownership on every content row | §3, §5 |
+> | `QuizSet`, `folders`, `VocabularyItem` | `Quiz`, `pages` (one Notion-style tree), `term_pairs` | §6, §7 |
+> | Use case named `AnswerQuestion` | `AnswerQuestionUseCase` | §8 |
+>
+> Everything else here — the dependency direction, narrow repository ports, no generic
+> `Repository<T, Id>` base, no command bus, aggregates, explicit state machines, Strategy
+> functions, the naming and file-layout conventions, the anti-pattern list — carries into v2
+> unchanged. That is why the rewrite is a re-housing rather than a rewrite.
 
 ## Status and purpose
 
-This document is the binding architecture guide for new implementation work.
+This document is the binding architecture guide for v1 implementation work.
 Agents must read it before creating an implementation plan, adding production
-code, or reviewing architecture-sensitive changes.
+code, or reviewing architecture-sensitive changes to `src/`.
 
 The former publish-bot implementation has been removed. The repository retains
 only a minimal toolchain entrypoint until the first quiz-bot vertical slice.

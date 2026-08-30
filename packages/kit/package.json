@@ -1,0 +1,23 @@
+{
+	"name": "@recall/kit",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/index.js",
+	"exports": {
+		".": {
+			"bun": "./src/index.ts",
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./shuffle": {
+			"bun": "./src/utils/shuffle.ts",
+			"types": "./dist/utils/shuffle.d.ts",
+			"default": "./dist/utils/shuffle.js"
+		}
+	},
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json"
+	}
+}

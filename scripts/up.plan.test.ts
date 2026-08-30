@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { describePlan, planServices, running, selectionFrom } from "./up.plan";
 
 const FULL = {
-	MCP_HTTP_TOKEN: "t".repeat(32),
+	BOT_API_TOKEN: "b".repeat(32),
 	ADMIN_PASSPHRASE: "correct horse battery staple",
 } as const;
 
@@ -11,19 +11,24 @@ describe("planning what to start", () => {
 		const plan = planServices(FULL);
 
 		expect(running(plan).map((service) => service.name)).toEqual([
+			"api",
 			"bot",
-			"mcp",
+			"web",
 			"admin",
 		]);
 	});
 
-	test("keeps the bot alone when nothing else is configured", () => {
+	test("keeps the api alone when nothing else is configured", () => {
 		const plan = planServices({});
 
-		expect(running(plan).map((service) => service.name)).toEqual(["bot"]);
+		expect(running(plan).map((service) => service.name)).toEqual([
+			"api",
+			"web",
+		]);
 		expect(describePlan(plan)).toEqual([
-			"bot    starting",
-			"mcp    skipped — MCP_HTTP_TOKEN is not set",
+			"api    http://127.0.0.1:8767/docs",
+			"bot    skipped — BOT_API_TOKEN is not set",
+			"web    http://127.0.0.1:3000",
 			"admin  skipped — neither ADMIN_PASSPHRASE nor MCP_OAUTH_PASSPHRASE is set",
 		]);
 	});
@@ -34,7 +39,8 @@ describe("planning what to start", () => {
 		});
 
 		expect(running(plan).map((service) => service.name)).toEqual([
-			"bot",
+			"api",
+			"web",
 			"admin",
 		]);
 	});
@@ -43,8 +49,9 @@ describe("planning what to start", () => {
 		const plan = planServices(FULL);
 
 		expect(describePlan(plan)).toEqual([
+			"api    http://127.0.0.1:8767/docs",
 			"bot    starting",
-			"mcp    http://127.0.0.1:8765/mcp",
+			"web    http://127.0.0.1:3000",
 			"admin  http://127.0.0.1:8766",
 		]);
 	});
@@ -52,14 +59,14 @@ describe("planning what to start", () => {
 	test("takes the ports and hosts from the environment", () => {
 		const plan = planServices({
 			...FULL,
-			MCP_HTTP_PORT: "9000",
 			ADMIN_PORT: "9100",
 			ADMIN_HOST: "192.168.1.10",
 		});
 
 		expect(describePlan(plan)).toEqual([
+			"api    http://127.0.0.1:8767/docs",
 			"bot    starting",
-			"mcp    http://127.0.0.1:9000/mcp",
+			"web    http://127.0.0.1:3000",
 			"admin  http://192.168.1.10:9100",
 		]);
 	});
@@ -80,9 +87,12 @@ describe("planning what to start", () => {
 	});
 
 	test("treats a blank value as unset", () => {
-		const plan = planServices({ MCP_HTTP_TOKEN: "   " });
+		const plan = planServices({ ADMIN_PASSPHRASE: "   ", BOT_API_TOKEN: "  " });
 
-		expect(running(plan).map((service) => service.name)).toEqual(["bot"]);
+		expect(running(plan).map((service) => service.name)).toEqual([
+			"api",
+			"web",
+		]);
 	});
 });
 
@@ -92,8 +102,9 @@ describe("restricting the plan", () => {
 
 		expect(running(plan).map((service) => service.name)).toEqual(["admin"]);
 		expect(describePlan(plan)).toEqual([
+			"api    skipped — not selected by --only",
 			"bot    skipped — not selected by --only",
-			"mcp    skipped — not selected by --only",
+			"web    skipped — not selected by --only",
 			"admin  http://127.0.0.1:8766",
 		]);
 	});
@@ -114,8 +125,8 @@ describe("reading --only", () => {
 	});
 
 	test("reads the --only=value form", () => {
-		expect(selectionFrom(["--only=mcp"])).toEqual({
-			only: ["mcp"],
+		expect(selectionFrom(["--only=admin"])).toEqual({
+			only: ["admin"],
 			unknown: [],
 		});
 	});

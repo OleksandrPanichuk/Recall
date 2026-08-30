@@ -1,0 +1,114 @@
+import type { TopicAccuracy } from "@/application/ports/repositories/attempt.repository";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
+import type { FolderId } from "@/domain/folder/folder";
+import type { QuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
+import { percentageOf, type Score } from "@/domain/quiz-attempt/score";
+import type { QuestionId } from "@/domain/quiz-set/question";
+import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+
+export interface AttemptSummary {
+	readonly attemptId: QuizAttemptId;
+	readonly score: Score;
+	readonly completedAt?: Date;
+}
+
+export interface Improvement {
+	readonly firstPercentage: number;
+	readonly lastPercentage: number;
+	readonly deltaPercentage: number;
+}
+
+export interface QuizStatistics {
+	readonly quizSetId: QuizSetId;
+	readonly title: string;
+	readonly folderId?: FolderId;
+	readonly attempts: readonly AttemptSummary[];
+	readonly setAccuracy: Score;
+	readonly topics: readonly TopicAccuracy[];
+	readonly incorrectQuestionIds: readonly QuestionId[];
+	readonly improvement?: Improvement;
+}
+
+export interface GetQuizStatisticsCommand {
+	readonly quizSetId: QuizSetId;
+}
+
+export type GetQuizStatisticsDependencies = ApplicationDependencies;
+
+const scoreOf = (correct: number, total: number): Score => ({
+	correct,
+	total,
+	percentage: percentageOf(correct, total),
+});
+
+export class GetQuizStatisticsUseCase
+	implements UseCase<Command<GetQuizStatisticsCommand>, QuizStatistics>
+{
+	private readonly scope: RepositoryScope;
+
+	constructor(dependencies: GetQuizStatisticsDependencies) {
+		this.scope = dependencies.scope;
+	}
+
+	async execute(
+		request: Command<GetQuizStatisticsCommand>,
+	): Promise<QuizStatistics> {
+		const { quizzes, attempts: attemptRepository } = this.scope;
+		const quizSet = await quizzes.findById(request.quizSetId);
+
+		if (quizSet === undefined) {
+			throw new QuizSetNotFoundError(request.quizSetId);
+		}
+
+		const completed = await attemptRepository.listCompletedForQuiz(
+			request.quizSetId,
+		);
+		const attempts = completed.map(
+			(entry): AttemptSummary => ({
+				attemptId: entry.attemptId,
+				score: scoreOf(entry.correct, entry.total),
+				completedAt: entry.completedAt,
+			}),
+		);
+
+		return {
+			quizSetId: quizSet.id,
+			title: quizSet.title,
+			folderId: quizSet.folderId,
+			attempts,
+			setAccuracy: scoreOf(
+				completed.reduce((sum, entry) => sum + entry.correct, 0),
+				completed.reduce((sum, entry) => sum + entry.total, 0),
+			),
+			topics: await attemptRepository.topicAccuracy(request.quizSetId),
+			incorrectQuestionIds: await attemptRepository.incorrectQuestionIds(
+				request.quizSetId,
+			),
+			improvement: improvementOf(attempts),
+		};
+	}
+}
+
+function improvementOf(
+	attempts: readonly AttemptSummary[],
+): Improvement | undefined {
+	const first = attempts[0];
+	const last = attempts.at(-1);
+
+	if (attempts.length < 2 || first === undefined || last === undefined) {
+		return undefined;
+	}
+
+	return {
+		firstPercentage: first.score.percentage,
+		lastPercentage: last.score.percentage,
+		deltaPercentage:
+			Math.round((last.score.percentage - first.score.percentage) * 10) / 10,
+	};
+}

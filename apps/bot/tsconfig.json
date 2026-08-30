@@ -1,0 +1,13 @@
+{
+	"extends": "../../packages/tooling/tsconfig.base.json",
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["../api/src/*"],
+			"@api/*": ["../api/src/*"],
+			"@tests/*": ["../api/tests/*"],
+			"@api-tests/*": ["../api/tests/*"],
+			"@recall/kit": ["../../packages/kit/src/index.ts"],
+			"@recall/contracts": ["../../packages/contracts/src/index.ts"]
+		}
+	}
+}

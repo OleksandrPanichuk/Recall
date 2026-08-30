@@ -1,0 +1,148 @@
+import type { Clock } from "@/application/ports/clock";
+import type { IdGenerator } from "@/application/ports/id-generator";
+import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
+import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type {
+	ApplicationDependencies,
+	Command,
+	UseCase,
+} from "@/application/use-case";
+import { createQuestion } from "@/domain/quiz-set/create-question";
+import {
+	type Difficulty,
+	type Question,
+	type QuestionId,
+	type QuestionType,
+	toQuestionId,
+	toQuestionOptionId,
+} from "@/domain/quiz-set/question";
+import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
+import { addQuestions, type QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { QuizSetNotFoundError } from "./update-quiz-set";
+
+export const MAX_QUESTIONS_PER_BATCH = 50;
+
+export class EmptyQuestionBatchError extends Error {
+	constructor() {
+		super("A question batch must contain at least one question");
+		this.name = "EmptyQuestionBatchError";
+	}
+}
+
+export class QuestionBatchTooLargeError extends Error {
+	constructor(size: number, limit: number) {
+		super(`A question batch of ${size} exceeds the limit of ${limit}`);
+		this.name = "QuestionBatchTooLargeError";
+	}
+}
+
+export interface QuestionOptionInput {
+	readonly text: string;
+	readonly isCorrect: boolean;
+	readonly matchKey?: string;
+}
+
+export interface QuestionInput {
+	readonly type: QuestionType;
+	readonly prompt: string;
+	readonly difficulty: Difficulty;
+	readonly options: readonly QuestionOptionInput[];
+	readonly explanation?: string;
+	readonly sourceReference?: string;
+	readonly topic?: string;
+	readonly hint?: string;
+	readonly vocabularyItemId?: string;
+}
+
+export interface AddQuestionsCommand {
+	readonly quizSetId: QuizSetId;
+	readonly questions: readonly QuestionInput[];
+}
+
+export interface AddQuestionsResult {
+	readonly addedQuestionIds: readonly QuestionId[];
+	readonly alreadyPresent: boolean;
+}
+
+export type AddQuestionsDependencies = ApplicationDependencies;
+
+export class AddQuestionsUseCase
+	implements UseCase<Command<AddQuestionsCommand>, AddQuestionsResult>
+{
+	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
+	private readonly clock: Clock;
+	private readonly idGenerator: IdGenerator;
+
+	constructor(dependencies: AddQuestionsDependencies) {
+		this.unitOfWork = dependencies.unitOfWork;
+		this.clock = dependencies.clock;
+		this.idGenerator = dependencies.idGenerator;
+	}
+
+	async execute(
+		request: Command<AddQuestionsCommand>,
+	): Promise<AddQuestionsResult> {
+		if (request.questions.length === 0) {
+			throw new EmptyQuestionBatchError();
+		}
+
+		if (request.questions.length > MAX_QUESTIONS_PER_BATCH) {
+			throw new QuestionBatchTooLargeError(
+				request.questions.length,
+				MAX_QUESTIONS_PER_BATCH,
+			);
+		}
+
+		const at = this.clock.now();
+
+		return this.unitOfWork.run(async ({ quizzes }) => {
+			const stored = await quizzes.findById(request.quizSetId);
+
+			if (stored === undefined) {
+				throw new QuizSetNotFoundError(request.quizSetId);
+			}
+
+			const questions = request.questions.map((input, index) =>
+				this.toQuestion(input, stored.questions.length + index),
+			);
+			const present = new Set(stored.questions.map(questionFingerprint));
+
+			if (
+				questions.every((question) =>
+					present.has(questionFingerprint(question)),
+				)
+			) {
+				return { addedQuestionIds: [], alreadyPresent: true };
+			}
+
+			await quizzes.save(addQuestions(stored, questions, at));
+
+			return {
+				addedQuestionIds: questions.map((question) => question.id),
+				alreadyPresent: false,
+			};
+		});
+	}
+
+	private toQuestion(input: QuestionInput, position: number): Question {
+		return createQuestion({
+			id: toQuestionId(this.idGenerator.generate()),
+			type: input.type,
+			prompt: input.prompt,
+			difficulty: input.difficulty,
+			position,
+			options: input.options.map((option, index) => ({
+				id: toQuestionOptionId(this.idGenerator.generate()),
+				text: option.text,
+				isCorrect: option.isCorrect,
+				position: index,
+				matchKey: option.matchKey,
+			})),
+			explanation: input.explanation,
+			sourceReference: input.sourceReference,
+			topic: input.topic,
+			hint: input.hint,
+			vocabularyItemId: input.vocabularyItemId,
+		});
+	}
+}

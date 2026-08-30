@@ -1,0 +1,25 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"allowImportingTsExtensions": false,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"types": ["node"],
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": [
+		"src/**/*.test.ts",
+		"src/persistence/postgres/etl.ts",
+		"src/infrastructure/lifecycle/status.ts",
+		"src/**/*.fixture.ts"
+	],
+	"tsc-alias": {
+		"resolveFullPaths": true
+	}
+}

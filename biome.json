@@ -11,7 +11,9 @@
 			"!!**/coverage",
 			"!!**/dist",
 			"!!**/node_modules",
-			"!!**/.claude"
+			"!!**/.claude",
+			"!!**/.output",
+			"!!**/routeTree.gen.ts"
 		]
 	},
 	"formatter": {
@@ -38,6 +40,9 @@
 		}
 	},
 	"javascript": {
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		},
 		"formatter": {
 			"arrowParentheses": "always",
 			"bracketSpacing": true,
@@ -46,12 +51,84 @@
 			"trailingCommas": "all"
 		}
 	},
+	"overrides": [
+		{
+			"includes": [
+				"apps/api/src/modules/**",
+				"apps/api/src/entrypoints/api.ts"
+			],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"useHookAtTopLevel": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/domain/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/infrastructure/**",
+											"@/composition/**",
+											"@/modules/**",
+											"@/persistence/**"
+										],
+										"message": "domain must not import outward (ARCHITECTURE.md dependency rule 1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/application/**", "!**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/composition/**",
+											"@/modules/**",
+											"@/persistence/**"
+										],
+										"message": "application must not import adapters or the composition root (ARCHITECTURE.md dependency rule 2)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	],
 	"assist": {
 		"enabled": true,
 		"actions": {
 			"source": {
 				"organizeImports": "on"
 			}
+		}
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
 		}
 	}
 }

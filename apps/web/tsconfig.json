@@ -1,0 +1,11 @@
+{
+	"extends": "../../packages/tooling/tsconfig.base.json",
+	"compilerOptions": {
+		"types": ["vite/client"],
+		"paths": {
+			"@/*": ["./src/*"],
+			"@recall/contracts": ["../../packages/contracts/src/index.ts"],
+			"@recall/kit/shuffle": ["../../packages/kit/src/utils/shuffle.ts"]
+		}
+	}
+}

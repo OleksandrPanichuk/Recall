@@ -1,3 +1,9 @@
+import {
+	databaseUrlOf,
+	describeTarget,
+	targetOf,
+	UNREACHABLE_HINT,
+} from "./up.database";
 import { renderLine } from "./up.format";
 import {
 	describePlan,
@@ -18,11 +24,10 @@ import { type SupervisedProcess, superviseProcesses } from "./up.supervise";
 
 const READY_TIMEOUT_MS = 15_000;
 
-const entrypoint = (file: string): string =>
-	Bun.fileURLToPath(new URL(`../src/entrypoints/${file}`, import.meta.url));
+const entrypoint = (entry: string): string =>
+	Bun.fileURLToPath(new URL(`../${entry}`, import.meta.url));
 
-const script = (file: string): string =>
-	Bun.fileURLToPath(new URL(file, import.meta.url));
+const root = (): string => Bun.fileURLToPath(new URL("..", import.meta.url));
 
 const argv = process.argv.slice(2);
 const has = (flag: string): boolean => argv.includes(flag);
@@ -74,10 +79,16 @@ function start(
 	width: number,
 	index: number,
 ): SupervisedProcess {
-	const child = Bun.spawn([process.execPath, entrypoint(service.entry)], {
-		stdout: "pipe",
-		stderr: "pipe",
-	});
+	const child = Bun.spawn(
+		service.command === undefined
+			? [process.execPath, entrypoint(service.entry)]
+			: [...service.command],
+		{
+			cwd: service.command === undefined ? undefined : root(),
+			stdout: "pipe",
+			stderr: "pipe",
+		},
+	);
 	const render = (line: string): string =>
 		raw
 			? `${service.name.padEnd(width)}  ${line}`
@@ -93,8 +104,24 @@ function start(
 	};
 }
 
-async function migrateOrExit(): Promise<void> {
-	const child = Bun.spawn([process.execPath, script("./migrate.ts")], {
+async function prepareDatabaseOrExit(): Promise<void> {
+	const url = databaseUrlOf(Bun.env);
+
+	if (url === undefined) {
+		complain("DATABASE_URL is not set, so nothing was started");
+		process.exit(1);
+	}
+
+	const target = targetOf(url);
+
+	if (target === undefined || (await isPortFree(target.host, target.port))) {
+		complain(`${describeTarget(url)} did not answer, so nothing was started`);
+		complain(UNREACHABLE_HINT);
+		process.exit(1);
+	}
+
+	const child = Bun.spawn(["bun", "run", "db:migrate"], {
+		cwd: root(),
 		stdout: "pipe",
 		stderr: "pipe",
 	});
@@ -243,7 +270,7 @@ if (has("--check")) {
 	process.exit(0);
 }
 
-await migrateOrExit();
+await prepareDatabaseOrExit();
 
 const startedAt = Date.now();
 const children = services.map((service, index) => start(service, width, index));
