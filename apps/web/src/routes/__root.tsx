@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { usePreloadPages } from "@/features/pages/hooks/use-preload-pages";
+import { useWarmEditor } from "@/features/pages/hooks/use-warm-editor";
 import { loadPageTree } from "@/features/pages/lib/pages.api";
 import { PageTree } from "@/features/pages/ui/components/PageTree";
 import { loadSession } from "@/shared/lib/viewer";
@@ -43,6 +44,7 @@ function RootComponent() {
 	const { nodes } = Route.useLoaderData();
 
 	usePreloadPages(nodes);
+	useWarmEditor();
 
 	return (
 		<Document>
