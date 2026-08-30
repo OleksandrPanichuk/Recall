@@ -95,3 +95,48 @@ describe("MoveFolderUseCase", () => {
 		);
 	});
 });
+
+describe("where a moved page lands among its new siblings", () => {
+	test("at the end, not wherever its old position happened to fall", async () => {
+		const source = await create("Source");
+		const target = await create("Target");
+
+		await create("First", target);
+		await create("Second", target);
+
+		const drifter = await create("Drifter", source);
+
+		await moveFolder.execute({ folderId: drifter, parentId: target });
+
+		expect(
+			(await context.scope.pages.listChildren(target)).map((page) => page.name),
+		).toEqual(["First", "Second", "Drifter"]);
+	});
+
+	test("moving to the root puts it last there too", async () => {
+		const outer = await create("Outer");
+		const inner = await create("Inner", outer);
+
+		await create("Later");
+		await moveFolder.execute({ folderId: inner });
+
+		expect(
+			(await context.scope.pages.listChildren(undefined)).map(
+				(page) => page.name,
+			),
+		).toEqual(["Outer", "Later", "Inner"]);
+	});
+
+	test("staying under the same parent keeps the order it had", async () => {
+		const first = await create("First");
+		await create("Second");
+
+		await moveFolder.execute({ folderId: first });
+
+		expect(
+			(await context.scope.pages.listChildren(undefined)).map(
+				(page) => page.name,
+			),
+		).toEqual(["First", "Second"]);
+	});
+});

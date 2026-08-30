@@ -169,6 +169,37 @@ describe("the page tree", () => {
 		expect(disabled("Опустити Physics")).toBe(true);
 	});
 
+	test("a page can be picked up for dragging, and a busy tree cannot", async () => {
+		routed(
+			<PageTree nodes={[node("a", "Biology", 0), node("c", "Physics", 0)]} />,
+		);
+
+		expect(await screen.findByLabelText("Перетягнути Biology")).toBeDefined();
+		expect(
+			(screen.getByLabelText("Перетягнути Physics") as HTMLButtonElement)
+				.disabled,
+		).toBe(false);
+	});
+
+	test("only the roots are open to begin with", async () => {
+		routed(
+			<PageTree
+				nodes={[
+					node("a", "Biology", 0),
+					node("b", "Chapter 1", 1, "a"),
+					node("d", "Section", 2, "b"),
+				]}
+			/>,
+		);
+
+		expect(await screen.findByText("Chapter 1")).toBeDefined();
+		expect(screen.queryByText("Section")).toBeNull();
+
+		fireEvent.click(screen.getByLabelText("Розгорнути Chapter 1"));
+
+		expect(screen.getByText("Section")).toBeDefined();
+	});
+
 	test("a lone child of its parent cannot be moved either way", async () => {
 		routed(
 			<PageTree

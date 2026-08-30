@@ -1,43 +1,90 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { PageTreeNode } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight, ChevronUp, FileText } from "lucide-react";
-import { useState } from "react";
-import { childrenOf, slotFor } from "./PageTree.lib";
+import {
+	ChevronDown,
+	ChevronRight,
+	ChevronUp,
+	FileText,
+	GripVertical,
+} from "lucide-react";
+import { cn } from "@/shared/lib/utils";
+import { INDENT_PX } from "./PageTree.constants";
 
 interface Props {
 	readonly node: PageTreeNode;
-	readonly nodes: readonly PageTreeNode[];
+	readonly depth: number;
+	readonly hasChildren: boolean;
+	readonly collapsed: boolean;
+	readonly onToggle: (id: string) => void;
 	readonly onReorder: (node: PageTreeNode, direction: "up" | "down") => void;
+	readonly canGoUp: boolean;
+	readonly canGoDown: boolean;
 	readonly busy: boolean;
+	readonly ghost?: boolean;
 }
 
-export function PageBranch({ node, nodes, onReorder, busy }: Props) {
-	const [open, setOpen] = useState(node.depth === 0);
-	const children = childrenOf(nodes, node.id);
-	const canGoUp = slotFor(nodes, node, "up") !== undefined;
-	const canGoDown = slotFor(nodes, node, "down") !== undefined;
+export function PageRow({
+	node,
+	depth,
+	hasChildren,
+	collapsed,
+	onToggle,
+	onReorder,
+	canGoUp,
+	canGoDown,
+	busy,
+	ghost = false,
+}: Props) {
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: node.id, disabled: busy });
 
 	return (
-		<li>
-			<div
-				className="group flex items-center gap-0.5 rounded-md pr-1 hover:bg-accent/60"
-				style={{ paddingLeft: `${node.depth * 0.75}rem` }}
-			>
-				{children.length === 0 ? (
-					<span className="size-5 shrink-0" />
-				) : (
+		<li
+			ref={setNodeRef}
+			style={{
+				transform: CSS.Translate.toString(transform),
+				transition,
+				paddingLeft: `${depth * INDENT_PX}px`,
+			}}
+			className={cn("list-none", isDragging && !ghost ? "opacity-40" : "")}
+		>
+			<div className="group flex items-center gap-0.5 rounded-md pr-1 hover:bg-accent/60">
+				<button
+					type="button"
+					aria-label={`Перетягнути ${node.name}`}
+					className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 focus-visible:opacity-100 group-hover:opacity-100 disabled:cursor-default"
+					disabled={busy}
+					{...attributes}
+					{...listeners}
+				>
+					<GripVertical className="size-3.5" />
+				</button>
+				{hasChildren ? (
 					<button
 						type="button"
 						aria-label={
-							open ? `Згорнути ${node.name}` : `Розгорнути ${node.name}`
+							collapsed ? `Розгорнути ${node.name}` : `Згорнути ${node.name}`
 						}
-						onClick={() => setOpen(!open)}
+						onClick={() => onToggle(node.id)}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent"
 					>
 						<ChevronRight
-							className={`size-3.5 transition-transform ${open ? "rotate-90" : ""}`}
+							className={cn(
+								"size-3.5 transition-transform",
+								collapsed ? "" : "rotate-90",
+							)}
 						/>
 					</button>
+				) : (
+					<span className="size-5 shrink-0" />
 				)}
 				<Link
 					to="/folders/$folderId"
@@ -78,19 +125,6 @@ export function PageBranch({ node, nodes, onReorder, busy }: Props) {
 					</button>
 				</span>
 			</div>
-			{open && children.length > 0 ? (
-				<ul>
-					{children.map((child) => (
-						<PageBranch
-							key={child.id}
-							node={child}
-							nodes={nodes}
-							onReorder={onReorder}
-							busy={busy}
-						/>
-					))}
-				</ul>
-			) : null}
 		</li>
 	);
 }

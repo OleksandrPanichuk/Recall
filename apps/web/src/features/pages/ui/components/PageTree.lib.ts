@@ -39,3 +39,35 @@ export function slotFor(
 				beforeId: siblings[index + 2]?.id,
 			};
 }
+
+export function announcementsFor(nodes: readonly PageTreeNode[]) {
+	const nameOf = (id: string | number): string =>
+		nodes.find((node) => node.id === String(id))?.name ?? String(id);
+
+	return {
+		onDragStart: ({ active }: { active: { id: string | number } }) =>
+			`Взяли сторінку ${nameOf(active.id)}. Стрілками пересуньте її, пробілом покладіть.`,
+		onDragOver: ({
+			active,
+			over,
+		}: {
+			active: { id: string | number };
+			over: { id: string | number } | null;
+		}) =>
+			over === null || over.id === active.id
+				? undefined
+				: `${nameOf(active.id)} — біля сторінки ${nameOf(over.id)}.`,
+		onDragEnd: ({
+			active,
+			over,
+		}: {
+			active: { id: string | number };
+			over: { id: string | number } | null;
+		}) =>
+			over === null || over.id === active.id
+				? `Сторінку ${nameOf(active.id)} залишено на місці.`
+				: `Сторінку ${nameOf(active.id)} покладено біля ${nameOf(over.id)}.`,
+		onDragCancel: ({ active }: { active: { id: string | number } }) =>
+			`Переміщення сторінки ${nameOf(active.id)} скасовано.`,
+	};
+}
