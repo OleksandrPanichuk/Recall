@@ -1,0 +1,25 @@
+{
+	"takenAt": "2026-08-23T14:05:39.911Z",
+	"backup": "data/quiz.before-postgres-20260823-170412.sqlite",
+	"tableCount": 13,
+	"live": {
+		"counts": {
+			"folders": 13,
+			"oauth_clients": 4,
+			"oauth_codes": 2,
+			"oauth_tokens": 6,
+			"question_options": 915,
+			"question_repetition_schedules": 227,
+			"question_responses": 312,
+			"questions": 306,
+			"quiz_attempts": 38,
+			"quiz_sets": 9,
+			"repetition_defaults": 1,
+			"repetition_settings": 6,
+			"vocabulary_items": 32
+		},
+		"correctAnswers": 234,
+		"answeredTotal": 312,
+		"orphanResponses": 0
+	}
+}

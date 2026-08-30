@@ -1,0 +1,11 @@
+{
+	"extends": "../../packages/tooling/tsconfig.base.json",
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"],
+			"@tests/*": ["./tests/*"],
+			"@recall/kit": ["../../packages/kit/src/index.ts"],
+			"@recall/contracts": ["../../packages/contracts/src/index.ts"]
+		}
+	}
+}

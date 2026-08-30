@@ -1,0 +1,1 @@
+CREATE INDEX "pages_search_idx" ON "pages" USING gin (to_tsvector('simple', "title" || ' ' || coalesce("content_md", '')));

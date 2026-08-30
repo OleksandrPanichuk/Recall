@@ -4,11 +4,62 @@
 > investigation findings and recommendations per numbered item, then the
 > sequencing and the open decisions. Everything about this rewrite lives here.
 >
-> Status: **investigation complete, revised after adversarial review, decisions pending.**
-> No code changed yet. Written 2026-08-23 against commit `d17a161`.
+> Status: **phases 1-6 landed; phase 7 is next.** Written 2026-08-23 against commit
+> `d17a161`, last revised 2026-08-24 when the Postgres cutover landed.
 >
 > **Revision log**
 > - r1 — first investigation pass.
+>   - r10 — the **ETL exists and verifies itself**. It migrates the real backup into the new
+>     schema with every count matching and a `verifyMigration` pass, is idempotent, and is
+>     covered by tests. One postgres.js encoding trap cost most of the time: see below.
+>   - r11 — the **transaction topology exists and works**: an async `UnitOfWork` that hands
+>     repositories to the operation, the first Postgres repository behind it, and a rollback
+>     test proving the boundary. No use case has moved yet.
+>   - r12 — **"per bounded context" is retracted.** The repositories are welded together by SQL:
+>     the attempt repository joins `questions`, and the folder repository reads `quiz_sets`, so
+>     no context can sit on a different engine from its neighbour. Phase 5 is a single cutover.
+>     Added the enabler that makes that safe: one contract suite, run against both a Postgres
+>     and an in-memory implementation of the same async port.
+>   - r13 — the **quiz repository is ported, and the delete-and-reinsert pattern is gone**:
+>     diffing upsert, `version` for optimistic concurrency, survivors keeping their ids. Two of
+>     five repositories now have both implementations behind a shared contract.
+>   - r14 — the **attempts repository is ported**, statistics queries included, and the
+>     migration is now **lossless**: r9's decision to leave ownership out took the legacy
+>     `telegram_user_id` with it, which the domain still requires. Three of five repositories
+>     paired.
+>   - r15 — **all five repositories paired**, and phases 5 and 6 are **merged**: the use-case
+>     port cannot be incremental, because the first ported use case forces the whole app onto
+>     Postgres. Attempted, measured, and stashed rather than half-landed. The remaining work is
+>     one atomic cutover, specified below.
+>   - r17 — **the cutover landed. Phases 5 and 6 are done.** All 34 use cases, every test, the
+>     composition root, the supervisor, `.env` and the operator manual are on Postgres. 1263
+>     tests green, and the suite still runs without Docker by skipping the 65 that need it. The
+>     migration was rehearsed against the real backup and verified clean, and the bot was then
+>     driven against that database: it served a real quiz and recorded an answer. Four defects
+>     the port had introduced, and two decisions, are below.
+> - r9 — the **§6 schema exists** as one Postgres migration with the approved names
+>   (`pages`, `quizzes`, `term_pairs`, `attempts`, `responses`, `review_states`,
+>   `study_settings`, `attempt_questions`, `question_sources`, `quiz_attachments`), applied and
+>   its constraints tested. A pre-migration backup of the live database was taken and verified
+>   against it. Repositories and the ETL are still not written.
+> - r8 — **phase 5 started, not finished.** Postgres 17 in Docker, drizzle over postgres.js,
+>   an isolated-schema test harness, and the transaction semantics the whole phase depends on
+>   now pinned by tests. One measured finding changes the design: on Postgres an unawaited
+>   write **survives a rolled-back transaction**, 8/8 deterministic. Repository and use-case
+>   porting has not started. See "Phase 5, first slice".
+> - r7 — **phase 4 done**: Nest shell on Express, `GET /quizzes`, `GET /quizzes/:id`,
+>   health, Swagger, domain-error filter, and the 35 `*UseCase` renames. Runs on **Bun**, not
+>   Node — see the phase-4 note. Explicit `@Inject` everywhere, `emitDecoratorMetadata` off.
+>   1382 tests.
+> - r6 — **phase 3 deleted as a standalone phase** and folded into phase 5. It is not
+>   implementable on its own: transaction boundaries nest, so widening repositories to
+>   `Promise` would leave unawaited promises inside a synchronous transaction callback.
+>   Codex's finding #2 was right and my r2 "middle path" was wrong — second correction to
+>   the same finding, recorded in §9. Phase 4 (Nest shell) is unblocked and next.
+> - r5 — **phase 2 done**: Bun workspace, `src/` → `apps/api/src/`, `packages/tooling`, and
+>   the dependency direction now enforced by `biome.json` rather than documented. Same 1377
+>   tests. One refinement the plan had not stated: `apps/{web,bot,mcp,admin}` are **not**
+>   created yet — see the note under phase 2.
 > - r4 — phase 1 implemented, and **finding 11 corrected**: the question-delete path was
 >   already guarded (`AnsweredQuestionError`, commit `73a414e`), so r2's "history is being
 >   destroyed" was overstated. The real defect was option-id re-minting on edit, now fixed
@@ -1098,14 +1149,18 @@ believing it — and check `git log` for whether the author already solved it.
 
 ### Where I did not simply defer
 
-- On #2 the review's conclusion is right but its remedy is heavier than necessary. It
-  proposed abandoning the SQLite-era async step entirely and converting each transactional
-  use case only alongside its Postgres repository. There is a safer middle path it did not
-  name: widen the **return type** to `Promise<T>` while keeping the **callback**
-  `Synchronous<T>`. That absorbs the ~200-file call-site churn on a database you trust,
-  keeps the compile-time guard against awaiting inside a transaction fully intact, and
-  leaves the semantics change for the per-context Postgres move. Its warning stands and is
-  quoted in §2; only the sequencing is softened.
+- On #2 I claimed a safer middle path than the review's: widen the **return type** to
+  `Promise<T>` while keeping the **callback** `Synchronous<T>`, absorbing the call-site churn
+  on SQLite first. **That was wrong, and r6 retracts it.** Transaction boundaries nest — ten
+  use cases wrap repository calls that themselves open a boundary — so widening the
+  repositories puts unawaited promises inside a synchronous callback. The review's original
+  remedy (convert each transactional use case together with its Postgres repository, per
+  context) was correct. See "Why phase 3 was deleted" under Sequencing.
+
+  Worth recording as a pattern: this is the *second* time on this finding that I accepted a
+  mechanism as understood without tracing its callers. First I asserted a cascade was live
+  without checking the guard; then I proposed an async widening without checking what was
+  nested inside the boundary. Both times the code answered in a minute.
 - On #9 the request explicitly asked for a model that is "not very descriptive **+ not
   general**". Renaming to `term_pairs` answers "descriptive" and defers "general", so §6 now
   also records *how* generality arrives later (an additive `kind` column with a default —
@@ -1129,6 +1184,467 @@ phase 4 if a tiebreaker is wanted on the `web` stack or the auth build-vs-adopt 
 
 ---
 
+## The cutover, proven through the router (r18)
+
+r17 claimed the bot had been driven against Postgres; the databases on disk did not show it, so
+it was re-run from scratch and the record corrected. Both halves are now verified.
+
+**Application layer.** ETL from the pre-cutover backup into a fresh database (`verification
+passed`, every count matching `data/etl-baseline.json`), `bun run status` reporting 9 published
+sets / 306 questions / 38 attempts / 312 answers off it, then a full practice cycle through the
+use cases: quiz listed, attempt started, question 1/76 served, typed answer accepted, attempt
+finished 1/76, statistics moving 1→2 attempts, and the attempt review resolving what was chosen
+— the phase-1 option-id fix holding on Postgres.
+
+**Telegraf router.** Real updates through `createBot` with only the outbound HTTP transport
+stubbed: `/start` rendered the seven-button menu, browse listed the sets, tapping a quiz served
+*"DDIA — Розділ 2 — питання 1/20"*, and tapping an option answered it `✅ Правильно`. The
+database moved 39→40 attempts and 313→314 responses, and the stored row is real —
+`is_correct = t`, one option chosen, against the reational-model question.
+
+So "question 1/20" in r17 was accurate; only its evidence had been overwritten by a later
+rehearsal. The lesson is about evidence rather than code: **a claim about state needs the state
+kept, or the command to reproduce it.** The handoff now carries the commands.
+
+One incidental finding, from Postgres going down mid-run: the router degrades correctly. It
+logged `telegram handler failed` with the query, its parameters and `ECONNREFUSED`, then showed
+*"Сталася помилка. Спробуйте ще раз."* with a menu button rather than crashing the process.
+
+Untried: `bun run dev` against the live Telegram API, which needs a bot token and covers nothing
+the above does not.
+
+## Splitting the apps out (r19)
+
+`apps/admin` went first, then `apps/mcp`. Both are now their own workspace package, and the API
+serves what used to be three separate HTTP processes on one port.
+
+**The admin.** A whole Fetch-style route table mounted inside Nest through
+`modules/integration/admin/fetch-routes.ts`. Two traps paid for themselves there: Nest mounts
+middleware behind a wildcard, so `request.path` is always `/` and the real path is on
+`originalUrl`; and copying a Fetch `Response`'s headers onto an Express response duplicates
+`content-length`, which happy-dom rejects as a parse error.
+
+**The MCP surface.** `createMcpHttpApp` already returns an Express app, so no bridge was needed —
+but it cannot be mounted through Nest middleware either: Nest gives middleware a path, Express
+strips that prefix from a mounted sub-app, and `/mcp` then never matches (404 on every request,
+token or not). It is mounted path-lessly on the underlying Express instance instead, from
+`createApiApp`, with the module providing it so shutdown still closes the OAuth SQLite file.
+
+`MCP_HTTP_TOKEN` decides whether it exists at all: without one the API answers 404 on `/mcp` and
+serves everything else, which is what the old standalone entrypoint could not do — it refused to
+boot. The paired `MCP_OAUTH_ISSUER`/`MCP_OAUTH_PASSPHRASE` guard moved across with it.
+
+**`apps/mcp` is a bridge, not a server.** It reads newline-delimited JSON-RPC on stdin, POSTs
+each line to the API's `/mcp` with the bearer token, and writes the answer back — notifications
+stay silent, an unreachable API becomes a JSON-RPC error rather than a crash, and writes are
+serialised so two concurrent answers cannot interleave inside one line. That is what makes
+"only `apps/api` talks to the database" true for MCP as well: the old `entrypoints/mcp.ts` opened
+its own connection, and is deleted.
+
+Deleted with it: `entrypoints/mcp-http.ts`, `loadHttpEnvironment` (its only caller), and the
+`mcp` service in `bun run up` — three processes now, not four, because MCP is the API.
+
+Proven, not assumed: 1271 tests green including a stdio round-trip that spawns the API *and* the
+bridge as real processes, hands the bridge `initialize`, `tools/list` and `tools/call`, and reads
+the created set back out of Postgres through a second tool call.
+
+One measured correction to note: an "Invalid Host header" on `/mcp` during manual testing was
+the repo's own `.env` — `MCP_HTTP_ALLOWED_HOST` turns on DNS-rebinding protection, and Bun loads
+`.env` automatically. The tests pass `--env-file=/dev/null` for exactly this reason.
+
+## The bot as a client, not a co-tenant (r20)
+
+`apps/bot` was the last and largest split, and the only one that needed a real contract. The
+other apps could be moved because they already spoke HTTP; the bot called 12 use cases directly
+and rendered their return values — domain objects with branded ids and `Date`s.
+
+**Two packages came out of it.** `packages/contracts` holds the wire shapes as zod schemas (ids
+as plain strings, timestamps as ISO strings) plus `createBotClient`, which exposes exactly the
+`{ execute(command) }` shape the handlers already called. That is what kept the diff sane: the
+bot's `TelegramUseCases` is now `BotUseCases`, and 40-odd handler and presenter files needed
+only their imports rewritten. `packages/kit` holds what both sides genuinely share — logger,
+shutdown, daily timer, and the pure text/shuffle/timezone helpers.
+
+**The API grew an internal RPC surface.** `POST /bot/*`, twelve routes, one per use case, guarded
+by `BOT_API_TOKEN` (SHA-256 + `timingSafeEqual`, reusing the MCP bearer helpers) and excluded
+from Swagger. Bodies are validated by the same zod schemas the client sends, and results go
+through explicit domain→wire mappers rather than being serialised by accident.
+
+**A refusal had to keep its meaning.** The bot's error screen used `instanceof` on six error
+classes. Over HTTP it now reads `error.name`, which the exception filter already emitted — but
+`QuestionNotInAttemptError` was missing from `error-map.ts` and would have become a flat 500,
+and `NothingToPracticeError` carries the `mode` and `folderId` the next screen draws. So the
+filter now also emits a whitelisted `details` object, and the client rehydrates it onto
+`BotApiError`.
+
+**The test suite got stronger, not weaker.** `bot.test.ts` is 2492 lines of screen assertions
+that used to run against an in-process application. The harness now boots the real Nest
+controller over a real port (a `@Global()` module supplies in-memory repositories in place of
+Postgres) and points `createBotClient` at it. All 175 bot tests pass through HTTP, zod
+validation and the error filter — paths that previously had no coverage at all.
+
+**Proven end to end.** With the API on the post-cutover `recall_live` database, the real Telegraf
+router with only Telegram's transport stubbed: `/start` drew the seven-button menu, browse listed
+the sets, opening one served *"DDIA — Розділ 2: Data Models and Query Languages — питання 1/20"*
+with four options, and answering it rendered *"❌ Неправильно / Правильна відповідь: Edgar Codd,
+1970"*. The database moved 38→39 attempts and 312→313 responses.
+
+Also moved: `bun run status` became `apps/api/src/entrypoints/status.ts`, because reading counts
+off the database is the API's business. `loadEnvironment` in `infrastructure/config/env.ts` lost
+its last caller and is deleted; the bot validates its own, smaller environment
+(`TELEGRAM_BOT_KEY`, `ALLOWED_TELEGRAM_USER_ID`, `BOT_API_TOKEN`, `RECALL_API_URL`,
+`APP_TIMEZONE`) and never sees `DATABASE_URL`.
+
+## Phase 7a: identity, and who is allowed to say who you are (r21)
+
+Better Auth is in, on Postgres, with the Telegram login flow working end to end. Ownership
+(`owner_id` on the domain tables) is deliberately **not** in this step — see below.
+
+**The tables are ours, not generated.** `persistence/postgres/auth-schema.ts` defines `user`,
+`session`, `account`, `verification` with the column names Better Auth expects, plus
+`auth_events` for the audit trail the plan asked for from day one. They live in the same drizzle
+schema as everything else, so `db:generate` produced one migration and `applyMigration` in the
+test fixture now applies **every** file rather than only the first — it had been taking
+`[name] = files.sort()` and silently ignoring the rest, which worked only while there was one.
+
+**Where the seam is.** Two decisions, both about who may assert an identity:
+
+- **Mounting.** The handler goes on the raw Express instance ahead of any body parser, so
+  `NestFactory.create` gets `bodyParser: false` and `json()` is mounted by hand after. Better
+  Auth reads the raw body; a parser that already drained the stream leaves it hanging.
+- **Issuing.** A link is minted only by `POST /bot/auth/login-link`, behind the bot token. It is
+  *not* a Better Auth endpoint, because `SERVER_ONLY` only hides an endpoint from the generated
+  client — the route would still be reachable, and a route that converts a Telegram id into a
+  session is an authorization bypass. The plugin only spends a token it did not mint. The bot
+  hands over the Telegram id and the api maps it to a user; no caller ever names a `userId`.
+
+**The cookie is a session row, as decided.** One year, `HttpOnly`, `SameSite=Lax`, re-issued on
+use — revocable, listable, and killable per device, which an endless JWT is not.
+
+**A hole I opened and closed before landing.** Enabling `emailAndPassword` (phase 2 of the auth
+plan, not this one) exposes `POST /api/auth/sign-up/email` publicly. A stranger signed themselves
+up on the instance in testing. It is now off, and two tests pin it: sign-up is refused and no user
+row appears, and password sign-in against a Telegram user's placeholder email is refused too.
+
+**Also found by testing rather than reasoning:** the plugin's explicit "is this token expired"
+branch was unreachable — `consumeVerificationValue` already rejects an expired row, so an expired
+link comes back as `invalid_token`. The branch is deleted and the behaviour is pinned by a test,
+which is what protects it: if the library ever started returning expired rows, that test fails
+instead of a session being minted.
+
+**Proven end to end.** `/login` in the real bot returned a link; following it set the cookie and
+redirected to the app; `get-session` reported a session expiring in a year; replaying the link
+gave `?error=invalid_token`. One Telegram id is one user across devices, a different id is a
+different user, and `auth_events` recorded both the creation and every issued link.
+
+**What phase 7b still owes.** `/bot/*` still carries `telegramUserId` in the body and the api
+still believes it — correct while one person owns the instance, and the thing to fix before
+multi-user. The mapping already exists (`TelegramIdentityService.userIdForTelegram`); what is
+missing is `owner_id` on the domain tables and a principal threaded through the use cases, so the
+type checker refuses an unscoped call.
+
+## Phase 7b: ownership, bound where it cannot be forgotten (r22)
+
+Multi-user data isolation is in. The decision that made it small: **the owner binds to the
+repository scope, not to the use cases.** `scopeFor(executor, owner)` builds all five
+repositories against one owner, so none of the 34 use cases changed — they never hold anything
+that could name another owner's rows. Threading a `UserId` through every use case would have been
+a far bigger diff *and* weaker, because each new call site could forget it.
+
+**Seven tables carry `owner_id`:** pages, quizzes, questions, attempts, term_pairs,
+review_states, study_settings. Children (question_options, question_sources, responses,
+attempt_questions) are reached only through an owned parent, so they do not need the column —
+except that `answerCount` used to read `responses` directly, and now joins `attempts` to stay
+inside the owner. Every previously instance-wide unique became per owner: a legacy id, a page
+slug, the instance-wide settings row. Two people may import the same v1 export.
+
+**The migration adopts rather than fails.** `ADD COLUMN … NOT NULL` cannot land on a populated
+table, and this migration has to work on a database that predates ownership. It adds the column
+nullable, adopts every row into the single existing user, then sets NOT NULL — and if there are
+rows but no user to adopt them it raises with an instruction instead of leaving a half-migrated
+schema. Both paths were tested against a populated copy.
+
+**The in-memory double partitions instead of filtering.** One store per owner is the same
+isolation as a column, expressed so that a forgotten predicate cannot leak. `createMemoryStores`
+hands out stores lazily.
+
+**Where the owner comes from.** One instance, one owner: whoever holds the Telegram account named
+by `ALLOWED_TELEGRAM_USER_ID`. `instanceOwnerResolver` looks it up once and caches it, and
+`lazyScope` defers that lookup to the first query — which is what lets the http surfaces be built
+at boot, before anyone has linked an account. When credentials become per-user the resolver
+becomes per-request and nothing above it changes.
+
+**The authorization hole is closed.** `/bot/*` still carries `telegramUserId` for domain keying,
+but `BotTokenGuard` now refuses any body naming a different account: holding the bot token no
+longer lets a caller read someone else's data. That is the property §5 asked for, reached without
+waiting for per-user tokens.
+
+**One mapping, used by both paths.** `ensureTelegramOwner` / `findTelegramOwner` in
+`persistence/postgres/owner.ts` is the only code that maps a Telegram id to an owner. The login
+flow and the ETL both call it, so an import cannot land under a different user than the one the
+bot will hand the platform to. The ETL now requires `ALLOWED_TELEGRAM_USER_ID` and creates the
+owner if the bot has not been used yet.
+
+**Two bugs found on the way**, both latent before ownership: `applyMigration` in the test fixture
+and the ETL script both took `[name] = files.sort()` and silently ignored every migration after
+the first — invisible while there was one file, wrong the moment there were two.
+
+**Proven, three ways.** `tests/contracts/ownership.contract.ts` runs on both engines: a page, a
+quiz, an attempt and a settings row written by one owner are invisible to the other, both may
+reuse a name, and neither can delete the other's rows. The v1 backup was re-imported into a fresh
+database — 9 quizzes, 306 questions, 38 attempts, 312 responses, every owned row under the one
+Telegram-linked user — and the real bot drove it end to end (menu, browse, *"питання 1/20"*, an
+answer recorded, 38→39 attempts). Then the same database was served as a *second* Telegram
+account: `/quizzes` returned 9 for the owner and **0** for the other, and `/bot/*` refused a body
+naming a foreign account with 403.
+
+## Phase 7c (first half): MCP per credential (r23)
+
+The MCP surface no longer serves "the instance" — it serves whoever the token belongs to.
+`createMcpHttpApp` takes `applicationFor(owner)` and builds the tools per request, and bearer
+verification returns a **principal** rather than a boolean, which is the change §5 asked for.
+
+**Personal access tokens.** `api_tokens` holds owner, name, scopes, `last_used_at`, `expires_at`
+and `revoked_at`; only a sha256 of the token is stored, so a leaked database hands nobody a
+working credential and the token itself is shown once. The bot issues, lists and revokes them
+(`/token`, `/tokens`, `/revoke`), which means the same Telegram account that owns the data is the
+only thing that can mint access to it.
+
+**Three kinds of credential, one answer.** A personal token names its own owner. The static
+`MCP_HTTP_TOKEN` and an OAuth grant resolve to the instance owner — the consent gate is a
+passphrase, and whoever knows it is that owner. Binding a *user* into the OAuth grant proper is
+the second half of 7c, and it needs the consent screen to require a session.
+
+**Two things the SDK and the driver taught us.** The MCP SDK refuses an auth assertion with no
+expiry (`Token has no expiration time`), so a non-expiring personal token still gets a bounded
+assertion — the token stays valid, only the assertion is short-lived, exactly as the static
+token's already was. And `findApiTokenPrincipal` failed at first for the reason CLAUDE.md warns
+about: a raw `Date` handed to postgres.js. The placeholder is now `${at.toISOString()}::timestamptz`.
+
+**The ETL stopped applying the schema.** `APPLY_SCHEMA=1` wrote the tables without recording them
+in drizzle's journal, so the next `db:migrate` against that database tried to create everything
+again and failed — which is exactly what happened when this phase added a migration. The script
+now refuses a database with no schema and tells you to run `bun run db:migrate` first. Migrations
+are drizzle-kit's job.
+
+**Proven against the real library.** Same `/mcp` endpoint, one process: the owner's personal token
+listed **9** sets, the static token listed **9**, a second owner's token listed **0**, and a
+forged token got 401. Revoking through the bot turned a working token into a 401, and
+`last_used_at` recorded every use.
+
+**What the second half still owes:** `user_id` on `oauth_codes`/`oauth_tokens` bound from a
+logged-in consent screen, moving that store off `bun:sqlite` (its interface is synchronous, which
+is what pins `apps/api` to Bun), and then the Node switch.
+
+## Phase 7c (second half): the grant carries its user, and SQLite leaves (r24)
+
+**The OAuth store is on Postgres and its interface is async.** That interface was synchronous
+only because it was a local file, and it is exactly what pinned `apps/api` to `bun:sqlite`. Three
+tables (`oauth_clients`, `oauth_codes`, `oauth_tokens`), codes and tokens carrying `owner_id`, and
+`consumeCode` is a single `UPDATE … RETURNING` so two exchanges of one code cannot both win.
+
+**The whole `adapters/persistence/sqlite/` tree is deleted** — store, database, migrator,
+transaction helper, schema — along with `OAUTH_DATABASE_PATH`, the sqlite drizzle config and its
+`db:generate` script. `drizzle/` stays: those are the v1 migrations, and the ETL test uses them to
+build a v1 file to import. The only `bun:sqlite` import left in the tree is the ETL reading that
+backup, which is a Bun script rather than part of the server.
+
+**The owner travels with the grant.** `approve(id, ownerId)` binds the code to whoever approved
+it, and `issue(clientId, scopes, ownerId)` stamps both halves of the token pair — including on
+refresh, which the plan flagged as the place this silently breaks. A logged-in browser binds that
+user (`ownerOfSession`, via Better Auth's `getSession`); with no session it is the instance owner,
+because knowing the consent passphrase is what proves that on a single-owner install.
+
+**Contract-tested, not just wired.** `tests/contracts/oauth-store.contract.ts` runs against the
+Postgres store and an in-memory double: a code carries its approver, is spendable once, expires;
+a token carries its owner, distinguishes access from refresh, honours revocation, and a refresh
+token without an expiry stays valid. The two provider tests that used a real SQLite file now use
+the double.
+
+**Proven by walking the grant.** A public PKCE client registered itself, `/authorize` redirected
+to the consent screen, the passphrase approved it, and the code came back bound to
+`owner=29b37104`. Exchanging it produced a pair whose access token listed the owner's **9** sets;
+refreshing produced a new pair that still carried the same owner and still listed 9, with the old
+refresh token revoked.
+
+**The Node switch is unblocked but not done.** Nothing in the server imports `bun:sqlite` any
+more, and the only Bun-specific things left in `apps/api/src` are `import.meta.main` in the api
+entrypoint and `Bun.CryptoHasher` in the ETL. What remains is a build: `node
+--experimental-strip-types` cannot resolve the `@/*` path aliases, so the switch needs a compile
+step (tsc + alias rewriting, or swc) and entrypoint scripts to match.
+
+## Phase 7c, finished: `apps/api` runs on Node (r25)
+
+The plan said NestJS on Node from the start; until now it ran on Bun because `bun:sqlite` was in
+the tree. It is out, so the switch is done — and it was not just a matter of changing the command.
+
+**What it took.** `tsc` emits ESM to `apps/api/dist`, then `tsc-alias --resolveFullPaths` rewrites
+`@/…` to relative paths *and* appends the `.js` extensions Node's ESM loader requires (the source
+stays extensionless). CommonJS was not an option: `better-auth` is ESM-only, with no `require`
+condition.
+
+**The shared packages ship twice.** `packages/kit` and `packages/contracts` declare
+`exports: { ".": { "bun": "./src/index.ts", "default": "./dist/index.js" } }`, so Bun keeps
+reading the TypeScript source — no build needed in development — while Node resolves the compiled
+output. One package, two consumers, no duplicated source.
+
+**Two Bun-isms had to go.** `import.meta.main` guarded the api's bootstrap; Node 22 has no such
+thing, so the bootstrap moved into `entrypoints/serve.ts` whose only job is to start, leaving
+`api.ts` exporting `createApiApp` for the tests. And `Bun.hash` was computing question
+fingerprints **in the domain layer** — the one place that should not know what runtime it is on.
+It is `node:crypto` sha256 now.
+
+**That changed every fingerprint, so imports recompute them.** v1 hashed content with `Bun.hash`;
+a copied fingerprint would never collide with one this app computes, which would quietly weaken
+the duplicate check the `(quiz_id, fingerprint)` unique exists for. The ETL now recomputes every
+fingerprint through the same `questionFingerprint` the repository uses, as a final pass over the
+imported questions and options.
+
+**Proven on both runtimes.** A clean `bun run build` builds two packages and four apps. `node
+apps/api/dist/entrypoints/serve.js` against the imported library served **9** quizzes over
+`/quizzes`, answered `/bot/browse` with 1 root set and 3 folders, refused `/mcp` without a token
+(401) and `/bot/*` without one (401), and served Swagger and `/api/auth/*`. The same code under
+Bun answers identically — including the 503 on a database with no linked owner, which is the same
+on both.
+
+## Phase 9, first step: attempts belong to an owner, not to a chat (r26)
+
+The web app could not have been written against the API as it stood: every practice command
+carried a `telegramUserId`, and a browser user does not have one. This is that fixed, and it is
+also the last caller-supplied identity leaving the API.
+
+**What moved.** The repository ports lost their identity parameters —
+`findActiveFor(telegramUserId)` became `findActive()`, and `listCompletedForQuiz`,
+`topicAccuracy`, `incorrectQuestionIds`, `listDue`, `listLeeches` and `findSchedules` all lost
+theirs. They were redundant: `scopeFor(executor, owner)` already binds the scope to one owner, so
+the parameter could only ever have named somebody else. Seven use-case commands became empty or
+lost the field, and the wire schemas followed.
+
+**What stays, and why.** `telegramUserId` is now **provenance**, not identity: optional on the
+attempt and the schedule, written when a Telegram client starts an attempt, so the row still
+records which account did it. It also stays on `/bot/auth/*`, where the account genuinely is the
+subject, and `BotTokenGuard` still refuses a body naming any other one. And the daily reminder's
+field was renamed `chatId`, which is what it always was — where to send the message, not who is
+asking.
+
+**Two tests asserted the old world and had to be rewritten rather than repaired.** "ignores
+another user's attempts" and "keeps attempts separate per user" both tested per-*Telegram-account*
+separation inside one owner, which no longer exists and should not: an owner's attempts are the
+owner's, whichever client made them. They now assert what actually holds — every attempt of the
+owner is counted, and starting the same quiz twice resumes rather than forking. Cross-owner
+isolation is proven where two scopes exist to compare, in `tests/contracts/ownership.contract.ts`.
+
+**Proven by watching the wire.** The real bot was driven against the imported library with
+`fetch` instrumented to log every request body: `attempts/current {}`, `browse {}`,
+`attempts/start {"quizSetId":…}`, `attempts/answer {"questionId":…}` — **no body names a user**,
+and the screens still render (*"питання 1/20"*, an answer graded). A fresh attempt recorded
+`telegram_user_id = 987654321` as provenance, and a body naming a foreign account is still 403.
+
+**What this unblocks.** `apps/web` can now call the same contract with a session cookie and no
+Telegram id anywhere. The remaining web-specific work is the app itself: TanStack Start, the
+practice screens, and an auth boundary that forwards the cookie.
+
+## Phase 9: the web app exists (r27)
+
+`apps/web` is a TanStack Start app — the stack decision from r3 — serving browse, quiz, practice
+and attempt review against the same contract the bot uses.
+
+**The API grew a second surface first.** `/bot/*` is bot-token guarded and resolves the *instance*
+owner, which a browser user is not. `/app/*` carries the same twelve routes behind `SessionGuard`,
+which reads the Better Auth session and puts the owner on the request; `USE_CASES_FOR` then builds
+the use cases for that owner. Same schemas, same wire mappers, same routes — the only difference
+is who the api believes the caller to be.
+
+**The web app holds no credential.** Every call is a server function that forwards the browser's
+cookie to the api. The browser therefore talks to one origin, there is no CORS to configure, and
+the api stays the only issuer. `viewerOf()` asks the api who is signed in rather than decoding the
+cookie, which is signed with a secret `apps/web` does not have.
+
+**The client split enforces it.** `createAppClient` returns `PracticeUseCases` — browse, practice,
+statistics, attempt detail, settings, repetitions. `createBotClient` returns those plus
+`issueLoginLink` and the token operations. Both are the same implementation with different
+headers, so a route cannot drift between them, and the web app has no way to mint anything.
+
+**One bug worth recording**, caught before it shipped: the practice screen's "next" button first
+re-sent `answerQuestion` to advance, which would have graded the following question with an empty
+answer. Answering already returns where the attempt now stands, so moving on needs no request at
+all.
+
+**Proven against a live api.** With the api on a fresh database and a session minted through the
+real login link: signed out, the app renders *"Увійдіть, щоб продовжити"*; signed in, *"Ваша
+бібліотека · DDIA — Розділ 2 · 2 питань"*; the quiz screen offers to start; and `/practice/$id`
+server-renders *"питання 1/2 · Хто запропонував реляційну модель?"* with both options. The
+two-user isolation is pinned by `app-surface.test.ts`: two cookies, one endpoint, each sees only
+their own library, and one gets 404 on the other's attempt.
+
+**Not done here:** analytics dashboards (phase 11), the summary editor (phase 10), and any real
+visual design — this is the flow, in plain CSS, so the shape can be reviewed before it is dressed.
+
+## Phase 9, second pass: every question type, and a real interface (r28)
+
+**The bug worth naming.** The first cut rendered `question.options` as a row of buttons for every
+question type. That is only correct for single choice and true/false: a **typed answer or cloze
+question has no options at all**, so it rendered an empty screen with no way to answer — a dead
+end on real data, since the live library is full of them — and a **multiple choice** question was
+graded on the first click, before the rest of the set was chosen. Ordering and matching were
+meaningless as a flat list.
+
+Answering is now one component per type, chosen by `QuestionCard`, each encoding what the api
+grades: a set of positions for choice, the positions *in click order* for ordering, pairs
+flattened left-right for matching, and text for typed and cloze. A reveal button gives an exit
+from a question you cannot answer.
+
+**Tailwind v4 and shadcn/ui.** No config file — the theme is CSS variables in `app.css`, dark mode
+included, applied before first paint so the page does not flash. The primitives (`Button`, `Card`,
+`Badge`, `Progress`, `Input`, `Alert`) are copied in, as shadcn intends, and the app components
+sit beside them: `AppShell`, `LibraryList`, `QuestionCard`, `VerdictPanel`, `AnsweredQuestion`,
+`AttemptHistory`, `TopicAccuracyList`, `ScoreSummary`, `SignInPrompt`, `PageHeading`.
+
+**Component files are PascalCase** — the owner's call, and the convention shadcn snippets assume.
+Non-components stay kebab-case. Routes are now routing and data only; the markup lives in
+components.
+
+**Two toolchain facts this pass paid for.** Vite does not read tsconfig paths, so `@/` needs an
+explicit alias in `vite.config.ts`; and the root tsconfig already maps `@/` to the api's source,
+so `apps/web` is excluded from it and typechecked as its own project. Biome needed
+`css.parser.tailwindDirectives` to parse `@theme` and `@apply`.
+
+**Proven by walking all five types** against a seeded quiz on a live api: single choice renders
+plain options; multiple choice adds "Оберіть усі правильні варіанти" with checkboxes and a submit;
+true/false renders two options; **typed answer renders a real text input** where there was
+nothing; ordering renders numbered click-to-order with a reset. The typed-answer path is pinned in
+`app-surface.test.ts`, which sends `typedAnswer` the way the ui now does and asserts it grades.
+
+## Phase 9, third pass: display order, and the comments come out (r29)
+
+**A second display bug, found by reading `QuestionCard` again.** The ui rendered options in the
+order the api sent them. For an **ordering** question the authored positions *are* the correct
+sequence, so the answer was displayed top to bottom and the question was free. For **matching**,
+the right column sat opposite its own left row. And the owner's `shuffleOptions` setting did
+nothing on the web at all.
+
+All three now shuffle for display with the same seeds the bot uses — `${attemptId}:${questionId}`
+for choice, the question id for ordering and matching — so a person moving between bot and web
+sees the same order within one attempt. `shuffled` reaches the browser through a new
+`@recall/kit/shuffle` subpath, because kit's index also carries the logger and the shutdown
+handler, which have no business in a client bundle.
+
+**Twelve component tests** now cover what server-rendering could not: a single choice answers on
+click, a multiple choice collects a set and answers only on submit (and a second click takes an
+option back out), a typed question offers a field and sends trimmed text, ordering sends positions
+in click order and refuses to submit early, matching flattens pairs left-right, and the display
+order is the shuffle for that seed rather than the authored order.
+
+**They cost a rule.** `GlobalRegistrator` replaces `globalThis` wholesale, so two happy-dom files
+in one `bun test` process fight: adding these broke all eight `apps/admin` tests, in either
+order. The web app's tests run in their own process now, and `bun run test` is the gate rather
+than `bun test`.
+
+**Every code comment is gone.** `CLAUDE.md` has forbidden them from the start and this session
+wrote 242 lines of them anyway. They are stripped repo-wide; only machine-readable directives
+(`biome-ignore`, `@ts-expect-error`, the generated route tree's header) remain. What the comments
+explained lives here and in the commit messages, which is where this document said it belonged.
+
 ## Sequencing
 
 Each phase ends with the full suite green. Never two of these in flight at once.
@@ -1145,14 +1661,15 @@ Each phase ends with the full suite green. Never two of these in flight at once.
 | --- | --- | --- | --- |
 | 0 | Decisions below; ADRs; freeze feature work | — | S |
 | 1 | ~~**Fix attempt history**~~ — **done** (r4). Option ids are now stable across edits; the delete path turned out to be already guarded, and `question_revisions` is deferred as optional (§6). Shipped on `fix/stable-option-ids`. | — | S |
-| 2 | Monorepo split, **zero behaviour change**, test count unchanged | 1 | M |
-| 3 | Async call sites: `Promise`-returning ports, transaction callback stays sync-typed (§2) | 2 | M |
-| 4 | **Minimal Nest API shell** + composition root, still on SQLite, with one vertical slice served end to end (list quizzes) | 3 | M |
-| 5 | Postgres **per bounded context**: each transactional use case moves with its Postgres repository; one contract suite runs against both engines | 4 | L |
-| 6 | Rehearsed cutover: ETL + verification + rollback deadline (below) | 5 | M |
-| 7 | Identity, ownership, sessions, bot login link (§3, §5) | 6 | L |
-| 8 | Bot, MCP, and admin become API clients; MCP OAuth gains its user dimension (§1, §5) | 7 | L |
-| 9 | Web MVP: auth, browse, practice, attempt review (§4) | 8 | L |
+| 2 | ~~Monorepo split~~ — **done** (r5). Bun workspace; `src/`→`apps/api/src/`, `tests/`→`apps/api/tests/`, `drizzle/`→`apps/api/drizzle/`; `packages/tooling` holds the shared tsconfig base; dependency rules enforced in `biome.json`. 1377 tests, unchanged. | 1 | M |
+| ~~3~~ | ~~Async call sites~~ — **deleted (r6)**, folded into phase 5. Not implementable standalone: see below. | — | — |
+| — | *(the other apps are created in phase 8, not phase 2 — see below)* | | |
+| 4 | ~~**Minimal Nest API shell**~~ — **done** (r7). Nest 11 + Express, `apps/api/src/modules/{shared,content}`, factory-provided use cases, `GET /quizzes`, `GET /quizzes/:id`, health, Swagger at `/docs`, domain-error→HTTP filter. Runs on Bun. | 2 | M |
+| 5 | ~~**Postgres cutover**~~ — **done** (r17). Five repositories paired behind contract suites, all 34 use cases on `UnitOfWork<RepositoryScope>`, the composition root on Postgres, the ETL rehearsed against the real backup and the bot proven against the result. Shipped on `wip/postgres-cutover`. | 4 | L |
+| 6 | ~~Rehearsed cutover~~ — **merged into phase 5** (r15) and **done** with it (r17). | 5 | L |
+| 7 | ~~**Identity, ownership, sessions, bot login link**~~ — **done** (r21–r25). Better Auth on Postgres, the Telegram login link, `owner_id` on seven tables bound into the repository scope, personal access tokens, the OAuth grant carrying its user, and `apps/api` on Node. | 6 | L |
+| 8 | ~~**Bot, MCP and admin become API clients**~~ — **done** (r19, r20, r23); the MCP user dimension landed with phase 7. | 7 | L |
+| 9 | **Web MVP: auth, browse, practice, attempt review (§4)** — next. `packages/contracts` already carries the practice flow; `apps/web` does not exist yet. | 8 | L |
 | 10 | Pages/summaries + MCP page tools + attachments (§7) | 8 | L |
 | 11 | Analytics views and dashboards (§4) | 9 | M |
 | 12 | Email/password auth, sharing, FSRS (§5, §3, §6) | 9 | M |
@@ -1164,6 +1681,639 @@ guarded against.
 
 Phases 9/10/11 are independently shippable, so the platform can go live practice-only and
 gain summaries later.
+
+### The cutover, finished (r17)
+
+`bun run verify` is green on `wip/postgres-cutover`: 1263 tests, no skips with Postgres up, 65
+skipped and still green without it. The migration was rehearsed end to end against
+`data/quiz.before-postgres-20260823-170412.sqlite` into a scratch database — 13 pages, 9
+quizzes, 32 term pairs, 306 questions, 64 question sources, 915 options, 38 attempts, 504
+attempt questions, 312 responses, 227 review states, 7 settings rows, `verification passed` —
+and `bun run status` then reported 9 published sets, 306 questions, 38 attempts and 312 answers
+off that database.
+
+**The bot serves a quiz from Postgres.** The step r16 called unproven is proven: the real
+`createBot` router, wired to a Postgres-backed application over the migrated data, rendered the
+menu, opened `DDIA — Розділ 2`, showed question 1/20 with its four options, and recorded the
+answer — 312 responses before, 313 after. Callback payloads with uuid ids measure 40 characters
+against Telegram's 64-character limit, so the 22-char base64url form §5 reserves is not needed
+yet.
+
+**Four defects the port had introduced, all now fixed and pinned by tests.**
+
+1. **A non-uuid id was a 500, not a 404.** Every id-shaped string used to be a legal SQLite
+   key; on Postgres `where id = 'does-not-exist'` fails the cast with 22P02, so
+   `GET /quizzes/does-not-exist` returned 500 where v1 returned 404, and the same held for
+   every adapter passing an id in from outside. The read paths of the Postgres repositories now
+   answer "not found" themselves (`persistence/postgres/uuid.ts`), which is what the in-memory
+   ones always did — the divergence is now a contract test in three of the four suites.
+2. **"Outstanding mistakes" never forgot a mistake.** v1's query excluded a wrong answer when a
+   *later* correct one existed; both new implementations returned every question ever answered
+   wrongly, so a corrected mistake came back forever. Both engines now reproduce v1's
+   semantics, including the ordering, and two contract tests pin it.
+3. **The connection string was printed with its password** — by `--check` on all three
+   entrypoints and by `bun run status`. `describeDatabaseUrl` redacts it; the startup tests
+   assert the password does not reach stdout.
+4. **A test leaked `DATABASE_URL` and silently disabled others.** The API e2e test points the
+   Nest app at its per-run database through the environment and drops that database afterwards;
+   every later suite then read the dead url when deciding whether Postgres was reachable and
+   skipped itself. It restores the previous value now. This is the failure mode the
+   "not silently skipped" guard exists for, arriving from a direction the guard did not cover.
+
+**Two decisions taken while finishing it.**
+
+- **Adapter e2e tests run against the in-memory scope, not Postgres.** They used
+  `databasePath: ":memory:"`, so they never tested persistence; making them Postgres-backed
+  would have made the largest part of the suite conditional on a container for no coverage
+  gained. `create-application.ts` therefore splits into `createUseCases(dependencies)` and the
+  Postgres wrapper `createApplication`, and `tests/fixtures/application.fixture.ts` builds the
+  same 34 use cases over the memory scope. What genuinely needs the engine — the repository
+  contracts, the schema constraints, transaction semantics, the ETL, the status report, the Nest
+  API and the admin UI — runs against a real per-run database.
+- **The ETL test builds its own v1 source.** It used to seed through the v1 repositories, which
+  no longer exist. `tests/fixtures/legacy-sqlite.ts` applies the v1 migrations to a temp file
+  and inserts the fixture with raw SQL, which is what the ETL reads anyway.
+
+**Deleted as obsolete rather than ported:** `tests/e2e/operations.test.ts` (backup/restore of the
+quiz SQLite file — Postgres uses `pg_dump`) with `infrastructure/lifecycle/backup.ts` and
+`schema-tables.ts` behind it, and `tests/e2e/concurrency.test.ts` (two processes contending for
+the SQLite write lock on `quiz_sets` — a table no repository reads any more). The restart test
+inside the resume suite became a Postgres integration test that closes and reopens the
+connection, and the status-command coverage `operations.test.ts` carried moved with it.
+
+**What phase 7 inherits.** `bun:sqlite` is still in the tree for one reason: the MCP OAuth store
+and the SDK provider above it are synchronous throughout, so client credentials keep their own
+file (`OAUTH_DATABASE_PATH`, default `./data/oauth.sqlite`). r16 wanted those three tables moved
+in this cutover to unblock the Node switch; that was reversed — porting an OAuth provider that
+Better Auth replaces in phase 7 is work with a known expiry date. So the **Bun → Node switch
+moves to phase 7**, and `ownership` (`owner_id`) arrives there as planned, with
+`telegram_user_id` preserved on `attempts` and `review_states` to map the accounts.
+
+### Phase 5 and 6 are one landing (r15)
+
+All five repositories are now paired behind shared contracts — `pages`, `quizzes`, `attempts`,
+`reviews`, `termPairs`, 87 contract tests across both engines. Everything a ported use case
+needs exists.
+
+Then I ported the eight folder use cases to `UnitOfWork<RepositoryScope>` to start the switch,
+and hit a wall that is structural rather than incidental:
+
+1. Once a use case takes a `UnitOfWork`, **the composition root must supply one.**
+2. A SQLite-backed async `UnitOfWork` **cannot be atomic**. `db.transaction(fn)` with an async
+   `fn` commits at the first `await` (measured in r8: an unawaited write survived a rollback
+   8/8), and `bun:sqlite`'s own `Synchronous<T>` guard exists for exactly this. There is no
+   honest SQLite implementation of the async port.
+3. Therefore the only real implementation is Postgres — so **the first ported use case moves
+   the entire running application onto Postgres.**
+
+Which means phase 5's remaining step *is* phase 6. They are the same landing, and the plan was
+wrong to separate them. Nothing incremental is left: 34 files still reference the synchronous
+ports and 8 adapter/entrypoint files build from `create-application.ts`.
+
+I stopped rather than half-land it. The folder port is preserved on the stash
+(`wip: folder use cases ported to async scope`) and the tree is green at 1469 tests. A large
+non-compiling diff would have been worse than a clean boundary.
+
+**The cutover is written and pushed as `wip/postgres-cutover` (r17).** The source tree is
+**fully ported and type-checks clean — 0 source errors.** The branch does not pass `verify`
+because the test suite has not been repointed yet (158 type errors across ~20 files), so it
+lives on its own branch rather than on this one, which stays green at 1469 tests.
+
+What landed there:
+
+- **all 34 use cases** take `UnitOfWork<RepositoryScope>` and `ApplicationDependencies`. Every
+  write now sits inside a unit-of-work boundary — several for the first time, since v1 saved
+  outside a transaction in `ArchiveQuizSet`, `PublishQuizSet`, `MoveQuizSet`, `CreateQuizSet`,
+  `DeleteQuestion` and `UpdateQuestion`;
+- `create-application.ts` builds a Postgres connection and scope. `DATABASE_URL` replaces
+  `DATABASE_PATH`, and `close()` is async;
+- the Nest `DatabaseModule` builds the same scope, so the API and the legacy entrypoints agree;
+- `readStatus` reports off Postgres;
+- **deleted**: the five SQLite repositories, their five mappers, the five synchronous ports,
+  the nine SQLite integration test files, and the SQLite-era `backup`/`restore`/`migrate`/`seed`
+  scripts. Postgres uses `pg_dump` and `drizzle-kit`, wired as `db:generate` / `db:migrate`.
+
+**One deliberate exception, and it defers the Node switch.** The MCP OAuth store *and the SDK
+provider above it* are synchronous throughout, so pulling them into this landing would have
+meant rewriting the OAuth subsystem too. MCP client credentials now live in their own SQLite
+file (`OAUTH_DATABASE_PATH`, default `./data/oauth.sqlite`) — honest, because they are not quiz
+data and phase 7 replaces them with Better Auth. The consequence: `bun:sqlite` stays in the
+tree, so **`apps/api` moves to Node in phase 7, not here**.
+
+**What is left:** test surgery. Fixtures whose helpers are now async, tests that assert against
+the raw SQLite handle, and e2e harnesses that spawn a process against a database file. Some of
+those tests are obsolete rather than broken and should be deleted. After that: run the ETL
+against the live database, keep the SQLite file read-only, and smoke-test through the API.
+
+**Progress on the cutover (r16).** 25 of 34 use cases are ported to
+`UnitOfWork<RepositoryScope>`, each type-checked as it landed, and stashed as
+`wip: 24 of 34 use cases ported to the async RepositoryScope`. Ported: all 8 folder use cases,
+both settings, `StartQuizAttempt`, `Resume`/`Pause`, `GetCurrentQuestion`, `GetQuizSet`,
+`ListQuizSets`, `ListQuestions`, both repetition, both statistics, `Archive`, `Publish`,
+`UpdateQuizSet`, `MoveQuizSet`, `CreateQuizSet`.
+
+Nine remain, and they are the intricate ones: `AddQuestions`, `AddVocabulary`,
+`UpdateVocabulary`, `UpdateQuestion`, `DeleteQuestion`, `ListVocabulary`, `AnswerQuestion`,
+`FinishQuizAttempt`, `StartPracticeSession` — the last three being the cross-context cases from
+r12.
+
+Three findings from doing it:
+
+- **Scripting this refactor does not work.** A regex pass over 20 files inserted repository
+  fields into an error class's constructor and produced 186 errors. Reverted and hand-ported
+  since. Anything touching class bodies here needs to be anchored per file.
+- **No adapter bypasses a use case.** `admin/api.ts` touches nothing but the 24 use cases it
+  calls, and no adapter reaches for the drizzle client. So the bot, the MCP server, and the
+  admin app need **no changes at all** for the engine switch — the layering held.
+- **One exception, and it blocks the Node switch.** `mcp-http.ts` builds the OAuth store from
+  `application.client` and `application.transaction`, i.e. straight off the SQLite handle. So
+  the three `oauth_*` tables have to move to Postgres as part of the cutover after all, not in
+  phase 7 — otherwise `bun:sqlite` stays in the tree and `apps/api` cannot move to Node.
+
+**What the cutover requires, as a checklist.** This is one piece of work, and it changes how the
+app boots:
+
+- port the remaining 26 use cases to `UnitOfWork<RepositoryScope>` + `RepositoryScope`
+  (attempts 5, quiz-sets 14, statistics 2, settings 2, repetition 2, practice 1);
+- repoint ~25 use-case test fixtures at `createMemoryContext()` — the in-memory scope exists and
+  is contract-verified, so these keep running in milliseconds with no Docker;
+- rewrite `create-application.ts` to build a Postgres connection and scope, which makes
+  `DATABASE_URL` a required environment variable and Postgres a hard startup dependency for the
+  bot, the MCP server, and the admin app;
+- switch the runtime for `apps/api` from Bun to Node once `bun:sqlite` is gone (§1);
+- delete the SQLite adapter, the five synchronous ports, the sync `Transaction` port, and the 9
+  SQLite integration test files;
+- run the ETL against the live database and keep the SQLite file read-only as the escape hatch,
+  per the cutover section;
+- **move the three `oauth_*` tables to Postgres** and port `sqlite-oauth.store.ts`, which r16
+  found is the one place an adapter reaches past the use cases into the database handle.
+
+Two things that make this safe rather than reckless when it is done: the ETL is idempotent and
+self-verifying against the real data, and every ported use case can be tested against the
+in-memory scope, so the suite does not become conditional on a container.
+
+**Estimate:** Large — a full session on its own, and the one step in this plan where the running
+app changes engine. It wants a reviewed diff, not a fast one.
+
+### Phase 5, seventh slice: attempts, and a lossy migration caught (r14)
+
+**Correction to r9.** "Ownership is deliberately not in this migration" was right about the
+`owner_id` foreign key and wrong about the column it took with it. `QuizAttempt` and the
+repetition schedule both carry `telegramUserId` as a **required** domain field, so a Postgres
+attempts repository could not reconstruct an attempt at all — it would have to invent the
+value. Worse, phase 7 needs that number to map existing data onto Better Auth's `account`
+row: it *is* the Telegram account id.
+
+Checked before changing anything: all 38 attempts and all 227 schedules carry the same id
+(`797736131`), so nothing was lost in practice yet — but the ETL was discarding information the
+running app requires and calling it a note. `attempts` and `review_states` now keep a nullable
+`telegram_user_id`, the ETL carries it, and `verifyMigration` fails the run if any attempt
+arrives without one. Re-run against the real backup: 38 and 227 rows, all with the id intact.
+
+Ownership proper still arrives in phase 7, which turns this column into `owner_id`. The
+distinction that matters: **defer the model, never the data.**
+
+**`AttemptRepository`, ported with its read models.** Nine contract tests against both engines,
+first time green on Postgres. The interesting ones are the queries that are not aggregate
+persistence at all:
+
+- `topicAccuracy` — the `responses → attempts → questions` join that forced the single-cutover
+  decision in r12, now running on Postgres;
+- `listCompletedForQuiz`, `incorrectQuestionIds` (distinct, once per question), `answerCount`;
+- `findActiveFor`, which must not return another user's attempt — asserted in both directions.
+
+One v1 behaviour deliberately preserved: `save` **ignores a copy whose `updatedAt` predates the
+stored row**. The SQLite version explains why — responses are append-only, so applying a stale
+attempt would rewind `updated_at` past answers already written and leave a row
+`restoreQuizAttempt` rejects, making the attempt permanently unreadable. That guard is now in
+the contract, so neither implementation can lose it.
+
+Also: `ContentScope` became `RepositoryScope`. With the cutover single, one scope carrying every
+repository is the honest shape; a per-context scope would imply an independence that r12 showed
+does not exist.
+
+Migration files are no longer named in code. `drizzle-kit` renames the file on every
+regeneration (`0000_long_micromax` → `0000_tan_power_man` → `0000_sticky_queen_noir` across
+three slices), and each rename broke two hardcoded references. Tests and the ETL CLI now read
+the newest `.sql` from the directory.
+
+**Three of five repositories paired:** `pages`, `quizzes`, `attempts`. Remaining: `repetition`
+and `term_pairs` — both small, and neither carries a read model.
+
+### Phase 5, sixth slice: the quiz repository, without the old save (r13)
+
+Porting `QuizRepository` was the moment to stop reproducing v1's `save()`, which deletes every
+option in the set and re-inserts it (finding 5: write amplification plus a lost-update race the
+moment a web UI and an MCP-driven AI edit the same quiz). The Postgres version instead:
+
+- **diffs the questions.** Only ids the aggregate has dropped are deleted; survivors are
+  upserted by id, so the answers and review state hanging off them stay attached. That is the
+  same property commits `65dba08` and `73a414e` were written to protect, now enforced by the
+  repository rather than by the caller's care.
+- **carries `version`.** `save(quiz, expectedVersion?)` returns the new version and throws
+  `QuizVersionConflictError` when the stored version has moved. Nothing uses it yet; the point
+  is that the column and the check exist before two writers do.
+- **replaces options per question, not per quiz.** `responses.selected_option_ids` is a
+  `uuid[]` with no foreign key, so a question's own options can be replaced without touching
+  anything else — which also sidesteps the `unique (question_id, position)` collision that
+  makes a naive reorder fail.
+- **still parks positions.** `unique (quiz_id, position)` and `unique (quiz_id, fingerprint)`
+  are checked per statement in Postgres, so surviving rows are moved outside the unique space
+  before the upserts, exactly as the SQLite version does. The trick was already right; only the
+  delete-everything part was wrong.
+
+Eight contract tests, both engines. The one that matters most: **"refuses to drop a question
+that has answers"** now passes because the database refuses it (`ON DELETE RESTRICT`), not
+because a use case remembered to check.
+
+**The shared contract earned its keep immediately.** The fixture built option ids as
+`` `${questionId}-0` `` — fine for the in-memory store, rejected by Postgres, where the column
+is `uuid`. Six tests failed on Postgres and passed in memory in the same run, which is exactly
+the drift a double hides when it has its own tests. The in-memory implementation is more
+permissive than the real one; only running the same assertions against both makes that visible.
+
+Also fixed: `restoreInto` in the memory store was missing the three new maps, so the in-memory
+rollback silently kept a failed quiz save. Caught by the contract's rollback test — and caused
+by running a patch script without asserting the replacement matched, which is the second time
+that has bitten.
+
+**Two of five repositories now paired:** `pages`, `quizzes`. Remaining: `attempts` (with the
+statistics queries), `repetition`, and `vocabulary`/`term_pairs`. Then the use cases and the
+composition root in one switch.
+
+### Phase 5, fifth slice: retracting "per bounded context" (r12)
+
+**The strategy this plan has carried since r2 does not survive the repositories.** I checked
+before porting anything, and the contexts are joined at the SQL level:
+
+- `sqlite-quiz-attempt.repository.ts:186` — `topicAccuracy` **inner joins `questions`**. So
+  `study` cannot read from Postgres while `content` is still on SQLite, or the join has nothing
+  to join to.
+- `sqlite-folder.repository.ts:90` — `countSetsIn` reads **`quiz_sets`**. So `folders` cannot
+  move without quizzes; `delete-folder` depends on that count.
+- The repetition repository *is* self-contained — but `FinishQuizAttemptUseCase` writes an
+  attempt and a schedule in **one transaction**, so scheduling cannot straddle engines either.
+
+A cross-engine join is not something a shim papers over; it is a query that cannot run. So the
+five repositories and the use cases above them move **together, in one cutover**, not context
+by context. The Codex review recommended per-context, I endorsed it twice, and the code says
+otherwise. That is the third strategy correction in this plan and the reason for all of them is
+the same: the recommendation was reasoned about rather than checked.
+
+The user's decision to land the schema as **one migration** now applies to the code as well,
+which at least makes the two halves consistent.
+
+**What makes a single cutover survivable.** A big-bang port is only safe if the use cases can
+be tested without the database they are being ported onto. So the async ports now have **two
+implementations behind one contract suite**:
+
+```text
+tests/contracts/page.repository.contract.ts   9 tests, engine-agnostic
+  ├─ tests/unit/memory-page.repository.test.ts        in-memory, 18 ms, always runs
+  └─ tests/integration/postgres/page.repository.test.ts  Postgres, skipped without Docker
+```
+
+Both bindings pass the same nine tests, including the rollback property: the in-memory unit of
+work snapshots the store and restores it when the operation throws, so a double that quietly
+committed on failure would fail the contract. That is the difference between a double and a
+fake, and it is why the contract is shared rather than duplicated.
+
+The payoff: when the use cases port, their tests bind to the in-memory scope and keep running
+in milliseconds with no Docker, while the Postgres adapters stay honest against the same
+assertions. Without this, porting 34 use cases would have made a third of the suite
+conditional on a container.
+
+**Pattern for the rest of the phase**, one repository at a time: async port → contract suite →
+in-memory implementation → Postgres implementation → both bound. Four repositories left
+(`quizzes`, `questions` inside the quiz aggregate, `attempts`, `repetition`), then the use cases
+and the composition root in a single switch.
+
+### Phase 5, fourth slice: the transaction topology (r11)
+
+This is the piece phase 3 died for, now built and tested.
+
+```ts
+// application/ports/unit-of-work.ts
+run<TResult>(operation: (scope: TScope) => Promise<TResult>): Promise<TResult>
+
+// application/ports/repositories/page.repository.ts
+interface ContentScope { readonly pages: PageRepository }
+```
+
+`createPostgresUnitOfWork(db).run(async ({ pages }) => …)` opens one Postgres transaction and
+builds the repositories **against that transaction's executor**. A repository therefore cannot
+be reached outside a boundary, and cannot end up on a different connection from the boundary it
+appears to belong to — which is precisely the failure r8 measured (an unawaited write surviving
+a rollback). `readOnlyScope(db)` gives the same repositories bound to the pool for reads.
+
+Also added: `persistence/postgres/client.ts`, which centralises the connection settings the
+deployment section calls for — `prepare: false` (Supabase's transaction pooler rejects prepared
+statements and the setting is harmless on a direct connection), a bounded pool, statement
+timeout, idle timeout, and a maximum connection lifetime.
+
+**First repository: `PageRepository` over the `pages` table.** Eight tests, including the two
+that matter:
+
+- **rollback**: an operation that saves two pages and then throws leaves the table empty;
+- **slug uniqueness**: two children of one parent named "Chapter One" and "chapter one" collide
+  on `pages_parent_slug_unique`, because the repository derives the slug rather than trusting
+  the caller.
+
+Deliberate scope choice: the repository returns the **existing `Folder` domain object**, mapping
+`title`/`slug` onto `name`. Phase 5 is an engine swap, not a domain change; the richer `Page`
+aggregate (content, icon, ordering) belongs to phase 10 when summaries are actually built.
+Introducing it here would mean changing the domain and the engine in one step, which is the
+mistake r6 was written to avoid.
+
+Small finding: **drizzle wraps driver errors**, so a constraint assertion has to read
+`error.cause`, not `error.message` — the message is a "Failed query:" dump with the SQL and
+parameters, and the constraint name is on the cause.
+
+**Where this leaves the phase.** Everything a ported use case needs now exists: the schema, the
+data, the boundary, and a repository behind it. What has not happened is the port itself — the
+eight folder use cases still take the synchronous `FolderRepository` and still run on SQLite. The
+next increment is one context's use cases moving to `ContentScope`, with the composition root
+choosing per context, and both engines live until the last one moves.
+
+### Phase 5, third slice: the ETL (r10)
+
+`apps/api/src/persistence/postgres/etl.ts` plus `apps/api/scripts/migrate-to-postgres.ts`
+(`bun run etl <sqlite> <url>`). Run against the real backup it writes:
+
+| target | rows | from |
+| --- | --- | --- |
+| pages | 13 | folders |
+| quizzes | 9 | quiz_sets |
+| term_pairs | 32 | vocabulary_items |
+| questions | 306 | questions |
+| question_options | 915 | question_options |
+| attempts | 38 | quiz_attempts |
+| responses | 312 | question_responses |
+| review_states | 227 | question_repetition_schedules |
+| study_settings | 7 | repetition_settings + defaults |
+| question_sources | 64 | 32 pairs × 2 directions |
+| attempt_questions | 504 | the `question_ids` JSON, normalised |
+
+`verifyMigration` then checks every mapped count, that all 234 correct answers survive, that no
+options or attempt timestamps were orphaned, and that the root-page count matches — and the CLI
+exits non-zero if any check fails. It passes on the real data.
+
+Design points worth keeping:
+
+- **Ids are derived, not random.** `uuidFor(kind, legacyId)` is sha256 over
+  `recall-v2:kind:legacyId` with the version and variant bits set, so re-running the ETL
+  produces the same uuids. That plus `legacy_id` unique constraints and `on conflict do
+  nothing` makes it **idempotent** — proven by a test that runs it twice and asserts the
+  question count is unchanged.
+- **Folders need a topological walk.** `order by parent_id` does not put ancestors first past
+  the first level; the real data has 3 roots and 10 nested folders, so a naive order fails on
+  a foreign key. The ETL inserts by readiness and reports anything unreachable.
+- **`question_sources` reconstructs a direction that was never stored.** v1 inferred it by
+  comparing the question prompt to the term; the ETL does the same and records it explicitly,
+  which is the point of the table.
+- **Not migrated, deliberately:** the `oauth_*` tables (phase 7 replaces them with Better
+  Auth) and `telegram_user_id` (ownership arrives in phase 7). Both are reported as notes
+  rather than dropped silently.
+
+**The postgres.js trap that cost the most time here.** postgres.js chooses parameter encoders
+from the **first execution of a given query string** and reuses them. So an insert whose first
+row has `null` in a column and whose second row has a value binds the second row against the
+first row's inferred types. Two distinct symptoms, both misleading:
+
+- a `uuid` arriving in `parent_id` as a *different* uuid than the one passed, surfacing as
+  `violates foreign key constraint` on a parent that plainly exists;
+- `TypeError: The "string" argument must be … Received an instance of Date`, thrown from deep
+  inside postgres.js's byte writer.
+
+Casting every placeholder (`${x}::uuid`, `::text`, `::timestamptz`, `::boolean`, `::int`,
+`::text[]`) fixes the first. The second needs more: **timestamps are passed as ISO strings, not
+`Date` objects**, because a `Date` reaching the text encoder throws regardless of the cast. The
+failure is order-dependent, which is why the 13-folder real backup passed while a 2-folder
+seeded fixture did not — a difference that looked like a harness bug and was not.
+
+Also fixed while verifying: `verifyMigration` compared `sum(is_correct)` without `coalesce`, so
+a source database with no answers reported "expected -1" instead of 0.
+
+**Still not done in phase 5:** every repository, every use case, the transaction-topology
+change, and the Node switch. The ETL is the piece that can now be rehearsed against production
+data as often as wanted.
+
+### Phase 5, second slice: the schema (r9)
+
+**Backup first, as asked.** `data/quiz.before-postgres-20260823-170412.sqlite`, taken with
+`VACUUM INTO` (consistent under load, no `-wal` sidecar) and validated by `assertRestorable`.
+Then verified table by table against the live database — **all 13 tables match, 0 orphan
+responses** — and the counts written to `data/etl-baseline.json` as the ETL's verification
+baseline:
+
+| | rows | | rows |
+| --- | --- | --- | --- |
+| quiz_sets | 9 | question_repetition_schedules | 227 |
+| questions | 306 | vocabulary_items | 32 |
+| question_options | 915 | folders | 13 |
+| quiz_attempts | 38 | repetition_settings | 6 |
+| question_responses | 312 | oauth_* | 12 |
+
+312 answers, 234 correct. That is the corpus the ETL has to reproduce exactly.
+
+**One thing I got wrong on the way.** I reported `applicationTables` (5 entries against 13
+real tables) as a latent bug in the restore guard. It is not: there is a test named
+*"restores a backup taken before the newer tables existed"* which deliberately strips
+`folders`, `vocabulary_items` and the repetition tables from a backup and asserts it still
+restores, with a comment saying `applicationTables` is the *signature*, not the live list. The
+real gap was in my own manifest, which under-counted the baseline until I enumerated tables
+from `sqlite_master` instead. Third time this session I inferred a defect from a mechanism
+without checking intent.
+
+**Schema.** `apps/api/src/persistence/postgres/schema.ts`, 12 tables, one migration
+(`drizzle-postgres/0000_long_micromax.sql`), applied to the Docker instance. `timestamptz`
+throughout, real `boolean`, real `text[]`/`integer[]` instead of JSON-in-TEXT, `uuid` primary
+keys with a `legacy_id` column so the old ids stay resolvable for a release after the ETL,
+`version` for optimistic concurrency, `deleted_at` on every content table, `visibility`
+reserved for the marketplace.
+
+Ownership is deliberately **not** in this migration. `owner_id` arrives in phase 7 with
+identity, because `ADD COLUMN` + backfill + `SET NOT NULL` is cheap on Postgres in a way it
+never was on SQLite — which is exactly the kind of thing moving engine first buys.
+
+**Constraints proven, not assumed** (`tests/integration/postgres/schema-constraints.test.ts`):
+
+- `pages_parent_slug_unique … NULLS NOT DISTINCT` really does reject two root pages with the
+  same slug, while allowing the same slug under different parents. This was the specific trap
+  flagged in §7 — Postgres treats NULLs as distinct by default, and the SQLite schema needed a
+  separate partial index for it. Verified in both directions.
+- `study_settings_scope_unique … NULLS NOT DISTINCT` rejects a second owner-wide row, which is
+  what replaces the `check (id = 1)` singleton.
+- `questions → responses` is `ON DELETE RESTRICT`, so **the database now refuses to delete a
+  question that has answers.** In v1 that was an application guard (`AnsweredQuestionError`).
+  It is now structural, and soft deletion via `deleted_at` is the supported path. That closes
+  most of what was left of finding 11.
+- `responses.selected_option_ids` is a real `uuid[]`; `attempts.started_at` is
+  `timestamp with time zone`.
+
+**Two tooling findings worth knowing before writing more Postgres tests.**
+
+1. **drizzle-kit hardcodes `REFERENCES "public"."…"`** — 15 times in this migration. So the
+   obvious test-isolation trick, a schema per run, silently leaves every foreign key pointing
+   at an empty `public`: parent rows insert fine and children fail with a confusing FK
+   violation. Cost me a while. The harness now creates a **database** per run, where `public`
+   is the right answer. This also matters for Supabase if a non-`public` schema is ever
+   wanted: it is a drizzle-kit output setting, not a runtime choice.
+2. **`expect(query).rejects` never settles against a postgres.js query** under `bun test` —
+   they are lazy thenables, and the test hangs to timeout rather than failing. Tests use an
+   explicit `failureOf(() => …)` helper that forces execution through `catch`. Worth
+   remembering; it looks like a database hang and is not one.
+
+**Still not done in phase 5:** every repository, every use case, the transaction-topology
+change, the ETL, and the Node switch.
+
+### Phase 5, first slice (r8)
+
+Done: `docker-compose.yml` with Postgres 17, `postgres` (postgres.js) behind
+`drizzle-orm/postgres-js`, `bun run db:up` / `db:down` / `db:reset`, a test harness that gives
+every run its own Postgres **schema** (`tests/fixtures/postgres.ts`), a CI job with a Postgres
+service, and `apps/api/src/application/ports/unit-of-work.ts`.
+
+**The finding that shapes the rest of the phase.** r6 deleted phase 3 because an unawaited
+repository call inside a synchronous transaction callback would be a lie the type system told.
+On Postgres the failure mode is worse than predicted, and it is now measured rather than
+argued: an unawaited write inside a `db.transaction(...)` callback **survives when that
+transaction rolls back** — 8 runs out of 8, deterministic. It commits on its own connection
+while the boundary it appeared to belong to is discarded.
+
+So the hazard is not "the write is lost". It is "the write outlives the rollback", which is
+silent, permanent corruption of exactly the invariant a transaction exists to protect.
+`tests/integration/postgres/transaction-semantics.test.ts` pins all five properties: commit,
+rollback-on-throw, read-your-writes, savepoint nesting, and this one.
+
+**What that forces on the design.** The `UnitOfWork` port hands repositories *to* the
+operation rather than being injected beside them:
+
+```ts
+run<TResult>(operation: (scope: TScope) => Promise<TResult>): Promise<TResult>
+```
+
+A repository reachable only from inside the boundary cannot be called outside one by accident,
+and cannot be called on the wrong connection. That is the enforcement, and it has to be
+structural, because the alternatives do not work here:
+
+- **Lint cannot do it.** Biome's `noFloatingPromises` is exactly the right rule and is
+  **inert** in this setup — a deliberate floating promise produced no diagnostic, because the
+  type-aware nursery domain needs project configuration Biome 2.4 does not do here. The rule
+  was added, tested, found silent, and removed rather than left in place looking like
+  protection. (Re-test it when Biome's type inference stabilises.)
+- **Convention cannot do it.** The current code already nests boundaries fourteen ways; the
+  next person will too.
+
+**A complication the plan did not anticipate.** "Per bounded context" is harder than it reads,
+because two use cases already cross contexts inside one transaction:
+`AddVocabularyUseCase` calls `AddQuestionsUseCase` inside its boundary, and
+`FinishQuizAttemptUseCase` writes an attempt and a repetition schedule in one. Neither can move
+while half its writes are on the other engine. So the porting order is not free: `content`
+must move before `study`, `study` before `scheduling`, and the two cross-context use cases move
+with the *later* of their two contexts. Worth settling before the first repository moves.
+
+**Not started:** the schema itself (§6's renames), any repository, any use case, the ETL, and
+the Node switch. The runtime stays Bun until `bun:sqlite` is gone.
+
+### What phase 4 established, and one plan assumption it broke (r7)
+
+Built: `apps/api/src/modules/` with `shared/{config,database,errors,health,swagger}` and a
+`content` module, exactly the shape §8 describes. The `DatabaseModule` is `@Global()` and owns
+the SQLite lifecycle (migrations on boot, `closeDatabase` on `onApplicationShutdown`);
+`content/use-cases.providers.ts` factory-wires the existing use-case classes against a single
+`USE_CASE_DEPENDENCIES` token, which is the mechanism §8 predicted would let the application
+layer survive untouched. It did: no use case, port, or domain file was modified to serve HTTP.
+
+Three findings worth keeping:
+
+1. **The API runs on Bun, not Node — and must, for now.** §1 says `apps/api` is Node. It
+   cannot be until Postgres arrives, because persistence is still `bun:sqlite`, which is
+   Bun-only. Nest 11 runs fine under Bun once `experimentalDecorators` is on. The Node switch
+   belongs to phase 5, alongside the driver change. The plan's "Node runtime for `api`"
+   describes the end state, not phase 4.
+2. **Bun defaults to TC39 decorators; Nest needs legacy ones.** Without
+   `experimentalDecorators: true` every route decorator fails with `TypeError: undefined is
+   not an object (evaluating 'descriptor.value')` — an error that says nothing about the real
+   cause. One line in `packages/tooling/tsconfig.base.json`.
+3. **`emitDecoratorMetadata` is a trap here, and is deliberately off.** With it on, DI works
+   through constructor parameter types — until Biome's `useImportType` autofix rewrites a
+   class import to `import type`, which erases the metadata. That happened during this phase:
+   the suite passed in isolation and failed in the full run with Nest reporting a dependency
+   of type `[Function: Object]`. Every injection point now passes an explicit `@Inject(Token)`
+   and the flag is off, so a missing token fails loudly at boot instead of silently after a
+   formatter run. Recorded in `CLAUDE.md`.
+
+Also needed: `javascript.parser.unsafeParameterDecoratorsEnabled` in `biome.json` (Biome does
+not parse parameter decorators otherwise), and `correctness/useHookAtTopLevel` disabled for
+the modules tree, where `app.useGlobalFilters(...)` trips a React hooks rule.
+
+Not done in phase 4, on purpose: the four existing entrypoints are untouched and still run the
+old composition root, so the bot, MCP, and admin keep working exactly as before. `bun run api`
+starts the new one beside them. Deleting `create-application.ts` and `adapters/admin/api.ts`
+waits until the API actually serves what those surfaces need — phase 8.
+
+### Why phase 3 was deleted (r6)
+
+r2 proposed: widen every repository port to `Promise<T>` while keeping the transaction
+*callback* synchronous, so the ~200-file churn lands on SQLite before Postgres arrives. I
+described that as the safe middle path. **It does not work**, and the reason is visible in the
+code rather than arguable:
+
+Transaction boundaries **nest**. Ten use cases wrap `this.transaction.run(() => …)` around
+repository calls, and fourteen repository methods open their *own* `transaction.run` inside
+(`sqlite-quiz-set.repository.ts:63`, `sqlite-quiz-attempt.repository.ts:62`,
+`sqlite-repetition.repository.ts:45`, and so on). bun:sqlite tolerates that today through
+savepoints. `FinishQuizAttempt` is the clearest case: line 66 wraps `attempts.save(finished)`
+plus a repetition write in one boundary, and `attempts.save()` opens another inside it.
+
+Make the repository methods return `Promise` and that inner call becomes an **unawaited promise
+inside a synchronous transaction callback.** It would appear to work — an `async` function with
+no `await` runs its body synchronously before returning — so every test would pass while the
+type system asserted something the semantics forbid. That is worse than not doing it: the
+codebase even has a test pinning the contract shut
+(`application/ports/ports.test.ts:7-9`, `@ts-expect-error bun:sqlite transactions must not
+cross an await boundary`).
+
+The real work hiding under "async-ify the ports" is a **transaction-topology change**: one
+owner per boundary, with the transaction handle threaded into repositories instead of injected
+into their constructors — because a Postgres transaction is bound to a connection and cannot
+be rediscovered from a global. That is not mechanical, and it cannot be validated on SQLite,
+whose whole model is the one being replaced.
+
+So it moves into phase 5 and is done **per bounded context**, exactly as the review originally
+recommended: each transactional use case converts together with its Postgres repository, with
+the shared contract suite running against both engines during the transition.
+
+Phase 4 is unaffected — a Nest shell over synchronous repositories is fine, since controllers
+await use cases that are already `async`.
+
+### Why phase 2 created only one app
+
+The r3 layout lists five apps. Phase 2 created **one**, and that was deliberate — the plan had
+not spelled this out, so it is recorded here.
+
+Phase 2's contract is *zero behaviour change*. Today the bot, the MCP server, and the admin UI
+all import the composition root and run in-process against SQLite. Creating `apps/bot` now
+would mean `apps/bot` depending on `apps/api` — an app-to-app dependency that does not exist
+in the target, that the lint rules would have to be widened to permit, and that would have to
+be unwound in phase 8 anyway when those surfaces become HTTP clients.
+
+So `apps/api` currently holds everything, including `src/adapters/{telegram,mcp,admin}` in
+their v1 shape. They move out in **phase 8**, when there is an API for them to call. The
+layout the plan describes is the phase-8 end state, not the phase-2 one.
+
+What phase 2 did deliver, beyond the move: the dependency direction is **enforced** for the
+first time. `biome.json` fails the build when `domain` imports `adapters`, `application`,
+`infrastructure`, `composition`, `modules`, or `persistence`, and when `application` imports
+adapters or the composition root (tests excluded — one existing test constructs a real SQLite
+repository on purpose). Verified by injecting a violation of each rule and watching both fire
+with the rule name in the message. This is Appendix B's option C, now live.
+
+Not yet enforced: `adapters → composition`. Two files legitimately violate it today
+(`admin/api.ts` and `mcp/http/app.ts` both take the whole `Application`), and both are slated
+for deletion when Nest arrives in phase 4. Adding that rule before then would only mean
+suppressions.
 
 ### The cutover (phase 6), spelled out
 
