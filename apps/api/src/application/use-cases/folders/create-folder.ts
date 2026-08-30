@@ -13,6 +13,7 @@ import {
 	type FolderId,
 	toFolderId,
 } from "@/domain/folder/folder";
+import { positionBetween } from "@/domain/folder/ordering";
 
 export class FolderNotFoundError extends Error {
 	readonly folderId: FolderId;
@@ -57,6 +58,14 @@ export async function parentChain(
 	return [...(await pages.listAncestors(parent.id)), parent];
 }
 
+export const lastPositionAmong = (siblings: readonly Folder[]): number =>
+	positionBetween(
+		siblings.length === 0
+			? undefined
+			: Math.max(...siblings.map((sibling) => sibling.position)),
+		undefined,
+	);
+
 export interface CreateFolderCommand {
 	readonly name: string;
 	readonly parentId?: FolderId;
@@ -81,17 +90,19 @@ export class CreateFolderUseCase
 
 	execute(request: Command<CreateFolderCommand>): Promise<CreateFolderResult> {
 		return this.unitOfWork.run(async ({ pages }) => {
+			const siblings = await pages.listChildren(request.parentId);
 			const folder = createFolder({
 				id: toFolderId(this.idGenerator.generate()),
 				name: request.name,
 				parentId: request.parentId,
+				position: lastPositionAmong(siblings),
 				createdAt: this.clock.now(),
 			});
 
 			assertPlacement(
 				folder,
 				await parentChain(pages, request.parentId),
-				await pages.listChildren(request.parentId),
+				siblings,
 			);
 			await pages.save(folder);
 

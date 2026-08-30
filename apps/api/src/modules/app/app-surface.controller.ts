@@ -26,6 +26,7 @@ import {
 	movePageCommandSchema,
 	practiceCommandSchema,
 	renamePageCommandSchema,
+	reorderPageCommandSchema,
 	resolveSettingsCommandSchema,
 	searchPagesCommandSchema,
 	setPageIconCommandSchema,
@@ -175,6 +176,22 @@ export class AppSurfaceController {
 				command.parentId === undefined
 					? undefined
 					: toFolderId(command.parentId),
+		});
+	}
+
+	@Post(BOT_ROUTES.reorderPage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async reorderPage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(reorderPageCommandSchema, body);
+
+		await this.of(request).reorderFolder.execute({
+			folderId: toFolderId(command.folderId),
+			afterId:
+				command.afterId === undefined ? undefined : toFolderId(command.afterId),
+			beforeId:
+				command.beforeId === undefined
+					? undefined
+					: toFolderId(command.beforeId),
 		});
 	}
 

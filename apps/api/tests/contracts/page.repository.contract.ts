@@ -19,11 +19,12 @@ export interface PageRepositoryHarness {
 const at = new Date("2026-08-01T10:00:00.000Z");
 const later = new Date("2026-08-02T10:00:00.000Z");
 
-const page = (id: string, name: string, parentId?: string) =>
+const page = (id: string, name: string, parentId?: string, position?: number) =>
 	createFolder({
 		id: toFolderId(id),
 		name,
 		parentId: parentId === undefined ? undefined : toFolderId(parentId),
+		position,
 		createdAt: at,
 	});
 
@@ -67,7 +68,38 @@ export function describePageRepository(
 				expect(await harness.scope.pages.countChildPages(missing)).toBe(0);
 			});
 
-			test("lists children in name order", async () => {
+			test("lists children in the position their owner gave them", async () => {
+				const root = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(root, "Books"));
+					await pages.save(page(uuid(), "Zebra", root, 1));
+					await pages.save(page(uuid(), "Alpha", root, 2));
+				});
+
+				const children = await harness.scope.pages.listChildren(
+					toFolderId(root),
+				);
+
+				expect(children.map((child) => child.name)).toEqual(["Zebra", "Alpha"]);
+			});
+
+			test("a fractional position survives the round trip", async () => {
+				const root = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(root, "Books"));
+					await pages.save(page(uuid(), "Wedged", root, 1.0009765625));
+				});
+
+				const [child] = await harness.scope.pages.listChildren(
+					toFolderId(root),
+				);
+
+				expect(child?.position).toBeCloseTo(1.0009765625, 9);
+			});
+
+			test("children on the same position fall back to name order", async () => {
 				const root = uuid();
 
 				await harness.unitOfWork.run(async ({ pages }) => {

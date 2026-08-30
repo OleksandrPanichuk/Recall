@@ -26,6 +26,7 @@ import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-fold
 import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
+import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
 import { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
 import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
 import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
@@ -82,6 +83,7 @@ export interface UseCases {
 	readonly createFolder: CreateFolderUseCase;
 	readonly renameFolder: RenameFolderUseCase;
 	readonly moveFolder: MoveFolderUseCase;
+	readonly reorderFolder: ReorderFolderUseCase;
 	readonly deleteFolder: DeleteFolderUseCase;
 	readonly ensureFolderPath: EnsureFolderPathUseCase;
 	readonly resolveFolderPath: ResolveFolderPathUseCase;
@@ -150,6 +152,7 @@ export function createUseCases(
 		createFolder: new CreateFolderUseCase(dependencies),
 		renameFolder: new RenameFolderUseCase(dependencies),
 		moveFolder: new MoveFolderUseCase(dependencies),
+		reorderFolder: new ReorderFolderUseCase(dependencies),
 		deleteFolder: new DeleteFolderUseCase(dependencies),
 		ensureFolderPath: new EnsureFolderPathUseCase(dependencies),
 		resolveFolderPath: new ResolveFolderPathUseCase(dependencies),

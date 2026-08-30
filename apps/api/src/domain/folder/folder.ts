@@ -6,6 +6,7 @@ import {
 	FolderDepthError,
 	FolderValidationError,
 } from "./folder.errors";
+import { POSITION_STEP, roundPosition } from "./ordering";
 
 export type FolderId = BrandedId<"FolderId">;
 
@@ -22,6 +23,7 @@ export interface Folder {
 	readonly parentId?: FolderId;
 	readonly summary?: string;
 	readonly icon?: string;
+	readonly position: number;
 	readonly createdAt: Date;
 	readonly updatedAt: Date;
 }
@@ -32,6 +34,7 @@ interface FolderDraft {
 	readonly parentId?: FolderId;
 	readonly summary?: string;
 	readonly icon?: string;
+	readonly position?: number;
 	readonly createdAt: Date;
 }
 
@@ -41,6 +44,7 @@ interface FolderSnapshot {
 	readonly parentId?: FolderId;
 	readonly summary?: string;
 	readonly icon?: string;
+	readonly position?: number;
 	readonly createdAt: Date;
 	readonly updatedAt: Date;
 }
@@ -101,6 +105,7 @@ export function createFolder(draft: FolderDraft): Folder {
 		parentId: draft.parentId,
 		summary: summaryOf(draft.summary),
 		icon: trimmedOrUndefined(draft.icon),
+		position: draft.position ?? POSITION_STEP,
 		createdAt: draft.createdAt,
 		updatedAt: draft.createdAt,
 	});
@@ -182,6 +187,24 @@ export function reparentFolder(
 	return frozenFolder({ ...folder, parentId, updatedAt: at });
 }
 
+export function reorderFolder(
+	folder: Folder,
+	position: number,
+	at: Date,
+): Folder {
+	assertTransitionDate(folder, at);
+
+	if (!Number.isFinite(position)) {
+		throw new FolderValidationError(["position must be a finite number"]);
+	}
+
+	return frozenFolder({
+		...folder,
+		position: roundPosition(position),
+		updatedAt: at,
+	});
+}
+
 export function assertPlacement(
 	folder: Folder,
 	ancestors: readonly Folder[],
@@ -240,6 +263,7 @@ export function restoreFolder(snapshot: FolderSnapshot): Folder {
 		parentId: snapshot.parentId,
 		summary: summaryOf(snapshot.summary),
 		icon: trimmedOrUndefined(snapshot.icon),
+		position: snapshot.position ?? POSITION_STEP,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
 	});

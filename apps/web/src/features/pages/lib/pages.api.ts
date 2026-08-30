@@ -78,6 +78,24 @@ export const movePage = createServerFn({ method: "POST" })
 		await api().movePage.execute(data);
 	});
 
+export const reorderPage = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => {
+		const input = value as {
+			folderId: string;
+			afterId?: string;
+			beforeId?: string;
+		};
+
+		return {
+			folderId: String(input.folderId),
+			afterId: input.afterId,
+			beforeId: input.beforeId,
+		};
+	})
+	.handler(async ({ data }) => {
+		await api().reorderPage.execute(data);
+	});
+
 export const loadPageTree = createServerFn().handler(async () => ({
 	nodes: await api().listPageTree.execute({}),
 }));

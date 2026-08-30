@@ -411,6 +411,14 @@ src/
   buttons for every type leaves typed and cloze questions unanswerable — they have no options at
   all — and grades a multiple-choice question on the first click.
 
+- **Page order is the owner's, not the alphabet's.** `pages.position` is fractional
+  (`numeric(20,10)`), so inserting between two siblings is one row written, not a renumbering
+  of the parent. Listings order by `(position, title, id)` — the title is only a tiebreak for
+  rows that share a position, which is what every page imported before ordering existed does.
+  Halving a gap runs out after about thirty insertions between the same pair; `canSitBetween`
+  says so and `ReorderFolderUseCase` renumbers that parent instead of rounding two pages onto
+  the same position. Never place a page by writing a position from the caller — pass the two
+  siblings it should land between and let the use case pick, or the exhaustion check is bypassed.
 - **Images live in MinIO, and the markdown stores a relative path.** `/app/uploads/<id>`, never
   an absolute URL — an origin baked into a summary rots the moment the app moves, which is the
   same bug as the `blob:` URL this replaced. Crepe's `proxyDomURL` and react-markdown's
