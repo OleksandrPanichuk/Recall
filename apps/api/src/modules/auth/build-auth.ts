@@ -1,15 +1,18 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import type { Mailer } from "@/application/ports/mailer";
 import type { RecallDatabase } from "@/persistence/postgres/client";
 import {
 	MIN_PASSWORD_LENGTH,
 	RATE_LIMIT_MAX,
 	RATE_LIMIT_WINDOW_SECONDS,
+	RESET_TOKEN_TTL_SECONDS,
 	SIGN_IN_MAX,
 	SIGN_IN_WINDOW_SECONDS,
 	SIGN_UP_MAX,
 	SIGN_UP_WINDOW_SECONDS,
 } from "./build-auth.constants";
+import { resetPasswordLetter } from "./reset-password.letter";
 import { telegramLink } from "./telegram-link.plugin";
 
 export interface AuthOptions {
@@ -20,6 +23,7 @@ export interface AuthOptions {
 	readonly trustedOrigins: readonly string[];
 	readonly signUpsPerHour?: number;
 	readonly rateLimit?: boolean;
+	readonly mailer: Mailer;
 }
 
 export type RecallAuth = ReturnType<typeof createAuth>;
@@ -38,6 +42,10 @@ export function createAuth(options: AuthOptions) {
 			minPasswordLength: MIN_PASSWORD_LENGTH,
 			autoSignIn: true,
 			requireEmailVerification: false,
+			resetPasswordTokenExpiresIn: RESET_TOKEN_TTL_SECONDS,
+			sendResetPassword: async ({ user, url }) => {
+				await options.mailer.send(resetPasswordLetter(user.email, url));
+			},
 		},
 		rateLimit: {
 			enabled: options.rateLimit ?? true,

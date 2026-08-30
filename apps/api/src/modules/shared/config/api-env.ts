@@ -18,6 +18,8 @@ export interface ApiEnvironment {
 	readonly webAppUrl?: string;
 	readonly signUpsPerHour?: number;
 	readonly authRateLimit: boolean;
+	readonly smtpUrl?: string;
+	readonly mailFrom: string;
 	readonly objectStoreEndpoint: URL;
 	readonly objectStoreAccessKey: string;
 	readonly objectStoreSecretKey: string;
@@ -47,6 +49,8 @@ const schema = z.object({
 	MCP_HTTP_ALLOWED_HOST: z.string().trim().min(1).optional(),
 	SIGN_UPS_PER_HOUR: z.coerce.number().int().positive().max(10_000).optional(),
 	AUTH_RATE_LIMIT: z.enum(["on", "off"]).default("on"),
+	SMTP_URL: z.string().trim().min(1).optional(),
+	MAIL_FROM: z.string().trim().min(1).default("Recall <no-reply@recall.local>"),
 	OBJECT_STORE_URL: z.string().trim().url().default("http://127.0.0.1:55090"),
 	OBJECT_STORE_ACCESS_KEY: z.string().trim().min(1).default("recall"),
 	OBJECT_STORE_SECRET_KEY: z.string().trim().min(1).default("recall-secret"),
@@ -116,6 +120,8 @@ export function loadApiEnvironment(
 		webAppUrl: parsed.data.WEB_APP_URL,
 		signUpsPerHour: parsed.data.SIGN_UPS_PER_HOUR,
 		authRateLimit: parsed.data.AUTH_RATE_LIMIT === "on",
+		smtpUrl: parsed.data.SMTP_URL,
+		mailFrom: parsed.data.MAIL_FROM,
 		objectStoreEndpoint: new URL(parsed.data.OBJECT_STORE_URL),
 		objectStoreAccessKey: parsed.data.OBJECT_STORE_ACCESS_KEY,
 		objectStoreSecretKey: parsed.data.OBJECT_STORE_SECRET_KEY,

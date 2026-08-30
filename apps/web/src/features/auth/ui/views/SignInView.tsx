@@ -31,6 +31,14 @@ export function SignInView() {
 						return null;
 					}}
 				/>
+				<p className="text-center text-sm">
+					<Link
+						to="/forgot-password"
+						className="text-muted-foreground hover:underline"
+					>
+						Забули пароль?
+					</Link>
+				</p>
 				<p className="text-center text-sm text-muted-foreground">
 					Ще немає акаунта?{" "}
 					<Link to="/sign-up" className="text-primary hover:underline">

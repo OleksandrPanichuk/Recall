@@ -8,3 +8,5 @@ export const SIGN_UP_MAX = 5;
 
 export const SIGN_IN_WINDOW_SECONDS = 60;
 export const SIGN_IN_MAX = 10;
+
+export const RESET_TOKEN_TTL_SECONDS = 60 * 30;
