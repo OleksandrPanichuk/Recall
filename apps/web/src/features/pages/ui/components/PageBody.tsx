@@ -1,13 +1,7 @@
 import type { BrowseView } from "@recall/contracts";
-import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
 import { LibraryList } from "@/features/pages/ui/components/LibraryList";
+import { PageEditorSlot } from "@/features/pages/ui/components/PageEditorSlot";
 import { PageSummary } from "@/features/pages/ui/components/PageSummary";
-
-const NotionEditor = lazy(async () => ({
-	default: (await import("@/features/pages/ui/components/NotionEditor"))
-		.NotionEditor,
-}));
 
 interface Props {
 	readonly view: BrowseView;
@@ -27,15 +21,11 @@ export function PageBody({ view, onEdit, inProgressQuizId }: Props) {
 			{onEdit === undefined ? (
 				summary
 			) : (
-				<ClientOnly fallback={summary}>
-					<Suspense fallback={summary}>
-						<NotionEditor
-							key={view.folderId}
-							markdown={view.summary ?? ""}
-							onChange={onEdit}
-						/>
-					</Suspense>
-				</ClientOnly>
+				<PageEditorSlot
+					key={view.folderId}
+					markdown={view.summary ?? ""}
+					onEdit={onEdit}
+				/>
 			)}
 			{hasItems ? (
 				<section className="space-y-2">
