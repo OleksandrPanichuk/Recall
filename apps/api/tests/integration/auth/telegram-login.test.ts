@@ -53,6 +53,24 @@ const linkFor = async (telegramUserId: number): Promise<string> => {
 const follow = (url: string): Promise<Response> =>
 	fetch(url, { redirect: "manual" });
 
+const cookieOf = (response: Response): string =>
+	response.headers
+		.getSetCookie()
+		.map((entry) => entry.split(";")[0])
+		.join("; ");
+
+const PASSWORD = "correct horse battery staple";
+
+const signUp = (
+	email: string,
+	password: string = PASSWORD,
+): Promise<Response> =>
+	fetch(`${origin}/api/auth/sign-up/email`, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ email, password, name: email }),
+	});
+
 const countOf = async (table: string): Promise<number> => {
 	const rows = await harness.client.unsafe(
 		`select count(*)::int as n from "${table}"`,
@@ -74,6 +92,7 @@ beforeAll(async () => {
 	override("BETTER_AUTH_SECRET", AUTH_SECRET);
 	override("WEB_APP_URL", SUCCESS_URL);
 	override("ALLOWED_TELEGRAM_USER_ID", String(OWNER_TELEGRAM_ID));
+	override("AUTH_RATE_LIMIT", "off");
 
 	app = await createApiApp();
 	await app.listen(0, "127.0.0.1");
@@ -257,33 +276,74 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 		expect(response.status).toBe(204);
 	});
 
-	test("a stranger cannot sign themselves up", async () => {
+	test("anyone may sign themselves up, and gets their own user", async () => {
 		const before = await countOf("user");
-		const response = await fetch(`${origin}/api/auth/sign-up/email`, {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({
-				email: "stranger@example.com",
-				password: "correct horse battery staple",
-				name: "Stranger",
-			}),
-		});
+		const response = await signUp("newcomer@example.com");
+
+		expect(response.ok).toBe(true);
+		expect(await countOf("user")).toBe(before + 1);
+	});
+
+	test("a password too short to be worth having is refused", async () => {
+		const before = await countOf("user");
+		const response = await signUp("brief@example.com", "short");
 
 		expect(response.ok).toBe(false);
 		expect(await countOf("user")).toBe(before);
 	});
 
-	test("a stranger cannot sign in with a password either", async () => {
+	test("the same address cannot be taken twice", async () => {
+		await signUp("twice@example.com");
+
+		const again = await signUp("twice@example.com");
+
+		expect(again.ok).toBe(false);
+	});
+
+	test("signing in returns a session for that user, not the owner", async () => {
+		await signUp("returning@example.com");
+
 		const response = await fetch(`${origin}/api/auth/sign-in/email`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({
-				email: `telegram-${OWNER_TELEGRAM_ID}@telegram.invalid`,
-				password: "correct horse battery staple",
+				email: "returning@example.com",
+				password: PASSWORD,
 			}),
 		});
 
-		expect(response.ok).toBe(false);
+		expect(response.ok).toBe(true);
+
+		const session = await fetch(`${origin}/api/auth/get-session`, {
+			headers: { cookie: cookieOf(response) },
+		});
+		const who = (await session.json()) as { user: { email: string } } | null;
+
+		expect(who?.user.email).toBe("returning@example.com");
+	});
+
+	test("a new account sees an empty library, not the owner's", async () => {
+		const owner = cookieOf(await follow(await linkFor(OWNER_TELEGRAM_ID)));
+		const stranger = cookieOf(await signUp("nosy@example.com"));
+
+		const browse = (cookie: string) =>
+			fetch(`${origin}/app/browse`, {
+				method: "POST",
+				headers: { cookie, "content-type": "application/json" },
+				body: JSON.stringify({}),
+			}).then(
+				(response) =>
+					response.json() as Promise<{ children: unknown[]; sets: unknown[] }>,
+			);
+
+		await fetch(`${origin}/app/pages/create`, {
+			method: "POST",
+			headers: { cookie: owner, "content-type": "application/json" },
+			body: JSON.stringify({ name: "Owner's page" }),
+		});
+
+		expect((await browse(owner)).children).toHaveLength(1);
+		expect((await browse(stranger)).children).toHaveLength(0);
 	});
 
 	test("every issued link is recorded for audit", async () => {

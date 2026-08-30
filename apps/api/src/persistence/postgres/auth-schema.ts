@@ -58,6 +58,7 @@ export const account = pgTable(
 			withTimezone: true,
 		}),
 		scope: text("scope"),
+		issuer: text("issuer"),
 		password: text("password"),
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),

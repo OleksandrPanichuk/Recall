@@ -7,6 +7,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { SignOutButton } from "@/features/auth/ui/components/SignOutButton";
 import { usePreloadPages } from "@/features/pages/hooks/use-preload-pages";
 import { useWarmEditor } from "@/features/pages/hooks/use-warm-editor";
 import { loadPageTree } from "@/features/pages/lib/pages.api";
@@ -48,7 +49,11 @@ function RootComponent() {
 
 	return (
 		<Document>
-			<AppShell viewer={viewer} pages={<PageTree nodes={nodes} />}>
+			<AppShell
+				viewer={viewer}
+				pages={<PageTree nodes={nodes} />}
+				account={viewer === null ? null : <SignOutButton />}
+			>
 				<Outlet />
 			</AppShell>
 		</Document>

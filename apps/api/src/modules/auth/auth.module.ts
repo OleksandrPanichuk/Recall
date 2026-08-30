@@ -4,6 +4,7 @@ import { loadApiEnvironment } from "../shared/config/api-env";
 import { CONNECTION } from "../shared/database/tokens";
 import { ApiTokenService } from "./api-token.service";
 import { createAuth, type RecallAuth } from "./build-auth";
+import { mailerFor } from "./mailer-for";
 import { TelegramIdentityService } from "./telegram-identity.service";
 import { AUTH } from "./tokens";
 
@@ -26,6 +27,9 @@ import { AUTH } from "./tokens";
 					baseUrl: environment.authBaseUrl,
 					successUrl: environment.authSuccessUrl,
 					trustedOrigins: environment.authTrustedOrigins,
+					signUpsPerHour: environment.signUpsPerHour,
+					rateLimit: environment.authRateLimit,
+					mailer: mailerFor(environment),
 				});
 			},
 		},

@@ -96,11 +96,27 @@ is an internal RPC surface, not public REST.
 mounted by hand afterwards. Better Auth reads the raw request body itself, and a parser that has
 already consumed the stream leaves it hanging.
 
+**Registration is open** (`emailAndPassword.enabled`), so `POST /api/auth/sign-up/email` is
+reachable by anyone — that is now a product decision, not an oversight. What holds the line is
+the rate limit (`AUTH_RATE_LIMIT`, `SIGN_UPS_PER_HOUR`) and the fact that ownership is resolved
+from the session, so a new account starts empty and can never name another owner's rows.
+
+**Password reset goes out over SMTP through nodemailer**, configured by `SMTP_URL` and
+`MAIL_FROM`. With no `SMTP_URL` the mailer only *logs* the letter — the flow still works locally,
+the link is in the api log, and nothing silently pretends to have sent. `bun run db:up` starts
+Mailpit next to Postgres (SMTP on 55025, a mailbox to read at http://127.0.0.1:55026) so the real
+path can be exercised without a provider. **Email verification stays off** by decision: reset
+mail goes to the real mailbox either way, so an unverified address cannot be used to take over
+someone else's account — the costs are typo'd addresses and squatted ones.
+
+**The endpoint is `/request-password-reset`, not `/forget-password`.** Better Auth 1.7 keeps the
+old name as an alias that is not mounted; calling it gives a 404 that looks like a routing bug.
+
 Login links are minted **only** from `/bot/auth/login-link`, behind the bot token. Do not move
 that into a Better Auth endpoint: `SERVER_ONLY` merely hides an endpoint from the generated
 client, so a route that turns a Telegram id into a session would be reachable by anyone. The
-plugin's job is only to *spend* a token it did not mint. Email+password stays disabled until the
-plan's second auth phase — enabling it opens `POST /sign-up/email` to the world.
+plugin's job is only to *spend* a token it did not mint. It remains the only way a Telegram id
+becomes a session, and it is unaffected by open registration.
 
 **Ownership lives in the repository scope, not in the use cases.** Seven tables carry
 `owner_id` (`pages`, `quizzes`, `questions`, `attempts`, `term_pairs`, `review_states`,
