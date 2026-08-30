@@ -16,6 +16,7 @@ import {
 import {
 	defaultQuizSettings,
 	withExamMode,
+	withRepetition,
 } from "@/domain/settings/quiz-settings";
 import {
 	createVocabularyItem,
@@ -123,6 +124,38 @@ export function describeReviewRepository(
 				expect(found[0]?.repetitionCount).toBe(2);
 			});
 
+			test("carries fsrs memory state back out, not just the due date", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([
+						{
+							...schedule(firstQuestion, 1, 3),
+							stability: 12.3456,
+							difficulty: 6.7891,
+						},
+					]);
+				});
+
+				const found = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
+
+				expect(found[0]?.stability).toBeCloseTo(12.3456, 4);
+				expect(found[0]?.difficulty).toBeCloseTo(6.7891, 4);
+			});
+
+			test("a ladder schedule stays free of memory state", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([schedule(firstQuestion, 0, 1)]);
+				});
+
+				const found = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
+
+				expect(found[0]?.stability).toBeUndefined();
+				expect(found[0]?.difficulty).toBeUndefined();
+			});
+
 			test("upserts a schedule rather than duplicating it", async () => {
 				await harness.unitOfWork.run(async ({ reviews }) => {
 					await reviews.saveSchedules([schedule(firstQuestion, 0, 1)]);
@@ -205,6 +238,26 @@ export function describeReviewRepository(
 				});
 
 				expect(stored?.examMode).toBe(true);
+			});
+
+			test("remembers which scheduler a scope chose, and how hard", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSettings(
+						{ kind: "owner" },
+						withRepetition(defaultQuizSettings(), {
+							...defaultQuizSettings().repetition,
+							scheduler: "fsrs",
+							desiredRetention: 0.95,
+						}),
+					);
+				});
+
+				const stored = await harness.scope.reviews.findSettings({
+					kind: "owner",
+				});
+
+				expect(stored?.repetition.scheduler).toBe("fsrs");
+				expect(stored?.repetition.desiredRetention).toBeCloseTo(0.95, 3);
 			});
 
 			test("clears settings for one scope only", async () => {

@@ -16,9 +16,11 @@ const resolved: ResolvedQuizSettings = {
 	source: "global",
 	settings: {
 		repetition: {
+			scheduler: "ladder",
 			intervalsDays: [1, 3, 7],
 			maxIntervalDays: 30,
 			maxRepetitions: 5,
+			desiredRetention: 0.9,
 		},
 		shuffleOptions: true,
 		shuffleQuestions: false,
@@ -66,9 +68,11 @@ describe("quiz settings", () => {
 		expect(changes).toEqual([
 			{
 				repetition: {
+					scheduler: "ladder",
 					intervalsDays: [2, 5, 14],
 					maxIntervalDays: 30,
 					maxRepetitions: 5,
+					desiredRetention: 0.9,
 				},
 			},
 		]);
@@ -115,9 +119,11 @@ describe("a single set's settings", () => {
 				shuffleQuestions: false,
 				examMode: false,
 				repetition: {
+					scheduler: "ladder",
 					intervalsDays: [1, 3, 7],
 					maxIntervalDays: 30,
 					maxRepetitions: 5,
+					desiredRetention: 0.9,
 				},
 			},
 		]);
@@ -139,5 +145,84 @@ describe("a single set's settings", () => {
 		fireEvent.click(screen.getByLabelText("Режим іспиту"));
 
 		expect(changes).toEqual([{ examMode: true }]);
+	});
+});
+
+describe("choosing a scheduler", () => {
+	const fsrs = (over: Partial<ResolvedQuizSettings> = {}) =>
+		open({
+			...over,
+			settings: {
+				...resolved.settings,
+				repetition: { ...resolved.settings.repetition, scheduler: "fsrs" },
+			},
+		});
+
+	test("the ladder is shown as chosen, and fsrs is not", () => {
+		open();
+
+		expect(
+			screen
+				.getByRole("button", { name: /Сходинка/ })
+				.getAttribute("aria-pressed"),
+		).toBe("true");
+		expect(
+			screen.getByRole("button", { name: /FSRS/ }).getAttribute("aria-pressed"),
+		).toBe("false");
+	});
+
+	test("picking fsrs sends the whole repetition block, not a bare field", () => {
+		const changes = open();
+
+		fireEvent.click(screen.getByRole("button", { name: /FSRS/ }));
+
+		expect(changes).toEqual([
+			{
+				repetition: {
+					scheduler: "fsrs",
+					intervalsDays: [1, 3, 7],
+					maxIntervalDays: 30,
+					maxRepetitions: 5,
+					desiredRetention: 0.9,
+				},
+			},
+		]);
+	});
+
+	test("the intervals field is gone once fsrs computes them", () => {
+		fsrs();
+
+		expect(screen.queryByLabelText("Інтервали повторення, дні")).toBeNull();
+	});
+
+	test("retention is offered only under fsrs", () => {
+		open();
+
+		expect(screen.queryByRole("button", { name: "90%" })).toBeNull();
+
+		cleanup();
+		fsrs();
+
+		expect(
+			screen.getByRole("button", { name: "90%" }).getAttribute("aria-pressed"),
+		).toBe("true");
+	});
+
+	test("a different retention is sent as a whole repetition block", () => {
+		const changes = fsrs();
+
+		fireEvent.click(screen.getByRole("button", { name: "95%" }));
+
+		expect(changes).toEqual([
+			{
+				repetition: {
+					scheduler: "fsrs",
+					intervalsDays: [1, 3, 7],
+					maxIntervalDays: 30,
+					maxRepetitions: 5,
+					desiredRetention: 0.95,
+				},
+			},
+		]);
 	});
 });

@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
+import {
+	defaultQuizSettings,
+	withRepetition,
+} from "@/domain/settings/quiz-settings";
 import type { AnswerQuestionUseCase } from "./answer-question";
 import {
 	type AttemptsHarness,
@@ -85,5 +89,64 @@ describe("FinishQuizAttemptUseCase", () => {
 		await finish.execute({});
 
 		await expect(finish.execute({})).rejects.toThrow(NoActiveAttemptError);
+	});
+});
+
+describe("what finishing writes into the review schedule", () => {
+	const chooseFsrs = async (): Promise<void> => {
+		await context.scope.reviews.saveSettings(
+			{ kind: "owner" },
+			withRepetition(defaultQuizSettings(), {
+				...defaultQuizSettings().repetition,
+				scheduler: "fsrs",
+			}),
+		);
+	};
+
+	const playThrough = async (correct: boolean) => {
+		const quizSetId = await seedPublishedSet(["One"]);
+
+		await start.execute({ quizSetId });
+		await answer.execute({
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, correct)],
+		});
+		await finish.execute({});
+
+		return context.scope.reviews.findSchedules([
+			await questionIdOf(quizSetId, 0),
+		]);
+	};
+
+	test("the ladder leaves memory state alone", async () => {
+		const [schedule] = await playThrough(true);
+
+		expect(schedule?.dueAt).toBeDefined();
+		expect(schedule?.stability).toBeUndefined();
+	});
+
+	test("fsrs writes the stability and difficulty it computed", async () => {
+		await chooseFsrs();
+
+		const [schedule] = await playThrough(true);
+
+		expect(schedule?.stability).toBeGreaterThan(0);
+		expect(schedule?.difficulty).toBeGreaterThan(0);
+		expect(schedule?.dueAt).toBeDefined();
+	});
+
+	test("under fsrs a first wrong answer is not yet a lapse", async () => {
+		await chooseFsrs();
+
+		const [schedule] = await playThrough(false);
+
+		expect(schedule?.lapses).toBe(0);
+		expect(schedule?.stability).toBeGreaterThan(0);
+	});
+
+	test("under the ladder the same first wrong answer counts as one", async () => {
+		const [schedule] = await playThrough(false);
+
+		expect(schedule?.lapses).toBe(1);
 	});
 });

@@ -1,10 +1,14 @@
 import type { QuestionId } from "../quiz-set/question";
 import type { QuizSetId } from "../quiz-set/quiz-set";
 
+export type SchedulerKind = "ladder" | "fsrs";
+
 export interface RepetitionSettings {
+	readonly scheduler: SchedulerKind;
 	readonly intervalsDays: readonly number[];
 	readonly maxIntervalDays: number;
 	readonly maxRepetitions: number;
+	readonly desiredRetention: number;
 }
 
 export interface RepetitionSchedule {
@@ -14,6 +18,8 @@ export interface RepetitionSchedule {
 	readonly lapses: number;
 	readonly lastCompletedAt: Date;
 	readonly dueAt?: Date;
+	readonly stability?: number;
+	readonly difficulty?: number;
 }
 
 export interface DueSet {

@@ -48,10 +48,14 @@ export const scoreSchema = z.object({
 	percentage: z.number(),
 });
 
+export const schedulerKindSchema = z.enum(["ladder", "fsrs"]);
+
 export const repetitionSettingsSchema = z.object({
+	scheduler: schedulerKindSchema,
 	intervalsDays: z.array(z.number().int()).readonly(),
 	maxIntervalDays: z.number().int(),
 	maxRepetitions: z.number().int(),
+	desiredRetention: z.number(),
 });
 
 export const quizSettingsSchema = z.object({

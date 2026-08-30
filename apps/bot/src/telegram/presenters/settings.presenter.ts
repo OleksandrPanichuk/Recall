@@ -32,6 +32,11 @@ const ladderLine = (repetition: RepetitionSettings): string => {
 	return `Драбина: ${effective.join(" → ")} дн.${capped ? " (обрізана стелею)" : ""}`;
 };
 
+const scheduleLine = (repetition: RepetitionSettings): string =>
+	repetition.scheduler === "fsrs"
+		? `FSRS: ціль ${Math.round(repetition.desiredRetention * 100)}% запам'ятовування`
+		: ladderLine(repetition);
+
 const matchesPreset = (
 	repetition: RepetitionSettings,
 	intervalsDays: readonly number[],
@@ -109,8 +114,10 @@ export function settingsScreen(resolved: ResolvedQuizSettings): Screen {
 			`⚙️ ${resolved.title ?? "Загальні налаштування"}`,
 			"",
 			`Джерело: ${SOURCES[source] ?? source}`,
-			ladderLine(repetition),
-			`Стеля: ${repetition.maxIntervalDays} дн.  ·  Максимум повторень: ${repetition.maxRepetitions}`,
+			scheduleLine(repetition),
+			repetition.scheduler === "fsrs"
+				? `Стеля: ${repetition.maxIntervalDays} дн.`
+				: `Стеля: ${repetition.maxIntervalDays} дн.  ·  Максимум повторень: ${repetition.maxRepetitions}`,
 			`Перемішувати варіанти: ${settings.shuffleOptions ? "так" : "ні"}`,
 			`Перемішувати питання: ${settings.shuffleQuestions ? "так" : "ні"}`,
 			`Режим екзамену: ${settings.examMode ? "так" : "ні"}`,

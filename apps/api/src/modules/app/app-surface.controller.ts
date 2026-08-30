@@ -339,9 +339,11 @@ export class AppSurfaceController {
 					command.repetition === undefined
 						? undefined
 						: {
+								scheduler: command.repetition.scheduler,
 								intervalsDays: [...command.repetition.intervalsDays],
 								maxIntervalDays: command.repetition.maxIntervalDays,
 								maxRepetitions: command.repetition.maxRepetitions,
+								desiredRetention: command.repetition.desiredRetention,
 							},
 				quizSetId:
 					command.quizSetId === undefined
