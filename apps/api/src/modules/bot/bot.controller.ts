@@ -160,10 +160,13 @@ export class BotController {
 	@HttpCode(HttpStatus.OK)
 	async issueApiToken(@Body() body: unknown) {
 		const command = parseBody(issueApiTokenCommandSchema, body);
-		const issued = await this.tokens.issue(command.telegramUserId, {
-			name: command.name,
-			expiresInDays: command.expiresInDays,
-		});
+		const issued = await this.tokens.issue(
+			await this.tokens.ownerForTelegram(command.telegramUserId),
+			{
+				name: command.name,
+				expiresInDays: command.expiresInDays,
+			},
+		);
 
 		return {
 			id: issued.id,
@@ -177,7 +180,9 @@ export class BotController {
 	@HttpCode(HttpStatus.OK)
 	async listApiTokens(@Body() body: unknown) {
 		const command = parseBody(listApiTokensCommandSchema, body);
-		const tokens = await this.tokens.list(command.telegramUserId);
+		const tokens = await this.tokens.list(
+			await this.tokens.ownerForTelegram(command.telegramUserId),
+		);
 
 		return tokens.map((token) => ({
 			id: token.id,
@@ -196,7 +201,7 @@ export class BotController {
 
 		return {
 			revoked: await this.tokens.revoke(
-				command.telegramUserId,
+				await this.tokens.ownerForTelegram(command.telegramUserId),
 				command.tokenId,
 			),
 		};

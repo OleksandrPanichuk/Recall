@@ -139,8 +139,22 @@ the cookie: it is signed with a secret this app does not have and should not.
 **Two surfaces, one contract.** `/bot/*` (bot token) and `/app/*` (session cookie) serve the same
 practice routes from the same schemas and the same wire mappers; only who the API believes the
 caller to be differs. `createBotClient` and `createAppClient` are the same implementation with
-different headers — and `createAppClient` returns `PracticeUseCases`, which has **no** way to
-mint a login link or a token. Adding a practice route means adding it to both controllers.
+different headers. Adding a practice route means adding it to both controllers.
+
+**A session may mint its own MCP token, and nothing else about identity.** `createAppClient`
+returns `AppUseCases`, which has **no** `issueLoginLink` — a login link turns a *named*
+Telegram id into a session, so reaching it from a session would let anyone hand themselves
+someone else's account, and it stays behind the bot token. Personal tokens are the opposite
+case: they are scoped to whoever is asking, and a web-only account has no other way to let an
+AI reach its library. The app-side commands are the bot's with `telegramUserId` **omitted**
+(`issueOwnApiTokenCommandSchema` and friends, derived with `.omit` so the two cannot drift),
+and the controller takes the owner from `request.owner`. A stray `telegramUserId` in the body
+is dropped by the schema and ignored by the route — pinned by a test that mints as one account
+while naming another's Telegram id and gets its own token.
+
+`ApiTokenService` therefore takes an `OwnerId`, never a Telegram id; `ownerForTelegram` is the
+bot controller's own step. Putting the resolution back inside the service is what made this
+surface unreachable from the web in the first place.
 
 **No practice command carries an identity.** `getCurrentQuestion`, `answerQuestion`,
 `finishQuizAttempt`, `listDueRepetitions`, `listLeeches`, `getQuizStatistics` and

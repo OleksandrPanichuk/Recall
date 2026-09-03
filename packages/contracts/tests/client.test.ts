@@ -60,15 +60,46 @@ describe("the app client", () => {
 		expect(calls[0]?.headers.cookie).toBeUndefined();
 	});
 
-	test("cannot mint credentials", () => {
+	test("cannot mint a login link, which would hand out a session", () => {
 		const client = createAppClient({ baseUrl: "http://api.test" });
 
 		expect(
 			(client as unknown as Record<string, unknown>).issueLoginLink,
 		).toBeUndefined();
-		expect(
-			(client as unknown as Record<string, unknown>).issueApiToken,
-		).toBeUndefined();
+	});
+
+	test("can mint a token for itself, and cannot name whose", async () => {
+		const { send, calls } = recording({
+			id: "t1",
+			name: "mcp",
+			token: "recall_pat_x",
+		});
+
+		await createAppClient({
+			baseUrl: "http://api.test",
+			fetch: send,
+		}).issueApiToken.execute({ name: "mcp" });
+
+		expect(calls[0]?.url).toBe("http://api.test/app/auth/tokens/issue");
+		expect(Object.keys(JSON.parse(calls[0]?.body ?? "{}"))).toEqual(["name"]);
+	});
+
+	test("a telegram id in a token command is dropped, not forwarded", async () => {
+		const { send, calls } = recording({
+			id: "t1",
+			name: "mcp",
+			token: "recall_pat_x",
+		});
+
+		await createAppClient({
+			baseUrl: "http://api.test",
+			fetch: send,
+		}).issueApiToken.execute({
+			name: "mcp",
+			telegramUserId: 616161,
+		} as never);
+
+		expect(JSON.parse(calls[0]?.body ?? "{}")).toEqual({ name: "mcp" });
 	});
 });
 
