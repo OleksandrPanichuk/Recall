@@ -4,7 +4,7 @@ import type {
 	ResolvedQuizSettings,
 } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
-import { CirclePlay, Play } from "lucide-react";
+import { CirclePlay, Pencil, Play } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { SettingsEditor } from "@/features/settings/ui/components/SettingsEditor";
 import { quizCallToAction } from "@/features/statistics/lib/quiz-page";
@@ -40,6 +40,12 @@ export function QuizStatisticsView({
 	return (
 		<>
 			<PageHeading title={statistics.title} caption={action.caption}>
+				<Link to="/quizzes/$quizId/edit" params={{ quizId }}>
+					<Button size="lg" variant="outline">
+						<Pencil />
+						Редагувати
+					</Button>
+				</Link>
 				<Link to="/practice/$quizId" params={{ quizId }}>
 					<Button size="lg">
 						{action.resuming ? <CirclePlay /> : <Play />}

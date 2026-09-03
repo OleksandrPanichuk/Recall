@@ -454,6 +454,12 @@ src/
 
   Keyboard dragging is the reason for the library: the handle is focusable, space picks a page
   up, arrows move it. The announcements must name the page, not its uuid.
+- **A route that must not nest under its parent needs the `_` suffix.** `quizzes.$quizId.edit.tsx`
+  makes TanStack treat `quizzes.$quizId.tsx` as its layout, and that file renders no `<Outlet />`,
+  so `/quizzes/x/edit` silently served the **statistics** screen instead — the typecheck passes and
+  the route exists. `quizzes.$quizId_.edit.tsx` opts out of the parent and gives the same path.
+  While a dev server is running, renaming a route file leaves the SSR side on the old tree and the
+  next load reports a hydration mismatch that is not real; restart it before believing one.
 - **Images live in MinIO, and the markdown stores a relative path.** `/app/uploads/<id>`, never
   an absolute URL — an origin baked into a summary rots the moment the app moves, which is the
   same bug as the `blob:` URL this replaced. Crepe's `proxyDomURL` and react-markdown's
