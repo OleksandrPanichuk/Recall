@@ -1,4 +1,5 @@
 import type { BrowseView } from "@recall/contracts";
+import { NewQuizButton } from "@/features/authoring/ui/components/NewQuizButton";
 import { searchPages } from "@/features/pages/lib/pages.api";
 import { LibraryList } from "@/features/pages/ui/components/LibraryList";
 import { NewPageButton } from "@/features/pages/ui/components/NewPageButton";
@@ -21,6 +22,7 @@ export function LibraryView({ view, inProgressQuizId }: Props) {
 		<>
 			<PageHeading title="Ваша бібліотека" caption={libraryCaption(view)}>
 				<NewPageButton label="Нова сторінка" />
+				<NewQuizButton folderId={view.folderId} />
 			</PageHeading>
 			<div className="space-y-4">
 				<PageSearch onSearch={(query) => searchPages({ data: query })} />

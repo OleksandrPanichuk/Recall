@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { QuestionOptionInput } from "@/application/use-cases/quiz-sets/add-questions";
 import type { Difficulty } from "@/domain/quiz-set/question";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { answerOptionsOf } from "@/modules/shared/authoring/question-input";
 import { ok } from "../presenters/tool-result.presenter";
 import {
 	deleteQuestionShape,
@@ -10,45 +10,6 @@ import {
 } from "../schemas/question-edit.schema";
 import type { McpUseCases } from "../server.types";
 import type { ToolRunner } from "../utils/tool-logging";
-
-interface ContentArgs {
-	readonly options?: readonly QuestionOptionInput[];
-	readonly acceptedAnswers?: readonly string[];
-	readonly orderedItems?: readonly string[];
-	readonly pairs?: readonly { left: string; right: string }[];
-}
-
-const accepted = (texts: readonly string[]): readonly QuestionOptionInput[] =>
-	texts.map((text) => ({ text, isCorrect: true }));
-
-function optionsFrom(
-	args: ContentArgs,
-): readonly QuestionOptionInput[] | undefined {
-	if (args.pairs !== undefined) {
-		return [
-			...args.pairs.map((pair, index) => ({
-				text: pair.left,
-				isCorrect: true,
-				matchKey: `p${index}`,
-			})),
-			...args.pairs.map((pair, index) => ({
-				text: pair.right,
-				isCorrect: true,
-				matchKey: `p${index}`,
-			})),
-		];
-	}
-
-	if (args.acceptedAnswers !== undefined) {
-		return accepted(args.acceptedAnswers);
-	}
-
-	if (args.orderedItems !== undefined) {
-		return accepted(args.orderedItems);
-	}
-
-	return args.options;
-}
 
 export function registerEditQuestionTools(
 	server: McpServer,
@@ -74,7 +35,7 @@ export function registerEditQuestionTools(
 					sourceReference: args.sourceReference,
 					topic: args.topic,
 					hint: args.hint,
-					options: optionsFrom(args),
+					options: answerOptionsOf(args),
 				});
 
 				return ok(

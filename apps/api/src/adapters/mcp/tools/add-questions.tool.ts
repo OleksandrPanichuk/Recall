@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuestionInput } from "@/modules/shared/authoring/question-input";
 import { ok } from "../presenters/tool-result.presenter";
-import { toQuestionInput } from "../schemas/question-input";
 import { addQuestionsShape } from "../schemas/quiz-set.schema";
 import type { McpUseCases } from "../server.types";
 import type { ToolRunner } from "../utils/tool-logging";
