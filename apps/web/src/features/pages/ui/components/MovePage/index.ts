@@ -1,0 +1,1 @@
+export { MovePage } from "./MovePage";

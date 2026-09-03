@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SaveState } from "@/shared/ui/components/SaveState.types";
+import type { SaveState } from "@/shared/lib/save-state.types";
 
 export const AUTOSAVE_DELAY = 1200;
 

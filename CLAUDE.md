@@ -387,11 +387,26 @@ src/
 - **`shared/` never imports a feature.** It is the bottom of the graph. `AppShell` takes the page
   tree as a rendered node rather than importing `PageTree`, which is what keeps that true.
 - **A component file contains `interface Props` and the component. Nothing else.** No second
-  type, no constant, no helper, no sub-component. They go beside it as
-  `ComponentName.constants.ts`, `ComponentName.lib.ts` (pure helpers) or
-  `ComponentName.types.ts`, or into the feature's `constants/` and `lib/` when more than one
-  component needs them. The props type is always called `Props` — it is never read outside its
-  own file, so a longer name buys nothing.
+  type, no constant, no helper, no sub-component. The props type is always called `Props` — it
+  is never read outside its own file, so a longer name buys nothing.
+- **A component that needs anything beside it becomes a folder.** One loose `Button.tsx` stays
+  a file; the moment it grows a constant or a helper it becomes:
+
+  ```text
+  ComponentName/
+    index.ts                    export { ComponentName } from "./ComponentName"
+    ComponentName.tsx
+    ComponentName.constants.ts
+    ComponentName.lib.ts        pure helpers
+    ComponentName.types.ts
+  ```
+
+  Everyone imports the folder, never `ComponentName/ComponentName` — `index.ts` is the only
+  entrance. A sub-component used by nothing else lives in the folder too (`PageTree/PageRow.tsx`).
+- **A sidecar that production code outside the folder imports is not component-private.** It
+  belongs in the feature's `constants/` or `lib/`, or in `shared/lib/` if more than one feature
+  wants it — `MIN_PASSWORD_LENGTH` and the `SaveState` type both got there that way. Tests
+  reaching in for pure logic (`PageTree/PageTree.projection`) are fine and expected.
 - **Component files are PascalCase and named for the component**: `QuestionCard.tsx`,
   `ui/Button.tsx`. This is the opposite of the api's `answer-question.ts`, and deliberate — it is
   the convention every shadcn snippet and React codebase assumes, and the file *is* the component.

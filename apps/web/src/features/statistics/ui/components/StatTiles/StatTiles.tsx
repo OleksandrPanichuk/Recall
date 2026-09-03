@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/Card";
-import type { Stat } from "./StatTiles.types";
+import type { Stat } from "@/features/statistics/lib/tiles.types";
 
 export function StatTiles({ stats }: { readonly stats: readonly Stat[] }) {
 	return (

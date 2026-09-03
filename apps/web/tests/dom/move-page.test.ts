@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { PageTreeNode } from "@recall/contracts";
-import { destinationsFor } from "@/features/pages/ui/components/MovePage.lib";
+import { destinationsFor } from "@/features/pages/ui/components/MovePage/MovePage.lib";
 
 const node = (
 	id: string,
