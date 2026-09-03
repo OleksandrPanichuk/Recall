@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { STORAGE_KEY, type Theme } from "./use-theme.constants";
+import { THEME_STORAGE_KEY, type Theme } from "@/shared/constants/theme";
 
 const systemPrefersDark = (): boolean =>
 	globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 
 const stored = (): Theme | null => {
 	try {
-		const value = globalThis.localStorage?.getItem(STORAGE_KEY);
+		const value = globalThis.localStorage?.getItem(THEME_STORAGE_KEY);
 
 		return value === "dark" || value === "light" ? value : null;
 	} catch {
@@ -14,7 +14,7 @@ const stored = (): Theme | null => {
 	}
 };
 
-export const applyTheme = (theme: Theme): void => {
+const applyTheme = (theme: Theme): void => {
 	document.documentElement.classList.toggle("dark", theme === "dark");
 };
 
@@ -30,7 +30,7 @@ export function useTheme() {
 		applyTheme(next);
 
 		try {
-			globalThis.localStorage?.setItem(STORAGE_KEY, next);
+			globalThis.localStorage?.setItem(THEME_STORAGE_KEY, next);
 		} catch {
 			// a browser that refuses storage still gets the theme for this visit
 		}
