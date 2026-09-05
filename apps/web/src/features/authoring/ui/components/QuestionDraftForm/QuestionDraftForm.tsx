@@ -18,6 +18,8 @@ interface Props {
 	readonly onChange: (form: DraftForm) => void;
 	readonly onSubmit: () => void;
 	readonly onCancel: () => void;
+	readonly submitLabel?: string;
+	readonly typeLocked?: boolean;
 }
 
 export function QuestionDraftForm({
@@ -26,6 +28,8 @@ export function QuestionDraftForm({
 	onChange,
 	onSubmit,
 	onCancel,
+	submitLabel = "Додати питання",
+	typeLocked = false,
 }: Props) {
 	const shape = ANSWER_SHAPE[form.type] ?? "options";
 	const problems = problemsWith(form);
@@ -39,10 +43,14 @@ export function QuestionDraftForm({
 		<div className="space-y-3">
 			<div className="grid gap-2 sm:grid-cols-2">
 				<label className="space-y-1 text-sm">
-					<span className="font-medium">Тип питання</span>
+					<span className="font-medium">
+						Тип питання
+						{typeLocked ? " — інший тип означає інше питання" : ""}
+					</span>
 					<select
 						className={FIELD}
 						value={form.type}
+						disabled={typeLocked}
 						onChange={(event) =>
 							set({ type: event.target.value as DraftForm["type"] })
 						}
@@ -210,7 +218,7 @@ export function QuestionDraftForm({
 					disabled={busy || problems.length > 0}
 					onClick={onSubmit}
 				>
-					{busy ? "Зберігаємо…" : "Додати питання"}
+					{busy ? "Зберігаємо…" : submitLabel}
 				</Button>
 				<Button type="button" variant="outline" onClick={onCancel}>
 					Скасувати
