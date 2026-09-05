@@ -24,6 +24,7 @@ import {
 	issueApiTokenCommandSchema,
 	leechesCommandSchema,
 	listApiTokensCommandSchema,
+	listRevisionsCommandSchema,
 	loginLinkCommandSchema,
 	movePageCommandSchema,
 	practiceCommandSchema,
@@ -49,6 +50,7 @@ import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-fold
 import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
 import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
+import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
@@ -82,6 +84,7 @@ import {
 	pageTreeNodeToWire,
 	practiceResultToWire,
 	resolvedSettingsToWire,
+	revisionToWire,
 	settingsToWire,
 	startResultToWire,
 	statisticsToWire,
@@ -118,6 +121,8 @@ export class BotController {
 		private readonly listFolderTree: ListFolderTreeUseCase,
 		@Inject(MoveFolderUseCase)
 		private readonly moveFolder: MoveFolderUseCase,
+		@Inject(ListRevisionsUseCase)
+		private readonly revisions: ListRevisionsUseCase,
 		@Inject(ReorderFolderUseCase)
 		private readonly reorderFolder: ReorderFolderUseCase,
 		@Inject(StartQuizAttemptUseCase)
@@ -323,6 +328,19 @@ export class BotController {
 					? undefined
 					: toFolderId(command.parentId),
 		});
+	}
+
+	@Post(BOT_ROUTES.listRevisions)
+	@HttpCode(HttpStatus.OK)
+	async listRevisions(@Body() body: unknown) {
+		const command = parseBody(listRevisionsCommandSchema, body);
+
+		return (
+			await this.revisions.execute({
+				folderId: toFolderId(command.folderId),
+				limit: command.limit,
+			})
+		).map(revisionToWire);
 	}
 
 	@Post(BOT_ROUTES.pageTree)

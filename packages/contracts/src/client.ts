@@ -78,18 +78,22 @@ import {
 	type ListDueRepetitionsCommand,
 	type ListLeechesCommand,
 	type ListOwnApiTokensCommand,
+	type ListRevisionsCommand,
 	type LoginLink,
 	leechesCommandSchema,
 	leechSchema,
 	listApiTokensCommandSchema,
 	listOwnApiTokensCommandSchema,
+	listRevisionsCommandSchema,
 	loginLinkCommandSchema,
 	loginLinkSchema,
 	type MovePageCommand,
 	movePageCommandSchema,
 	type PageMatch,
+	type PageRevision,
 	type PageTreeNode,
 	pageMatchSchema,
+	pageRevisionSchema,
 	pageTreeNodeSchema,
 	practiceCommandSchema,
 	practiceResultSchema,
@@ -263,6 +267,10 @@ export interface PracticeUseCases extends AuthoringUseCases {
 	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
 	readonly movePage: UseCaseLike<MovePageCommand, void>;
 	readonly reorderPage: UseCaseLike<ReorderPageCommand, void>;
+	readonly listRevisions: UseCaseLike<
+		ListRevisionsCommand,
+		readonly PageRevision[]
+	>;
 	readonly listPageTree: UseCaseLike<
 		Record<string, never>,
 		readonly PageTreeNode[]
@@ -359,6 +367,7 @@ export const BOT_ROUTES = {
 	deletePage: "pages/delete",
 	movePage: "pages/move",
 	reorderPage: "pages/reorder",
+	listRevisions: "pages/revisions",
 	pageTree: "pages/tree",
 	startAttempt: "attempts/start",
 	practice: "attempts/practice",
@@ -571,6 +580,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.reorderPage,
 			reorderPageCommandSchema,
 			z.void(),
+		),
+		listRevisions: operation(
+			BOT_ROUTES.listRevisions,
+			listRevisionsCommandSchema,
+			pageRevisionSchema.array().readonly(),
 		),
 		listPageTree: operation(
 			BOT_ROUTES.pageTree,

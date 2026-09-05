@@ -1,5 +1,5 @@
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
-import { loadLibrary } from "@/features/pages/lib/pages.api";
+import { loadLibrary, loadRevisions } from "@/features/pages/lib/pages.api";
 import { PageDetailView } from "@/features/pages/ui/views/PageDetailView";
 import { loadCurrentQuestion } from "@/features/practice/lib/practice.api";
 
@@ -9,14 +9,19 @@ export const Route = createFileRoute("/folders/$folderId")({
 			return null;
 		}
 
-		const [page, active] = await Promise.all([
+		const [page, active, history] = await Promise.all([
 			loadLibrary({ data: params.folderId }),
 			loadCurrentQuestion(),
+			loadRevisions({ data: params.folderId }),
 		]);
 
 		return page === null
 			? null
-			: { ...page, inProgressQuizId: active.current?.quizSetId };
+			: {
+					...page,
+					inProgressQuizId: active.current?.quizSetId,
+					revisions: history.revisions,
+				};
 	},
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.name ?? "Сторінка"} · Recall` }],
@@ -37,6 +42,7 @@ function Page() {
 			inProgressQuizId={loaded?.inProgressQuizId}
 			pages={nodes}
 			signedIn={context.viewer !== null}
+			revisions={loaded?.revisions ?? []}
 		/>
 	);
 }

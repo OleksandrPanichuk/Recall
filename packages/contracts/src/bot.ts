@@ -310,6 +310,19 @@ export const reorderPageCommandSchema = z.object({
 	beforeId: optionalId,
 });
 
+export const listRevisionsCommandSchema = z.object({
+	folderId: id,
+	limit: z.number().int().positive().max(100).optional(),
+});
+
+export const pageRevisionSchema = z.object({
+	id,
+	title: z.string(),
+	summary: z.string().optional(),
+	authorKind: z.enum(["user", "mcp"]),
+	createdAt: z.string(),
+});
+
 export const pageTreeNodeSchema = z.object({
 	id,
 	name: z.string(),
@@ -473,6 +486,8 @@ export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;
 export type SetPageIconCommand = z.infer<typeof setPageIconCommandSchema>;
 export type DeletePageCommand = z.infer<typeof deletePageCommandSchema>;
 export type MovePageCommand = z.infer<typeof movePageCommandSchema>;
+export type ListRevisionsCommand = z.infer<typeof listRevisionsCommandSchema>;
+export type PageRevision = z.infer<typeof pageRevisionSchema>;
 export type ReorderPageCommand = z.infer<typeof reorderPageCommandSchema>;
 export type PageTreeNode = z.infer<typeof pageTreeNodeSchema>;
 export type GetInsightsCommand = z.infer<typeof insightsCommandSchema>;

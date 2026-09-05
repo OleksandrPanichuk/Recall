@@ -7,9 +7,15 @@ interface Props {
 	readonly view: BrowseView;
 	readonly onEdit?: (markdown: string) => void;
 	readonly inProgressQuizId?: string;
+	readonly resetKey?: number;
 }
 
-export function PageBody({ view, onEdit, inProgressQuizId }: Props) {
+export function PageBody({
+	view,
+	onEdit,
+	inProgressQuizId,
+	resetKey = 0,
+}: Props) {
 	const hasItems =
 		view.children.length > 0 ||
 		view.sets.length > 0 ||
@@ -22,7 +28,7 @@ export function PageBody({ view, onEdit, inProgressQuizId }: Props) {
 				summary
 			) : (
 				<PageEditorSlot
-					key={view.folderId}
+					key={`${view.folderId}:${resetKey}`}
 					markdown={view.summary ?? ""}
 					onEdit={onEdit}
 				/>

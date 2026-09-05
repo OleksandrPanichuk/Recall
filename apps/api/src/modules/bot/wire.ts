@@ -7,6 +7,7 @@ import type {
 	FinishQuizAttemptResult as WireFinishResult,
 	Insights as WireInsights,
 	LeechView as WireLeech,
+	PageRevision as WirePageRevision,
 	PageTreeNode as WirePageTreeNode,
 	StartPracticeSessionResult as WirePracticeResult,
 	Question as WireQuestion,
@@ -17,6 +18,7 @@ import type {
 	StartQuizAttemptResult as WireStartResult,
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
+import type { PageRevision } from "@/application/ports/repositories/page.repository";
 import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { Insights } from "@/application/use-cases/analytics/get-insights";
 import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answer-question";
@@ -64,6 +66,14 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 	status: summary.status,
 	questionCount: summary.questionCount,
 	updatedAt: summary.updatedAt.toISOString(),
+});
+
+export const revisionToWire = (revision: PageRevision): WirePageRevision => ({
+	id: revision.id,
+	title: revision.title,
+	summary: revision.summary,
+	authorKind: revision.authorKind,
+	createdAt: revision.createdAt.toISOString(),
 });
 
 export const quizDetailToWire = (quiz: QuizSet): WireQuizDetail => ({
