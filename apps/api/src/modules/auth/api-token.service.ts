@@ -26,10 +26,9 @@ export class ApiTokenService {
 	) {}
 
 	async issue(
-		telegramUserId: number,
+		owner: OwnerId,
 		options: { readonly name: string; readonly expiresInDays?: number },
 	): Promise<IssuedApiToken> {
-		const owner = await this.ownerFor(telegramUserId);
 		const issued = await issueApiToken(this.connection.db, {
 			owner,
 			name: options.name,
@@ -44,15 +43,11 @@ export class ApiTokenService {
 		return issued;
 	}
 
-	async list(telegramUserId: number): Promise<readonly ApiTokenSummary[]> {
-		return listApiTokens(
-			this.connection.db,
-			await this.ownerFor(telegramUserId),
-		);
+	async list(owner: OwnerId): Promise<readonly ApiTokenSummary[]> {
+		return listApiTokens(this.connection.db, owner);
 	}
 
-	async revoke(telegramUserId: number, tokenId: string): Promise<boolean> {
-		const owner = await this.ownerFor(telegramUserId);
+	async revoke(owner: OwnerId, tokenId: string): Promise<boolean> {
 		const revoked = await revokeApiToken(
 			this.connection.db,
 			owner,
@@ -67,7 +62,7 @@ export class ApiTokenService {
 		return revoked;
 	}
 
-	private async ownerFor(telegramUserId: number): Promise<OwnerId> {
+	async ownerForTelegram(telegramUserId: number): Promise<OwnerId> {
 		const owner = await findTelegramOwner(this.connection.db, telegramUserId);
 
 		if (owner === undefined) {

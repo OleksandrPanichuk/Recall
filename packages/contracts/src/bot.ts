@@ -254,6 +254,18 @@ export const revokeApiTokenCommandSchema = z.object({
 
 export const revokedApiTokenSchema = z.object({ revoked: z.boolean() });
 
+export const issueOwnApiTokenCommandSchema = issueApiTokenCommandSchema.omit({
+	telegramUserId: true,
+});
+
+export const listOwnApiTokensCommandSchema = listApiTokensCommandSchema.omit({
+	telegramUserId: true,
+});
+
+export const revokeOwnApiTokenCommandSchema = revokeApiTokenCommandSchema.omit({
+	telegramUserId: true,
+});
+
 export const browseCommandSchema = z.object({ folderId: optionalId });
 
 export const writeSummaryCommandSchema = z.object({
@@ -439,6 +451,15 @@ export type IssueApiTokenCommand = z.infer<typeof issueApiTokenCommandSchema>;
 export type ListApiTokensCommand = z.infer<typeof listApiTokensCommandSchema>;
 export type RevokeApiTokenCommand = z.infer<typeof revokeApiTokenCommandSchema>;
 export type RevokedApiToken = z.infer<typeof revokedApiTokenSchema>;
+export type IssueOwnApiTokenCommand = z.infer<
+	typeof issueOwnApiTokenCommandSchema
+>;
+export type ListOwnApiTokensCommand = z.infer<
+	typeof listOwnApiTokensCommandSchema
+>;
+export type RevokeOwnApiTokenCommand = z.infer<
+	typeof revokeOwnApiTokenCommandSchema
+>;
 export type BrowseFolderCommand = z.infer<typeof browseCommandSchema>;
 export type WriteSummaryCommand = z.infer<typeof writeSummaryCommandSchema>;
 export type SummaryWritten = z.infer<typeof summaryWrittenSchema>;

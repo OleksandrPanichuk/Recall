@@ -67,18 +67,22 @@ import {
 	type IssueApiTokenCommand,
 	type IssuedApiToken,
 	type IssueLoginLinkCommand,
+	type IssueOwnApiTokenCommand,
 	insightsCommandSchema,
 	insightsSchema,
 	issueApiTokenCommandSchema,
 	issuedApiTokenSchema,
+	issueOwnApiTokenCommandSchema,
 	type LeechView,
 	type ListApiTokensCommand,
 	type ListDueRepetitionsCommand,
 	type ListLeechesCommand,
+	type ListOwnApiTokensCommand,
 	type LoginLink,
 	leechesCommandSchema,
 	leechSchema,
 	listApiTokensCommandSchema,
+	listOwnApiTokensCommandSchema,
 	loginLinkCommandSchema,
 	loginLinkSchema,
 	type MovePageCommand,
@@ -101,12 +105,14 @@ import {
 	type ResolveQuizSettingsCommand,
 	type RevokeApiTokenCommand,
 	type RevokedApiToken,
+	type RevokeOwnApiTokenCommand,
 	renamePageCommandSchema,
 	reorderPageCommandSchema,
 	resolvedSettingsSchema,
 	resolveSettingsCommandSchema,
 	revokeApiTokenCommandSchema,
 	revokedApiTokenSchema,
+	revokeOwnApiTokenCommandSchema,
 	type SearchPagesCommand,
 	type SetPageIconCommand,
 	type StartPracticeSessionCommand,
@@ -305,6 +311,18 @@ export interface PracticeUseCases extends AuthoringUseCases {
 }
 
 export const APP_ROUTE_PREFIX = "app";
+
+export interface AppUseCases extends PracticeUseCases {
+	readonly issueApiToken: UseCaseLike<IssueOwnApiTokenCommand, IssuedApiToken>;
+	readonly listApiTokens: UseCaseLike<
+		ListOwnApiTokensCommand,
+		readonly ApiToken[]
+	>;
+	readonly revokeApiToken: UseCaseLike<
+		RevokeOwnApiTokenCommand,
+		RevokedApiToken
+	>;
+}
 
 export interface BotUseCases extends PracticeUseCases {
 	readonly issueLoginLink: UseCaseLike<IssueLoginLinkCommand, LoginLink>;
@@ -618,6 +636,23 @@ function createClient(options: RecallClientOptions) {
 
 	return {
 		practice,
+		ownCredentials: {
+			issueApiToken: operation(
+				BOT_ROUTES.issueApiToken,
+				issueOwnApiTokenCommandSchema,
+				issuedApiTokenSchema,
+			),
+			listApiTokens: operation(
+				BOT_ROUTES.listApiTokens,
+				listOwnApiTokensCommandSchema,
+				apiTokenSchema.array().readonly(),
+			),
+			revokeApiToken: operation(
+				BOT_ROUTES.revokeApiToken,
+				revokeOwnApiTokenCommandSchema,
+				revokedApiTokenSchema,
+			),
+		},
 		credentials: {
 			issueLoginLink: operation(
 				BOT_ROUTES.loginLink,
@@ -652,10 +687,12 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 	return { ...client.practice, ...client.credentials };
 }
 
-export function createAppClient(options: AppApiOptions): PracticeUseCases {
-	return createClient({
+export function createAppClient(options: AppApiOptions): AppUseCases {
+	const client = createClient({
 		...options,
 		baseUrl: new URL(`${APP_ROUTE_PREFIX}/`, `${String(options.baseUrl)}/`),
 		headers: options.cookie === undefined ? {} : { cookie: options.cookie },
-	}).practice;
+	});
+
+	return { ...client.practice, ...client.ownCredentials };
 }
