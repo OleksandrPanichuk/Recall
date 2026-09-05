@@ -1,5 +1,6 @@
 import { normaliseForComparison } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
+import type { IdGenerator } from "@/application/ports/id-generator";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type {
@@ -70,6 +71,7 @@ const rebuiltFrom = (
 	question: Question,
 	card: VocabularyCard,
 	example: string | undefined,
+	mintId: () => string,
 ): Question =>
 	createQuestion({
 		id: question.id,
@@ -78,7 +80,7 @@ const rebuiltFrom = (
 		difficulty: question.difficulty,
 		position: question.position,
 		options: card.acceptedAnswers.map((text, index) => ({
-			id: toQuestionOptionId(`${question.id}-${index}`),
+			id: toQuestionOptionId(mintId()),
 			text,
 			isCorrect: true,
 			position: index,
@@ -93,6 +95,7 @@ function planRebuild(
 	questions: readonly Question[],
 	stored: VocabularyItem,
 	updated: VocabularyItem,
+	mintId: () => string,
 ): Rebuild {
 	const before = cardsByDirection(stored);
 	const after = cardsByDirection(updated);
@@ -123,7 +126,7 @@ function planRebuild(
 		}
 
 		after.delete(direction);
-		replacements.push(rebuiltFrom(question, card, updated.example));
+		replacements.push(rebuiltFrom(question, card, updated.example, mintId));
 	}
 
 	return { replacements, removedIds };
@@ -134,10 +137,12 @@ export class UpdateVocabularyUseCase
 {
 	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	private readonly clock: Clock;
+	private readonly idGenerator: IdGenerator;
 
 	constructor(dependencies: UpdateVocabularyDependencies) {
 		this.unitOfWork = dependencies.unitOfWork;
 		this.clock = dependencies.clock;
+		this.idGenerator = dependencies.idGenerator;
 	}
 
 	async execute(
@@ -173,7 +178,12 @@ export class UpdateVocabularyUseCase
 			const owned = quizSet.questions.filter(
 				(question) => question.vocabularyItemId === String(stored.id),
 			);
-			const { replacements, removedIds } = planRebuild(owned, stored, updated);
+			const { replacements, removedIds } = planRebuild(
+				owned,
+				stored,
+				updated,
+				() => this.idGenerator.generate(),
+			);
 
 			await termPairs.save(updated);
 			await quizzes.save(

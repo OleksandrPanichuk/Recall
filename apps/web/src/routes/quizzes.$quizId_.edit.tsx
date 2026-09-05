@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { loadQuizSet } from "@/features/authoring/lib/authoring.api";
+import {
+	loadQuizSet,
+	loadVocabulary,
+} from "@/features/authoring/lib/authoring.api";
 import { QuizEditorView } from "@/features/authoring/ui/views/QuizEditorView";
 import { NotFound } from "@/shared/ui/components/NotFound";
 import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
@@ -11,6 +14,7 @@ export const Route = createFileRoute("/quizzes/$quizId_/edit")({
 			: {
 					viewer: true as const,
 					quiz: await loadQuizSet({ data: params.quizId }),
+					vocabulary: (await loadVocabulary({ data: params.quizId })).items,
 				},
 	head: ({ loaderData }) => ({
 		meta: [
@@ -33,5 +37,5 @@ function Editor() {
 		return <NotFound />;
 	}
 
-	return <QuizEditorView quiz={loaded.quiz} />;
+	return <QuizEditorView quiz={loaded.quiz} vocabulary={loaded.vocabulary} />;
 }
