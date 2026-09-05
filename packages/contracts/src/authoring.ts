@@ -188,3 +188,68 @@ export type QuizDetail = z.infer<typeof quizDetailSchema>;
 export type CreatedSet = z.infer<typeof createdSetSchema>;
 export type AddedQuestions = z.infer<typeof addedQuestionsSchema>;
 export type DeletedQuestion = z.infer<typeof deletedQuestionSchema>;
+
+export const VocabularyDirection = {
+	TermToTranslation: "term_to_translation",
+	TranslationToTerm: "translation_to_term",
+} as const;
+export type VocabularyDirection =
+	(typeof VocabularyDirection)[keyof typeof VocabularyDirection];
+
+const term = z.string().trim().min(1).max(200);
+
+export const vocabularyItemSchema = z.object({
+	itemId: id,
+	terms: z.array(z.string()).readonly(),
+	translations: z.array(z.string()).readonly(),
+	transcription: z.string().optional(),
+	example: z.string().optional(),
+	topic: z.string().optional(),
+	questionIds: z.array(z.string()).readonly(),
+});
+
+export const listVocabularyCommandSchema = z.object({ quizSetId: id });
+
+export const vocabularyPairSchema = z.object({
+	term: z.array(term).min(1).max(10),
+	translation: z.array(term).min(1).max(10),
+	transcription: z.string().trim().max(200).optional(),
+	example: z.string().trim().max(500).optional(),
+});
+
+export const addVocabularyCommandSchema = z.object({
+	quizSetId: id,
+	pairs: z.array(vocabularyPairSchema).min(1).max(MAX_QUESTIONS_PER_BATCH),
+	directions: z.array(z.enum(VocabularyDirection)).min(1).max(2),
+	topic: z.string().trim().max(100).optional(),
+	difficulty: z.enum(Difficulty).optional(),
+});
+
+export const addedVocabularySchema = z.object({
+	itemIds: z.array(id).readonly(),
+	addedQuestionCount: z.number().int(),
+	alreadyPresent: z.boolean(),
+});
+
+export const updateVocabularyCommandSchema = z.object({
+	itemId: id,
+	term: z.array(term).min(1).max(10).optional(),
+	translation: z.array(term).min(1).max(10).optional(),
+	transcription: z.string().trim().max(200).optional(),
+	example: z.string().trim().max(500).optional(),
+});
+
+export const updatedVocabularySchema = z.object({
+	itemId: id,
+	rebuiltQuestionCount: z.number().int(),
+	removedQuestionCount: z.number().int(),
+});
+
+export type VocabularyItem = z.infer<typeof vocabularyItemSchema>;
+export type ListVocabularyCommand = z.infer<typeof listVocabularyCommandSchema>;
+export type AddVocabularyCommand = z.infer<typeof addVocabularyCommandSchema>;
+export type AddedVocabulary = z.infer<typeof addedVocabularySchema>;
+export type UpdateVocabularyCommand = z.infer<
+	typeof updateVocabularyCommandSchema
+>;
+export type UpdatedVocabulary = z.infer<typeof updatedVocabularySchema>;

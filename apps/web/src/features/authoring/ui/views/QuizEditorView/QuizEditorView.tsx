@@ -1,4 +1,4 @@
-import type { QuizDetail } from "@recall/contracts";
+import type { QuizDetail, VocabularyItem } from "@recall/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -26,13 +26,15 @@ import {
 } from "@/features/authoring/lib/drafts";
 import { questionCount } from "@/features/authoring/lib/plurals";
 import { QuestionDraftForm } from "@/features/authoring/ui/components/QuestionDraftForm";
+import { VocabularyList } from "@/features/authoring/ui/components/VocabularyList";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
 
 interface Props {
 	readonly quiz: QuizDetail;
+	readonly vocabulary: readonly VocabularyItem[];
 }
 
-export function QuizEditorView({ quiz }: Props) {
+export function QuizEditorView({ quiz, vocabulary }: Props) {
 	const router = useRouter();
 	const [form, setForm] = useState(emptyForm);
 	const [adding, setAdding] = useState(false);
@@ -207,6 +209,11 @@ export function QuizEditorView({ quiz }: Props) {
 					)}
 				</CardContent>
 			</Card>
+
+			<section className="space-y-3 pt-4">
+				<h2 className="text-sm font-medium text-muted-foreground">Словник</h2>
+				<VocabularyList quizSetId={quiz.id} items={vocabulary} />
+			</section>
 		</div>
 	);
 }

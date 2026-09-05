@@ -1,0 +1,1 @@
+ALTER TABLE "questions" ADD COLUMN "vocabulary_item_id" uuid;

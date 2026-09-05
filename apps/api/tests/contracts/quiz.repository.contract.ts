@@ -102,6 +102,61 @@ export function describeQuizRepository(
 				expect(stored?.questions[0]?.options).toHaveLength(2);
 			});
 
+			test("keeps the vocabulary item a question was generated from", async () => {
+				const quizId = uuid();
+				const itemId = uuid();
+				const generated = createQuestion({
+					...question(uuid(), "der Zug", 0),
+					vocabularyItemId: itemId,
+				});
+
+				await harness.unitOfWork.run(async ({ quizzes }) => {
+					await quizzes.save(
+						addQuestions(
+							createQuizSet({
+								id: toQuizSetId(quizId),
+								title: "German",
+								language: "de",
+								createdAt: at,
+							}),
+							[generated],
+							at,
+						),
+					);
+				});
+
+				const stored = await harness.scope.quizzes.findById(
+					toQuizSetId(quizId),
+				);
+
+				expect(stored?.questions[0]?.vocabularyItemId).toBe(itemId);
+			});
+
+			test("a question with no vocabulary item reads back without one", async () => {
+				const quizId = uuid();
+
+				await harness.unitOfWork.run(async ({ quizzes }) => {
+					await quizzes.save(
+						addQuestions(
+							createQuizSet({
+								id: toQuizSetId(quizId),
+								title: "German",
+								language: "de",
+								createdAt: at,
+							}),
+							[question(uuid(), "plain", 0)],
+							at,
+						),
+					);
+				});
+
+				const stored = await harness.scope.quizzes.findById(
+					toQuizSetId(quizId),
+				);
+
+				expect(stored?.questions[0]?.vocabularyItemId).toBeUndefined();
+			});
+
 			test("treats an id that is not a uuid as missing, not as an error", async () => {
 				const missing = toQuizSetId("does-not-exist");
 

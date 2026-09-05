@@ -71,6 +71,13 @@
 			"when": 1788104762109,
 			"tag": "0009_spicy_beyonder",
 			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1788606980777,
+			"tag": "0010_worthless_wolf_cub",
+			"breakpoints": true
 		}
 	]
 }

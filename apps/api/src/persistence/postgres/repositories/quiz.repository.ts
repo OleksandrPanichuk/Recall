@@ -118,6 +118,7 @@ export function createQuizPostgresRepository(
 					topic: question.topic ?? null,
 					difficulty: question.difficulty,
 					hint: question.hint ?? null,
+					vocabularyItemId: question.vocabularyItemId ?? null,
 					position: question.position,
 					fingerprint: questionFingerprint(question),
 				};

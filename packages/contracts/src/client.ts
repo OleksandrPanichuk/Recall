@@ -1,9 +1,13 @@
 import { z } from "zod";
 import {
 	type AddedQuestions,
+	type AddedVocabulary,
 	type AddQuestionsCommand,
+	type AddVocabularyCommand,
 	addedQuestionsSchema,
+	addedVocabularySchema,
 	addQuestionsCommandSchema,
+	addVocabularyCommandSchema,
 	type CreatedSet,
 	type CreateSetCommand,
 	createdSetSchema,
@@ -13,17 +17,25 @@ import {
 	deletedQuestionSchema,
 	deleteQuestionCommandSchema,
 	type ListSetsCommand,
+	type ListVocabularyCommand,
 	listSetsCommandSchema,
+	listVocabularyCommandSchema,
 	type MoveSetCommand,
 	moveSetCommandSchema,
 	type QuizDetail,
 	type QuizSetIdCommand,
 	quizDetailSchema,
 	quizSetIdCommandSchema,
+	type UpdatedVocabulary,
 	type UpdateQuestionCommand,
 	type UpdateSetCommand,
+	type UpdateVocabularyCommand,
+	updatedVocabularySchema,
 	updateQuestionCommandSchema,
 	updateSetCommandSchema,
+	updateVocabularyCommandSchema,
+	type VocabularyItem,
+	vocabularyItemSchema,
 } from "./authoring";
 import {
 	type AbandonAttemptCommand,
@@ -250,6 +262,15 @@ export interface AuthoringUseCases {
 	readonly addQuestions: UseCaseLike<AddQuestionsCommand, AddedQuestions>;
 	readonly updateQuestion: UseCaseLike<UpdateQuestionCommand, void>;
 	readonly deleteQuestion: UseCaseLike<DeleteQuestionCommand, DeletedQuestion>;
+	readonly listVocabulary: UseCaseLike<
+		ListVocabularyCommand,
+		readonly VocabularyItem[]
+	>;
+	readonly addVocabulary: UseCaseLike<AddVocabularyCommand, AddedVocabulary>;
+	readonly updateVocabulary: UseCaseLike<
+		UpdateVocabularyCommand,
+		UpdatedVocabulary
+	>;
 }
 
 export interface PracticeUseCases extends AuthoringUseCases {
@@ -357,6 +378,9 @@ export const BOT_ROUTES = {
 	addQuestions: "sets/questions/add",
 	updateQuestion: "sets/questions/update",
 	deleteQuestion: "sets/questions/delete",
+	listVocabulary: "sets/vocabulary/list",
+	addVocabulary: "sets/vocabulary/add",
+	updateVocabulary: "sets/vocabulary/update",
 	browse: "browse",
 	writeSummary: "pages/summary",
 	searchPages: "pages/search",
@@ -529,6 +553,21 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.deleteQuestion,
 			deleteQuestionCommandSchema,
 			deletedQuestionSchema,
+		),
+		listVocabulary: operation(
+			BOT_ROUTES.listVocabulary,
+			listVocabularyCommandSchema,
+			vocabularyItemSchema.array().readonly(),
+		),
+		addVocabulary: operation(
+			BOT_ROUTES.addVocabulary,
+			addVocabularyCommandSchema,
+			addedVocabularySchema,
+		),
+		updateVocabulary: operation(
+			BOT_ROUTES.updateVocabulary,
+			updateVocabularyCommandSchema,
+			updatedVocabularySchema,
 		),
 		browseFolder: operation(
 			BOT_ROUTES.browse,

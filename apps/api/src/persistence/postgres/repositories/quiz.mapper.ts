@@ -61,6 +61,7 @@ export function toQuestion(
 		sourceReference: row.sourceReference ?? undefined,
 		topic: row.topic ?? undefined,
 		hint: row.hint ?? undefined,
+		vocabularyItemId: row.vocabularyItemId ?? undefined,
 	});
 }
 
