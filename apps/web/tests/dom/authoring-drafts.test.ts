@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { QuestionType } from "@recall/contracts";
+import { type Question, QuestionType } from "@recall/contracts";
 import {
+	changesFrom,
 	type DraftForm,
 	emptyForm,
+	formFor,
 	problemsWith,
 	toDraft,
 } from "@/features/authoring/lib/drafts";
@@ -157,5 +159,110 @@ describe("what a fresh form starts as", () => {
 		expect(
 			problemsWith({ ...emptyForm(), prompt: "q", answers: ["a", "b"] }),
 		).toContain("Позначте правильну відповідь");
+	});
+});
+
+describe("loading a stored question back into the form", () => {
+	const stored = (
+		over: Partial<Question> = {},
+		options: Question["options"] = [],
+	): Question => ({
+		id: "q1",
+		type: QuestionType.SingleChoice,
+		prompt: "What runs this?",
+		difficulty: "easy",
+		position: 0,
+		options,
+		...over,
+	});
+
+	const option = (
+		text: string,
+		position: number,
+		isCorrect: boolean,
+		matchKey?: string,
+	) => ({ id: `o${position}`, text, position, isCorrect, matchKey });
+
+	test("a choice question comes back with the right answer marked", () => {
+		const form = formFor(
+			stored({}, [option("Bun", 0, false), option("Node", 1, true)]),
+		);
+
+		expect(form.answers).toEqual(["Bun", "Node"]);
+		expect(form.correct).toEqual([1]);
+	});
+
+	test("options are read in stored order, not the order they arrived", () => {
+		expect(
+			formFor(
+				stored({}, [option("second", 1, false), option("first", 0, true)]),
+			).answers,
+		).toEqual(["first", "second"]);
+	});
+
+	test("a typed question comes back as its accepted answers", () => {
+		const form = formFor(
+			stored({ type: QuestionType.TypedAnswer }, [
+				option("Bun", 0, true),
+				option("bun", 1, true),
+			]),
+		);
+
+		expect(form.answers).toEqual(["Bun", "bun"]);
+	});
+
+	test("a matching question is regrouped into left and right", () => {
+		const form = formFor(
+			stored({ type: QuestionType.Matching }, [
+				option("one", 0, true, "p0"),
+				option("two", 1, true, "p1"),
+				option("1", 2, true, "p0"),
+				option("2", 3, true, "p1"),
+			]),
+		);
+
+		expect(form.answers).toEqual(["one", "two"]);
+		expect(form.rights).toEqual(["1", "2"]);
+	});
+
+	test("a question with no explanation loads a blank, not undefined", () => {
+		const form = formFor(stored({}, [option("a", 0, true)]));
+
+		expect(form.explanation).toBe("");
+		expect(form.hint).toBe("");
+	});
+
+	test("a stored question survives a round trip through the form", () => {
+		const draft = toDraft(
+			formFor(
+				stored({ explanation: "because" }, [
+					option("Bun", 0, true),
+					option("Node", 1, false),
+				]),
+			),
+		);
+
+		expect(draft).toHaveProperty("options", [
+			{ text: "Bun", isCorrect: true },
+			{ text: "Node", isCorrect: false },
+		]);
+		expect(draft.explanation).toBe("because");
+	});
+
+	test("an update never carries the type, which cannot change", () => {
+		const changes = changesFrom(
+			formFor(stored({}, [option("Bun", 0, true), option("Node", 1, false)])),
+		);
+
+		expect(changes).not.toHaveProperty("type");
+		expect(changes).toHaveProperty("prompt", "What runs this?");
+	});
+
+	test("clearing an explanation sends an empty string, so it is actually cleared", () => {
+		const form = formFor(
+			stored({ explanation: "because" }, [option("a", 0, true)]),
+		);
+
+		expect(changesFrom({ ...form, explanation: "" }).explanation).toBe("");
 	});
 });

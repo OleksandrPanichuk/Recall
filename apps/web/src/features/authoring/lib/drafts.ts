@@ -1,5 +1,6 @@
 import {
 	CLOZE_BLANK,
+	type Question,
 	type QuestionDraft,
 	QuestionType,
 } from "@recall/contracts";
@@ -107,4 +108,56 @@ export function toDraft(form: DraftForm): QuestionDraft {
 					.filter((option) => option.text.length > 0),
 			} as QuestionDraft;
 	}
+}
+
+export function formFor(question: Question): DraftForm {
+	const ordered = [...question.options].sort(
+		(left, right) => left.position - right.position,
+	);
+	const base = {
+		type: question.type,
+		prompt: question.prompt,
+		difficulty: question.difficulty,
+		explanation: question.explanation ?? "",
+		hint: question.hint ?? "",
+	};
+
+	if (ANSWER_SHAPE[question.type] === "pairs") {
+		const sides = new Map<string, string[]>();
+
+		for (const option of ordered) {
+			const key = option.matchKey ?? option.id;
+
+			sides.set(key, [...(sides.get(key) ?? []), option.text]);
+		}
+
+		const pairs = [...sides.values()];
+
+		return {
+			...base,
+			answers: pairs.map((side) => side[0] ?? ""),
+			rights: pairs.map((side) => side[1] ?? ""),
+			correct: [],
+		};
+	}
+
+	return {
+		...base,
+		answers: ordered.map((option) => option.text),
+		rights: ordered.map(() => ""),
+		correct: ordered
+			.map((option, index) => (option.isCorrect ? index : -1))
+			.filter((index) => index >= 0),
+	};
+}
+
+export function changesFrom(form: DraftForm): Record<string, unknown> {
+	const draft = toDraft(form) as Record<string, unknown>;
+	const { type: _type, ...rest } = draft;
+
+	return {
+		...rest,
+		explanation: draft.explanation ?? "",
+		hint: draft.hint ?? "",
+	};
 }
