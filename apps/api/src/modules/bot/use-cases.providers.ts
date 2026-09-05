@@ -10,6 +10,7 @@ import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-fold
 import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
 import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
+import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
 import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
 import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
@@ -43,6 +44,7 @@ export const botUseCases: Provider[] = [
 	SetPageIconUseCase,
 	DeleteFolderUseCase,
 	ListFolderTreeUseCase,
+	ListRevisionsUseCase,
 	MoveFolderUseCase,
 	ReorderFolderUseCase,
 	GetInsightsUseCase,

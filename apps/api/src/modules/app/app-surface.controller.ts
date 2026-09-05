@@ -28,6 +28,7 @@ import {
 	issueOwnApiTokenCommandSchema,
 	leechesCommandSchema,
 	listOwnApiTokensCommandSchema,
+	listRevisionsCommandSchema,
 	listSetsCommandSchema,
 	movePageCommandSchema,
 	moveSetCommandSchema,
@@ -73,6 +74,7 @@ import {
 	quizDetailToWire,
 	quizSummaryToWire,
 	resolvedSettingsToWire,
+	revisionToWire,
 	settingsToWire,
 	startResultToWire,
 	statisticsToWire,
@@ -382,6 +384,19 @@ export class AppSurfaceController {
 					? undefined
 					: toFolderId(command.beforeId),
 		});
+	}
+
+	@Post(BOT_ROUTES.listRevisions)
+	@HttpCode(HttpStatus.OK)
+	async listRevisions(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(listRevisionsCommandSchema, body);
+
+		return (
+			await this.of(request).listRevisions.execute({
+				folderId: toFolderId(command.folderId),
+				limit: command.limit,
+			})
+		).map(revisionToWire);
 	}
 
 	@Post(BOT_ROUTES.pageTree)

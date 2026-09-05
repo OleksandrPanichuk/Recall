@@ -1,9 +1,10 @@
-import type { BrowseView, PageTreeNode } from "@recall/contracts";
+import type { BrowseView, PageRevision, PageTreeNode } from "@recall/contracts";
 import { usePageEditing } from "@/features/pages/hooks/use-page-editing";
 import { EmojiPicker } from "@/features/pages/ui/components/EmojiPicker";
 import { PageActions } from "@/features/pages/ui/components/PageActions";
 import { PageBody } from "@/features/pages/ui/components/PageBody";
 import { PageBreadcrumb } from "@/features/pages/ui/components/PageBreadcrumb";
+import { PageHistory } from "@/features/pages/ui/components/PageHistory";
 import { PageTitle } from "@/features/pages/ui/components/PageTitle";
 import { NotFound } from "@/shared/ui/components/NotFound";
 import { SaveState } from "@/shared/ui/components/SaveState";
@@ -15,6 +16,7 @@ interface Props {
 	readonly inProgressQuizId?: string;
 	readonly pages: readonly PageTreeNode[];
 	readonly signedIn: boolean;
+	readonly revisions: readonly PageRevision[];
 }
 
 export function PageDetailView({
@@ -23,6 +25,7 @@ export function PageDetailView({
 	inProgressQuizId,
 	pages,
 	signedIn,
+	revisions,
 }: Props) {
 	const editing = usePageEditing(folderId, page);
 
@@ -56,6 +59,13 @@ export function PageDetailView({
 				view={view}
 				onEdit={editing.schedule}
 				inProgressQuizId={inProgressQuizId}
+				resetKey={editing.restored}
+			/>
+			<PageHistory
+				revisions={revisions}
+				current={view.summary ?? ""}
+				busy={editing.state === "saving"}
+				onRestore={editing.restore}
 			/>
 		</div>
 	);

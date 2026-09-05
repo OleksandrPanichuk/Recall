@@ -99,3 +99,9 @@ export const reorderPage = createServerFn({ method: "POST" })
 export const loadPageTree = createServerFn().handler(async () => ({
 	nodes: await api().listPageTree.execute({}),
 }));
+
+export const loadRevisions = createServerFn()
+	.inputValidator(idInput)
+	.handler(async ({ data }) => ({
+		revisions: await api().listRevisions.execute({ folderId: data.id }),
+	}));

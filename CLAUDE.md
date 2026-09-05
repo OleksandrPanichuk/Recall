@@ -489,6 +489,16 @@ src/
   the editor. Readiness is **state**, not a ref: a ref set from `onReady` does not re-render, so
   the Save button stays disabled forever. Crepe is loaded through `lazy()` inside `ClientOnly`,
   which keeps 1.3 MB of ProseMirror out of the page route and off the server.
+- **Restoring an old version has to remount the editor.** Crepe is uncontrolled, so writing a
+  different summary to the server changes the database and the rendered fallback and leaves the
+  open editor showing the old text — it captured the markdown by ref at first render.
+  `PageEditorSlot` is keyed `folderId:resetKey`, and `usePageEditing` bumps `resetKey` on
+  restore. Keying on the summary itself would remount on every autosave round trip and throw
+  away the caret mid-sentence.
+
+  A revision holds what the page said **before** a rewrite, so three saves leave two revisions
+  and the newest is not the current text. Restoring writes through the ordinary summary path,
+  which means it records a revision of its own — a restore can itself be undone.
 - **Theme Crepe with our tokens, not its shipped themes.** A theme is only a block of
   `--crepe-*` variables on `.milkdown`; `styles/app.css` maps them to the shadcn tokens, so light
   and dark follow the app. Importing `theme/frame.css` *and* `frame-dark.css` would fight over
