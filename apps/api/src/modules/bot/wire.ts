@@ -1,8 +1,10 @@
 import type {
 	AnswerQuestionResult as WireAnswerResult,
+	AttachedQuiz as WireAttachedQuiz,
 	AttemptDetail as WireAttemptDetail,
 	BrowseView as WireBrowseView,
 	CurrentQuestionView as WireCurrentQuestion,
+	DetachedQuiz as WireDetachedQuiz,
 	DueSet as WireDueSet,
 	FinishQuizAttemptResult as WireFinishResult,
 	Insights as WireInsights,
@@ -25,7 +27,9 @@ import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answ
 import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
 import type { StartQuizAttemptResult } from "@/application/use-cases/attempts/start-quiz-attempt";
+import type { AttachedQuiz } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
+import type { DetachedQuiz } from "@/application/use-cases/folders/detach-quiz";
 import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
 import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
@@ -66,6 +70,23 @@ export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
 	status: summary.status,
 	questionCount: summary.questionCount,
 	updatedAt: summary.updatedAt.toISOString(),
+});
+
+export const attachedQuizToWire = (
+	attached: AttachedQuiz,
+): WireAttachedQuiz => ({
+	folderId: String(attached.folderId),
+	folderName: attached.folderName,
+	quizSetId: String(attached.quizSetId),
+	title: attached.title,
+});
+
+export const detachedQuizToWire = (
+	detached: DetachedQuiz,
+): WireDetachedQuiz => ({
+	folderId: String(detached.folderId),
+	folderName: detached.folderName,
+	quizSetId: String(detached.quizSetId),
 });
 
 export const revisionToWire = (revision: PageRevision): WirePageRevision => ({

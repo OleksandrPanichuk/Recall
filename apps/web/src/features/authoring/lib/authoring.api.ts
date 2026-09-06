@@ -9,6 +9,10 @@ export const createQuizSet = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => api().createQuizSet.execute(data));
 
+export const loadQuizSets = createServerFn().handler(async () => ({
+	sets: await api().listQuizSets.execute({}),
+}));
+
 export const loadQuizSet = createServerFn()
 	.inputValidator(idInput)
 	.handler(async ({ data }) =>

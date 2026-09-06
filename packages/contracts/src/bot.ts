@@ -310,6 +310,26 @@ export const reorderPageCommandSchema = z.object({
 	beforeId: optionalId,
 });
 
+export const attachQuizCommandSchema = z.object({
+	folderId: id,
+	quizSetId: id,
+});
+
+export const attachedQuizSchema = z.object({
+	folderId: id,
+	folderName: z.string(),
+	quizSetId: id,
+	title: z.string(),
+});
+
+export const detachQuizCommandSchema = attachQuizCommandSchema;
+
+export const detachedQuizSchema = z.object({
+	folderId: id,
+	folderName: z.string(),
+	quizSetId: id,
+});
+
 export const listRevisionsCommandSchema = z.object({
 	folderId: id,
 	limit: z.number().int().positive().max(100).optional(),
@@ -486,6 +506,10 @@ export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;
 export type SetPageIconCommand = z.infer<typeof setPageIconCommandSchema>;
 export type DeletePageCommand = z.infer<typeof deletePageCommandSchema>;
 export type MovePageCommand = z.infer<typeof movePageCommandSchema>;
+export type AttachQuizCommand = z.infer<typeof attachQuizCommandSchema>;
+export type AttachedQuiz = z.infer<typeof attachedQuizSchema>;
+export type DetachQuizCommand = z.infer<typeof detachQuizCommandSchema>;
+export type DetachedQuiz = z.infer<typeof detachedQuizSchema>;
 export type ListRevisionsCommand = z.infer<typeof listRevisionsCommandSchema>;
 export type PageRevision = z.infer<typeof pageRevisionSchema>;
 export type ReorderPageCommand = z.infer<typeof reorderPageCommandSchema>;

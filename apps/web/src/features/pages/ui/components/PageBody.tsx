@@ -8,6 +8,7 @@ interface Props {
 	readonly onEdit?: (markdown: string) => void;
 	readonly inProgressQuizId?: string;
 	readonly resetKey?: number;
+	readonly onDetach?: (quizSetId: string) => Promise<void>;
 }
 
 export function PageBody({
@@ -15,6 +16,7 @@ export function PageBody({
 	onEdit,
 	inProgressQuizId,
 	resetKey = 0,
+	onDetach,
 }: Props) {
 	const hasItems =
 		view.children.length > 0 ||
@@ -38,7 +40,11 @@ export function PageBody({
 					<h2 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 						Всередині
 					</h2>
-					<LibraryList view={view} inProgressQuizId={inProgressQuizId} />
+					<LibraryList
+						view={view}
+						inProgressQuizId={inProgressQuizId}
+						onDetach={onDetach}
+					/>
 				</section>
 			) : null}
 		</div>

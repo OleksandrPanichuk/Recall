@@ -1,20 +1,30 @@
-import type { BrowseView, PageTreeNode } from "@recall/contracts";
+import type { BrowseView, PageTreeNode, QuizSummary } from "@recall/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { deletePage } from "@/features/pages/lib/pages.api";
+import { AttachQuiz } from "@/features/pages/ui/components/AttachQuiz";
 import { MovePage } from "@/features/pages/ui/components/MovePage";
 import { NewPageButton } from "@/features/pages/ui/components/NewPageButton";
 
 interface Props {
 	readonly view: BrowseView;
 	readonly pages: readonly PageTreeNode[];
+	readonly sets: readonly QuizSummary[];
 	readonly onChanged: () => void;
 	readonly onFlush: () => Promise<void>;
+	readonly onAttach: (quizSetId: string) => Promise<void>;
 }
 
-export function PageActions({ view, pages, onChanged, onFlush }: Props) {
+export function PageActions({
+	view,
+	pages,
+	sets,
+	onChanged,
+	onFlush,
+	onAttach,
+}: Props) {
 	const navigate = useNavigate();
 	const [busy, setBusy] = useState(false);
 	const empty =
@@ -47,12 +57,15 @@ export function PageActions({ view, pages, onChanged, onFlush }: Props) {
 				onCreated={onChanged}
 			/>
 			{view.folderId === undefined ? null : (
-				<MovePage
-					folderId={view.folderId}
-					parentId={view.parentId}
-					pages={pages}
-					onMoved={onChanged}
-				/>
+				<>
+					<AttachQuiz view={view} sets={sets} onAttach={onAttach} />
+					<MovePage
+						folderId={view.folderId}
+						parentId={view.parentId}
+						pages={pages}
+						onMoved={onChanged}
+					/>
+				</>
 			)}
 			{empty ? (
 				<Button

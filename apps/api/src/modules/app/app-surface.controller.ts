@@ -16,6 +16,7 @@ import {
 	addQuestionsCommandSchema,
 	addVocabularyCommandSchema,
 	answerCommandSchema,
+	attachQuizCommandSchema,
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
 	browseCommandSchema,
@@ -23,6 +24,7 @@ import {
 	createSetCommandSchema,
 	deletePageCommandSchema,
 	deleteQuestionCommandSchema,
+	detachQuizCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
 	insightsCommandSchema,
@@ -66,9 +68,11 @@ import {
 import { parseBody } from "../bot/parse-body";
 import {
 	answerResultToWire,
+	attachedQuizToWire,
 	attemptDetailToWire,
 	browseViewToWire,
 	currentQuestionToWire,
+	detachedQuizToWire,
 	dueSetToWire,
 	finishResultToWire,
 	insightsToWire,
@@ -413,6 +417,32 @@ export class AppSurfaceController {
 		await this.of(request).deleteFolder.execute({
 			folderId: toFolderId(command.folderId),
 		});
+	}
+
+	@Post(BOT_ROUTES.attachQuiz)
+	@HttpCode(HttpStatus.OK)
+	async attachQuiz(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(attachQuizCommandSchema, body);
+
+		return attachedQuizToWire(
+			await this.of(request).attachQuiz.execute({
+				folderId: toFolderId(command.folderId),
+				quizSetId: toQuizSetId(command.quizSetId),
+			}),
+		);
+	}
+
+	@Post(BOT_ROUTES.detachQuiz)
+	@HttpCode(HttpStatus.OK)
+	async detachQuiz(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(detachQuizCommandSchema, body);
+
+		return detachedQuizToWire(
+			await this.of(request).detachQuiz.execute({
+				folderId: toFolderId(command.folderId),
+				quizSetId: toQuizSetId(command.quizSetId),
+			}),
+		);
 	}
 
 	@Post(BOT_ROUTES.movePage)

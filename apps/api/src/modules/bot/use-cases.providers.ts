@@ -6,9 +6,11 @@ import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-q
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
 import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
+import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
 import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
@@ -47,6 +49,8 @@ export const botUseCases: Provider[] = [
 	ListRevisionsUseCase,
 	MoveFolderUseCase,
 	ReorderFolderUseCase,
+	AttachQuizUseCase,
+	DetachQuizUseCase,
 	GetInsightsUseCase,
 	AbandonQuizAttemptUseCase,
 	StartQuizAttemptUseCase,

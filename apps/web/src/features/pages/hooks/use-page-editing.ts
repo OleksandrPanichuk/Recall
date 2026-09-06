@@ -3,6 +3,8 @@ import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAutosave } from "@/features/pages/hooks/use-autosave";
 import {
+	attachQuiz,
+	detachQuiz,
 	renamePage,
 	saveSummary,
 	setPageIcon,
@@ -32,6 +34,10 @@ export function usePageEditing(folderId: string, loaded: BrowseView | null) {
 			setRestored((count) => count + 1);
 		},
 		invalidate: () => router.invalidate(),
+		attach: async (quizSetId: string) =>
+			refresh(await attachQuiz({ data: { folderId, quizSetId } })),
+		detach: async (quizSetId: string) =>
+			refresh(await detachQuiz({ data: { folderId, quizSetId } })),
 		rename: async (name: string) =>
 			refresh(await renamePage({ data: { folderId, name } })),
 		pickIcon: async (icon: string | undefined) =>
