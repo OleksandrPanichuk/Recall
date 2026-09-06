@@ -1,5 +1,6 @@
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { loadQuizSets } from "@/features/authoring/lib/authoring.api";
+import { pageRouteData } from "@/features/pages/lib/page-route";
 import { loadLibrary, loadRevisions } from "@/features/pages/lib/pages.api";
 import { PageDetailView } from "@/features/pages/ui/views/PageDetailView";
 import { loadCurrentQuestion } from "@/features/practice/lib/practice.api";
@@ -17,17 +18,15 @@ export const Route = createFileRoute("/folders/$folderId")({
 			loadQuizSets(),
 		]);
 
-		return page === null
-			? null
-			: {
-					...page,
-					inProgressQuizId: active.current?.quizSetId,
-					revisions: history.revisions,
-					sets: quizzes.sets,
-				};
+		return pageRouteData({
+			page,
+			inProgressQuizId: active.current?.quizSetId,
+			revisions: history.revisions,
+			quizzes: quizzes.sets,
+		});
 	},
 	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.name ?? "Сторінка"} · Recall` }],
+		meta: [{ title: `${loaderData?.page.name ?? "Сторінка"} · Recall` }],
 	}),
 	component: Page,
 });
@@ -41,10 +40,10 @@ function Page() {
 	return (
 		<PageDetailView
 			folderId={folderId}
-			page={loaded}
+			page={loaded?.page ?? null}
 			inProgressQuizId={loaded?.inProgressQuizId}
 			pages={nodes}
-			sets={loaded?.sets ?? []}
+			sets={loaded?.attachable ?? []}
 			signedIn={context.viewer !== null}
 			revisions={loaded?.revisions ?? []}
 		/>
