@@ -42,6 +42,21 @@ const id = z.string().min(1);
 const optionalId = id.optional();
 const count = z.number().int().nonnegative();
 
+export const RecallGrade = {
+	Again: "again",
+	Hard: "hard",
+	Good: "good",
+	Easy: "easy",
+} as const;
+export type RecallGrade = (typeof RecallGrade)[keyof typeof RecallGrade];
+
+export const feltGradeSchema = z.enum(["hard", "good", "easy"]);
+
+export const rateRecallCommandSchema = z.object({
+	questionId: id,
+	recall: feltGradeSchema,
+});
+
 export const scoreSchema = z.object({
 	correct: z.number(),
 	total: z.number(),
@@ -126,6 +141,7 @@ export const answerResultSchema = z.object({
 	typedAnswer: z.string().optional(),
 	nearMiss: z.string().optional(),
 	credit: z.object({ earned: z.number(), possible: z.number() }),
+	gradable: z.boolean(),
 });
 
 export const pauseAttemptCommandSchema = z.object({});
@@ -558,6 +574,8 @@ export type GetCurrentQuestionCommand = z.infer<
 	typeof currentQuestionCommandSchema
 >;
 export type AnswerQuestionCommand = z.infer<typeof answerCommandSchema>;
+export type FeltGrade = z.infer<typeof feltGradeSchema>;
+export type RateRecallCommand = z.infer<typeof rateRecallCommandSchema>;
 export type PauseAttemptCommand = z.infer<typeof pauseAttemptCommandSchema>;
 export type ResumedAttempt = z.infer<typeof resumedAttemptSchema>;
 export type FinishQuizAttemptCommand = z.infer<typeof finishCommandSchema>;

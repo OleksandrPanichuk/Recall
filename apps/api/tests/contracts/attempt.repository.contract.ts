@@ -4,6 +4,7 @@ import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import {
 	completeQuizAttempt,
 	QuizAttemptMode,
+	rateResponse,
 	recordResponse,
 	startQuizAttempt,
 	toQuizAttemptId,
@@ -11,6 +12,7 @@ import {
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	Difficulty,
+	type QuestionId,
 	QuestionType,
 	toQuestionId,
 	toQuestionOptionId,
@@ -21,6 +23,7 @@ import {
 	type QuizSet,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import { RecallGrade } from "@/domain/repetition/grade";
 
 export interface AttemptRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -178,6 +181,72 @@ export function describeAttemptRepository(
 				expect(stored?.responses).toHaveLength(1);
 				expect(stored?.responses[0]?.isCorrect).toBe(true);
 				expect(stored?.responses[0]?.selectedOptionIds).toHaveLength(1);
+			});
+
+			test("keeps how a recalled answer felt", async () => {
+				const attempt = answered(true);
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(attempt);
+				});
+
+				expect(
+					(await harness.scope.attempts.findById(attempt.id))?.responses[0]
+						?.recall,
+				).toBeUndefined();
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(
+						rateResponse(
+							attempt,
+							attempt.responses[0]?.questionId as QuestionId,
+							RecallGrade.Hard,
+							later(2),
+						),
+					);
+				});
+
+				expect(
+					(await harness.scope.attempts.findById(attempt.id))?.responses[0]
+						?.recall,
+				).toBe(RecallGrade.Hard);
+			});
+
+			test("and a later rating replaces the earlier one", async () => {
+				const attempt = answered(true);
+				const questionId = attempt.responses[0]?.questionId as QuestionId;
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(attempt);
+					await attempts.save(
+						rateResponse(attempt, questionId, RecallGrade.Hard, later(2)),
+					);
+					await attempts.save(
+						rateResponse(attempt, questionId, RecallGrade.Easy, later(3)),
+					);
+				});
+
+				expect(
+					(await harness.scope.attempts.findById(attempt.id))?.responses[0]
+						?.recall,
+				).toBe(RecallGrade.Easy);
+			});
+
+			test("a wrong answer is never rated, because Again is not a feeling", async () => {
+				const attempt = answered(false);
+				const questionId = attempt.responses[0]?.questionId as QuestionId;
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(attempt);
+					await attempts.save(
+						rateResponse(attempt, questionId, RecallGrade.Easy, later(2)),
+					);
+				});
+
+				expect(
+					(await harness.scope.attempts.findById(attempt.id))?.responses[0]
+						?.recall,
+				).toBeUndefined();
 			});
 
 			test("finds the attempt still in progress", async () => {

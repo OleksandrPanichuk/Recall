@@ -1,6 +1,7 @@
 import type {
 	AnswerQuestionResult,
 	CurrentQuestionView,
+	FeltGrade,
 } from "@recall/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
@@ -9,6 +10,7 @@ import {
 	answerQuestion,
 	finishAttempt,
 	pauseAttempt,
+	rateRecall,
 	resumeAttempt,
 } from "@/features/practice/lib/practice.api";
 import { messageFor } from "@/features/practice/lib/practice.errors";
@@ -26,6 +28,7 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 	const [busy, setBusy] = useState(false);
 	const [failure, setFailure] = useState<string | null>(null);
 	const [paused, setPaused] = useState(started?.status === "paused");
+	const [rated, setRated] = useState<FeltGrade>();
 
 	const finish = async (): Promise<void> => {
 		setBusy(true);
@@ -55,6 +58,7 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 		finished,
 		busy,
 		paused,
+		rated,
 		finish,
 		pause: async (): Promise<void> => {
 			setBusy(true);
@@ -99,6 +103,7 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 
 				setVerdict(answered.result);
 				setPending(answered.current);
+				setRated(undefined);
 			} catch (error) {
 				setFailure(messageFor(error));
 			} finally {
@@ -109,6 +114,25 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 			setVerdict(null);
 			setCurrent(pending);
 			setPending(null);
+		},
+		rate: async (recall: FeltGrade): Promise<void> => {
+			const questionId = verdict?.question.id;
+
+			if (questionId === undefined || busy) {
+				return;
+			}
+
+			setBusy(true);
+			setFailure(null);
+
+			try {
+				await rateRecall({ data: { questionId, recall } });
+				setRated(recall);
+			} catch (error) {
+				setFailure(messageFor(error));
+			} finally {
+				setBusy(false);
+			}
 		},
 		abandon: async (): Promise<void> => {
 			await abandonAttempt();

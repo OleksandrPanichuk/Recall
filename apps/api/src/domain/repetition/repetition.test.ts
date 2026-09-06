@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { toQuestionId } from "../quiz-set/question";
+import { RecallGrade } from "./grade";
 import {
 	createRepetitionSettings,
 	defaultRepetitionSettings,
@@ -206,7 +207,7 @@ describe("a wrong answer", () => {
 			settings,
 			start,
 			startOfDay(start),
-			false,
+			RecallGrade.Again,
 		);
 
 		expect(forgotten.repetitionCount).toBe(1);
@@ -221,7 +222,7 @@ describe("a wrong answer", () => {
 			settings,
 			start,
 			startOfDay(start),
-			false,
+			RecallGrade.Again,
 		);
 
 		expect(forgotten.lapses).toBe(1);
@@ -237,7 +238,7 @@ describe("a wrong answer", () => {
 			createRepetitionSettings({ ...settings, maxRepetitions: 1 }),
 			start,
 			startOfDay(start),
-			false,
+			RecallGrade.Again,
 		);
 
 		expect(isRetired(schedule)).toBe(false);

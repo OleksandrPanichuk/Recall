@@ -31,6 +31,7 @@ import {
 	movePageCommandSchema,
 	pauseAttemptCommandSchema,
 	practiceCommandSchema,
+	rateRecallCommandSchema,
 	renamePageCommandSchema,
 	reorderPageCommandSchema,
 	resolveSettingsCommandSchema,
@@ -48,6 +49,7 @@ import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/aban
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import { RateRecallUseCase } from "@/application/use-cases/attempts/rate-recall";
 import {
 	PauseQuizAttemptUseCase,
 	ResumeQuizAttemptUseCase,
@@ -121,6 +123,8 @@ export class BotController {
 		private readonly getInsights: GetInsightsUseCase,
 		@Inject(AbandonQuizAttemptUseCase)
 		private readonly abandonQuizAttempt: AbandonQuizAttemptUseCase,
+		@Inject(RateRecallUseCase)
+		private readonly recall: RateRecallUseCase,
 		@Inject(PauseQuizAttemptUseCase)
 		private readonly pauseQuizAttempt: PauseQuizAttemptUseCase,
 		@Inject(ResumeQuizAttemptUseCase)
@@ -464,6 +468,17 @@ export class BotController {
 		const command = parseBody(finishCommandSchema, body);
 
 		return finishResultToWire(await this.finishQuizAttempt.execute(command));
+	}
+
+	@Post(BOT_ROUTES.rateRecall)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async rateRecall(@Body() body: unknown) {
+		const command = parseBody(rateRecallCommandSchema, body);
+
+		await this.recall.execute({
+			questionId: toQuestionId(command.questionId),
+			recall: command.recall,
+		});
 	}
 
 	@Post(BOT_ROUTES.pause)

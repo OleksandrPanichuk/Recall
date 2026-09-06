@@ -15,6 +15,7 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Score } from "@/domain/quiz-attempt/score";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { gradeOf } from "@/domain/repetition/grade";
 import { scheduleAfter } from "@/domain/repetition/repetition";
 import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
 import {
@@ -91,7 +92,7 @@ export class FinishQuizAttemptUseCase
 							settings,
 							at,
 							dayStart,
-							response.isCorrect,
+							gradeOf(response.isCorrect, response.recall),
 						),
 					),
 				);

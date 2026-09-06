@@ -11,6 +11,7 @@ import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/aban
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import { RateRecallUseCase } from "@/application/use-cases/attempts/rate-recall";
 import {
 	PauseQuizAttemptUseCase,
 	ResumeQuizAttemptUseCase,
@@ -109,6 +110,7 @@ export interface UseCases {
 	readonly startPracticeSession: StartPracticeSessionUseCase;
 	readonly updateQuestion: UpdateQuestionUseCase;
 	readonly deleteQuestion: DeleteQuestionUseCase;
+	readonly rateRecall: RateRecallUseCase;
 	readonly pauseQuizAttempt: PauseQuizAttemptUseCase;
 	readonly resumeQuizAttempt: ResumeQuizAttemptUseCase;
 	readonly getCurrentQuestion: GetCurrentQuestionUseCase;
@@ -181,6 +183,7 @@ export function createUseCases(
 		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
 		updateQuestion: new UpdateQuestionUseCase(dependencies),
 		deleteQuestion: new DeleteQuestionUseCase(dependencies),
+		rateRecall: new RateRecallUseCase(dependencies),
 		pauseQuizAttempt: new PauseQuizAttemptUseCase(dependencies),
 		resumeQuizAttempt: new ResumeQuizAttemptUseCase(dependencies),
 		getCurrentQuestion: new GetCurrentQuestionUseCase(dependencies),

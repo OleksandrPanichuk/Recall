@@ -258,6 +258,7 @@ export const answerResultToWire = (
 	typedAnswer: text(result.typedAnswer),
 	nearMiss: text(result.nearMiss),
 	credit: { earned: result.credit.earned, possible: result.credit.possible },
+	gradable: result.gradable,
 });
 
 export const finishResultToWire = (

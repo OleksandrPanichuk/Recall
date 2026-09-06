@@ -5,6 +5,7 @@ import {
 } from "@/shared/utils/date";
 import { brandedId } from "../branded-id";
 import type { QuestionId } from "../quiz-set/question";
+import type { RecallGrade } from "../repetition/grade";
 import { QuizAttemptStatus } from "./quiz-attempt.constants";
 import {
 	DuplicateResponseError,
@@ -146,6 +147,36 @@ export function recordResponse(
 		...attempt,
 		responses: [...attempt.responses, response],
 		updatedAt: response.answeredAt,
+	});
+}
+
+export function rateResponse(
+	attempt: QuizAttempt,
+	questionId: QuestionId,
+	recall: RecallGrade,
+	at: Date,
+): QuizAttempt {
+	assertStatus(attempt, [QuizAttemptStatus.Active], "rated");
+	assertMutationDate(attempt, at, "at");
+
+	const answered = attempt.responses.find(
+		(response) => response.questionId === questionId,
+	);
+
+	if (answered === undefined) {
+		throw new QuestionNotInAttemptError();
+	}
+
+	if (!answered.isCorrect) {
+		return attempt;
+	}
+
+	return frozenAttempt({
+		...attempt,
+		responses: attempt.responses.map((response) =>
+			response.questionId === questionId ? { ...response, recall } : response,
+		),
+		updatedAt: at,
 	});
 }
 

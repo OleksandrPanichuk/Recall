@@ -129,6 +129,7 @@ import {
 	quizSettingsSchema,
 	quizStatisticsSchema,
 	quizSummarySchema,
+	type RateRecallCommand,
 	type RenamePageCommand,
 	type ReorderPageCommand,
 	type ResolvedQuizSettings,
@@ -137,6 +138,7 @@ import {
 	type RevokeApiTokenCommand,
 	type RevokedApiToken,
 	type RevokeOwnApiTokenCommand,
+	rateRecallCommandSchema,
 	renamePageCommandSchema,
 	reorderPageCommandSchema,
 	resolvedSettingsSchema,
@@ -355,6 +357,7 @@ export interface PracticeUseCases extends AuthoringUseCases {
 		FinishQuizAttemptCommand,
 		FinishQuizAttemptResult
 	>;
+	readonly rateRecall: UseCaseLike<RateRecallCommand, void>;
 	readonly pauseQuizAttempt: UseCaseLike<PauseAttemptCommand, void>;
 	readonly resumeQuizAttempt: UseCaseLike<PauseAttemptCommand, ResumedAttempt>;
 	readonly getQuizStatistics: UseCaseLike<
@@ -435,6 +438,7 @@ export const BOT_ROUTES = {
 	currentQuestion: "attempts/current",
 	answer: "attempts/answer",
 	finish: "attempts/finish",
+	rateRecall: "attempts/recall",
 	pause: "attempts/pause",
 	resume: "attempts/resume",
 	abandon: "attempts/abandon",
@@ -733,6 +737,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.finish,
 			finishCommandSchema,
 			finishResultSchema,
+		),
+		rateRecall: operation(
+			BOT_ROUTES.rateRecall,
+			rateRecallCommandSchema,
+			z.void(),
 		),
 		pauseQuizAttempt: operation(
 			BOT_ROUTES.pause,

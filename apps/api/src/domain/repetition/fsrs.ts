@@ -1,11 +1,26 @@
-import { type Card, createEmptyCard, fsrs, Rating, State } from "ts-fsrs";
+import {
+	type Card,
+	createEmptyCard,
+	fsrs,
+	type Grade,
+	Rating,
+	State,
+} from "ts-fsrs";
 import { copiedDate } from "@/shared/utils/date";
 import type { QuestionId } from "../quiz-set/question";
+import { RecallGrade } from "./grade";
 import { DAY_MS } from "./repetition.constants";
 import type {
 	RepetitionSchedule,
 	RepetitionSettings,
 } from "./repetition.types";
+
+const RATINGS: Readonly<Record<RecallGrade, Grade>> = {
+	[RecallGrade.Again]: Rating.Again,
+	[RecallGrade.Hard]: Rating.Hard,
+	[RecallGrade.Good]: Rating.Good,
+	[RecallGrade.Easy]: Rating.Easy,
+};
 
 const schedulerFor = (settings: RepetitionSettings) =>
 	fsrs({
@@ -44,12 +59,12 @@ export function fsrsScheduleAfter(
 	settings: RepetitionSettings,
 	completedAt: Date,
 	completedDayStart: Date,
-	answeredCorrectly: boolean,
+	grade: RecallGrade,
 ): RepetitionSchedule {
 	const { card } = schedulerFor(settings).next(
 		cardOf(previous, completedAt),
 		completedAt,
-		answeredCorrectly ? Rating.Good : Rating.Again,
+		RATINGS[grade],
 	);
 
 	const intervalDays = Math.max(
