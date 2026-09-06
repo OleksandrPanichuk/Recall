@@ -96,6 +96,36 @@ export const reorderPage = createServerFn({ method: "POST" })
 		await api().reorderPage.execute(data);
 	});
 
+export const attachQuiz = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => {
+		const input = value as { folderId: string; quizSetId: string };
+
+		return {
+			folderId: String(input.folderId),
+			quizSetId: String(input.quizSetId),
+		};
+	})
+	.handler(async ({ data }) => {
+		await api().attachQuiz.execute(data);
+
+		return api().browseFolder.execute({ folderId: data.folderId });
+	});
+
+export const detachQuiz = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => {
+		const input = value as { folderId: string; quizSetId: string };
+
+		return {
+			folderId: String(input.folderId),
+			quizSetId: String(input.quizSetId),
+		};
+	})
+	.handler(async ({ data }) => {
+		await api().detachQuiz.execute(data);
+
+		return api().browseFolder.execute({ folderId: data.folderId });
+	});
+
 export const loadPageTree = createServerFn().handler(async () => ({
 	nodes: await api().listPageTree.execute({}),
 }));

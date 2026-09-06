@@ -43,12 +43,16 @@ import {
 	type AnswerQuestionCommand,
 	type AnswerQuestionResult,
 	type ApiToken,
+	type AttachedQuiz,
+	type AttachQuizCommand,
 	type AttemptDetail,
 	abandonAttemptCommandSchema,
 	abandonedAttemptSchema,
 	answerCommandSchema,
 	answerResultSchema,
 	apiTokenSchema,
+	attachedQuizSchema,
+	attachQuizCommandSchema,
 	attemptDetailCommandSchema,
 	attemptDetailSchema,
 	type BrowseFolderCommand,
@@ -63,8 +67,12 @@ import {
 	currentQuestionCommandSchema,
 	currentQuestionSchema,
 	type DeletePageCommand,
+	type DetachedQuiz,
+	type DetachQuizCommand,
 	type DueSet,
 	deletePageCommandSchema,
+	detachedQuizSchema,
+	detachQuizCommandSchema,
 	dueRepetitionsCommandSchema,
 	dueSetSchema,
 	type FinishQuizAttemptCommand,
@@ -288,6 +296,8 @@ export interface PracticeUseCases extends AuthoringUseCases {
 	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
 	readonly movePage: UseCaseLike<MovePageCommand, void>;
 	readonly reorderPage: UseCaseLike<ReorderPageCommand, void>;
+	readonly attachQuiz: UseCaseLike<AttachQuizCommand, AttachedQuiz>;
+	readonly detachQuiz: UseCaseLike<DetachQuizCommand, DetachedQuiz>;
 	readonly listRevisions: UseCaseLike<
 		ListRevisionsCommand,
 		readonly PageRevision[]
@@ -391,6 +401,8 @@ export const BOT_ROUTES = {
 	deletePage: "pages/delete",
 	movePage: "pages/move",
 	reorderPage: "pages/reorder",
+	attachQuiz: "pages/quizzes/attach",
+	detachQuiz: "pages/quizzes/detach",
 	listRevisions: "pages/revisions",
 	pageTree: "pages/tree",
 	startAttempt: "attempts/start",
@@ -619,6 +631,16 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.reorderPage,
 			reorderPageCommandSchema,
 			z.void(),
+		),
+		attachQuiz: operation(
+			BOT_ROUTES.attachQuiz,
+			attachQuizCommandSchema,
+			attachedQuizSchema,
+		),
+		detachQuiz: operation(
+			BOT_ROUTES.detachQuiz,
+			detachQuizCommandSchema,
+			detachedQuizSchema,
 		),
 		listRevisions: operation(
 			BOT_ROUTES.listRevisions,

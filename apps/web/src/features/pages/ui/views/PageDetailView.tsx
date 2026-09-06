@@ -1,4 +1,9 @@
-import type { BrowseView, PageRevision, PageTreeNode } from "@recall/contracts";
+import type {
+	BrowseView,
+	PageRevision,
+	PageTreeNode,
+	QuizSummary,
+} from "@recall/contracts";
 import { usePageEditing } from "@/features/pages/hooks/use-page-editing";
 import { EmojiPicker } from "@/features/pages/ui/components/EmojiPicker";
 import { PageActions } from "@/features/pages/ui/components/PageActions";
@@ -15,6 +20,7 @@ interface Props {
 	readonly page: BrowseView | null;
 	readonly inProgressQuizId?: string;
 	readonly pages: readonly PageTreeNode[];
+	readonly sets: readonly QuizSummary[];
 	readonly signedIn: boolean;
 	readonly revisions: readonly PageRevision[];
 }
@@ -24,6 +30,7 @@ export function PageDetailView({
 	page,
 	inProgressQuizId,
 	pages,
+	sets,
 	signedIn,
 	revisions,
 }: Props) {
@@ -44,8 +51,10 @@ export function PageDetailView({
 					<PageActions
 						view={view}
 						pages={pages}
+						sets={sets}
 						onChanged={editing.invalidate}
 						onFlush={editing.flush}
+						onAttach={editing.attach}
 					/>
 				</div>
 			</div>
@@ -60,6 +69,7 @@ export function PageDetailView({
 				onEdit={editing.schedule}
 				inProgressQuizId={inProgressQuizId}
 				resetKey={editing.restored}
+				onDetach={editing.detach}
 			/>
 			<PageHistory
 				revisions={revisions}

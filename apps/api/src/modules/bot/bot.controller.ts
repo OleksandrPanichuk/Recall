@@ -12,12 +12,14 @@ import { ApiExcludeController } from "@nestjs/swagger";
 import {
 	abandonAttemptCommandSchema,
 	answerCommandSchema,
+	attachQuizCommandSchema,
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
 	browseCommandSchema,
 	createPageCommandSchema,
 	currentQuestionCommandSchema,
 	deletePageCommandSchema,
+	detachQuizCommandSchema,
 	dueRepetitionsCommandSchema,
 	finishCommandSchema,
 	insightsCommandSchema,
@@ -46,9 +48,11 @@ import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-q
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
 import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
+import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
 import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
 import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
 import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
@@ -74,9 +78,11 @@ import { BotTokenGuard } from "./bot-token.guard";
 import { parseBody } from "./parse-body";
 import {
 	answerResultToWire,
+	attachedQuizToWire,
 	attemptDetailToWire,
 	browseViewToWire,
 	currentQuestionToWire,
+	detachedQuizToWire,
 	dueSetToWire,
 	finishResultToWire,
 	insightsToWire,
@@ -125,6 +131,10 @@ export class BotController {
 		private readonly revisions: ListRevisionsUseCase,
 		@Inject(ReorderFolderUseCase)
 		private readonly reorderFolder: ReorderFolderUseCase,
+		@Inject(AttachQuizUseCase)
+		private readonly attachQuizSet: AttachQuizUseCase,
+		@Inject(DetachQuizUseCase)
+		private readonly detachQuizSet: DetachQuizUseCase,
 		@Inject(StartQuizAttemptUseCase)
 		private readonly startQuizAttempt: StartQuizAttemptUseCase,
 		@Inject(StartPracticeSessionUseCase)
@@ -314,6 +324,32 @@ export class BotController {
 					? undefined
 					: toFolderId(command.beforeId),
 		});
+	}
+
+	@Post(BOT_ROUTES.attachQuiz)
+	@HttpCode(HttpStatus.OK)
+	async attachQuiz(@Body() body: unknown) {
+		const command = parseBody(attachQuizCommandSchema, body);
+
+		const attached = await this.attachQuizSet.execute({
+			folderId: toFolderId(command.folderId),
+			quizSetId: toQuizSetId(command.quizSetId),
+		});
+
+		return attachedQuizToWire(attached);
+	}
+
+	@Post(BOT_ROUTES.detachQuiz)
+	@HttpCode(HttpStatus.OK)
+	async detachQuiz(@Body() body: unknown) {
+		const command = parseBody(detachQuizCommandSchema, body);
+
+		const detached = await this.detachQuizSet.execute({
+			folderId: toFolderId(command.folderId),
+			quizSetId: toQuizSetId(command.quizSetId),
+		});
+
+		return detachedQuizToWire(detached);
 	}
 
 	@Post(BOT_ROUTES.movePage)
