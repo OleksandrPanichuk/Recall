@@ -40,12 +40,33 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
+      minio:
+        image: bitnami/minio:2025
+        env:
+          MINIO_ROOT_USER: recall
+          MINIO_ROOT_PASSWORD: recall-secret
+        ports:
+          - 55090:9000
+        options: >-
+          --health-cmd "mc ready local"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     env:
       TEST_DATABASE_URL: postgres://recall:recall@127.0.0.1:55432/recall
+      OBJECT_STORE_URL: http://127.0.0.1:55090
+      OBJECT_STORE_ACCESS_KEY: recall
+      OBJECT_STORE_SECRET_KEY: recall-secret
+      OBJECT_STORE_BUCKET: recall-uploads
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
       - run: bun install --frozen-lockfile
-      - run: bun test apps/api/tests/integration/postgres
+      - run: >-
+          bun test
+          apps/api/tests/integration/postgres
+          apps/api/tests/integration/app
+          apps/api/tests/integration/auth
+          apps/api/tests/e2e
