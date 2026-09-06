@@ -92,6 +92,41 @@
 	}
 }
 
+.recall-prose :not(pre) > code {
+	padding: 0.125em 0.35em;
+	border-radius: var(--radius-sm);
+	background: var(--muted);
+	color: var(--foreground);
+	font-size: 0.9em;
+	font-weight: inherit;
+}
+
+.recall-prose pre {
+	background: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	color: var(--foreground);
+}
+
+.recall-prose table th,
+.recall-prose table td {
+	border-color: var(--border);
+}
+
+.recall-prose table th {
+	background: var(--muted);
+}
+
+.recall-prose blockquote {
+	border-left: 3px solid var(--border);
+	font-style: normal;
+	font-weight: inherit;
+}
+
+.recall-prose li::marker {
+	color: var(--muted-foreground);
+}
+
 .recall-editor .milkdown {
 	--crepe-color-background: transparent;
 	--crepe-color-on-background: var(--foreground);
@@ -105,11 +140,12 @@
 	--crepe-color-on-secondary: var(--secondary-foreground);
 	--crepe-color-inverse: var(--foreground);
 	--crepe-color-on-inverse: var(--background);
-	--crepe-color-inline-code: var(--destructive);
+	--crepe-color-inline-code: var(--foreground);
 	--crepe-color-error: var(--destructive);
 	--crepe-color-hover: var(--accent);
 	--crepe-color-selected: var(--accent);
 	--crepe-color-inline-area: var(--muted);
+	--crepe-color-code-surface: var(--muted);
 
 	--crepe-base-font-size: 14px;
 	--crepe-font-title: inherit;
@@ -191,6 +227,59 @@
 .recall-editor .milkdown .milkdown-slash-menu .menu-group li.active svg {
 	fill: var(--foreground);
 }
+.recall-editor .milkdown :not(pre) > code {
+	padding: 0.125em 0.35em;
+	border-radius: var(--radius-sm);
+	background: var(--muted);
+	color: var(--foreground);
+	font-size: 0.9em;
+}
+
+.recall-editor .milkdown .milkdown-code-block {
+	background: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	overflow: hidden;
+}
+
+.recall-editor .milkdown .milkdown-code-block .cm-editor,
+.recall-editor .milkdown .milkdown-code-block .cm-gutters,
+.recall-editor .milkdown .milkdown-code-block .cm-activeLine,
+.recall-editor .milkdown .milkdown-code-block .cm-activeLineGutter {
+	background: transparent;
+}
+
+.recall-editor .milkdown .milkdown-code-block .cm-gutters {
+	border-right: 1px solid var(--border);
+	color: var(--muted-foreground);
+}
+
+.recall-editor .milkdown .milkdown-code-block .cm-activeLineGutter {
+	color: var(--foreground);
+}
+
+.recall-editor .milkdown .milkdown-code-block .cm-selectionBackground,
+.recall-editor .milkdown .milkdown-code-block .cm-content ::selection {
+	background: var(--accent);
+}
+
+.recall-editor .milkdown table th,
+.recall-editor .milkdown table td {
+	border-color: var(--border);
+}
+
+.recall-editor .milkdown table th {
+	background: var(--muted);
+}
+
+.recall-editor .milkdown blockquote {
+	border-left: 3px solid var(--border);
+}
+
+.recall-editor .milkdown li::marker {
+	color: var(--muted-foreground);
+}
+
 .viz {
 	--viz-surface: var(--card);
 	--viz-series: #2a78d6;
