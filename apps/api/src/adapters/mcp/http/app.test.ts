@@ -105,7 +105,7 @@ describe("discovery", () => {
 
 	test("advertises where the protected resource keeps its authorization server", async () => {
 		const response = await fetch(
-			`${origin}/.well-known/oauth-protected-resource`,
+			`${origin}/.well-known/oauth-protected-resource/mcp`,
 		);
 
 		expect(response.status).toBe(200);
@@ -216,5 +216,73 @@ describe("the whole grant, as a client would walk it", () => {
 
 		expect(refused.status).toBe(401);
 		expect(refused.headers.get("location")).toBeNull();
+	});
+});
+
+describe("what an mcp client is told before it has a token", () => {
+	test("a refusal points at the resource metadata, so discovery can start", async () => {
+		const response = await fetch(`${origin}/mcp`, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				accept: "application/json, text/event-stream",
+			},
+			body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+		});
+
+		expect(response.status).toBe(401);
+		expect(response.headers.get("www-authenticate")).toContain(
+			"resource_metadata=",
+		);
+		expect(response.headers.get("www-authenticate")).toContain(
+			"/.well-known/oauth-protected-resource/mcp",
+		);
+	});
+
+	test("the metadata names the mcp endpoint as the resource, not the origin", async () => {
+		const metadata = (await (
+			await fetch(`${origin}/.well-known/oauth-protected-resource/mcp`)
+		).json()) as { resource: string };
+
+		expect(metadata.resource.endsWith("/mcp")).toBe(true);
+	});
+
+	test("a client probing the root is sent to the path the spec uses", async () => {
+		const response = await fetch(
+			`${origin}/.well-known/oauth-protected-resource`,
+			{ redirect: "manual" },
+		);
+
+		expect(response.status).toBe(308);
+		expect(response.headers.get("location")).toBe(
+			"/.well-known/oauth-protected-resource/mcp",
+		);
+	});
+
+	test("registration is offered, and it issues a client", async () => {
+		const discovery = (await (
+			await fetch(`${origin}/.well-known/oauth-authorization-server`)
+		).json()) as { registration_endpoint?: string };
+
+		expect(discovery.registration_endpoint).toBeDefined();
+
+		expect(discovery.registration_endpoint?.endsWith("/register")).toBe(true);
+
+		const registered = await fetch(`${origin}/register`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				client_name: "probe",
+				redirect_uris: ["https://example.test/callback"],
+				grant_types: ["authorization_code", "refresh_token"],
+				response_types: ["code"],
+				token_endpoint_auth_method: "none",
+			}),
+		});
+
+		expect(registered.status).toBeLessThan(300);
+		expect(
+			((await registered.json()) as { client_id?: string }).client_id,
+		).toBeDefined();
 	});
 });

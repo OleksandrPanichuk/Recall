@@ -7,6 +7,9 @@ import type { OwnerId } from "@/application/ports/owner";
 import type { UseCases } from "@/composition/create-application";
 import { createMcpServer } from "../server";
 import { matchesToken } from "./bearer";
+
+const MCP_PATH = "/mcp";
+
 import { consentPage } from "./oauth/consent";
 import {
 	CONSENT_PATH,
@@ -49,9 +52,20 @@ export function createMcpHttpApp(
 				provider: oauth.provider,
 				issuerUrl: issuer,
 				baseUrl: issuer,
+				resourceServerUrl: new URL(MCP_PATH, issuer),
 				scopesSupported: [OFFLINE_ACCESS],
 				resourceName: "Recall quiz sets",
 			}),
+		);
+
+		app.get(
+			"/.well-known/oauth-protected-resource",
+			(_request: Request, response: Response) => {
+				response.redirect(
+					308,
+					`/.well-known/oauth-protected-resource${MCP_PATH}`,
+				);
+			},
 		);
 
 		app.get(CONSENT_PATH, (request: Request, response: Response) => {
@@ -118,8 +132,18 @@ export function createMcpHttpApp(
 	};
 
 	app.all(
-		"/mcp",
-		requireBearerAuth({ verifier: oauth.provider }),
+		MCP_PATH,
+		requireBearerAuth({
+			verifier: oauth.provider,
+			...(issuer === undefined
+				? {}
+				: {
+						resourceMetadataUrl: new URL(
+							`/.well-known/oauth-protected-resource${MCP_PATH}`,
+							issuer,
+						).href,
+					}),
+		}),
 		async (request: Request, response: Response) => {
 			const owner = ownerOf(request);
 
