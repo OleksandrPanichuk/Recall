@@ -1,5 +1,8 @@
+import "katex/dist/katex.min.css";
 import Markdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import { displayUrl } from "@/features/pages/lib/uploads";
 
 interface Props {
@@ -18,7 +21,11 @@ export function PageSummary({ summary, resolveUrl = displayUrl }: Props) {
 
 	return (
 		<div className="recall-prose prose prose-sm max-w-none px-1 dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-primary prose-code:before:content-none prose-code:after:content-none">
-			<Markdown remarkPlugins={[remarkGfm]} urlTransform={resolveUrl}>
+			<Markdown
+				remarkPlugins={[remarkGfm, remarkMath]}
+				rehypePlugins={[rehypeKatex]}
+				urlTransform={resolveUrl}
+			>
 				{summary}
 			</Markdown>
 		</div>
