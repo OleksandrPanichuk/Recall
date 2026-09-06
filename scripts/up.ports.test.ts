@@ -5,7 +5,9 @@ import {
 	openCommand,
 	parseLsofHolder,
 	parseNetstatHolder,
+	stopHolder,
 	waitForHttp,
+	waitForPortFree,
 } from "./up.ports";
 
 const LSOF = "p24823\ncbun\nn127.0.0.1:8765\n";
@@ -118,5 +120,29 @@ describe("waiting for a service to answer", () => {
 
 	test("gives up when nothing is listening", async () => {
 		expect(await waitForHttp("http://127.0.0.1:1/", 300)).toBe(false);
+	});
+});
+
+describe("stopping whatever holds a port", () => {
+	test("reports failure for a pid that is not there", async () => {
+		expect(await stopHolder(2_147_483_600)).toBe(false);
+	});
+
+	test("stops a process it can signal, and the port comes back", async () => {
+		const server = Bun.serve({ port: 0, fetch: () => new Response("hi") });
+		const port = server.port as number;
+
+		expect(await isPortFree("127.0.0.1", port)).toBe(false);
+
+		server.stop(true);
+
+		expect(await waitForPortFree("127.0.0.1", port, 3000)).toBe(true);
+	});
+
+	test("waiting on a port nobody holds returns at once", async () => {
+		const started = Date.now();
+
+		expect(await waitForPortFree("127.0.0.1", 59_999, 3000)).toBe(true);
+		expect(Date.now() - started).toBeLessThan(1500);
 	});
 });

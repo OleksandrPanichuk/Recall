@@ -18,11 +18,14 @@ import {
 	isPortFree,
 	killCommand,
 	openInBrowser,
+	stopHolder,
 	waitForHttp,
+	waitForPortFree,
 } from "./up.ports";
 import { type SupervisedProcess, superviseProcesses } from "./up.supervise";
 
 const READY_TIMEOUT_MS = 15_000;
+const FREED_TIMEOUT_MS = 8_000;
 
 const entrypoint = (entry: string): string =>
 	Bun.fileURLToPath(new URL(`../${entry}`, import.meta.url));
@@ -165,13 +168,26 @@ async function checkPortsOrExit(
 		}
 
 		const holder = await findPortHolder(service.port);
+		const held = `port ${service.port} (${service.name}) is held by ${
+			holder === undefined
+				? "another process"
+				: `pid ${holder.pid}${holder.command === undefined ? "" : ` (${holder.command})`}`
+		}`;
+
+		if (holder !== undefined && (await offerToStop(held, holder.pid))) {
+			if (await waitForPortFree(service.host, service.port, FREED_TIMEOUT_MS)) {
+				say(`stopped pid ${holder.pid}, port ${service.port} is free`);
+				continue;
+			}
+
+			taken.push(`${held} — it did not stop in time`);
+			continue;
+		}
 
 		taken.push(
 			holder === undefined
-				? `port ${service.port} (${service.name}) is already in use`
-				: `port ${service.port} (${service.name}) is held by pid ${holder.pid}${
-						holder.command === undefined ? "" : ` (${holder.command})`
-					} — stop it with: ${killCommand(holder.pid, process.platform)}`,
+				? held
+				: `${held} — stop it with: ${killCommand(holder.pid, process.platform)}`,
 		);
 	}
 
@@ -184,6 +200,24 @@ async function checkPortsOrExit(
 
 		process.exit(1);
 	}
+}
+
+async function offerToStop(held: string, pid: number): Promise<boolean> {
+	if (has("--reclaim")) {
+		return stopHolder(pid);
+	}
+
+	if (has("--no-reclaim") || process.stdin.isTTY !== true) {
+		return false;
+	}
+
+	complain("");
+
+	const answer = prompt(`${held}. Stop it? [y/N]`);
+
+	return answer !== null && /^y(es)?$/i.test(answer.trim())
+		? stopHolder(pid)
+		: false;
 }
 
 async function announceReady(
@@ -215,6 +249,15 @@ async function announceReady(
 
 	for (const answer of answers) {
 		say(`${answer.name.padEnd(label)} → ${answer.url}`);
+	}
+
+	const api = services.find((service) => service.name === "api");
+
+	if (api?.url !== undefined && (Bun.env.MCP_HTTP_TOKEN ?? "").trim() !== "") {
+		say(`${"mcp".padEnd(label)} → ${new URL("/mcp", api.url).href}`);
+		say(
+			"mcp is served by the api; apps/mcp is the stdio bridge a client spawns",
+		);
 	}
 
 	const admin = services.find((service) => service.name === "admin");
