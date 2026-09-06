@@ -151,6 +151,18 @@ export const listSetsCommandSchema = z.object({
 	includeUnpublished: z.boolean().optional(),
 });
 
+export const listQuestionsCommandSchema = z.object({
+	quizSetId: optionalId,
+});
+
+export const questionRowSchema = z.object({
+	question: questionSchema,
+	quizSetId: id,
+	setTitle: z.string(),
+	setStatus: z.enum(QuizSetStatus),
+	answerCount: z.number().int().nonnegative(),
+});
+
 export const createdSetSchema = z.object({ quizSetId: id });
 export const addedQuestionsSchema = z.object({
 	addedQuestionIds: z.array(id).readonly(),
@@ -168,6 +180,8 @@ export type AddQuestionsCommand = z.infer<typeof addQuestionsCommandSchema>;
 export type UpdateQuestionCommand = z.infer<typeof updateQuestionCommandSchema>;
 export type DeleteQuestionCommand = z.infer<typeof deleteQuestionCommandSchema>;
 export type ListSetsCommand = z.infer<typeof listSetsCommandSchema>;
+export type ListQuestionsCommand = z.infer<typeof listQuestionsCommandSchema>;
+export type QuestionRow = z.infer<typeof questionRowSchema>;
 export type MoveSetCommand = z.infer<typeof moveSetCommandSchema>;
 
 export const quizDetailSchema = z.object({

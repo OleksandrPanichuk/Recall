@@ -13,6 +13,10 @@ export const loadQuizSets = createServerFn().handler(async () => ({
 	sets: await api().listQuizSets.execute({}),
 }));
 
+export const loadQuestions = createServerFn().handler(async () => ({
+	rows: await api().listQuestions.execute({}),
+}));
+
 export const loadQuizSet = createServerFn()
 	.inputValidator(idInput)
 	.handler(async ({ data }) =>

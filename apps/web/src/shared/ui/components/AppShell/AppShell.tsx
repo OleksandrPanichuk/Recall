@@ -3,6 +3,7 @@ import {
 	BrainCircuit,
 	CalendarClock,
 	ChartColumn,
+	CircleQuestionMark,
 	Library,
 	Menu,
 	Settings,
@@ -73,6 +74,14 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 					>
 						<CalendarClock className="size-4" />
 						Повторення
+					</Link>
+					<Link
+						to="/questions"
+						className={navLink}
+						activeProps={{ className: "bg-accent/60 text-foreground" }}
+					>
+						<CircleQuestionMark className="size-4" />
+						Питання
 					</Link>
 					<Link
 						to="/insights"
