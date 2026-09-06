@@ -76,24 +76,27 @@ const run = async (
 	return { exitCode, log };
 };
 
-describe("a long-polling bot told to stop", () => {
-	test("exits zero on SIGTERM, which is what a container sends", async () => {
-		const { exitCode, log } = await run("SIGTERM");
+describe.skipIf(process.platform === "win32")(
+	"a long-polling bot told to stop",
+	() => {
+		test("exits zero on SIGTERM, which is what a container sends", async () => {
+			const { exitCode, log } = await run("SIGTERM");
 
-		expect(exitCode).toBe(0);
-		expect(log).toContain("shutdown complete");
-	});
+			expect(exitCode).toBe(0);
+			expect(log).toContain("shutdown complete");
+		});
 
-	test("and never reports the abort as the bot having stopped", async () => {
-		const { log } = await run("SIGTERM");
+		test("and never reports the abort as the bot having stopped", async () => {
+			const { log } = await run("SIGTERM");
 
-		expect(log).not.toContain("bot stopped");
-		expect(log).not.toContain("readonly property");
-	});
+			expect(log).not.toContain("bot stopped");
+			expect(log).not.toContain("readonly property");
+		});
 
-	test("exits zero on SIGINT too", async () => {
-		const { exitCode } = await run("SIGINT");
+		test("exits zero on SIGINT too", async () => {
+			const { exitCode } = await run("SIGINT");
 
-		expect(exitCode).toBe(0);
-	});
-});
+			expect(exitCode).toBe(0);
+		});
+	},
+);
