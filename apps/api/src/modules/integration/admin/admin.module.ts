@@ -12,8 +12,6 @@ import { loadApiEnvironment } from "../../shared/config/api-env";
 import { USE_CASE_DEPENDENCIES } from "../../shared/database/tokens";
 import { fetchRoutes } from "./fetch-routes";
 
-export const ADMIN_PREFIX = "admin-api";
-
 @Module({})
 export class AdminModule implements NestModule {
 	constructor(

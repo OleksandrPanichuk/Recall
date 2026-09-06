@@ -18,6 +18,7 @@ import {
 	vocabularyRecordOf,
 } from "./records";
 import { clearSession, issueSession, readSession } from "./session";
+import { createSignInThrottle } from "./throttle";
 
 export interface AdminApiDependencies {
 	readonly application: UseCases;
@@ -41,6 +42,19 @@ const failed = (error: unknown): Response => {
 		error instanceof Error ? error.message : "Something went wrong";
 
 	return json({ message, error: message }, 400);
+};
+
+const waitFor = (milliseconds: number): Promise<void> =>
+	new Promise((resolve) => {
+		setTimeout(resolve, milliseconds);
+	});
+
+const secureCookies = (request: Request): boolean => {
+	const forwarded = request.headers.get("x-forwarded-proto");
+
+	return forwarded === undefined || forwarded === null
+		? new URL(request.url).protocol === "https:"
+		: forwarded.split(",")[0]?.trim() === "https";
 };
 
 const paramOf = (request: Request, name: string): string =>
@@ -221,6 +235,8 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 		return found;
 	};
 
+	const throttle = createSignInThrottle();
+
 	const folderIdOf = (value: unknown) =>
 		trimmed(value) === undefined ? undefined : toFolderId(String(value));
 
@@ -232,23 +248,38 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 				);
 
 				if (!matchesToken(String(body.passphrase ?? ""), passphrase)) {
-					logger.warn("refused an admin sign-in");
+					const wait = throttle.failed();
+
+					logger.warn("refused an admin sign-in", {
+						failures: throttle.failures,
+						waitMs: wait,
+					});
+
+					if (wait > 0) {
+						await waitFor(wait);
+					}
 
 					return json({ message: "Wrong passphrase" }, 401);
 				}
+
+				throttle.succeeded();
 
 				return new Response(JSON.stringify({ signedIn: true }), {
 					status: 200,
 					headers: {
 						"content-type": "application/json",
-						"set-cookie": issueSession(passphrase, now()),
+						"set-cookie": issueSession(
+							passphrase,
+							now(),
+							secureCookies(request),
+						),
 					},
 				});
 			},
-			DELETE: () =>
+			DELETE: (request: Request) =>
 				new Response(null, {
 					status: 204,
-					headers: { "set-cookie": clearSession() },
+					headers: { "set-cookie": clearSession(secureCookies(request)) },
 				}),
 			GET: guarded(() => json({ signedIn: true })),
 		},

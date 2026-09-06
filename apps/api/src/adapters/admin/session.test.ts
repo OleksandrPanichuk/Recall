@@ -12,6 +12,19 @@ describe("issueSession", () => {
 		expect(cookie).toContain("SameSite=Strict");
 		expect(cookie).toContain("Path=/");
 	});
+
+	test("is not marked Secure over plain http, or localhost would drop it", () => {
+		expect(issueSession(SECRET, NOW)).not.toContain("Secure");
+	});
+
+	test("is marked Secure when the request arrived over https", () => {
+		expect(issueSession(SECRET, NOW, true)).toContain("Secure");
+	});
+
+	test("and clearing it carries the same flag, or the browser keeps the old one", () => {
+		expect(clearSession(true)).toContain("Secure");
+		expect(clearSession()).not.toContain("Secure");
+	});
 });
 
 describe("readSession", () => {
