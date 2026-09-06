@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import {
 	loadQuizSet,
 	loadVocabulary,
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/quizzes/$quizId_/edit")({
 
 function Editor() {
 	const loaded = Route.useLoaderData();
+	const { nodes } = useLoaderData({ from: "__root__" });
 
 	if (!loaded.viewer) {
 		return <SignInPrompt />;
@@ -37,5 +38,11 @@ function Editor() {
 		return <NotFound />;
 	}
 
-	return <QuizEditorView quiz={loaded.quiz} vocabulary={loaded.vocabulary} />;
+	return (
+		<QuizEditorView
+			quiz={loaded.quiz}
+			vocabulary={loaded.vocabulary}
+			pages={nodes}
+		/>
+	);
 }

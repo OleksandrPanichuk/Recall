@@ -32,6 +32,16 @@ export const updateQuizSet = createServerFn({ method: "POST" })
 		await api().updateQuizSet.execute(data as never);
 	});
 
+export const moveQuizSet = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => {
+		const input = value as { quizSetId: string; folderId?: string };
+
+		return { quizSetId: String(input.quizSetId), folderId: input.folderId };
+	})
+	.handler(async ({ data }) => {
+		await api().moveQuizSet.execute(data);
+	});
+
 export const publishQuizSet = createServerFn({ method: "POST" })
 	.inputValidator(idInput)
 	.handler(async ({ data }) => {
