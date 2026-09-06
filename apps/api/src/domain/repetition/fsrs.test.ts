@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { toQuestionId } from "../quiz-set/question";
+import { RecallGrade } from "./grade";
 import {
 	createRepetitionSettings,
 	defaultRepetitionSettings,
@@ -35,7 +36,22 @@ const review = (
 		fsrsSettings(overrides),
 		completedAt,
 		startOfDay(completedAt),
-		answeredCorrectly,
+		answeredCorrectly ? RecallGrade.Good : RecallGrade.Again,
+	);
+
+const graded = (
+	previous: RepetitionSchedule | undefined,
+	completedAt: Date,
+	grade: RecallGrade,
+): RepetitionSchedule =>
+	scheduleAfter(
+		previous,
+		questionId,
+		user,
+		fsrsSettings(),
+		completedAt,
+		startOfDay(completedAt),
+		grade,
 	);
 
 const intervalDaysOf = (schedule: RepetitionSchedule, at: Date): number =>
@@ -170,7 +186,7 @@ describe("choosing between the two schedulers", () => {
 			defaultRepetitionSettings(),
 			first,
 			startOfDay(first),
-			true,
+			RecallGrade.Good,
 		);
 
 		expect(schedule.stability).toBeUndefined();
@@ -189,5 +205,84 @@ describe("choosing between the two schedulers", () => {
 	test("retention outside the sane band is refused", () => {
 		expect(() => fsrsSettings({ desiredRetention: 0.5 })).toThrow();
 		expect(() => fsrsSettings({ desiredRetention: 1 })).toThrow();
+	});
+});
+
+describe("how the grade a learner gives changes the interval", () => {
+	const first = new Date("2026-08-01T09:00:00.000Z");
+	const second = new Date("2026-08-05T09:00:00.000Z");
+
+	const intervalAfter = (grade: RecallGrade): number => {
+		const start = graded(undefined, first, RecallGrade.Good);
+
+		return intervalDaysOf(graded(start, second, grade), second);
+	};
+
+	test("easy waits longer than good, and good longer than hard", () => {
+		const hard = intervalAfter(RecallGrade.Hard);
+		const good = intervalAfter(RecallGrade.Good);
+		const easy = intervalAfter(RecallGrade.Easy);
+
+		expect(hard).toBeLessThan(good);
+		expect(good).toBeLessThan(easy);
+	});
+
+	test("every grade but Again still schedules ahead of the review", () => {
+		for (const grade of [
+			RecallGrade.Hard,
+			RecallGrade.Good,
+			RecallGrade.Easy,
+		]) {
+			expect(intervalAfter(grade)).toBeGreaterThan(0);
+		}
+	});
+
+	test("Again comes back soonest of the four", () => {
+		expect(intervalAfter(RecallGrade.Again)).toBeLessThanOrEqual(
+			intervalAfter(RecallGrade.Hard),
+		);
+	});
+
+	test("and Again is the only grade that counts a lapse", () => {
+		const start = graded(undefined, first, RecallGrade.Good);
+
+		expect(graded(start, second, RecallGrade.Hard).lapses).toBe(0);
+		expect(graded(start, second, RecallGrade.Again).lapses).toBe(1);
+	});
+
+	test("hard still records memory state, so it is a review and not a reset", () => {
+		const start = graded(undefined, first, RecallGrade.Good);
+		const after = graded(start, second, RecallGrade.Hard);
+
+		expect(after.stability).toBeGreaterThan(0);
+		expect(after.difficulty).toBeGreaterThan(0);
+	});
+});
+
+describe("the ladder ignores the grade on purpose", () => {
+	const first = new Date("2026-08-01T09:00:00.000Z");
+
+	const ladder = (grade: RecallGrade): RepetitionSchedule =>
+		scheduleAfter(
+			undefined,
+			questionId,
+			user,
+			defaultRepetitionSettings(),
+			first,
+			startOfDay(first),
+			grade,
+		);
+
+	test("hard, good and easy all land on the same rung", () => {
+		const hard = ladder(RecallGrade.Hard).dueAt?.getTime();
+
+		expect(ladder(RecallGrade.Good).dueAt?.getTime()).toBe(hard);
+		expect(ladder(RecallGrade.Easy).dueAt?.getTime()).toBe(hard);
+	});
+
+	test("but Again still restarts it, because that is right or wrong", () => {
+		expect(ladder(RecallGrade.Again).repetitionCount).toBe(1);
+		expect(ladder(RecallGrade.Again).lapses).toBe(1);
+		expect(ladder(RecallGrade.Good).lapses).toBe(0);
 	});
 });

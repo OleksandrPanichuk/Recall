@@ -5,6 +5,7 @@ import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/aban
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import { RateRecallUseCase } from "@/application/use-cases/attempts/rate-recall";
 import {
 	PauseQuizAttemptUseCase,
 	ResumeQuizAttemptUseCase,
@@ -64,6 +65,7 @@ export const botUseCases: Provider[] = [
 	FinishQuizAttemptUseCase,
 	PauseQuizAttemptUseCase,
 	ResumeQuizAttemptUseCase,
+	RateRecallUseCase,
 	GetQuizStatisticsUseCase,
 	GetAttemptDetailUseCase,
 	ListDueRepetitionsUseCase,

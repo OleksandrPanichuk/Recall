@@ -1,6 +1,7 @@
 import { copiedDate, isValidDate } from "@/shared/utils/date";
 import type { QuestionId } from "../quiz-set/question";
 import { fsrsScheduleAfter } from "./fsrs";
+import { RecallGrade, wasRecalled } from "./grade";
 import {
 	DAY_MS,
 	DEFAULT_DESIRED_RETENTION,
@@ -135,7 +136,7 @@ export function scheduleAfter(
 	settings: RepetitionSettings,
 	completedAt: Date,
 	completedDayStart: Date,
-	answeredCorrectly = true,
+	grade: RecallGrade = RecallGrade.Good,
 ): RepetitionSchedule {
 	if (!isValidDate(completedAt)) {
 		throw new RepetitionSettingsValidationError([
@@ -151,10 +152,11 @@ export function scheduleAfter(
 			settings,
 			completedAt,
 			completedDayStart,
-			answeredCorrectly,
+			grade,
 		);
 	}
 
+	const answeredCorrectly = wasRecalled(grade);
 	const repetitionCount = answeredCorrectly
 		? (previous?.repetitionCount ?? 0) + 1
 		: 1;

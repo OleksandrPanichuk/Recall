@@ -328,11 +328,16 @@ export const responses = pgTable(
 		skipped: boolean("skipped").notNull().default(false),
 		creditEarned: integer("credit_earned"),
 		creditPossible: integer("credit_possible"),
+		recall: text("recall"),
 		answeredAt: timestamp("answered_at", { withTimezone: true }).notNull(),
 	},
 	(table) => [
 		primaryKey({ columns: [table.attemptId, table.questionId] }),
 		index("responses_question_idx").on(table.questionId),
+		check(
+			"responses_recall_check",
+			sql`${table.recall} is null or ${table.recall} in ('hard', 'good', 'easy')`,
+		),
 	],
 );
 

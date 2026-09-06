@@ -24,6 +24,7 @@ import {
 	attemptScore,
 	currentQuestionId,
 	type QuizAttempt,
+	QuizAttemptMode,
 	type QuizAttemptStatus,
 	recordResponse,
 	QuizAttemptStatus as Status,
@@ -41,6 +42,7 @@ import {
 	QuestionType,
 } from "@/domain/quiz-set/question";
 import { isWithinOneEdit } from "@/shared/utils/edit-distance";
+import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {
@@ -69,6 +71,7 @@ export interface AnswerQuestionResult {
 	readonly typedAnswer?: string;
 	readonly nearMiss?: string;
 	readonly credit: AnswerGrade;
+	readonly gradable: boolean;
 }
 
 export type AnswerQuestionDependencies = ApplicationDependencies;
@@ -89,7 +92,7 @@ export class AnswerQuestionUseCase
 	): Promise<AnswerQuestionResult> {
 		const at = this.clock.now();
 
-		return this.unitOfWork.run(async ({ quizzes, attempts }) => {
+		return this.unitOfWork.run(async ({ quizzes, attempts, reviews }) => {
 			const attempt = await attempts.findActive();
 
 			if (attempt === undefined) {
@@ -109,6 +112,10 @@ export class AnswerQuestionUseCase
 				throw new QuestionNotInAttemptError();
 			}
 
+			const gradable =
+				attempt.mode === QuizAttemptMode.Full &&
+				(await resolveRepetitionSettings(reviews, attempt.quizSetId))
+					.scheduler === "fsrs";
 			const recorded = attempt.responses.find(
 				(response) => response.questionId === request.questionId,
 			);
@@ -124,6 +131,7 @@ export class AnswerQuestionUseCase
 						possible: recorded.creditPossible ?? 1,
 					},
 					recorded.typedAnswer,
+					gradable,
 				);
 			}
 
@@ -159,6 +167,7 @@ export class AnswerQuestionUseCase
 				question,
 				grade,
 				request.typedAnswer,
+				gradable,
 			);
 		});
 	}
@@ -169,7 +178,8 @@ export class AnswerQuestionUseCase
 		alreadyAnswered: boolean,
 		question: Question,
 		grade: AnswerGrade,
-		typedAnswer?: string,
+		typedAnswer: string | undefined,
+		gradable: boolean,
 	): AnswerQuestionResult {
 		return {
 			isCorrect,
@@ -188,6 +198,7 @@ export class AnswerQuestionUseCase
 			nextQuestionId: currentQuestionId(attempt),
 			score: attemptScore(attempt),
 			credit: grade,
+			gradable: gradable && isCorrect,
 		};
 	}
 }

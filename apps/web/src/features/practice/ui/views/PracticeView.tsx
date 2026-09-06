@@ -11,6 +11,7 @@ import { AttemptInProgress } from "@/features/practice/ui/components/AttemptInPr
 import { AttemptPaused } from "@/features/practice/ui/components/AttemptPaused";
 import { OutOfQuestions } from "@/features/practice/ui/components/OutOfQuestions";
 import { QuestionCard } from "@/features/practice/ui/components/QuestionCard";
+import { RecallButtons } from "@/features/practice/ui/components/RecallButtons";
 import { VerdictPanel } from "@/features/practice/ui/components/VerdictPanel";
 import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
 
@@ -108,6 +109,13 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 			) : (
 				<div ref={verdictRef} className="space-y-4 scroll-mt-4">
 					<VerdictPanel verdict={session.verdict} />
+					{session.verdict.gradable ? (
+						<RecallButtons
+							chosen={session.rated}
+							busy={session.busy}
+							onRate={session.rate}
+						/>
+					) : null}
 					<Button
 						size="lg"
 						className="w-full"

@@ -1,0 +1,2 @@
+ALTER TABLE "responses" ADD COLUMN "recall" text;--> statement-breakpoint
+ALTER TABLE "responses" ADD CONSTRAINT "responses_recall_check" CHECK ("responses"."recall" is null or "responses"."recall" in ('hard', 'good', 'easy'));

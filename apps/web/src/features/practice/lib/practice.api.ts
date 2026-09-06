@@ -1,4 +1,4 @@
-import { ApiErrorName, isApiError } from "@recall/contracts";
+import { ApiErrorName, type FeltGrade, isApiError } from "@recall/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { api } from "@/shared/lib/api";
 import { idInput } from "@/shared/lib/request";
@@ -43,6 +43,16 @@ export const startAttempt = createServerFn({ method: "POST" })
 export const abandonAttempt = createServerFn({ method: "POST" }).handler(
 	async () => api().abandonQuizAttempt.execute({}),
 );
+
+export const rateRecall = createServerFn({ method: "POST" })
+	.validator((value: unknown) => {
+		const input = value as { questionId: string; recall: FeltGrade };
+
+		return { questionId: String(input.questionId), recall: input.recall };
+	})
+	.handler(async ({ data }) => {
+		await api().rateRecall.execute(data);
+	});
 
 export const pauseAttempt = createServerFn({ method: "POST" }).handler(
 	async () => {

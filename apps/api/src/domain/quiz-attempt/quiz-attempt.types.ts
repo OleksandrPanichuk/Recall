@@ -1,6 +1,7 @@
 import type { BrandedId } from "../branded-id";
 import type { QuestionId, QuestionOptionId } from "../quiz-set/question";
 import type { QuizSetId } from "../quiz-set/quiz-set";
+import type { RecallGrade } from "../repetition/grade";
 import type {
 	QuizAttemptMode,
 	QuizAttemptStatus,
@@ -17,6 +18,7 @@ export interface QuestionResponse {
 	readonly skipped?: boolean;
 	readonly creditEarned?: number;
 	readonly creditPossible?: number;
+	readonly recall?: RecallGrade;
 }
 
 export interface QuizAttempt {

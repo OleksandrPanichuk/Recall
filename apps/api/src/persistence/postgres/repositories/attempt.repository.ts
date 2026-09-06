@@ -33,6 +33,7 @@ import {
 	toQuestionOptionId,
 } from "@/domain/quiz-set/question";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import type { RecallGrade } from "@/domain/repetition/grade";
 import { attemptQuestions, attempts, questions, responses } from "../schema";
 import type { Executor } from "../unit-of-work";
 import { isUuid } from "../uuid";
@@ -88,6 +89,7 @@ export function createAttemptPostgresRepository(
 				skipped: answer.skipped,
 				creditEarned: answer.creditEarned ?? undefined,
 				creditPossible: answer.creditPossible ?? undefined,
+				recall: (answer.recall ?? undefined) as RecallGrade | undefined,
 			})),
 			startedAt: row.startedAt,
 			updatedAt: row.updatedAt,
@@ -155,13 +157,17 @@ export function createAttemptPostgresRepository(
 					skipped: answer.skipped ?? false,
 					creditEarned: answer.creditEarned ?? null,
 					creditPossible: answer.creditPossible ?? null,
+					recall: answer.recall ?? null,
 					answeredAt: answer.answeredAt,
 				};
 
 				await executor
 					.insert(responses)
 					.values(answerRow)
-					.onConflictDoNothing();
+					.onConflictDoUpdate({
+						target: [responses.attemptId, responses.questionId],
+						set: { recall: answerRow.recall },
+					});
 			}
 		},
 

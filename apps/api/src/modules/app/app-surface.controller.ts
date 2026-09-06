@@ -40,6 +40,7 @@ import {
 	pauseAttemptCommandSchema,
 	practiceCommandSchema,
 	quizSetIdCommandSchema,
+	rateRecallCommandSchema,
 	renamePageCommandSchema,
 	reorderPageCommandSchema,
 	resolveSettingsCommandSchema,
@@ -609,6 +610,17 @@ export class AppSurfaceController {
 		return finishResultToWire(
 			await this.of(request).finishQuizAttempt.execute({}),
 		);
+	}
+
+	@Post(BOT_ROUTES.rateRecall)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async rateRecall(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(rateRecallCommandSchema, body);
+
+		await this.of(request).rateRecall.execute({
+			questionId: toQuestionId(command.questionId),
+			recall: command.recall,
+		});
 	}
 
 	@Post(BOT_ROUTES.pause)
