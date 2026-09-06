@@ -3,6 +3,13 @@ import { API_ORIGIN, UPLOAD_PATH } from "./uploads.constants";
 export const displayUrl = (url: string): string =>
 	url.startsWith(UPLOAD_PATH) ? `${API_ORIGIN}${url}` : url;
 
+export const sharedUrl =
+	(token: string) =>
+	(url: string): string =>
+		url.startsWith(`${UPLOAD_PATH}/`)
+			? `${API_ORIGIN}/public/uploads/${token}/${url.slice(UPLOAD_PATH.length + 1)}`
+			: url;
+
 export async function uploadImage(file: File): Promise<string> {
 	const body = new FormData();
 

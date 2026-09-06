@@ -4,6 +4,7 @@ import type {
 	PageMatch,
 	PageRepository,
 	PageRevision,
+	PageShare,
 	RevisionAuthor,
 } from "@/application/ports/repositories/page.repository";
 import {
@@ -18,7 +19,13 @@ import {
 	type QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import { pageRevisions, pages, quizAttachments, quizzes } from "../schema";
+import {
+	pageRevisions,
+	pageShares,
+	pages,
+	quizAttachments,
+	quizzes,
+} from "../schema";
 import type { Executor } from "../unit-of-work";
 import { isUuid } from "../uuid";
 
@@ -379,6 +386,69 @@ export function createPagePostgresRepository(
 				name: row.title,
 				excerpt: excerptAround(row.contentMd, trimmed),
 			}));
+		},
+
+		async shareOf(id: FolderId): Promise<PageShare | undefined> {
+			if (!isUuid(String(id))) {
+				return undefined;
+			}
+
+			const [row] = await executor
+				.select()
+				.from(pageShares)
+				.where(
+					and(eq(pageShares.ownerId, owner), eq(pageShares.pageId, String(id))),
+				)
+				.limit(1);
+
+			return row === undefined
+				? undefined
+				: {
+						pageId: toFolderId(row.pageId),
+						token: row.token,
+						createdAt: row.createdAt,
+					};
+		},
+
+		async saveShare(share: PageShare): Promise<void> {
+			if (!isUuid(String(share.pageId))) {
+				return;
+			}
+
+			const [page] = await executor
+				.select({ id: pages.id })
+				.from(pages)
+				.where(and(mine, eq(pages.id, String(share.pageId))))
+				.limit(1);
+
+			if (page === undefined) {
+				return;
+			}
+
+			await executor
+				.insert(pageShares)
+				.values({
+					ownerId: owner,
+					pageId: page.id,
+					token: share.token,
+					createdAt: share.createdAt,
+				})
+				.onConflictDoUpdate({
+					target: pageShares.pageId,
+					set: { token: share.token, createdAt: share.createdAt },
+				});
+		},
+
+		async deleteShare(id: FolderId): Promise<void> {
+			if (!isUuid(String(id))) {
+				return;
+			}
+
+			await executor
+				.delete(pageShares)
+				.where(
+					and(eq(pageShares.ownerId, owner), eq(pageShares.pageId, String(id))),
+				);
 		},
 
 		async delete(id: FolderId): Promise<void> {

@@ -1,0 +1,1 @@
+export { SharedPageView } from "./SharedPageView";

@@ -5,6 +5,7 @@ import {
 	HeadContent,
 	Outlet,
 	Scripts,
+	useLocation,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { SignOutButton } from "@/features/auth/ui/components/SignOutButton";
@@ -12,6 +13,7 @@ import { usePreloadPages } from "@/features/pages/hooks/use-preload-pages";
 import { useWarmEditor } from "@/features/pages/hooks/use-warm-editor";
 import { loadPageTree } from "@/features/pages/lib/pages.api";
 import { PageTree } from "@/features/pages/ui/components/PageTree";
+import { SHARE_PATH } from "@/shared/constants/sharing";
 import { noFlashScript } from "@/shared/constants/theme";
 import { loadSession } from "@/shared/lib/viewer";
 import { AppShell } from "@/shared/ui/components/AppShell";
@@ -44,9 +46,18 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
 	const { viewer } = Route.useRouteContext();
 	const { nodes } = Route.useLoaderData();
+	const { pathname } = useLocation();
 
 	usePreloadPages(nodes);
 	useWarmEditor();
+
+	if (pathname.startsWith(`${SHARE_PATH}/`)) {
+		return (
+			<Document>
+				<Outlet />
+			</Document>
+		);
+	}
 
 	return (
 		<Document>

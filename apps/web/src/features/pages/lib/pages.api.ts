@@ -1,6 +1,6 @@
-import { ApiErrorName } from "@recall/contracts";
+import { ApiErrorName, type SharedPageView } from "@recall/contracts";
 import { createServerFn } from "@tanstack/react-start";
-import { api } from "@/shared/lib/api";
+import { api, apiUrl } from "@/shared/lib/api";
 import { idInput, missingAsNull } from "@/shared/lib/request";
 
 export const loadLibrary = createServerFn()
@@ -124,6 +124,40 @@ export const detachQuiz = createServerFn({ method: "POST" })
 		await api().detachQuiz.execute(data);
 
 		return api().browseFolder.execute({ folderId: data.folderId });
+	});
+
+export const sharePage = createServerFn({ method: "POST" })
+	.validator((value: unknown) => {
+		const input = value as { folderId: string; rotate?: boolean };
+
+		return { folderId: String(input.folderId), rotate: input.rotate };
+	})
+	.handler(async ({ data }) => {
+		await api().sharePage.execute(data);
+
+		return api().browseFolder.execute({ folderId: data.folderId });
+	});
+
+export const unsharePage = createServerFn({ method: "POST" })
+	.validator(idInput)
+	.handler(async ({ data }) => {
+		await api().unsharePage.execute({ folderId: data.id });
+
+		return api().browseFolder.execute({ folderId: data.id });
+	});
+
+export const loadSharedPage = createServerFn()
+	.validator((value: unknown) => ({ token: String(value) }))
+	.handler(async ({ data }) => {
+		const response = await fetch(
+			`${apiUrl()}/public/pages/${encodeURIComponent(data.token)}`,
+		);
+
+		if (!response.ok) {
+			return { page: null };
+		}
+
+		return { page: (await response.json()) as SharedPageView };
 	});
 
 export const loadPageTree = createServerFn().handler(async () => ({

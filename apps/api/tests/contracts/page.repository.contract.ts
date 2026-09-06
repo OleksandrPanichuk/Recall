@@ -393,6 +393,110 @@ export function describePageRepository(
 				);
 			});
 
+			test("a page is not shared until it is", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.save(page(id, "Durability")),
+				);
+
+				expect(
+					await harness.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+			});
+
+			test("keeps a share and hands the token back", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(id, "Durability"));
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "a-token-nobody-else-holds",
+						createdAt: at,
+					});
+				});
+
+				const share = await harness.scope.pages.shareOf(toFolderId(id));
+
+				expect(share?.token).toBe("a-token-nobody-else-holds");
+				expect(share?.createdAt.getTime()).toBe(at.getTime());
+			});
+
+			test("saving a second share for the same page rotates the token", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(id, "Durability"));
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "first",
+						createdAt: at,
+					});
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "second",
+						createdAt: later,
+					});
+				});
+
+				expect((await harness.scope.pages.shareOf(toFolderId(id)))?.token).toBe(
+					"second",
+				);
+			});
+
+			test("deleting the share closes the link", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(id, "Durability"));
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "open",
+						createdAt: at,
+					});
+					await pages.deleteShare(toFolderId(id));
+				});
+
+				expect(
+					await harness.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+			});
+
+			test("a page nobody owns cannot be shared", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(({ pages }) =>
+					pages.saveShare({
+						pageId: toFolderId(id),
+						token: "stolen",
+						createdAt: at,
+					}),
+				);
+
+				expect(
+					await harness.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+			});
+
+			test("deleting the page takes its share with it", async () => {
+				const id = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(id, "Durability"));
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "gone-with-it",
+						createdAt: at,
+					});
+					await pages.delete(toFolderId(id));
+				});
+
+				expect(
+					await harness.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+			});
+
 			test("rewrites the summary and can clear it", async () => {
 				const id = uuid();
 				const page = createFolder({

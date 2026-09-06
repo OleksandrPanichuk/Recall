@@ -7,6 +7,7 @@ import { deletePage } from "@/features/pages/lib/pages.api";
 import { AttachQuiz } from "@/features/pages/ui/components/AttachQuiz";
 import { MovePage } from "@/features/pages/ui/components/MovePage";
 import { NewPageButton } from "@/features/pages/ui/components/NewPageButton";
+import { SharePage } from "@/features/pages/ui/components/SharePage";
 
 interface Props {
 	readonly view: BrowseView;
@@ -15,6 +16,8 @@ interface Props {
 	readonly onChanged: () => void;
 	readonly onFlush: () => Promise<void>;
 	readonly onAttach: (quizSetId: string) => Promise<void>;
+	readonly onShare: (rotate: boolean) => Promise<void>;
+	readonly onUnshare: () => Promise<void>;
 }
 
 export function PageActions({
@@ -24,6 +27,8 @@ export function PageActions({
 	onChanged,
 	onFlush,
 	onAttach,
+	onShare,
+	onUnshare,
 }: Props) {
 	const navigate = useNavigate();
 	const [busy, setBusy] = useState(false);
@@ -58,6 +63,12 @@ export function PageActions({
 			/>
 			{view.folderId === undefined ? null : (
 				<>
+					<SharePage
+						token={view.shareToken}
+						busy={busy}
+						onShare={onShare}
+						onUnshare={onUnshare}
+					/>
 					<AttachQuiz view={view} sets={sets} onAttach={onAttach} />
 					<MovePage
 						folderId={view.folderId}

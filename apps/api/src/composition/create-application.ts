@@ -50,6 +50,11 @@ import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/li
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
 import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
 import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
+import { ReadSharedPageUseCase } from "@/application/use-cases/sharing/read-shared-page";
+import {
+	SharePageUseCase,
+	UnsharePageUseCase,
+} from "@/application/use-cases/sharing/share-page";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import {
@@ -95,6 +100,9 @@ export interface UseCases {
 	readonly setPageIcon: SetPageIconUseCase;
 	readonly getInsights: GetInsightsUseCase;
 	readonly abandonQuizAttempt: AbandonQuizAttemptUseCase;
+	readonly sharePage: SharePageUseCase;
+	readonly unsharePage: UnsharePageUseCase;
+	readonly readSharedPage: ReadSharedPageUseCase;
 	readonly attachQuiz: AttachQuizUseCase;
 	readonly detachQuiz: DetachQuizUseCase;
 	readonly startQuizAttempt: StartQuizAttemptUseCase;
@@ -164,6 +172,9 @@ export function createUseCases(
 		setPageIcon: new SetPageIconUseCase(dependencies),
 		getInsights: new GetInsightsUseCase(dependencies),
 		abandonQuizAttempt: new AbandonQuizAttemptUseCase(dependencies),
+		sharePage: new SharePageUseCase(dependencies),
+		unsharePage: new UnsharePageUseCase(dependencies),
+		readSharedPage: new ReadSharedPageUseCase(dependencies),
 		attachQuiz: new AttachQuizUseCase(dependencies),
 		detachQuiz: new DetachQuizUseCase(dependencies),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),

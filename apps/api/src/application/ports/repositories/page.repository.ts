@@ -18,6 +18,12 @@ export interface PageRevision {
 	readonly createdAt: Date;
 }
 
+export interface PageShare {
+	readonly pageId: FolderId;
+	readonly token: string;
+	readonly createdAt: Date;
+}
+
 export interface PageMatch {
 	readonly id: FolderId;
 	readonly name: string;
@@ -41,6 +47,9 @@ export interface PageRepository {
 	recordRevision(revision: PageRevision): Promise<void>;
 	listRevisions(id: FolderId, limit?: number): Promise<readonly PageRevision[]>;
 	search(query: string, limit?: number): Promise<readonly PageMatch[]>;
+	shareOf(id: FolderId): Promise<PageShare | undefined>;
+	saveShare(share: PageShare): Promise<void>;
+	deleteShare(id: FolderId): Promise<void>;
 	delete(id: FolderId): Promise<void>;
 }
 

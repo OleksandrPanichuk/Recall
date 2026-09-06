@@ -78,6 +78,13 @@
 			"when": 1788606980777,
 			"tag": "0010_worthless_wolf_cub",
 			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "7",
+			"when": 1788700685474,
+			"tag": "0011_bizarre_captain_flint",
+			"breakpoints": true
 		}
 	]
 }
