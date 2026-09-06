@@ -5,7 +5,7 @@ import { api } from "@/shared/lib/api";
 import { missingAsNull } from "@/shared/lib/request";
 
 export const loadSettings = createServerFn()
-	.inputValidator((value: unknown) => ({
+	.validator((value: unknown) => ({
 		quizSetId: value === undefined ? undefined : String(value),
 	}))
 	.handler(async ({ data }) =>
@@ -16,7 +16,7 @@ export const loadSettings = createServerFn()
 	);
 
 export const saveSettings = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as UpdateQuizSettingsCommand)
+	.validator((value: unknown) => value as UpdateQuizSettingsCommand)
 	.handler(async ({ data }) => {
 		await api().updateQuizSettings.execute(data);
 

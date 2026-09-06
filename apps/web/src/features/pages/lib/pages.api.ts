@@ -4,7 +4,7 @@ import { api } from "@/shared/lib/api";
 import { idInput, missingAsNull } from "@/shared/lib/request";
 
 export const loadLibrary = createServerFn()
-	.inputValidator((value: unknown) => ({
+	.validator((value: unknown) => ({
 		folderId: value === undefined ? undefined : String(value),
 	}))
 	.handler(async ({ data }) =>
@@ -15,7 +15,7 @@ export const loadLibrary = createServerFn()
 	);
 
 export const saveSummary = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { folderId: string; summary: string };
 
 		return { folderId: String(input.folderId), summary: String(input.summary) };
@@ -27,11 +27,11 @@ export const saveSummary = createServerFn({ method: "POST" })
 	});
 
 export const searchPages = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => ({ query: String(value) }))
+	.validator((value: unknown) => ({ query: String(value) }))
 	.handler(async ({ data }) => api().searchPages.execute(data));
 
 export const createPage = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { name: string; parentId?: string };
 
 		return { name: String(input.name), parentId: input.parentId };
@@ -39,7 +39,7 @@ export const createPage = createServerFn({ method: "POST" })
 	.handler(async ({ data }) => api().createPage.execute(data));
 
 export const renamePage = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { folderId: string; name: string };
 
 		return { folderId: String(input.folderId), name: String(input.name) };
@@ -51,7 +51,7 @@ export const renamePage = createServerFn({ method: "POST" })
 	});
 
 export const setPageIcon = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { folderId: string; icon?: string };
 
 		return { folderId: String(input.folderId), icon: input.icon };
@@ -63,13 +63,13 @@ export const setPageIcon = createServerFn({ method: "POST" })
 	});
 
 export const deletePage = createServerFn({ method: "POST" })
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) => {
 		await api().deletePage.execute({ folderId: data.id });
 	});
 
 export const movePage = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { folderId: string; parentId?: string };
 
 		return { folderId: String(input.folderId), parentId: input.parentId };
@@ -79,7 +79,7 @@ export const movePage = createServerFn({ method: "POST" })
 	});
 
 export const reorderPage = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as {
 			folderId: string;
 			afterId?: string;
@@ -97,7 +97,7 @@ export const reorderPage = createServerFn({ method: "POST" })
 	});
 
 export const attachQuiz = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { folderId: string; quizSetId: string };
 
 		return {
@@ -112,7 +112,7 @@ export const attachQuiz = createServerFn({ method: "POST" })
 	});
 
 export const detachQuiz = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { folderId: string; quizSetId: string };
 
 		return {
@@ -131,7 +131,7 @@ export const loadPageTree = createServerFn().handler(async () => ({
 }));
 
 export const loadRevisions = createServerFn()
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) => ({
 		revisions: await api().listRevisions.execute({ folderId: data.id }),
 	}));
