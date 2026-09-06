@@ -24,6 +24,7 @@ export interface BrowseView {
 	readonly children: readonly BrowseChild[];
 	readonly sets: readonly QuizSummary[];
 	readonly attached: readonly QuizSummary[];
+	readonly shareToken?: string;
 }
 
 export interface BrowseFolderCommand {
@@ -89,6 +90,10 @@ export class BrowseFolderUseCase
 							statuses: published,
 							ids: await pages.listAttachedQuizIds(current.id),
 						}),
+			shareToken:
+				current === undefined
+					? undefined
+					: (await pages.shareOf(current.id))?.token,
 		};
 	}
 }

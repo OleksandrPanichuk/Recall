@@ -5,6 +5,7 @@ import { BotModule } from "./bot/bot.module";
 import { ContentModule } from "./content/content.module";
 import { AdminModule } from "./integration/admin/admin.module";
 import { McpModule } from "./integration/mcp/mcp.module";
+import { PublicModule } from "./public/public.module";
 import { DatabaseModule } from "./shared/database/database.module";
 import { HealthController } from "./shared/health/health.controller";
 
@@ -14,6 +15,7 @@ import { HealthController } from "./shared/health/health.controller";
 		AuthModule,
 		ContentModule,
 		AppSurfaceModule,
+		PublicModule,
 		BotModule,
 		AdminModule,
 		McpModule,

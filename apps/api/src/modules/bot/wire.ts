@@ -19,6 +19,8 @@ import type {
 	QuizSummary as WireQuizSummary,
 	ResolvedQuizSettings as WireResolvedSettings,
 	ResumedAttempt as WireResumedAttempt,
+	SharedPage as WireSharedPage,
+	SharedPageView as WireSharedPageView,
 	StartQuizAttemptResult as WireStartResult,
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
@@ -38,6 +40,8 @@ import type { StartPracticeSessionResult } from "@/application/use-cases/practic
 import type { QuestionRow } from "@/application/use-cases/quiz-sets/list-questions";
 import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
 import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
+import type { SharedPageView } from "@/application/use-cases/sharing/read-shared-page";
+import type { SharedPage } from "@/application/use-cases/sharing/share-page";
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import type { Question } from "@/domain/quiz-set/question";
@@ -111,6 +115,22 @@ export const resumedAttemptToWire = (
 			: String(resumed.currentQuestionId),
 });
 
+export const sharedPageToWire = (shared: SharedPage): WireSharedPage => ({
+	folderId: String(shared.folderId),
+	name: shared.name,
+	token: shared.token,
+	createdAt: shared.createdAt.toISOString(),
+});
+
+export const sharedPageViewToWire = (
+	view: SharedPageView,
+): WireSharedPageView => ({
+	name: view.name,
+	icon: text(view.icon),
+	summary: text(view.summary),
+	updatedAt: view.updatedAt.toISOString(),
+});
+
 export const revisionToWire = (revision: PageRevision): WirePageRevision => ({
 	id: revision.id,
 	title: revision.title,
@@ -179,6 +199,7 @@ export const browseViewToWire = (view: BrowseView): WireBrowseView => ({
 	})),
 	sets: view.sets.map(quizSummaryToWire),
 	attached: view.attached.map(quizSummaryToWire),
+	shareToken: text(view.shareToken),
 });
 
 export const currentQuestionToWire = (

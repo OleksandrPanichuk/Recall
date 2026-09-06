@@ -147,6 +147,8 @@ import {
 	revokeOwnApiTokenCommandSchema,
 	type SearchPagesCommand,
 	type SetPageIconCommand,
+	type SharedPage,
+	type SharePageCommand,
 	type StartPracticeSessionCommand,
 	type StartPracticeSessionResult,
 	type StartQuizAttemptCommand,
@@ -154,11 +156,15 @@ import {
 	type SummaryWritten,
 	searchPagesCommandSchema,
 	setPageIconCommandSchema,
+	sharedPageSchema,
+	sharePageCommandSchema,
 	startAttemptCommandSchema,
 	startAttemptResultSchema,
 	statisticsCommandSchema,
 	summaryWrittenSchema,
+	type UnsharePageCommand,
 	type UpdateQuizSettingsCommand,
+	unsharePageCommandSchema,
 	updateSettingsCommandSchema,
 	type WriteSummaryCommand,
 	writeSummaryCommandSchema,
@@ -308,6 +314,8 @@ export interface PracticeUseCases extends AuthoringUseCases {
 	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
 	readonly movePage: UseCaseLike<MovePageCommand, void>;
 	readonly reorderPage: UseCaseLike<ReorderPageCommand, void>;
+	readonly sharePage: UseCaseLike<SharePageCommand, SharedPage>;
+	readonly unsharePage: UseCaseLike<UnsharePageCommand, void>;
 	readonly attachQuiz: UseCaseLike<AttachQuizCommand, AttachedQuiz>;
 	readonly detachQuiz: UseCaseLike<DetachQuizCommand, DetachedQuiz>;
 	readonly listRevisions: UseCaseLike<
@@ -416,6 +424,8 @@ export const BOT_ROUTES = {
 	deletePage: "pages/delete",
 	movePage: "pages/move",
 	reorderPage: "pages/reorder",
+	sharePage: "pages/share",
+	unsharePage: "pages/unshare",
 	attachQuiz: "pages/quizzes/attach",
 	detachQuiz: "pages/quizzes/detach",
 	listRevisions: "pages/revisions",
@@ -652,6 +662,16 @@ function createClient(options: RecallClientOptions) {
 		reorderPage: operation(
 			BOT_ROUTES.reorderPage,
 			reorderPageCommandSchema,
+			z.void(),
+		),
+		sharePage: operation(
+			BOT_ROUTES.sharePage,
+			sharePageCommandSchema,
+			sharedPageSchema,
+		),
+		unsharePage: operation(
+			BOT_ROUTES.unsharePage,
+			unsharePageCommandSchema,
 			z.void(),
 		),
 		attachQuiz: operation(

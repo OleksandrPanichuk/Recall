@@ -85,6 +85,7 @@ export const browseViewSchema = z.object({
 	children: z.array(browseCrumbSchema.extend({ itemCount: count })).readonly(),
 	sets: z.array(quizSummarySchema).readonly(),
 	attached: z.array(quizSummarySchema).readonly(),
+	shareToken: z.string().optional(),
 });
 
 export const currentQuestionSchema = z.object({
@@ -337,6 +338,27 @@ export const detachedQuizSchema = z.object({
 	quizSetId: id,
 });
 
+export const sharePageCommandSchema = z.object({
+	folderId: id,
+	rotate: z.boolean().optional(),
+});
+
+export const sharedPageSchema = z.object({
+	folderId: id,
+	name: z.string(),
+	token: z.string(),
+	createdAt: z.string(),
+});
+
+export const unsharePageCommandSchema = z.object({ folderId: id });
+
+export const sharedPageViewSchema = z.object({
+	name: z.string(),
+	icon: z.string().optional(),
+	summary: z.string().optional(),
+	updatedAt: z.string(),
+});
+
 export const listRevisionsCommandSchema = z.object({
 	folderId: id,
 	limit: z.number().int().positive().max(100).optional(),
@@ -513,6 +535,10 @@ export type RenamePageCommand = z.infer<typeof renamePageCommandSchema>;
 export type SetPageIconCommand = z.infer<typeof setPageIconCommandSchema>;
 export type DeletePageCommand = z.infer<typeof deletePageCommandSchema>;
 export type MovePageCommand = z.infer<typeof movePageCommandSchema>;
+export type SharePageCommand = z.infer<typeof sharePageCommandSchema>;
+export type SharedPage = z.infer<typeof sharedPageSchema>;
+export type UnsharePageCommand = z.infer<typeof unsharePageCommandSchema>;
+export type SharedPageView = z.infer<typeof sharedPageViewSchema>;
 export type AttachQuizCommand = z.infer<typeof attachQuizCommandSchema>;
 export type AttachedQuiz = z.infer<typeof attachedQuizSchema>;
 export type DetachQuizCommand = z.infer<typeof detachQuizCommandSchema>;

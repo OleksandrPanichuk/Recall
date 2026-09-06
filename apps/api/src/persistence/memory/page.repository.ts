@@ -2,6 +2,7 @@ import type {
 	PageMatch,
 	PageRepository,
 	PageRevision,
+	PageShare,
 } from "@/application/ports/repositories/page.repository";
 import {
 	type Folder,
@@ -167,11 +168,28 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 				}));
 		},
 
+		async shareOf(id: FolderId): Promise<PageShare | undefined> {
+			return store.shares.get(String(id));
+		},
+
+		async saveShare(share: PageShare): Promise<void> {
+			if (!store.pages.has(String(share.pageId))) {
+				return;
+			}
+
+			store.shares.set(String(share.pageId), share);
+		},
+
+		async deleteShare(id: FolderId): Promise<void> {
+			store.shares.delete(String(id));
+		},
+
 		async delete(id: FolderId): Promise<void> {
 			store.revisions = store.revisions.filter(
 				(revision) => String(revision.pageId) !== String(id),
 			);
 			store.attachments.delete(String(id));
+			store.shares.delete(String(id));
 			store.pages.delete(String(id));
 		},
 	};

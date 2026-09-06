@@ -42,7 +42,6 @@ export const pages = pgTable(
 		position: numeric("position", { precision: 20, scale: 10 })
 			.notNull()
 			.default("0"),
-		visibility: text("visibility").notNull().default("private"),
 		version: integer("version").notNull().default(0),
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),
@@ -54,10 +53,6 @@ export const pages = pgTable(
 		unique("pages_parent_slug_unique")
 			.on(table.ownerId, table.parentId, table.slug)
 			.nullsNotDistinct(),
-		check(
-			"pages_visibility_check",
-			sql`${table.visibility} in ('private', 'unlisted', 'public')`,
-		),
 		index("pages_parent_idx").on(table.parentId),
 		index("pages_search_idx").using(
 			"gin",
@@ -80,6 +75,22 @@ export const attachments = pgTable(
 	(table) => [
 		index("attachments_owner_idx").on(table.ownerId),
 		unique("attachments_object_unique").on(table.objectKey),
+	],
+);
+
+export const pageShares = pgTable(
+	"page_shares",
+	{
+		ownerId: ownerId(),
+		pageId: uuid("page_id")
+			.primaryKey()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		token: text("token").notNull(),
+		createdAt: createdAt(),
+	},
+	(table) => [
+		index("page_shares_owner_idx").on(table.ownerId),
+		unique("page_shares_token_unique").on(table.token),
 	],
 );
 
@@ -120,7 +131,6 @@ export const quizzes = pgTable(
 		sourceChapters: text("source_chapters"),
 		tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
 		status: text("status").notNull(),
-		visibility: text("visibility").notNull().default("private"),
 		version: integer("version").notNull().default(0),
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),
@@ -134,10 +144,6 @@ export const quizzes = pgTable(
 		check(
 			"quizzes_status_check",
 			sql`${table.status} in ('draft', 'published', 'archived')`,
-		),
-		check(
-			"quizzes_visibility_check",
-			sql`${table.visibility} in ('private', 'unlisted', 'public')`,
 		),
 		index("quizzes_status_idx").on(table.status, table.updatedAt),
 		index("quizzes_page_idx").on(table.pageId),

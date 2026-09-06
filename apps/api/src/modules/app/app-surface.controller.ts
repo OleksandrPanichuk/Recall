@@ -46,8 +46,10 @@ import {
 	revokeOwnApiTokenCommandSchema,
 	searchPagesCommandSchema,
 	setPageIconCommandSchema,
+	sharePageCommandSchema,
 	startAttemptCommandSchema,
 	statisticsCommandSchema,
+	unsharePageCommandSchema,
 	updateQuestionCommandSchema,
 	updateSetCommandSchema,
 	updateSettingsCommandSchema,
@@ -88,6 +90,7 @@ import {
 	resumedAttemptToWire,
 	revisionToWire,
 	settingsToWire,
+	sharedPageToWire,
 	startResultToWire,
 	statisticsToWire,
 } from "../bot/wire";
@@ -434,6 +437,29 @@ export class AppSurfaceController {
 		const command = parseBody(deletePageCommandSchema, body);
 
 		await this.of(request).deleteFolder.execute({
+			folderId: toFolderId(command.folderId),
+		});
+	}
+
+	@Post(BOT_ROUTES.sharePage)
+	@HttpCode(HttpStatus.OK)
+	async sharePage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(sharePageCommandSchema, body);
+
+		return sharedPageToWire(
+			await this.of(request).sharePage.execute({
+				folderId: toFolderId(command.folderId),
+				rotate: command.rotate,
+			}),
+		);
+	}
+
+	@Post(BOT_ROUTES.unsharePage)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async unsharePage(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(unsharePageCommandSchema, body);
+
+		await this.of(request).unsharePage.execute({
 			folderId: toFolderId(command.folderId),
 		});
 	}

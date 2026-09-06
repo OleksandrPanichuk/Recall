@@ -1,5 +1,8 @@
 import type { Attachment } from "@/application/ports/repositories/attachment.repository";
-import type { PageRevision } from "@/application/ports/repositories/page.repository";
+import type {
+	PageRevision,
+	PageShare,
+} from "@/application/ports/repositories/page.repository";
 import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuizSet, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
@@ -17,6 +20,7 @@ export interface MemoryStore {
 	pages: Map<string, Folder>;
 	attachments: Map<string, Set<string>>;
 	revisions: PageRevision[];
+	shares: Map<string, PageShare>;
 	files: Map<string, Attachment>;
 	quizzes: Map<string, MemoryQuiz>;
 	quizAggregates: Map<string, QuizSet>;
@@ -32,6 +36,7 @@ export const emptyStore = (): MemoryStore => ({
 	pages: new Map(),
 	attachments: new Map(),
 	revisions: [],
+	shares: new Map(),
 	files: new Map(),
 	quizzes: new Map(),
 	quizAggregates: new Map(),
@@ -49,6 +54,7 @@ export const snapshotOf = (store: MemoryStore): MemoryStore => ({
 		[...store.attachments].map(([page, ids]) => [page, new Set(ids)]),
 	),
 	revisions: [...store.revisions],
+	shares: new Map(store.shares),
 	files: new Map(store.files),
 	quizzes: new Map(store.quizzes),
 	quizAggregates: new Map(store.quizAggregates),
@@ -69,6 +75,7 @@ export const restoreInto = (
 		[...snapshot.attachments].map(([page, ids]) => [page, new Set(ids)]),
 	);
 	store.revisions = [...snapshot.revisions];
+	store.shares = new Map(snapshot.shares);
 	store.files = new Map(snapshot.files);
 	store.quizzes = new Map(snapshot.quizzes);
 	store.quizAggregates = new Map(snapshot.quizAggregates);
