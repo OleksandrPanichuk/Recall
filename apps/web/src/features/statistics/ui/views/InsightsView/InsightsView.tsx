@@ -1,5 +1,6 @@
 import type { Insights } from "@recall/contracts";
 import { Card } from "@/components/ui/Card";
+import { AccuracyTrend } from "@/features/statistics/ui/components/AccuracyTrend";
 import { ActivityHeatmap } from "@/features/statistics/ui/components/ActivityHeatmap";
 import { DueForecast } from "@/features/statistics/ui/components/DueForecast";
 import { HardestQuestions } from "@/features/statistics/ui/components/HardestQuestions";
@@ -27,6 +28,10 @@ export function InsightsView({ insights }: Props) {
 
 			<Card className="p-5">
 				<ActivityHeatmap activity={insights.activity} today={today} />
+			</Card>
+
+			<Card className="p-5">
+				<AccuracyTrend activity={insights.activity} />
 			</Card>
 
 			<Card className="p-5">
