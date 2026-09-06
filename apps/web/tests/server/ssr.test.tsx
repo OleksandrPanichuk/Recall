@@ -60,3 +60,35 @@ test("a link that no longer works says so rather than rendering nothing", async 
 
 	expect(html).toContain("Такого посилання немає");
 });
+
+test("the accuracy trend renders on the server, chart and all", async () => {
+	const { renderToString } = await import("react-dom/server");
+	const { AccuracyTrend } = await import(
+		"@/features/statistics/ui/components/AccuracyTrend"
+	);
+
+	const activity = Array.from({ length: 8 }, (_, week) => ({
+		day: new Date(Date.UTC(2026, 5, 1 + week * 7)).toISOString().slice(0, 10),
+		attempts: 1,
+		answered: 10,
+		correct: 10 - week,
+	}));
+
+	const html = renderToString(<AccuracyTrend activity={activity} />);
+
+	expect(html).toContain("<svg");
+	expect(html).toContain("100%");
+	expect(html).toContain("тижнів");
+});
+
+test("and says so plainly when there is not enough practice to draw one", async () => {
+	const { renderToString } = await import("react-dom/server");
+	const { AccuracyTrend } = await import(
+		"@/features/statistics/ui/components/AccuracyTrend"
+	);
+
+	const html = renderToString(<AccuracyTrend activity={[]} />);
+
+	expect(html).not.toContain("<svg");
+	expect(html).toContain("Поки таких");
+});
