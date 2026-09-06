@@ -11,6 +11,7 @@ import {
 	addVocabulary,
 	updateVocabulary,
 } from "@/features/authoring/lib/authoring.api";
+import { questions } from "@/shared/lib/plural";
 import { DIRECTION_LABELS, NOTHING_YET } from "./VocabularyList.constants";
 import {
 	emptyPair,
@@ -45,7 +46,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 			await work();
 			await router.invalidate();
 		} catch {
-			setFailure("Не вдалося зберегти. Спробуйте ще раз.");
+			setFailure("Could not save. Try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -55,14 +56,14 @@ export function VocabularyList({ quizSetId, items }: Props) {
 		<div className="space-y-2">
 			<Input
 				value={form.term}
-				aria-label="Термін"
+				aria-label="Term"
 				placeholder="der Zug"
 				onChange={(event) => setForm({ ...form, term: event.target.value })}
 			/>
 			<Input
 				value={form.translation}
-				aria-label="Переклад"
-				placeholder="потяг, поїзд"
+				aria-label="Translation"
+				placeholder="train, railway train"
 				onChange={(event) =>
 					setForm({ ...form, translation: event.target.value })
 				}
@@ -70,7 +71,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 			<div className="grid gap-2 sm:grid-cols-2">
 				<Input
 					value={form.transcription}
-					aria-label="Транскрипція"
+					aria-label="Transcription"
 					placeholder="tsuːk"
 					onChange={(event) =>
 						setForm({ ...form, transcription: event.target.value })
@@ -78,7 +79,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 				/>
 				<Input
 					value={form.example}
-					aria-label="Приклад"
+					aria-label="Example"
 					placeholder="Der Zug fährt ab."
 					onChange={(event) =>
 						setForm({ ...form, example: event.target.value })
@@ -86,7 +87,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 				/>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Кілька варіантів пишіть через кому.
+				Separate several options with commas.
 			</p>
 			{problems.length === 0 ? null : (
 				<Alert variant="destructive">
@@ -125,7 +126,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 											})
 										}
 									>
-										<Check className="size-4" /> Зберегти
+										<Check className="size-4" /> Save
 									</Button>
 									<Button
 										variant="outline"
@@ -134,7 +135,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 											setForm(emptyPair());
 										}}
 									>
-										Скасувати
+										Cancel
 									</Button>
 								</div>
 							</CardContent>
@@ -157,7 +158,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 												[{item.transcription}]
 											</span>
 										)}
-										<Badge>{item.questionIds.length} питань</Badge>
+										<Badge>{questions(item.questionIds.length)}</Badge>
 									</div>
 								</div>
 								<Button
@@ -175,7 +176,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 										setEditing(item.itemId);
 									}}
 								>
-									Змінити
+									Edit
 								</Button>
 							</CardContent>
 						</Card>
@@ -229,7 +230,7 @@ export function VocabularyList({ quizSetId, items }: Props) {
 										})
 									}
 								>
-									<Check className="size-4" /> Додати пару
+									<Check className="size-4" /> Add pair
 								</Button>
 								<Button
 									variant="outline"
@@ -238,13 +239,13 @@ export function VocabularyList({ quizSetId, items }: Props) {
 										setForm(emptyPair());
 									}}
 								>
-									<X className="size-4" /> Скасувати
+									<X className="size-4" /> Cancel
 								</Button>
 							</div>
 						</div>
 					) : (
 						<Button variant="outline" onClick={() => setAdding(true)}>
-							<Plus className="size-4" /> Додати пару
+							<Plus className="size-4" /> Add pair
 						</Button>
 					)}
 				</CardContent>

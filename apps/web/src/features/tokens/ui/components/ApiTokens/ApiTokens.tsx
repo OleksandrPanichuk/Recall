@@ -34,7 +34,7 @@ export function ApiTokens({ tokens }: Props) {
 			await work();
 			await router.invalidate();
 		} catch {
-			setFailure("Не вдалося. Спробуйте ще раз.");
+			setFailure("That did not work. Try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -46,7 +46,7 @@ export function ApiTokens({ tokens }: Props) {
 
 			{minted === null ? null : (
 				<Alert variant="success">
-					<p className="font-medium">Новий токен</p>
+					<p className="font-medium">New token</p>
 					<code className="mt-1 block break-all font-mono text-xs">
 						{minted}
 					</code>
@@ -56,7 +56,7 @@ export function ApiTokens({ tokens }: Props) {
 
 			{tokens.length === 0 ? (
 				<p className="text-sm text-muted-foreground">
-					Токенів ще немає. Токен дає ШІ доступ до вашої бібліотеки через MCP.
+					No tokens yet. A token lets an AI reach your library over MCP.
 				</p>
 			) : (
 				tokens.map((token) => (
@@ -72,7 +72,7 @@ export function ApiTokens({ tokens }: Props) {
 							</div>
 							<button
 								type="button"
-								aria-label={`Відкликати ${token.name}`}
+								aria-label={`Revoke ${token.name}`}
 								disabled={busy}
 								onClick={() =>
 									void run(async () => {
@@ -111,12 +111,12 @@ export function ApiTokens({ tokens }: Props) {
 					>
 						<div className="space-y-1.5">
 							<label htmlFor="token-name" className="block text-sm font-medium">
-								Назва нового токена
+								Name for the new token
 							</label>
 							<Input
 								id="token-name"
 								value={name}
-								placeholder="Claude на ноутбуці"
+								placeholder="Claude on the laptop"
 								onChange={(event) => setName(event.target.value)}
 							/>
 						</div>
@@ -136,7 +136,7 @@ export function ApiTokens({ tokens }: Props) {
 						</div>
 						<Button type="submit" disabled={busy || name.trim().length === 0}>
 							<Plus className="size-4" />
-							{busy ? "Створюємо…" : "Створити токен"}
+							{busy ? "Creating…" : "Create token"}
 						</Button>
 					</form>
 				</CardContent>

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
 
 		return { view, inProgressQuizId: active.current?.quizSetId };
 	},
-	head: () => ({ meta: [{ title: "Бібліотека · Recall" }] }),
+	head: () => ({ meta: [{ title: "Library · Recall" }] }),
 	component: Library,
 });
 

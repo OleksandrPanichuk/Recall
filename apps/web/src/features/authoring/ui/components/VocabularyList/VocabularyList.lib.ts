@@ -25,11 +25,11 @@ export function pairProblems(form: PairForm): readonly string[] {
 	const problems: string[] = [];
 
 	if (splitAlternatives(form.term).length === 0) {
-		problems.push("Потрібен щонайменше один термін");
+		problems.push("At least one term is needed");
 	}
 
 	if (splitAlternatives(form.translation).length === 0) {
-		problems.push("Потрібен щонайменше один переклад");
+		problems.push("At least one translation is needed");
 	}
 
 	return problems;

@@ -23,7 +23,8 @@ export function ResetPasswordView({ token }: Props) {
 			<Card className="mx-auto max-w-md">
 				<CardContent className="pt-6">
 					<Alert variant="destructive">
-						Посилання неповне. Попросіть нове на сторінці «Забули пароль?».
+						This link is incomplete. Ask for a new one on the “Forgot password?”
+						page.
 					</Alert>
 				</CardContent>
 			</Card>
@@ -34,7 +35,7 @@ export function ResetPasswordView({ token }: Props) {
 		<Card className="mx-auto max-w-md">
 			<CardHeader>
 				<KeyRound className="size-6 text-primary" />
-				<CardTitle className="text-xl">Новий пароль</CardTitle>
+				<CardTitle className="text-xl">New password</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<form
@@ -76,11 +77,11 @@ export function ResetPasswordView({ token }: Props) {
 						required
 						minLength={MIN_PASSWORD_LENGTH}
 						autoComplete="new-password"
-						placeholder="Новий пароль"
-						aria-label="Новий пароль"
+						placeholder="New password"
+						aria-label="New password"
 					/>
 					<Button type="submit" className="w-full" disabled={busy}>
-						{busy ? "Зберігаємо…" : "Зберегти"}
+						{busy ? "Saving…" : "Save"}
 					</Button>
 				</form>
 			</CardContent>

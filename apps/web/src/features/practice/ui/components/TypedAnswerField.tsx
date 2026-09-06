@@ -24,14 +24,14 @@ export function TypedAnswerField({ disabled, onAnswer }: Props) {
 			<Input
 				autoFocus
 				type="text"
-				aria-label="Ваша відповідь"
+				aria-label="Your answer"
 				value={typed}
 				disabled={disabled}
-				placeholder="Ваша відповідь"
+				placeholder="Your answer"
 				onChange={(event) => setTyped(event.target.value)}
 			/>
 			<Button type="submit" disabled={disabled || typed.trim().length === 0}>
-				Відповісти
+				Answer
 			</Button>
 		</form>
 	);

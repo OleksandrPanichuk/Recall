@@ -49,14 +49,14 @@ export function OrderingOptions({ question, disabled, onAnswer }: Props) {
 					disabled={disabled || !complete}
 					onClick={() => onAnswer(order)}
 				>
-					Відповісти
+					Answer
 				</Button>
 				<Button
 					variant="ghost"
 					disabled={disabled || order.length === 0}
 					onClick={() => setOrder([])}
 				>
-					Скинути
+					Reset
 				</Button>
 			</div>
 		</div>

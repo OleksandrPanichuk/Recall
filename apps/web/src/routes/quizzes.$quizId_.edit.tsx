@@ -19,7 +19,7 @@ export const Route = createFileRoute("/quizzes/$quizId_/edit")({
 	head: ({ loaderData }) => ({
 		meta: [
 			{
-				title: `${loaderData?.viewer === true ? (loaderData.quiz?.title ?? "Набір") : "Набір"} · Recall`,
+				title: `${loaderData?.viewer === true ? (loaderData.quiz?.title ?? "Quiz") : "Quiz"} · Recall`,
 			},
 		],
 	}),

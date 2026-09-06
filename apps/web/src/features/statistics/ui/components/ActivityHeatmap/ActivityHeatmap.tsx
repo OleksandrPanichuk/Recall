@@ -1,5 +1,6 @@
 import type { DailyActivity } from "@recall/contracts";
 import { heatmapWeeks } from "@/features/statistics/lib/insights";
+import { answers } from "@/shared/lib/plural";
 import { WEEKDAYS } from "./ActivityHeatmap.constants";
 import { dayLabel } from "./ActivityHeatmap.lib";
 
@@ -16,7 +17,7 @@ export function ActivityHeatmap({ activity, today }: Props) {
 
 	return (
 		<figure className="viz m-0 space-y-3">
-			<figcaption className="text-sm font-medium">Відповіді за день</figcaption>
+			<figcaption className="text-sm font-medium">Answers per day</figcaption>
 			<div className="flex gap-1.5">
 				<div className="flex shrink-0 flex-col justify-between py-px">
 					{WEEKDAYS.map((label, index) => (
@@ -42,9 +43,9 @@ export function ActivityHeatmap({ activity, today }: Props) {
 									title={
 										upcoming.includes(cell)
 											? dayLabel(cell.day)
-											: `${dayLabel(cell.day)}: ${cell.answered} відповідей, ${cell.correct} правильних`
+											: `${dayLabel(cell.day)}: ${answers(cell.answered)}, ${cell.correct} correct`
 									}
-									aria-label={`${dayLabel(cell.day)}: ${cell.answered} відповідей`}
+									aria-label={`${dayLabel(cell.day)}: ${answers(cell.answered)}`}
 									className="aspect-square w-full rounded-[2px]"
 									style={{
 										background: `var(--viz-step-${cell.level})`,
@@ -57,7 +58,7 @@ export function ActivityHeatmap({ activity, today }: Props) {
 				</div>
 			</div>
 			<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-				менше
+				less
 				{[0, 1, 2, 3, 4, 5].map((level) => (
 					<span
 						key={level}
@@ -65,7 +66,7 @@ export function ActivityHeatmap({ activity, today }: Props) {
 						style={{ background: `var(--viz-step-${level})` }}
 					/>
 				))}
-				більше
+				more
 			</div>
 		</figure>
 	);

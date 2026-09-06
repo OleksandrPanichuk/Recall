@@ -8,7 +8,7 @@ export type { Viewer };
 export class SessionUnavailableError extends Error {
 	constructor(readonly status: number | undefined) {
 		super(
-			"Не вдалося перевірити, чи ви увійшли. Ваша сесія ціла — спробуйте ще раз.",
+			"Could not check whether you are signed in. Your session is intact — try again.",
 		);
 		this.name = "SessionUnavailableError";
 	}

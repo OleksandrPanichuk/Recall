@@ -13,14 +13,14 @@ export function AttemptPaused({ index, total, busy, onResume }: Props) {
 	return (
 		<Card className="space-y-4 p-8 text-center">
 			<div>
-				<p className="font-medium">Спробу призупинено</p>
+				<p className="font-medium">Attempt paused</p>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Зупинилися на {index + 1} з {total}. Відповіді поки не приймаються.
+					You stopped at {index + 1} of {total}. Answers are not being taken.
 				</p>
 			</div>
 			<Button size="lg" disabled={busy} onClick={onResume}>
 				<CirclePlay />
-				Продовжити
+				Resume
 			</Button>
 		</Card>
 	);

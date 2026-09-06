@@ -2,10 +2,10 @@ import { Check, CircleAlert, LoaderCircle } from "lucide-react";
 import type { SaveState as State } from "@/shared/lib/save-state.types";
 
 const label: Record<Exclude<State, "idle">, string> = {
-	pending: "Зміни не збережені",
-	saving: "Збереження…",
-	saved: "Збережено",
-	failed: "Не вдалося зберегти",
+	pending: "Unsaved changes",
+	saving: "Saving…",
+	saved: "Saved",
+	failed: "Could not save",
 };
 
 export function SaveState({ state }: { readonly state: State }) {

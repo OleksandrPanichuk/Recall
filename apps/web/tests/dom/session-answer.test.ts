@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { answerFor } from "@/shared/lib/session-answer";
 
-const user = { user: { id: "u1", name: "Оля" } };
+const user = { user: { id: "u1", name: "Olia" } };
 
 describe("what the api's answer about a session means", () => {
 	test("200 with a user is that user", () => {
 		expect(answerFor(200, user)).toEqual({
 			kind: "viewer",
-			viewer: { id: "u1", name: "Оля" },
+			viewer: { id: "u1", name: "Olia" },
 		});
 	});
 

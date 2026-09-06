@@ -19,26 +19,26 @@ const active = (over: Partial<CurrentQuestionView> = {}): CurrentQuestionView =>
 describe("what the quiz page offers", () => {
 	test("invites a first run when nothing has happened", () => {
 		expect(quizCallToAction(0, null)).toEqual({
-			caption: "Ще жодної спроби",
-			label: "Почати",
+			caption: "No attempts yet",
+			label: "Start",
 			resuming: false,
 		});
 	});
 
 	test("offers another run once some are finished", () => {
-		expect(quizCallToAction(2, null).label).toBe("Пройти ще раз");
+		expect(quizCallToAction(2, null).label).toBe("Run it again");
 	});
 
 	test("offers to continue, not to start over, while an attempt is open", () => {
 		const action = quizCallToAction(1, active());
 
-		expect(action.label).toBe("Продовжити спробу");
+		expect(action.label).toBe("Carry on");
 		expect(action.resuming).toBe(true);
 	});
 
 	test("says how far in that attempt got, counting from one", () => {
 		expect(quizCallToAction(1, active({ index: 5, total: 26 })).caption).toBe(
-			"1 спроб(и) · почато, 6 з 26",
+			"1 attempt · started, 6 of 26",
 		);
 	});
 
@@ -46,19 +46,19 @@ describe("what the quiz page offers", () => {
 		expect(
 			quizCallToAction(1, active({ status: "paused", index: 5, total: 26 }))
 				.caption,
-		).toBe("1 спроб(и) · призупинено на 6 з 26");
+		).toBe("1 attempt · paused at 6 of 26");
 	});
 
 	test("still offers to continue a paused attempt", () => {
 		expect(quizCallToAction(1, active({ status: "paused" })).label).toBe(
-			"Продовжити спробу",
+			"Carry on",
 		);
 	});
 
 	test("asks to finish when every question is behind you", () => {
 		const action = quizCallToAction(1, active({ awaitingFinish: true }));
 
-		expect(action.label).toBe("Завершити спробу");
-		expect(action.caption).toContain("залишилось завершити");
+		expect(action.label).toBe("Finish attempt");
+		expect(action.caption).toContain("waiting to be finished");
 	});
 });

@@ -167,9 +167,7 @@ export function PageTree({ nodes }: Props) {
 
 	if (nodes.length === 0) {
 		return (
-			<p className="px-2 py-1 text-sm text-muted-foreground">
-				Сторінок ще немає.
-			</p>
+			<p className="px-2 py-1 text-sm text-muted-foreground">No pages yet.</p>
 		);
 	}
 

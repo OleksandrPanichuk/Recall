@@ -26,7 +26,7 @@ export const Route = createFileRoute("/folders/$folderId")({
 		});
 	},
 	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.page.name ?? "Сторінка"} · Recall` }],
+		meta: [{ title: `${loaderData?.page.name ?? "Page"} · Recall` }],
 	}),
 	component: Page,
 });

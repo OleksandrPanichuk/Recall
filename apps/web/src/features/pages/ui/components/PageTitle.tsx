@@ -32,7 +32,7 @@ export function PageTitle({ name, onRename }: Props) {
 
 	return (
 		<input
-			aria-label="Назва сторінки"
+			aria-label="Page title"
 			value={draft}
 			onChange={(event) => setDraft(event.target.value)}
 			onBlur={commit}
@@ -47,7 +47,7 @@ export function PageTitle({ name, onRename }: Props) {
 				}
 			}}
 			className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/50"
-			placeholder="Без назви"
+			placeholder="Untitled"
 		/>
 	);
 }

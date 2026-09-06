@@ -69,7 +69,7 @@ describe("heatmap shaping", () => {
 	test("names each day and its count for a screen reader", () => {
 		render(<ActivityHeatmap activity={activity} today={today} />);
 
-		expect(screen.getByLabelText("28 серпня: 10 відповідей")).toBeDefined();
+		expect(screen.getByLabelText("28 August: 10 answers")).toBeDefined();
 	});
 });
 
@@ -99,7 +99,7 @@ describe("the due forecast", () => {
 		render(<DueForecast forecast={[]} today={today} />);
 
 		expect(
-			screen.getByText("Найближчим часом нічого не повертається."),
+			screen.getByText("Nothing comes back in the next two weeks."),
 		).toBeDefined();
 	});
 });
@@ -108,7 +108,7 @@ describe("the hardest questions", () => {
 	const stat = (prompt: string, correct: number): QuestionStat => ({
 		questionId: `q-${prompt}`,
 		quizSetId: "quiz-1",
-		quizSetTitle: "Клітина",
+		quizSetTitle: "The cell",
 		prompt,
 		answered: 4,
 		correct,
@@ -119,13 +119,13 @@ describe("the hardest questions", () => {
 		routed(<HardestQuestions hardest={[stat("Hard one", 1)]} />);
 
 		expect(await screen.findByText("25%")).toBeDefined();
-		expect(await screen.findByText("Клітина")).toBeDefined();
-		expect(await screen.findByText(/1 з 4/)).toBeDefined();
+		expect(await screen.findByText("The cell")).toBeDefined();
+		expect(await screen.findByText(/1 of 4/)).toBeDefined();
 	});
 
 	test("says when there is not enough evidence yet", async () => {
 		routed(<HardestQuestions hardest={[]} />);
 
-		expect(await screen.findByText(/Замало відповідей/)).toBeDefined();
+		expect(await screen.findByText(/Not enough answers/)).toBeDefined();
 	});
 });

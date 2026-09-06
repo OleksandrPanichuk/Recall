@@ -1,25 +1,25 @@
 import { QuestionType } from "@recall/contracts";
 
 export const TYPE_LABELS: Readonly<Record<string, string>> = {
-	[QuestionType.SingleChoice]: "Одна відповідь",
-	[QuestionType.MultipleChoice]: "Кілька відповідей",
-	[QuestionType.TrueFalse]: "Так або ні",
-	[QuestionType.TypedAnswer]: "Ввести відповідь",
-	[QuestionType.Cloze]: "Пропуск у тексті",
-	[QuestionType.Ordering]: "Розставити по порядку",
-	[QuestionType.Matching]: "Знайти пари",
+	[QuestionType.SingleChoice]: "One answer",
+	[QuestionType.MultipleChoice]: "Several answers",
+	[QuestionType.TrueFalse]: "True or false",
+	[QuestionType.TypedAnswer]: "Type the answer",
+	[QuestionType.Cloze]: "Fill in the blank",
+	[QuestionType.Ordering]: "Put in order",
+	[QuestionType.Matching]: "Match pairs",
 };
 
 export const DIFFICULTY_LABELS: Readonly<Record<string, string>> = {
-	easy: "Легко",
-	medium: "Середньо",
-	hard: "Складно",
+	easy: "Easy",
+	medium: "Medium",
+	hard: "Hard",
 };
 
 export const STATUS_LABELS: Readonly<Record<string, string>> = {
-	draft: "Чернетка",
-	published: "Опубліковано",
-	archived: "В архіві",
+	draft: "Draft",
+	published: "Published",
+	archived: "Archived",
 };
 
 export const ANSWER_SHAPE: Readonly<

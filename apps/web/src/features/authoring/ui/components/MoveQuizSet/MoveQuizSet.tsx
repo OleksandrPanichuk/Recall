@@ -36,13 +36,13 @@ export function MoveQuizSet({ folderId, pages, busy, onMove }: Props) {
 		<div ref={box} className="relative">
 			<Button variant="outline" disabled={busy} onClick={() => setOpen(!open)}>
 				<FolderInput />
-				До сторінки
+				File in a page
 			</Button>
 			{open ? (
 				<div className="absolute left-0 z-20 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
 					{choices.length === 0 ? (
 						<p className="px-2 py-1.5 text-sm text-muted-foreground">
-							Ще немає жодної сторінки.
+							There are no pages yet.
 						</p>
 					) : (
 						choices.map((choice) => (

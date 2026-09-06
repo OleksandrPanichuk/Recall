@@ -43,7 +43,7 @@ export function QuizStatisticsView({
 				<Link to="/quizzes/$quizId/edit" params={{ quizId }}>
 					<Button size="lg" variant="outline">
 						<Pencil />
-						Редагувати
+						Edit
 					</Button>
 				</Link>
 				<Link to="/practice/$quizId" params={{ quizId }}>
@@ -63,7 +63,7 @@ export function QuizStatisticsView({
 
 					<section className="space-y-3">
 						<h2 className="text-sm font-medium text-muted-foreground">
-							Спроби
+							Attempts
 						</h2>
 						<AttemptHistory attempts={statistics.attempts} />
 					</section>
@@ -71,7 +71,7 @@ export function QuizStatisticsView({
 					{statistics.topics.length > 0 ? (
 						<section className="space-y-3">
 							<h2 className="text-sm font-medium text-muted-foreground">
-								Теми
+								Topics
 							</h2>
 							<TopicAccuracyList topics={statistics.topics} />
 						</section>
@@ -82,7 +82,7 @@ export function QuizStatisticsView({
 			{settings === null ? null : (
 				<section className="mt-8 space-y-3">
 					<h2 className="text-sm font-medium text-muted-foreground">
-						Налаштування набору
+						Quiz settings
 					</h2>
 					<SettingsEditor initial={settings} quizSetId={quizId} />
 				</section>

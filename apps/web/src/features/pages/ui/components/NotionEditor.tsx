@@ -33,7 +33,7 @@ export function NotionEditor({ markdown, onChange, onReady }: Props) {
 			features: { [Crepe.Feature.Latex]: false },
 			featureConfigs: {
 				[Crepe.Feature.Placeholder]: {
-					text: "Напишіть щось або натисніть «/» для команд",
+					text: "Write something, or press “/” for commands",
 					mode: "block",
 				},
 				[Crepe.Feature.BlockEdit]: slashMenu,

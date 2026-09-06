@@ -2,12 +2,13 @@ import type { DueSet } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Clock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { days, questions } from "@/shared/lib/plural";
 
 export function DueList({ due }: { readonly due: readonly DueSet[] }) {
 	if (due.length === 0) {
 		return (
 			<Card className="p-8 text-center text-sm text-muted-foreground">
-				На сьогодні нічого не заплановано.
+				Nothing is due today.
 			</Card>
 		);
 	}
@@ -27,13 +28,13 @@ export function DueList({ due }: { readonly due: readonly DueSet[] }) {
 							<span className="block truncate font-medium">{set.title}</span>
 							{set.overdueDays > 0 ? (
 								<span className="text-xs text-destructive">
-									прострочено на {set.overdueDays} дн.
+									{days(set.overdueDays)} overdue
 								</span>
 							) : null}
 						</span>
 					</span>
 					<span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-						{set.dueCount}
+						{questions(set.dueCount)}
 						<ChevronRight className="size-4" />
 					</span>
 				</Link>

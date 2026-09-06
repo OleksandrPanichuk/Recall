@@ -1,5 +1,5 @@
 export const dayLabel = (day: string): string =>
-	new Intl.DateTimeFormat("uk-UA", {
+	new Intl.DateTimeFormat("en-GB", {
 		day: "numeric",
 		month: "long",
 		timeZone: "UTC",

@@ -3,23 +3,23 @@ export const expiryLabel = (
 	now: Date,
 ): string => {
 	if (expiresAt === undefined) {
-		return "без терміну";
+		return "no expiry";
 	}
 
 	const at = new Date(expiresAt);
 
 	if (Number.isNaN(at.getTime())) {
-		return "без терміну";
+		return "no expiry";
 	}
 
 	if (at.getTime() <= now.getTime()) {
-		return "прострочений";
+		return "expired";
 	}
 
-	return `до ${at.toLocaleDateString("uk-UA")}`;
+	return `until ${at.toLocaleDateString("en-GB")}`;
 };
 
 export const lastUsedLabel = (lastUsedAt: string | undefined): string =>
 	lastUsedAt === undefined
-		? "ще не використовувався"
-		: `востаннє ${new Date(lastUsedAt).toLocaleDateString("uk-UA")}`;
+		? "never used"
+		: `last used ${new Date(lastUsedAt).toLocaleDateString("en-GB")}`;

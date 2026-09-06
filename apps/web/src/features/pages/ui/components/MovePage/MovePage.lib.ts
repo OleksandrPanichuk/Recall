@@ -40,7 +40,7 @@ export function destinationsFor(
 	const root: readonly Destination[] =
 		parentId === undefined
 			? []
-			: [{ id: undefined, name: "Бібліотека", depth: 0 }];
+			: [{ id: undefined, name: "Library", depth: 0 }];
 
 	return [
 		...root,

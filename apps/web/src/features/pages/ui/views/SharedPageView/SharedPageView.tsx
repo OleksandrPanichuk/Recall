@@ -12,11 +12,9 @@ export function SharedPageView({ token, page }: Props) {
 	if (page === null) {
 		return (
 			<main className="mx-auto w-full max-w-3xl px-5 py-24 text-center">
-				<h1 className="text-xl font-semibold tracking-tight">
-					Такого посилання немає
-				</h1>
+				<h1 className="text-xl font-semibold tracking-tight">No such link</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
-					Його могли закрити або замінити новим.
+					It may have been switched off or replaced.
 				</p>
 			</main>
 		);
@@ -37,8 +35,7 @@ export function SharedPageView({ token, page }: Props) {
 				/>
 			</article>
 			<footer className="mt-16 flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground">
-				<BrainCircuit className="size-3.5" />
-				Сторінка з Recall, доступна лише для читання
+				<BrainCircuit className="size-3.5" />A page from Recall, read-only
 			</footer>
 		</main>
 	);

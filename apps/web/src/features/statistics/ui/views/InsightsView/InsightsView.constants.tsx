@@ -4,24 +4,23 @@ import type { Stat } from "@/features/statistics/lib/tiles.types";
 
 export const insightTiles = (insights: Insights): readonly Stat[] => [
 	{
-		label: "Серія",
+		label: "Streak",
 		value: `${insights.streak}`,
-		hint: insights.streak === 0 ? "почніть сьогодні" : "днів поспіль",
+		hint: insights.streak === 0 ? "start today" : "days running",
 		icon: <Flame className="size-3.5" />,
 	},
 	{
-		label: "Відповідей",
+		label: "Answers",
 		value: `${insights.answered}`,
 		icon: <ListChecks className="size-3.5" />,
 	},
 	{
-		label: "Точність",
+		label: "Accuracy",
 		value:
 			insights.answered === 0
 				? "—"
 				: `${Math.round((insights.correct / insights.answered) * 100)}%`,
-		hint:
-			insights.answered === 0 ? undefined : `${insights.correct} правильних`,
+		hint: insights.answered === 0 ? undefined : `${insights.correct} correct`,
 		icon: <Target className="size-3.5" />,
 	},
 ];

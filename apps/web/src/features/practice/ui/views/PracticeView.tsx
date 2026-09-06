@@ -104,7 +104,7 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 					onClick={() => session.send({ revealed: true })}
 				>
 					<Eye />
-					Показати відповідь
+					Show the answer
 				</Button>
 			) : (
 				<div ref={verdictRef} className="space-y-4 scroll-mt-4">
@@ -125,11 +125,11 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 						{last ? (
 							<>
 								<Flag />
-								Завершити спробу
+								Finish attempt
 							</>
 						) : (
 							<>
-								Далі
+								Next
 								<ArrowRight />
 							</>
 						)}
@@ -141,7 +141,7 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 				<Link to="/quizzes/$quizId" params={{ quizId }}>
 					<Button variant="ghost" size="sm">
 						<ArrowLeft />
-						до набору
+						back to quiz
 					</Button>
 				</Link>
 				<Button
@@ -151,7 +151,7 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 					onClick={session.pause}
 				>
 					<Pause />
-					Пауза
+					Pause
 				</Button>
 			</div>
 		</div>

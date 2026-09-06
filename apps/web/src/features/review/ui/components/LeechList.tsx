@@ -10,7 +10,7 @@ export function LeechList({
 	if (leeches.length === 0) {
 		return (
 			<Card className="p-8 text-center text-sm text-muted-foreground">
-				Жодне питання не застрягло. Так тримати.
+				Nothing is stuck. Keep it up.
 			</Card>
 		);
 	}
@@ -28,7 +28,7 @@ export function LeechList({
 						>
 							{leech.quizSetTitle}
 						</Link>
-						· {leech.lapses} помилок
+						· {leech.lapses} lapses
 					</p>
 				</div>
 			))}

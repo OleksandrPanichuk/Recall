@@ -9,11 +9,11 @@ export function PageBreadcrumb({
 }) {
 	return (
 		<nav
-			aria-label="Шлях"
+			aria-label="Breadcrumb"
 			className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
 		>
 			<Link to="/" className="rounded px-1.5 py-0.5 hover:bg-accent">
-				Бібліотека
+				Library
 			</Link>
 			{crumbs.map((crumb) => (
 				<span key={crumb.id} className="flex items-center gap-1">

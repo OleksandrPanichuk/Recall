@@ -58,7 +58,7 @@ test("a link that no longer works says so rather than rendering nothing", async 
 
 	const html = renderToString(<SharedPageView token="gone" page={null} />);
 
-	expect(html).toContain("Такого посилання немає");
+	expect(html).toContain("No such link");
 });
 
 test("the accuracy trend renders on the server, chart and all", async () => {
@@ -78,7 +78,7 @@ test("the accuracy trend renders on the server, chart and all", async () => {
 
 	expect(html).toContain("<svg");
 	expect(html).toContain("100%");
-	expect(html).toContain("тижнів");
+	expect(html).toContain("weeks");
 });
 
 test("and says so plainly when there is not enough practice to draw one", async () => {
@@ -90,5 +90,5 @@ test("and says so plainly when there is not enough practice to draw one", async 
 	const html = renderToString(<AccuracyTrend activity={[]} />);
 
 	expect(html).not.toContain("<svg");
-	expect(html).toContain("Поки таких");
+	expect(html).toContain("So far there are");
 });

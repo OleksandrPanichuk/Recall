@@ -15,11 +15,11 @@ export function consentPage(
 	const client = escaped(pending.clientName ?? pending.clientId);
 
 	return `<!doctype html>
-<html lang="uk">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recall — доступ</title>
+<title>Recall — access</title>
 <style>
 body{font:16px/1.5 system-ui,sans-serif;margin:0;display:grid;place-items:center;min-height:100vh;background:#111;color:#eee}
 main{width:min(28rem,92vw);padding:1.5rem;background:#1c1c1c;border-radius:.75rem}
@@ -33,14 +33,14 @@ button{margin-top:1rem;width:100%;padding:.7rem;font-size:1rem;border:0;border-r
 </head>
 <body>
 <main>
-<h1>Дати доступ до наборів?</h1>
-<p><strong>${client}</strong> просить доступ на читання й запис твоїх наборів.</p>
+<h1>Give access to your library?</h1>
+<p><strong>${client}</strong> is asking to read and write your quizzes and pages.</p>
 <form method="post" action="/consent">
 <input type="hidden" name="pending" value="${escaped(pendingId)}">
-<label for="passphrase">Пароль</label>
+<label for="passphrase">Passphrase</label>
 <input id="passphrase" name="passphrase" type="password" autocomplete="current-password" autofocus required>
-${failed ? '<div class="bad">Пароль не підходить.</div>' : ""}
-<button type="submit">Дати доступ</button>
+${failed ? '<div class="bad">That passphrase does not match.</div>' : ""}
+<button type="submit">Give access</button>
 </form>
 </main>
 </body>

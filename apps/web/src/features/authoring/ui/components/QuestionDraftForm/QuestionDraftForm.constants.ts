@@ -4,8 +4,8 @@ export const FIELD =
 export const ANSWER_LABELS: Readonly<
 	Record<"options" | "accepted" | "ordered" | "pairs", string>
 > = {
-	options: "Варіанти відповіді",
-	accepted: "Прийнятні відповіді",
-	ordered: "Елементи в правильному порядку",
-	pairs: "Пари",
+	options: "Answer options",
+	accepted: "Accepted answers",
+	ordered: "Items in the right order",
+	pairs: "Pairs",
 };

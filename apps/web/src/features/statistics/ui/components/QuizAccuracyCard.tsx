@@ -12,12 +12,12 @@ export function QuizAccuracyCard({ score, improvement }: Props) {
 		<Card>
 			<CardContent className="flex items-end justify-between gap-4 pt-5">
 				<div>
-					<p className="text-sm text-muted-foreground">Середня точність</p>
+					<p className="text-sm text-muted-foreground">Average accuracy</p>
 					<ScoreSummary score={score} />
 				</div>
 				{improvement === undefined ? null : (
 					<p className="text-sm text-muted-foreground">
-						перша {Math.round(improvement.firstPercentage)}% → остання{" "}
+						first {Math.round(improvement.firstPercentage)}% → latest{" "}
 						{Math.round(improvement.lastPercentage)}%
 					</p>
 				)}

@@ -11,7 +11,7 @@ export function PageSummary({ summary, resolveUrl = displayUrl }: Props) {
 	if (summary.trim().length === 0) {
 		return (
 			<p className="px-1 py-2 text-sm text-muted-foreground">
-				Напишіть щось або натисніть «/» для команд
+				Write something, or press “/” for commands
 			</p>
 		);
 	}

@@ -75,7 +75,7 @@ export function createMcpHttpApp(
 			if (pending === undefined) {
 				response
 					.status(404)
-					.send("Запит на доступ не знайдено або прострочено.");
+					.send("That access request was not found, or it has expired.");
 
 				return;
 			}
@@ -91,7 +91,7 @@ export function createMcpHttpApp(
 			if (pending === undefined) {
 				response
 					.status(404)
-					.send("Запит на доступ не знайдено або прострочено.");
+					.send("That access request was not found, or it has expired.");
 
 				return;
 			}
@@ -114,7 +114,7 @@ export function createMcpHttpApp(
 			);
 
 			if (target === undefined) {
-				response.status(404).send("Запит на доступ уже використано.");
+				response.status(404).send("That access request has already been used.");
 
 				return;
 			}

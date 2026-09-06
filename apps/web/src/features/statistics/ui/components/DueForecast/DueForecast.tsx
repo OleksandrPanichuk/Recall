@@ -1,5 +1,6 @@
 import type { DueForecastDay } from "@recall/contracts";
 import { forecastDays } from "@/features/statistics/lib/insights";
+import { questions } from "@/shared/lib/plural";
 import { SHOWN_DAYS } from "./DueForecast.constants";
 import { fullDay, shortDay } from "./DueForecast.lib";
 
@@ -16,10 +17,10 @@ export function DueForecast({ forecast, today }: Props) {
 		return (
 			<figure className="viz m-0 space-y-3">
 				<figcaption className="text-sm font-medium">
-					Заплановано на два тижні
+					Coming up over two weeks
 				</figcaption>
 				<p className="text-sm text-muted-foreground">
-					Найближчим часом нічого не повертається.
+					Nothing comes back in the next two weeks.
 				</p>
 			</figure>
 		);
@@ -28,14 +29,14 @@ export function DueForecast({ forecast, today }: Props) {
 	return (
 		<figure className="viz m-0 space-y-3">
 			<figcaption className="text-sm font-medium">
-				Заплановано на два тижні
+				Coming up over two weeks
 			</figcaption>
 			<div className="flex h-32 items-end gap-[2px]">
 				{days.map((day) => (
 					<div
 						key={day.day}
 						className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
-						title={`${fullDay(day.day)}: ${day.due} питань`}
+						title={`${fullDay(day.day)}: ${questions(day.due)}`}
 					>
 						{day.due === 0 ? null : (
 							<span className="text-[10px] leading-none text-muted-foreground">
@@ -44,7 +45,7 @@ export function DueForecast({ forecast, today }: Props) {
 						)}
 						<span
 							role="img"
-							aria-label={`${fullDay(day.day)}: ${day.due} питань`}
+							aria-label={`${fullDay(day.day)}: ${questions(day.due)}`}
 							className="w-full max-w-6 rounded-t"
 							style={{
 								height: `${Math.max(2, (day.due / busiest) * 100)}%`,

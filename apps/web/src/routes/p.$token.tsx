@@ -5,7 +5,7 @@ import { SharedPageView } from "@/features/pages/ui/views/SharedPageView";
 export const Route = createFileRoute("/p/$token")({
 	loader: async ({ params }) => loadSharedPage({ data: params.token }),
 	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.page?.name ?? "Сторінка"} · Recall` }],
+		meta: [{ title: `${loaderData?.page?.name ?? "Page"} · Recall` }],
 	}),
 	component: Shared,
 });

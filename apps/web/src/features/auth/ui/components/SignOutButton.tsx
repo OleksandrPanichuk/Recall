@@ -10,7 +10,7 @@ export function SignOutButton() {
 	return (
 		<button
 			type="button"
-			aria-label="Вийти"
+			aria-label="Sign out"
 			disabled={busy}
 			onClick={async () => {
 				setBusy(true);

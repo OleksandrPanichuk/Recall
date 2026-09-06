@@ -51,15 +51,15 @@ export function ChangePasswordForm() {
 					{failure === null ? null : (
 						<Alert variant="destructive">{failure}</Alert>
 					)}
-					{done ? <Alert variant="success">Пароль змінено.</Alert> : null}
+					{done ? <Alert variant="success">Password changed.</Alert> : null}
 
 					<Input
 						name="current"
 						type="password"
 						required
 						autoComplete="current-password"
-						placeholder="Теперішній пароль"
-						aria-label="Теперішній пароль"
+						placeholder="Current password"
+						aria-label="Current password"
 					/>
 					<Input
 						name="next"
@@ -67,11 +67,11 @@ export function ChangePasswordForm() {
 						required
 						minLength={MIN_PASSWORD_LENGTH}
 						autoComplete="new-password"
-						placeholder="Новий пароль"
-						aria-label="Новий пароль"
+						placeholder="New password"
+						aria-label="New password"
 					/>
 					<Button type="submit" disabled={busy}>
-						{busy ? "Зберігаємо…" : "Змінити пароль"}
+						{busy ? "Saving…" : "Change password"}
 					</Button>
 				</form>
 			</CardContent>

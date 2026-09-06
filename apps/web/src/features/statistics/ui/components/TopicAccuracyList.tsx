@@ -16,7 +16,7 @@ export function TopicAccuracyList({
 				return (
 					<div key={topic.topic ?? "—"} className="space-y-2 px-4 py-3">
 						<div className="flex items-center justify-between gap-3 text-sm">
-							<span className="truncate">{topic.topic ?? "Без теми"}</span>
+							<span className="truncate">{topic.topic ?? "No topic"}</span>
 							<span className="shrink-0 tabular-nums text-muted-foreground">
 								{topic.correct}/{topic.answered}
 							</span>

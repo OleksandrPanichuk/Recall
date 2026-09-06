@@ -22,7 +22,7 @@ export function InsightsView({ insights }: Props) {
 
 	return (
 		<div className="space-y-8">
-			<PageHeading title="Статистика" caption="За останній рік" />
+			<PageHeading title="Insights" caption="Over the last year" />
 
 			<StatTiles stats={insightTiles(insights)} />
 
@@ -40,7 +40,7 @@ export function InsightsView({ insights }: Props) {
 
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium text-muted-foreground">
-					Дається найважче
+					Hardest of all
 				</h2>
 				<HardestQuestions hardest={insights.hardest} />
 			</section>

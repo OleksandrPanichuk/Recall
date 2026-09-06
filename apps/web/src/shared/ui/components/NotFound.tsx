@@ -8,13 +8,13 @@ export function NotFound() {
 		<Card className="flex flex-col items-center gap-4 p-10 text-center">
 			<Compass className="size-8 text-muted-foreground" />
 			<div>
-				<p className="font-medium">Такої сторінки немає</p>
+				<p className="font-medium">No such page</p>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Можливо, її видалили або посилання застаріло.
+					It may have been deleted, or the link is stale.
 				</p>
 			</div>
 			<Link to="/">
-				<Button variant="outline">До бібліотеки</Button>
+				<Button variant="outline">Back to library</Button>
 			</Link>
 		</Card>
 	);

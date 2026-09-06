@@ -13,7 +13,7 @@ export function SignInPrompt({ reason }: Props) {
 		<Card className="mx-auto max-w-lg">
 			<CardHeader>
 				<KeyRound className="size-6 text-primary" />
-				<CardTitle className="text-xl">Увійдіть, щоб продовжити</CardTitle>
+				<CardTitle className="text-xl">Sign in to continue</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4 text-sm text-muted-foreground">
 				{reason === undefined ? null : (
@@ -21,18 +21,18 @@ export function SignInPrompt({ reason }: Props) {
 				)}
 				<div className="flex flex-wrap gap-2">
 					<Link to="/sign-in">
-						<Button>Увійти</Button>
+						<Button>Sign in</Button>
 					</Link>
 					<Link to="/sign-up">
-						<Button variant="outline">Створити акаунт</Button>
+						<Button variant="outline">Create account</Button>
 					</Link>
 				</div>
 				<p>
-					Або надішліть боту команду{" "}
+					Or send the bot{" "}
 					<code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
 						/login
 					</code>{" "}
-					— він дасть одноразове посилання.
+					— it will hand you a one-time link.
 				</p>
 			</CardContent>
 		</Card>

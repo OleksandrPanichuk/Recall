@@ -43,32 +43,32 @@ export function problemsWith(form: DraftForm): readonly string[] {
 	const shape = ANSWER_SHAPE[form.type];
 
 	if (form.prompt.trim().length === 0) {
-		problems.push("Питання не може бути порожнім");
+		problems.push("A question cannot be empty");
 	}
 
 	if (form.type === QuestionType.Cloze && !form.prompt.includes(CLOZE_BLANK)) {
-		problems.push(`Пропуск позначається як ${CLOZE_BLANK}`);
+		problems.push(`A blank is written as ${CLOZE_BLANK}`);
 	}
 
 	if (shape === "pairs") {
 		const rights = filled(form.rights);
 
 		if (answers.length < 2 || rights.length !== answers.length) {
-			problems.push("Потрібно щонайменше дві повні пари");
+			problems.push("At least two complete pairs are needed");
 		}
 	} else if (shape === "accepted") {
 		if (answers.length === 0) {
-			problems.push("Потрібна щонайменше одна прийнятна відповідь");
+			problems.push("At least one accepted answer is needed");
 		}
 	} else if (answers.length < 2) {
-		problems.push("Потрібно щонайменше два варіанти");
+		problems.push("At least two options are needed");
 	}
 
 	if (
 		shape === "options" &&
 		!form.correct.some((index) => (form.answers[index] ?? "").trim().length > 0)
 	) {
-		problems.push("Позначте правильну відповідь");
+		problems.push("Mark the correct answer");
 	}
 
 	return problems;

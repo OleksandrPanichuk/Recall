@@ -1,7 +1,7 @@
 export const AUTHOR_LABELS: Readonly<Record<string, string>> = {
-	user: "ви",
-	mcp: "ШІ",
+	user: "you",
+	mcp: "an AI",
 };
 
 export const NOTHING_YET =
-	"Ця сторінка ще жодного разу не переписувалась. Кожне збереження лишає версію, до якої можна повернутись.";
+	"This page has never been rewritten. Every save leaves a version you can come back to.";

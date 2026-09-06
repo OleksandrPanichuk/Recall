@@ -21,8 +21,8 @@ export function LibraryView({ view, inProgressQuizId, signInReason }: Props) {
 
 	return (
 		<>
-			<PageHeading title="Ваша бібліотека" caption={libraryCaption(view)}>
-				<NewPageButton label="Нова сторінка" />
+			<PageHeading title="Your library" caption={libraryCaption(view)}>
+				<NewPageButton label="New page" />
 				<NewQuizButton folderId={view.folderId} />
 			</PageHeading>
 			<div className="space-y-4">

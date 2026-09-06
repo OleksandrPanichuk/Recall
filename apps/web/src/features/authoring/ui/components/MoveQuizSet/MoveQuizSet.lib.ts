@@ -13,7 +13,7 @@ export function pageChoices(
 	const library: readonly PageChoice[] =
 		folderId === undefined
 			? []
-			: [{ id: undefined, name: "Поза сторінками", depth: 0 }];
+			: [{ id: undefined, name: "Outside any page", depth: 0 }];
 
 	return [
 		...library,

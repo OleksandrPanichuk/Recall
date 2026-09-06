@@ -12,11 +12,11 @@ export function SignInView() {
 		<Card className="mx-auto max-w-md">
 			<CardHeader>
 				<KeyRound className="size-6 text-primary" />
-				<CardTitle className="text-xl">Вхід</CardTitle>
+				<CardTitle className="text-xl">Sign in</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<CredentialsForm
-					submitLabel="Увійти"
+					submitLabel="Sign in"
 					withName={false}
 					onSubmit={async (credentials) => {
 						const result = await signIn({ data: credentials });
@@ -36,13 +36,13 @@ export function SignInView() {
 						to="/forgot-password"
 						className="text-muted-foreground hover:underline"
 					>
-						Забули пароль?
+						Forgot password?
 					</Link>
 				</p>
 				<p className="text-center text-sm text-muted-foreground">
-					Ще немає акаунта?{" "}
+					No account yet?{" "}
 					<Link to="/sign-up" className="text-primary hover:underline">
-						Зареєструватись
+						Sign up
 					</Link>
 				</p>
 			</CardContent>

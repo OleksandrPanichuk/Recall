@@ -58,13 +58,13 @@ export function MovePage({ folderId, parentId, pages, onMoved }: Props) {
 				onClick={() => setOpen(!open)}
 			>
 				<FolderInput />
-				Перемістити
+				Move
 			</Button>
 			{open ? (
 				<div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
 					{destinations.length === 0 ? (
 						<p className="px-2 py-1.5 text-sm text-muted-foreground">
-							Немає куди переміщати.
+							Nowhere to move it.
 						</p>
 					) : (
 						destinations.map((destination) => (

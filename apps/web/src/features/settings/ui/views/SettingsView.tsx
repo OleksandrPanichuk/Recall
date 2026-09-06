@@ -18,19 +18,19 @@ export function SettingsView({ settings, tokens }: Props) {
 	return (
 		<div className="space-y-6">
 			<PageHeading
-				title="Налаштування"
-				caption="Діють для всіх наборів, поки набір не має власних"
+				title="Settings"
+				caption="Apply to every quiz that has no settings of its own"
 			/>
 			<SettingsEditor initial={settings} />
 
 			<section className="space-y-3 pt-4">
-				<h2 className="text-sm font-medium text-muted-foreground">Акаунт</h2>
+				<h2 className="text-sm font-medium text-muted-foreground">Account</h2>
 				<ChangePasswordForm />
 			</section>
 
 			<section className="space-y-3 pt-4">
 				<h2 className="text-sm font-medium text-muted-foreground">
-					Токени для MCP
+					MCP tokens
 				</h2>
 				<ApiTokens tokens={tokens} />
 			</section>

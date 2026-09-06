@@ -25,7 +25,7 @@ describe("swapping the summary for the editor", () => {
 			expect(document.querySelector(".ProseMirror")).not.toBeNull(),
 		);
 
-		expect(screen.queryByText(/завантажується/)).toBeNull();
+		expect(screen.queryByText(/loading/i)).toBeNull();
 	});
 
 	test("ends up with exactly one copy of the content, in the editor", async () => {

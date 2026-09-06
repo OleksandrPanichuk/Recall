@@ -8,7 +8,7 @@ export const Route = createFileRoute("/practice/$quizId")({
 	head: ({ loaderData }) => ({
 		meta: [
 			{
-				title: `${loaderData?.current?.quizSetTitle ?? "Практика"} · Recall`,
+				title: `${loaderData?.current?.quizSetTitle ?? "Practice"} · Recall`,
 			},
 		],
 	}),

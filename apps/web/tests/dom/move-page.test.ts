@@ -45,7 +45,7 @@ describe("where a page may be moved", () => {
 	test("offers the library to a page that has a parent", () => {
 		expect(destinationsFor(tree, "ddia", "books")[0]).toEqual({
 			id: undefined,
-			name: "Бібліотека",
+			name: "Library",
 			depth: 0,
 		});
 	});
@@ -53,7 +53,7 @@ describe("where a page may be moved", () => {
 	test("does not offer the library to a page already at the root", () => {
 		expect(
 			destinationsFor(tree, "english", undefined).map((d) => d.name),
-		).not.toContain("Бібліотека");
+		).not.toContain("Library");
 	});
 
 	test("leaves the unrelated branches available", () => {

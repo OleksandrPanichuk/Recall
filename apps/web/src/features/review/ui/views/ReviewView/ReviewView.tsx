@@ -18,16 +18,14 @@ export function ReviewView({ due, leeches, signedIn }: Props) {
 
 	return (
 		<div className="space-y-8">
-			<PageHeading title="Повторення" caption={reviewCaption(due)} />
+			<PageHeading title="Review" caption={reviewCaption(due)} />
 			<section className="space-y-3">
-				<h2 className="text-sm font-medium text-muted-foreground">
-					На сьогодні
-				</h2>
+				<h2 className="text-sm font-medium text-muted-foreground">Due today</h2>
 				<DueList due={due} />
 			</section>
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium text-muted-foreground">
-					Складні питання
+					Stuck questions
 				</h2>
 				<LeechList leeches={leeches} />
 			</section>

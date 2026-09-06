@@ -74,7 +74,7 @@ function RootComponent() {
 
 function Document({ children }: Readonly<{ children: ReactNode }>) {
 	return (
-		<html lang="uk" suppressHydrationWarning>
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<HeadContent />
 				<script

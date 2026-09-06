@@ -11,12 +11,12 @@ export function OutOfQuestions({ busy, onFinish }: Props) {
 	return (
 		<>
 			<PageHeading
-				title="Питання закінчились"
-				caption="Завершіть спробу, щоб побачити результат."
+				title="No questions left"
+				caption="Finish the attempt to see how you did."
 			/>
 			<Button size="lg" disabled={busy} onClick={onFinish}>
 				<Flag />
-				Завершити спробу
+				Finish attempt
 			</Button>
 		</>
 	);
