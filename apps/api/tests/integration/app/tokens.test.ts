@@ -1,117 +1,35 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { AddressInfo } from "node:net";
-import type { INestApplication } from "@nestjs/common";
-import { createApiApp } from "@/entrypoints/api";
 import {
-	applyMigration,
-	openPostgres,
-	type PostgresHarness,
+	type AppSession,
+	bodyOf as json,
+	openAppSession,
 	postgresAvailable,
-} from "../../fixtures/postgres";
+} from "../../fixtures/app-session";
 
 const available = await postgresAvailable();
-const BOT_TOKEN = "b".repeat(40);
-const TELEGRAM_ID = 616161;
 const STRANGER = "stranger@example.com";
 const PASSWORD = "a passphrase long enough";
 
-const overrides: { name: string; previous: string | undefined }[] = [];
-
-const override = (name: string, value: string): void => {
-	overrides.push({ name, previous: process.env[name] });
-	process.env[name] = value;
-};
-
-let harness: PostgresHarness;
-let app: INestApplication;
-let origin: string;
+let session: AppSession;
 let owner: string;
 let stranger: string;
-
-const json = async <TBody>(response: Response): Promise<TBody> =>
-	(await response.json()) as TBody;
-
-const post = (
-	prefix: string,
-	path: string,
-	body: unknown,
-	headers: Record<string, string>,
-): Promise<Response> =>
-	fetch(`${origin}/${prefix}/${path}`, {
-		method: "POST",
-		headers: { "content-type": "application/json", ...headers },
-		body: JSON.stringify(body),
-	});
-
-const asOwner = (path: string, body: unknown = {}): Promise<Response> =>
-	post("app", path, body, { cookie: owner });
-
-const asStranger = (path: string, body: unknown = {}): Promise<Response> =>
-	post("app", path, body, { cookie: stranger });
-
-const cookieOf = (response: Response): string =>
-	(response.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+let asOwner: AppSession["app"];
+let asStranger: AppSession["app"];
 
 beforeAll(async () => {
 	if (!available) {
 		return;
 	}
 
-	harness = await openPostgres("app-tokens");
-	await applyMigration(harness);
-
-	override("DATABASE_URL", harness.url);
-	override("BOT_API_TOKEN", BOT_TOKEN);
-	override("BETTER_AUTH_SECRET", "s".repeat(40));
-	override("ALLOWED_TELEGRAM_USER_ID", String(TELEGRAM_ID));
-	override("AUTH_RATE_LIMIT", "off");
-
-	app = await createApiApp();
-	await app.listen(0, "127.0.0.1");
-
-	const address = app.getHttpServer().address() as AddressInfo;
-
-	origin = `http://127.0.0.1:${address.port}`;
-	process.env.BETTER_AUTH_URL = origin;
-
-	const { url } = await json<{ url: string }>(
-		await post(
-			"bot",
-			"auth/login-link",
-			{ telegramUserId: TELEGRAM_ID },
-			{ authorization: `Bearer ${BOT_TOKEN}` },
-		),
-	);
-
-	owner = cookieOf(
-		await fetch(url.replace(/^https?:\/\/[^/]+/, origin), {
-			redirect: "manual",
-		}),
-	);
-	stranger = cookieOf(
-		await fetch(`${origin}/api/auth/sign-up/email`, {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({
-				email: STRANGER,
-				password: PASSWORD,
-				name: "Stranger",
-			}),
-		}),
-	);
+	session = await openAppSession({ name: "app-tokens" });
+	owner = session.cookie;
+	stranger = await session.signUp(STRANGER, PASSWORD);
+	asOwner = session.app;
+	asStranger = session.as(stranger);
 });
 
 afterAll(async () => {
-	await app?.close();
-	await harness?.close();
-
-	for (const { name, previous } of overrides.reverse()) {
-		if (previous === undefined) {
-			delete process.env[name];
-		} else {
-			process.env[name] = previous;
-		}
-	}
+	await session?.close();
 });
 
 describe.skipIf(!available)("minting an mcp token from the web", () => {
@@ -153,12 +71,9 @@ describe.skipIf(!available)("minting an mcp token from the web", () => {
 
 	test("the bot surface sees the same token, because it is the same owner", async () => {
 		const listed = await json<{ id: string }[]>(
-			await post(
-				"bot",
-				"auth/tokens/list",
-				{ telegramUserId: TELEGRAM_ID },
-				{ authorization: `Bearer ${BOT_TOKEN}` },
-			),
+			await session.bot("auth/tokens/list", {
+				telegramUserId: session.telegramUserId,
+			}),
 		);
 
 		expect(listed.map((token) => token.id)).toContain(tokenId);
@@ -194,7 +109,7 @@ describe.skipIf(!available)("minting an mcp token from the web", () => {
 	});
 
 	test("no session at all is refused", async () => {
-		const response = await fetch(`${origin}/app/auth/tokens/list`, {
+		const response = await fetch(`${session.origin}/app/auth/tokens/list`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: "{}",
@@ -207,7 +122,7 @@ describe.skipIf(!available)("minting an mcp token from the web", () => {
 		const issued = await json<{ id: string }>(
 			await asStranger("auth/tokens/issue", {
 				name: "sneaky",
-				telegramUserId: TELEGRAM_ID,
+				telegramUserId: session.telegramUserId,
 			}),
 		);
 		const mine = await json<{ id: string }[]>(

@@ -1,103 +1,28 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { AddressInfo } from "node:net";
-import type { INestApplication } from "@nestjs/common";
-import { createApiApp } from "@/entrypoints/api";
 import {
-	applyMigration,
-	openPostgres,
-	type PostgresHarness,
+	type AppSession,
+	bodyOf as json,
+	openAppSession,
 	postgresAvailable,
-} from "../../fixtures/postgres";
+} from "../../fixtures/app-session";
+import { aQuestion } from "../../fixtures/app-shapes";
 
 const available = await postgresAvailable();
-const BOT_TOKEN = "b".repeat(40);
-const TELEGRAM_ID = 616161;
 
-const overrides: { name: string; previous: string | undefined }[] = [];
-
-const override = (name: string, value: string): void => {
-	overrides.push({ name, previous: process.env[name] });
-	process.env[name] = value;
-};
-
-let harness: PostgresHarness;
-let app: INestApplication;
-let origin: string;
-let cookie: string;
-
-const bot = (path: string, body: unknown): Promise<Response> =>
-	fetch(`${origin}/bot/${path}`, {
-		method: "POST",
-		headers: {
-			"content-type": "application/json",
-			authorization: `Bearer ${BOT_TOKEN}`,
-		},
-		body: JSON.stringify(body),
-	});
-
-const call = (path: string, body: unknown = {}): Promise<Response> =>
-	fetch(`${origin}/app/${path}`, {
-		method: "POST",
-		headers: { "content-type": "application/json", cookie },
-		body: JSON.stringify(body),
-	});
-
-const json = async <TBody>(response: Response): Promise<TBody> =>
-	(await response.json()) as TBody;
-
-const aQuestion = (prompt: string) => ({
-	type: "single_choice" as const,
-	prompt,
-	difficulty: "easy" as const,
-	options: [
-		{ text: "right", isCorrect: true },
-		{ text: "wrong", isCorrect: false },
-	],
-});
+let session: AppSession;
+let call: AppSession["app"];
 
 beforeAll(async () => {
 	if (!available) {
 		return;
 	}
 
-	harness = await openPostgres("app-authoring");
-	await applyMigration(harness);
-
-	override("DATABASE_URL", harness.url);
-	override("BOT_API_TOKEN", BOT_TOKEN);
-	override("BETTER_AUTH_SECRET", "s".repeat(40));
-	override("ALLOWED_TELEGRAM_USER_ID", String(TELEGRAM_ID));
-	override("AUTH_RATE_LIMIT", "off");
-
-	app = await createApiApp();
-	await app.listen(0, "127.0.0.1");
-
-	const address = app.getHttpServer().address() as AddressInfo;
-
-	origin = `http://127.0.0.1:${address.port}`;
-	process.env.BETTER_AUTH_URL = origin;
-
-	const { url } = await json<{ url: string }>(
-		await bot("auth/login-link", { telegramUserId: TELEGRAM_ID }),
-	);
-	const verified = await fetch(url.replace(/^https?:\/\/[^/]+/, origin), {
-		redirect: "manual",
-	});
-
-	cookie = (verified.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+	session = await openAppSession({ name: "app-authoring" });
+	call = session.app;
 });
 
 afterAll(async () => {
-	await app?.close();
-	await harness?.close();
-
-	for (const { name, previous } of overrides.reverse()) {
-		if (previous === undefined) {
-			delete process.env[name];
-		} else {
-			process.env[name] = previous;
-		}
-	}
+	await session?.close();
 });
 
 describe.skipIf(!available)("writing a quiz from the web", () => {
@@ -250,7 +175,7 @@ describe.skipIf(!available)("what the api refuses", () => {
 	});
 
 	test("no session at all", async () => {
-		const response = await fetch(`${origin}/app/sets/create`, {
+		const response = await fetch(`${session.origin}/app/sets/create`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({ title: "Nobody", language: "uk" }),
