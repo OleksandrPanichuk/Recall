@@ -96,6 +96,30 @@ is an internal RPC surface, not public REST.
 mounted by hand afterwards. Better Auth reads the raw request body itself, and a parser that has
 already consumed the stream leaves it hanging.
 
+**A failed session read is not a signed-out user.** `viewerOf` asks the api
+`/api/auth/get-session` and used to treat every non-2xx as "not signed in", so a 429 or a
+restarting api rendered the sign-in screen at someone holding a perfectly good cookie. It now
+separates a *verdict* — 200 with no user, or 401 — from an *outage*, retries once, and throws
+`SessionUnavailableError` rather than signing anyone out. Signing someone out is destructive and
+needs evidence, not silence.
+
+**The auth rate limit is on by default and Better Auth cannot see a client IP** unless one is
+forwarded, in which case it warns once and puts *everybody* in one shared bucket per path. That
+made `/get-session` — one call per page load — a 60-per-minute budget shared by the whole
+instance, and exhausting it logged people out. `/get-session` now has its own generous rule, and
+the web forwards the client address as `x-recall-client-ip` (`TRUST_PROXY=on` to believe
+`x-forwarded-for` behind a proxy) so sign-in and sign-up limits are per client rather than global.
+
+**Better Auth refuses a state-changing call that carries a cookie and no `Origin`.** Sign-out and
+change-password were 403 from the web for exactly that reason — the user clicked «Вийти» and
+stayed signed in. `authHeaders` sends the web app's own origin, which is in `trustedOrigins`.
+Signing *in* was unaffected because the check only runs when the request already has a cookie.
+
+**`bun test` sets `NODE_ENV=test`, and Better Auth disables the origin check when it sees one.**
+`skipOriginCheck` is `isTest() ? true : false`, read once at module load, so overriding the
+variable inside a test is too late. Any test asserting CSRF behaviour passes vacuously; verify
+that against a running api instead, and keep the suite to what is true in both modes.
+
 **Registration is open** (`emailAndPassword.enabled`), so `POST /api/auth/sign-up/email` is
 reachable by anyone — that is now a product decision, not an oversight. What holds the line is
 the rate limit (`AUTH_RATE_LIMIT`, `SIGN_UPS_PER_HOUR`) and the fact that ownership is resolved

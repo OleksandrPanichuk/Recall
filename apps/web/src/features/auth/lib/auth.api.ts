@@ -4,6 +4,8 @@ import {
 	setResponseHeader,
 } from "@tanstack/react-start/server";
 import { apiUrl } from "@/shared/lib/api";
+import { clientIpHeaders } from "@/shared/lib/client-ip";
+import { authHeaders } from "./auth.headers";
 import { type Credentials, credentialsOf } from "./auth.types";
 
 const webOrigin = (): string =>
@@ -15,7 +17,8 @@ const forward = async (
 	extra: Record<string, string | undefined> = {},
 ): Promise<{ ok: boolean; message?: string }> => {
 	const headers: Record<string, string> = {
-		"content-type": "application/json",
+		...authHeaders({ origin: webOrigin() }),
+		...clientIpHeaders(),
 	};
 
 	for (const [key, value] of Object.entries(extra)) {

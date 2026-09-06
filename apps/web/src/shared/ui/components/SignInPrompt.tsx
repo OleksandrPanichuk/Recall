@@ -1,9 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
-export function SignInPrompt() {
+interface Props {
+	readonly reason?: string;
+}
+
+export function SignInPrompt({ reason }: Props) {
 	return (
 		<Card className="mx-auto max-w-lg">
 			<CardHeader>
@@ -11,6 +16,9 @@ export function SignInPrompt() {
 				<CardTitle className="text-xl">Увійдіть, щоб продовжити</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4 text-sm text-muted-foreground">
+				{reason === undefined ? null : (
+					<Alert variant="destructive">{reason}</Alert>
+				)}
 				<div className="flex flex-wrap gap-2">
 					<Link to="/sign-in">
 						<Button>Увійти</Button>
