@@ -11,11 +11,12 @@ import { libraryCaption } from "./LibraryView.constants";
 interface Props {
 	readonly view: BrowseView | null;
 	readonly inProgressQuizId?: string;
+	readonly signInReason?: string;
 }
 
-export function LibraryView({ view, inProgressQuizId }: Props) {
+export function LibraryView({ view, inProgressQuizId, signInReason }: Props) {
 	if (view === null) {
-		return <SignInPrompt />;
+		return <SignInPrompt reason={signInReason} />;
 	}
 
 	return (

@@ -3,10 +3,13 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Mailer } from "@/application/ports/mailer";
 import type { RecallDatabase } from "@/persistence/postgres/client";
 import {
+	CLIENT_IP_HEADER,
 	MIN_PASSWORD_LENGTH,
 	RATE_LIMIT_MAX,
 	RATE_LIMIT_WINDOW_SECONDS,
 	RESET_TOKEN_TTL_SECONDS,
+	SESSION_READ_MAX,
+	SESSION_READ_WINDOW_SECONDS,
 	SIGN_IN_MAX,
 	SIGN_IN_WINDOW_SECONDS,
 	SIGN_UP_MAX,
@@ -52,6 +55,10 @@ export function createAuth(options: AuthOptions) {
 			window: RATE_LIMIT_WINDOW_SECONDS,
 			max: RATE_LIMIT_MAX,
 			customRules: {
+				"/get-session": {
+					window: SESSION_READ_WINDOW_SECONDS,
+					max: SESSION_READ_MAX,
+				},
 				"/sign-up/email": {
 					window: SIGN_UP_WINDOW_SECONDS,
 					max: options.signUpsPerHour ?? SIGN_UP_MAX,
@@ -63,7 +70,10 @@ export function createAuth(options: AuthOptions) {
 			expiresIn: 60 * 60 * 24 * 365,
 			updateAge: 60 * 60 * 24,
 		},
-		advanced: { useSecureCookies: options.baseUrl.startsWith("https://") },
+		advanced: {
+			useSecureCookies: options.baseUrl.startsWith("https://"),
+			ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER, "x-forwarded-for"] },
+		},
 		plugins: [telegramLink({ successUrl: options.successUrl })],
 	});
 }
