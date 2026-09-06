@@ -14,6 +14,7 @@ import {
 	APP_ROUTE_PREFIX,
 	abandonAttemptCommandSchema,
 	addQuestionsCommandSchema,
+	addVocabularyCommandSchema,
 	answerCommandSchema,
 	attemptDetailCommandSchema,
 	BOT_ROUTES,
@@ -30,6 +31,7 @@ import {
 	listOwnApiTokensCommandSchema,
 	listRevisionsCommandSchema,
 	listSetsCommandSchema,
+	listVocabularyCommandSchema,
 	movePageCommandSchema,
 	moveSetCommandSchema,
 	practiceCommandSchema,
@@ -45,6 +47,7 @@ import {
 	updateQuestionCommandSchema,
 	updateSetCommandSchema,
 	updateSettingsCommandSchema,
+	updateVocabularyCommandSchema,
 	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
@@ -54,6 +57,7 @@ import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
 import { ApiTokenService } from "@/modules/auth/api-token.service";
 import {
 	answerOptionsOf,
@@ -265,6 +269,61 @@ export class AppSurfaceController {
 		return {
 			questionId: String(result.questionId),
 			remaining: result.remaining,
+		};
+	}
+
+	@Post(BOT_ROUTES.listVocabulary)
+	@HttpCode(HttpStatus.OK)
+	async listVocabulary(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(listVocabularyCommandSchema, body);
+
+		return (
+			await this.of(request).listVocabulary.execute({
+				quizSetId: toQuizSetId(command.quizSetId),
+			})
+		).map((item) => ({
+			itemId: String(item.itemId),
+			terms: [...item.terms],
+			translations: [...item.translations],
+			transcription: item.transcription,
+			example: item.example,
+			topic: item.topic,
+			questionIds: [...item.questionIds],
+		}));
+	}
+
+	@Post(BOT_ROUTES.addVocabulary)
+	@HttpCode(HttpStatus.OK)
+	async addVocabulary(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(addVocabularyCommandSchema, body);
+		const result = await this.of(request).addVocabulary.execute({
+			...command,
+			quizSetId: toQuizSetId(command.quizSetId),
+		});
+
+		return {
+			itemIds: result.itemIds.map(String),
+			addedQuestionCount: result.addedQuestionCount,
+			alreadyPresent: result.alreadyPresent,
+		};
+	}
+
+	@Post(BOT_ROUTES.updateVocabulary)
+	@HttpCode(HttpStatus.OK)
+	async updateVocabulary(
+		@Req() request: SessionRequest,
+		@Body() body: unknown,
+	) {
+		const command = parseBody(updateVocabularyCommandSchema, body);
+		const result = await this.of(request).updateVocabulary.execute({
+			...command,
+			itemId: toVocabularyItemId(command.itemId),
+		});
+
+		return {
+			itemId: String(result.itemId),
+			rebuiltQuestionCount: result.rebuiltQuestionCount,
+			removedQuestionCount: result.removedQuestionCount,
 		};
 	}
 

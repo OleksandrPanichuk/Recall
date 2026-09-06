@@ -51,3 +51,17 @@ export const deleteQuestion = createServerFn({ method: "POST" })
 		(value: unknown) => value as { quizSetId: string; questionId: string },
 	)
 	.handler(async ({ data }) => api().deleteQuestion.execute(data));
+
+export const loadVocabulary = createServerFn()
+	.inputValidator(idInput)
+	.handler(async ({ data }) => ({
+		items: await api().listVocabulary.execute({ quizSetId: data.id }),
+	}));
+
+export const addVocabulary = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.handler(async ({ data }) => api().addVocabulary.execute(data as never));
+
+export const updateVocabulary = createServerFn({ method: "POST" })
+	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.handler(async ({ data }) => api().updateVocabulary.execute(data as never));

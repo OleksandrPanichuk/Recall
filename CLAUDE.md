@@ -230,6 +230,20 @@ port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it 
 so `bun run verify` passes without Docker. Setting `TEST_DATABASE_URL` makes them mandatory
 instead: if it is set and Postgres is missing, the suite fails rather than skipping.
 
+**A field the in-memory double keeps for free is the one Postgres silently drops.** The
+double stores the domain object whole, so a property with no column and no mapper round-trips
+there and vanishes on Postgres — every unit test green, the feature broken in production.
+`questions.vocabulary_item_id` was exactly that: four call sites read
+`question.vocabularyItemId`, no column existed, so `listVocabulary` always reported zero
+questions per term pair and `updateVocabulary` rebuilt nothing. Editing a pair left its
+generated questions answering the old way, silently. **Any field the domain carries belongs in
+`tests/contracts/`**, which runs both engines — a unit test against the double proves nothing
+about persistence.
+
+Its own fix then exposed the next one: the rebuild minted option ids as
+`` `${question.id}-${index}` ``, which the double accepts as a string and Postgres rejects as a
+`uuid`. Mint ids with the `IdGenerator`, never by decorating another id.
+
 **Cast every postgres.js placeholder, and never pass a `Date`.** postgres.js picks parameter
 encoders from the first execution of a query string and reuses them, so an insert whose first
 row has `null` where a later row has a value binds that later row against the wrong types. It

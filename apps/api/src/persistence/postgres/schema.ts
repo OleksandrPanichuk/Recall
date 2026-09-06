@@ -205,6 +205,7 @@ export const questions = pgTable(
 		topic: text("topic"),
 		difficulty: text("difficulty").notNull(),
 		hint: text("hint"),
+		vocabularyItemId: uuid("vocabulary_item_id"),
 		position: integer("position").notNull(),
 		fingerprint: text("fingerprint").notNull(),
 		createdAt: createdAt(),
