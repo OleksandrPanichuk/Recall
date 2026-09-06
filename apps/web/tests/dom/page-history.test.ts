@@ -19,8 +19,8 @@ const revision = (over: Partial<PageRevision> = {}): PageRevision => ({
 
 describe("who wrote a version", () => {
 	test("a person and an AI read differently, because that is the point", () => {
-		expect(writtenBy("user")).toBe("ви");
-		expect(writtenBy("mcp")).toBe("ШІ");
+		expect(writtenBy("user")).toBe("you");
+		expect(writtenBy("mcp")).toBe("an AI");
 	});
 
 	test("an author nobody planned for is shown as itself, not as blank", () => {
@@ -36,13 +36,13 @@ describe("what a version looks like in the list", () => {
 	});
 
 	test("an empty version says so rather than showing nothing", () => {
-		expect(excerptOf(undefined)).toBe("порожня");
-		expect(excerptOf("   ")).toBe("порожня");
+		expect(excerptOf(undefined)).toBe("empty");
+		expect(excerptOf("   ")).toBe("empty");
 	});
 
 	test("the size counts characters, including for an empty one", () => {
-		expect(sizeOf("abc")).toBe("3 символів");
-		expect(sizeOf(undefined)).toBe("0 символів");
+		expect(sizeOf("abc")).toBe("3 characters");
+		expect(sizeOf(undefined)).toBe("0 characters");
 	});
 
 	test("an unreadable timestamp is shown as given, not as Invalid Date", () => {

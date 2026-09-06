@@ -30,7 +30,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 			<header className="flex items-center justify-between gap-3 border-b border-border bg-card/60 px-4 py-3 backdrop-blur lg:hidden">
 				<button
 					type="button"
-					aria-label="Меню"
+					aria-label="Menu"
 					onClick={() => setOpenOn(open ? null : pathname)}
 					className="rounded-md p-1.5 hover:bg-accent"
 				>
@@ -41,7 +41,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 					Recall
 				</Link>
 				<span className="text-sm text-muted-foreground">
-					{viewer === null ? "гість" : viewer.name}
+					{viewer === null ? "guest" : viewer.name}
 				</span>
 			</header>
 
@@ -65,7 +65,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 						activeOptions={{ exact: true }}
 					>
 						<Library className="size-4" />
-						Бібліотека
+						Library
 					</Link>
 					<Link
 						to="/review"
@@ -73,7 +73,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 						activeProps={{ className: "bg-accent/60 text-foreground" }}
 					>
 						<CalendarClock className="size-4" />
-						Повторення
+						Review
 					</Link>
 					<Link
 						to="/questions"
@@ -81,7 +81,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 						activeProps={{ className: "bg-accent/60 text-foreground" }}
 					>
 						<CircleQuestionMark className="size-4" />
-						Питання
+						Questions
 					</Link>
 					<Link
 						to="/insights"
@@ -89,7 +89,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 						activeProps={{ className: "bg-accent/60 text-foreground" }}
 					>
 						<ChartColumn className="size-4" />
-						Статистика
+						Insights
 					</Link>
 					<Link
 						to="/settings"
@@ -97,16 +97,16 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 						activeProps={{ className: "bg-accent/60 text-foreground" }}
 					>
 						<Settings className="size-4" />
-						Налаштування
+						Settings
 					</Link>
 				</nav>
 				<p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-					Сторінки
+					Pages
 				</p>
 				{pages}
 				<div className="mt-6 hidden items-center justify-between gap-2 px-2 lg:flex">
 					<p className="min-w-0 truncate text-xs text-muted-foreground">
-						{viewer === null ? "не увійшли" : viewer.name}
+						{viewer === null ? "not signed in" : viewer.name}
 					</p>
 					<div className="flex shrink-0 items-center gap-1">
 						{account}

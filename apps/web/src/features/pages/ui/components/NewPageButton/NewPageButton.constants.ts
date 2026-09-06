@@ -1,1 +1,1 @@
-export const UNTITLED = "Без назви";
+export const UNTITLED = "Untitled";

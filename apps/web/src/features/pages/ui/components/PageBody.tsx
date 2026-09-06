@@ -38,7 +38,7 @@ export function PageBody({
 			{hasItems ? (
 				<section className="space-y-2">
 					<h2 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-						Всередині
+						Inside
 					</h2>
 					<LibraryList
 						view={view}

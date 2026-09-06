@@ -1,6 +1,7 @@
 import type { QuestionStat } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/Card";
+import { lapses } from "@/shared/lib/plural";
 import { percentage } from "./HardestQuestions.lib";
 
 export function HardestQuestions({
@@ -11,7 +12,7 @@ export function HardestQuestions({
 	if (hardest.length === 0) {
 		return (
 			<Card className="p-8 text-center text-sm text-muted-foreground">
-				Замало відповідей, щоб сказати, що дається важче.
+				Not enough answers yet to say what is hardest.
 			</Card>
 		);
 	}
@@ -44,8 +45,8 @@ export function HardestQuestions({
 							{stat.quizSetTitle}
 						</Link>
 						{" · "}
-						{stat.correct} з {stat.answered}
-						{stat.lapses === 0 ? null : ` · ${stat.lapses} відкотів`}
+						{stat.correct} of {stat.answered}
+						{stat.lapses === 0 ? null : ` · ${lapses(stat.lapses)}`}
 					</p>
 				</div>
 			))}

@@ -12,11 +12,11 @@ export function SignUpView() {
 		<Card className="mx-auto max-w-md">
 			<CardHeader>
 				<UserPlus className="size-6 text-primary" />
-				<CardTitle className="text-xl">Реєстрація</CardTitle>
+				<CardTitle className="text-xl">Sign up</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<CredentialsForm
-					submitLabel="Створити акаунт"
+					submitLabel="Create account"
 					withName
 					onSubmit={async (credentials) => {
 						const result = await signUp({ data: credentials });
@@ -32,9 +32,9 @@ export function SignUpView() {
 					}}
 				/>
 				<p className="text-center text-sm text-muted-foreground">
-					Вже маєте акаунт?{" "}
+					Already have an account?{" "}
 					<Link to="/sign-in" className="text-primary hover:underline">
-						Увійти
+						Sign in
 					</Link>
 				</p>
 			</CardContent>

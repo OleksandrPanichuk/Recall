@@ -58,7 +58,7 @@ export function PageActions({
 		<div className="flex items-center gap-1">
 			<NewPageButton
 				parentId={view.folderId}
-				label="Підсторінка"
+				label="Subpage"
 				onCreated={onChanged}
 			/>
 			{view.folderId === undefined ? null : (
@@ -84,7 +84,7 @@ export function PageActions({
 					size="sm"
 					onClick={remove}
 					disabled={busy}
-					aria-label="Видалити сторінку"
+					aria-label="Delete page"
 				>
 					<Trash2 />
 				</Button>

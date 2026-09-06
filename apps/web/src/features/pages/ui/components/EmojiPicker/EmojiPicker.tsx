@@ -32,7 +32,7 @@ export function EmojiPicker({ icon, onPick }: Props) {
 		<div ref={box} className="relative">
 			<button
 				type="button"
-				aria-label="Іконка сторінки"
+				aria-label="Page icon"
 				onClick={() => setOpen(!open)}
 				className="flex size-12 shrink-0 items-center justify-center rounded-lg text-3xl transition-colors hover:bg-accent"
 			>
@@ -66,7 +66,7 @@ export function EmojiPicker({ icon, onPick }: Props) {
 								setOpen(false);
 							}}
 						>
-							Прибрати
+							Remove
 						</Button>
 					)}
 				</div>

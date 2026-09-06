@@ -5,13 +5,13 @@ export const writtenBy = (authorKind: string): string =>
 	AUTHOR_LABELS[authorKind] ?? authorKind;
 
 export const sizeOf = (summary: string | undefined): string =>
-	`${(summary ?? "").length} символів`;
+	`${(summary ?? "").length} characters`;
 
 export const excerptOf = (summary: string | undefined, limit = 140): string => {
 	const text = (summary ?? "").replace(/\s+/g, " ").trim();
 
 	if (text.length === 0) {
-		return "порожня";
+		return "empty";
 	}
 
 	return text.length <= limit ? text : `${text.slice(0, limit).trimEnd()}…`;
@@ -22,7 +22,7 @@ export const writtenAt = (createdAt: string): string => {
 
 	return Number.isNaN(at.getTime())
 		? createdAt
-		: at.toLocaleString("uk-UA", { dateStyle: "medium", timeStyle: "short" });
+		: at.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 };
 
 export const changedSince = (

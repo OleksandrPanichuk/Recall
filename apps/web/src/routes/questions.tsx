@@ -5,7 +5,7 @@ import { QuestionBankView } from "@/features/authoring/ui/views/QuestionBankView
 export const Route = createFileRoute("/questions")({
 	loader: async ({ context }) =>
 		context.viewer === null ? null : loadQuestions(),
-	head: () => ({ meta: [{ title: "Питання · Recall" }] }),
+	head: () => ({ meta: [{ title: "Questions · Recall" }] }),
 	component: Questions,
 });
 

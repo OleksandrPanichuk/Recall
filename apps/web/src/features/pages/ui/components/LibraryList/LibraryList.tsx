@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { questions } from "@/shared/lib/plural";
 import { row } from "./LibraryList.constants";
 
 interface Props {
@@ -27,7 +28,7 @@ export function LibraryList({ view, inProgressQuizId, onDetach }: Props) {
 	) {
 		return (
 			<Card className="p-8 text-center text-sm text-muted-foreground">
-				Тут поки порожньо. Створіть набір через бота або MCP.
+				Nothing here yet. Create a quiz from the bot or over MCP.
 			</Card>
 		);
 	}
@@ -67,9 +68,9 @@ export function LibraryList({ view, inProgressQuizId, onDetach }: Props) {
 							</span>
 							<span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
 								{set.id === inProgressQuizId ? (
-									<Badge variant="outline">почато</Badge>
+									<Badge variant="outline">started</Badge>
 								) : null}
-								{set.questionCount} питань
+								{questions(set.questionCount)}
 								{detachable ? null : <ChevronRight className="size-4" />}
 							</span>
 						</Link>
@@ -79,7 +80,7 @@ export function LibraryList({ view, inProgressQuizId, onDetach }: Props) {
 								size="sm"
 								className="mr-2 shrink-0"
 								disabled={detaching === set.id}
-								aria-label={`Відкріпити ${set.title}`}
+								aria-label={`Detach ${set.title}`}
 								onClick={async () => {
 									setDetaching(set.id);
 

@@ -4,7 +4,9 @@ import { messageFor } from "@/features/practice/lib/practice.errors";
 
 describe("what practice says when an answer does not go through", () => {
 	test("never leaves the reader without an explanation", () => {
-		expect(messageFor(new Error("socket hang up"))).toContain("сервером");
+		expect(messageFor(new Error("socket hang up"))).toContain(
+			"reach the server",
+		);
 	});
 
 	test("says the attempt is gone when it is", () => {
@@ -12,12 +14,12 @@ describe("what practice says when an answer does not go through", () => {
 			messageFor(
 				new BotApiError(ApiErrorName.NoActiveAttempt, "gone", 409, {}),
 			),
-		).toContain("Спроби вже немає");
+		).toContain("That attempt is gone");
 	});
 
 	test("falls back to something actionable for an unmapped refusal", () => {
 		expect(
 			messageFor(new BotApiError("QuizAttemptValidationError", "bad", 400, {})),
-		).toContain("Спробуйте ще раз");
+		).toContain("Try again");
 	});
 });

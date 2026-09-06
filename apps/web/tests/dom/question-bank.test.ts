@@ -27,8 +27,8 @@ const row = (
 	}) as QuestionRow;
 
 const bank = [
-	row("Що таке WAL?", "Postgres", { topic: "durability", answerCount: 4 }),
-	row("Скільки байтів у UUID?", "Postgres"),
+	row("What is the WAL?", "Postgres", { topic: "durability", answerCount: 4 }),
+	row("How many bytes in a UUID?", "Postgres"),
 	row("Which runtime runs this?", "Bun", { answerCount: 1 }),
 ];
 

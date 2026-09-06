@@ -34,13 +34,13 @@ describe("where a quiz set may be filed", () => {
 	test("no way out is offered to a set that is already loose", () => {
 		expect(
 			pageChoices(tree, undefined).map((choice) => choice.name),
-		).not.toContain("Поза сторінками");
+		).not.toContain("Outside any page");
 	});
 
 	test("a filed set can be taken back out", () => {
 		expect(pageChoices(tree, "ddia")[0]).toEqual({
 			id: undefined,
-			name: "Поза сторінками",
+			name: "Outside any page",
 			depth: 0,
 		});
 	});

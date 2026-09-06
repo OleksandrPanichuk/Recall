@@ -1,11 +1,11 @@
 export const shortDay = (day: string): string =>
-	new Intl.DateTimeFormat("uk-UA", {
+	new Intl.DateTimeFormat("en-GB", {
 		day: "numeric",
 		timeZone: "UTC",
 	}).format(new Date(`${day}T00:00:00.000Z`));
 
 export const fullDay = (day: string): string =>
-	new Intl.DateTimeFormat("uk-UA", {
+	new Intl.DateTimeFormat("en-GB", {
 		weekday: "long",
 		day: "numeric",
 		month: "long",

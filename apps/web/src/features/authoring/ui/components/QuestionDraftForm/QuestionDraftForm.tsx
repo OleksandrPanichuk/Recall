@@ -28,7 +28,7 @@ export function QuestionDraftForm({
 	onChange,
 	onSubmit,
 	onCancel,
-	submitLabel = "Додати питання",
+	submitLabel = "Add question",
 	typeLocked = false,
 }: Props) {
 	const shape = ANSWER_SHAPE[form.type] ?? "options";
@@ -44,8 +44,8 @@ export function QuestionDraftForm({
 			<div className="grid gap-2 sm:grid-cols-2">
 				<label className="space-y-1 text-sm">
 					<span className="font-medium">
-						Тип питання
-						{typeLocked ? " — інший тип означає інше питання" : ""}
+						Question type
+						{typeLocked ? " — another type means another question" : ""}
 					</span>
 					<select
 						className={FIELD}
@@ -63,7 +63,7 @@ export function QuestionDraftForm({
 					</select>
 				</label>
 				<label className="space-y-1 text-sm">
-					<span className="font-medium">Складність</span>
+					<span className="font-medium">Difficulty</span>
 					<select
 						className={FIELD}
 						value={form.difficulty}
@@ -81,15 +81,15 @@ export function QuestionDraftForm({
 			</div>
 
 			<label className="block space-y-1 text-sm">
-				<span className="font-medium">Питання</span>
+				<span className="font-medium">Question</span>
 				<textarea
 					className={`${FIELD} min-h-20 resize-y`}
 					value={form.prompt}
 					onChange={(event) => set({ prompt: event.target.value })}
 					placeholder={
 						form.type === QuestionType.Cloze
-							? "Bun запускає ___ швидко"
-							: "Що саме перевіряємо?"
+							? "Bun runs ___ fast"
+							: "What exactly are we testing?"
 					}
 				/>
 			</label>
@@ -110,7 +110,7 @@ export function QuestionDraftForm({
 										: "radio"
 								}
 								name="correct"
-								aria-label={`Правильна відповідь ${index + 1}`}
+								aria-label={`Correct answer ${index + 1}`}
 								checked={form.correct.includes(index)}
 								onChange={() =>
 									set({
@@ -133,7 +133,7 @@ export function QuestionDraftForm({
 						{shape === "pairs" ? (
 							<Input
 								value={form.rights[index] ?? ""}
-								aria-label={`Пара ${index + 1}, друга частина`}
+								aria-label={`Pair ${index + 1}, second half`}
 								onChange={(event) =>
 									set({
 										rights: form.answers.map((_, at) =>
@@ -147,7 +147,7 @@ export function QuestionDraftForm({
 						) : null}
 						<button
 							type="button"
-							aria-label={`Прибрати рядок ${index + 1}`}
+							aria-label={`Remove row ${index + 1}`}
 							disabled={form.answers.length <= 1}
 							onClick={() =>
 								set({
@@ -175,14 +175,14 @@ export function QuestionDraftForm({
 						})
 					}
 				>
-					<Plus className="size-3.5" /> Ще рядок
+					<Plus className="size-3.5" /> One more row
 				</Button>
 			</div>
 
 			<div className="grid gap-2 sm:grid-cols-2">
 				<div className="space-y-1 text-sm">
 					<label htmlFor="explanation" className="font-medium">
-						Пояснення
+						Explanation
 					</label>
 					<Input
 						id="explanation"
@@ -192,7 +192,7 @@ export function QuestionDraftForm({
 				</div>
 				<div className="space-y-1 text-sm">
 					<label htmlFor="hint" className="font-medium">
-						Підказка
+						Hint
 					</label>
 					<Input
 						id="hint"
@@ -218,10 +218,10 @@ export function QuestionDraftForm({
 					disabled={busy || problems.length > 0}
 					onClick={onSubmit}
 				>
-					{busy ? "Зберігаємо…" : submitLabel}
+					{busy ? "Saving…" : submitLabel}
 				</Button>
 				<Button type="button" variant="outline" onClick={onCancel}>
-					Скасувати
+					Cancel
 				</Button>
 			</div>
 		</div>

@@ -3,13 +3,13 @@ import { RESET_TOKEN_TTL_SECONDS } from "./build-auth.constants";
 
 export const resetPasswordLetter = (to: string, url: string): Letter => ({
 	to,
-	subject: "Відновлення пароля в Recall",
+	subject: "Reset your Recall password",
 	text: [
-		"Хтось попросив новий пароль для цього акаунта в Recall.",
+		"Someone asked for a new password for this Recall account.",
 		"",
-		`Задати новий пароль: ${url}`,
+		`Set a new password: ${url}`,
 		"",
-		`Посилання діє ${RESET_TOKEN_TTL_SECONDS / 60} хвилин і спрацює один раз.`,
-		"Якщо це були не ви — просто зігноруйте цей лист, пароль лишиться той самий.",
+		`The link is good for ${RESET_TOKEN_TTL_SECONDS / 60} minutes and works once.`,
+		"If this was not you, ignore this email — your password stays as it is.",
 	].join("\n"),
 });

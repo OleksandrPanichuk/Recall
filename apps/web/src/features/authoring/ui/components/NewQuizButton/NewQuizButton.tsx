@@ -19,7 +19,7 @@ export function NewQuizButton({ folderId }: Props) {
 	if (!naming) {
 		return (
 			<Button variant="outline" size="sm" onClick={() => setNaming(true)}>
-				<Plus className="size-3.5" /> Новий набір
+				<Plus className="size-3.5" /> New quiz
 			</Button>
 		);
 	}
@@ -57,12 +57,12 @@ export function NewQuizButton({ folderId }: Props) {
 			<Input
 				autoFocus
 				value={title}
-				aria-label="Назва набору"
-				placeholder="Назва набору"
+				aria-label="Quiz title"
+				placeholder="Quiz title"
 				onChange={(event) => setTitle(event.target.value)}
 			/>
 			<Button type="submit" size="sm" disabled={busy}>
-				{busy ? "…" : "Створити"}
+				{busy ? "…" : "Create"}
 			</Button>
 			<Button
 				type="button"
@@ -70,7 +70,7 @@ export function NewQuizButton({ folderId }: Props) {
 				size="sm"
 				onClick={() => setNaming(false)}
 			>
-				Скасувати
+				Cancel
 			</Button>
 		</form>
 	);

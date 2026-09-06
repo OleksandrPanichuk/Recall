@@ -7,7 +7,7 @@ export const Route = createFileRoute("/attempts/$attemptId")({
 		context.viewer === null ? null : loadAttempt({ data: params.attemptId }),
 	head: ({ loaderData }) => ({
 		meta: [
-			{ title: `${loaderData?.quizSetTitle ?? "Спроба"} · розбір · Recall` },
+			{ title: `${loaderData?.quizSetTitle ?? "Attempt"} · review · Recall` },
 		],
 	}),
 	component: AttemptReview,

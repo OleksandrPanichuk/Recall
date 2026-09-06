@@ -16,7 +16,7 @@ export function ForgotPasswordView() {
 		<Card className="mx-auto max-w-md">
 			<CardHeader>
 				<MailQuestion className="size-6 text-primary" />
-				<CardTitle className="text-xl">Забули пароль?</CardTitle>
+				<CardTitle className="text-xl">Forgot password?</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{sent ? (
@@ -45,16 +45,16 @@ export function ForgotPasswordView() {
 							required
 							autoComplete="email"
 							placeholder="you@example.com"
-							aria-label="Пошта"
+							aria-label="Email"
 						/>
 						<Button type="submit" className="w-full" disabled={busy}>
-							{busy ? "Надсилаємо…" : "Надіслати посилання"}
+							{busy ? "Sending…" : "Send link"}
 						</Button>
 					</form>
 				)}
 				<p className="text-center text-sm text-muted-foreground">
 					<Link to="/sign-in" className="text-primary hover:underline">
-						Повернутись до входу
+						Back to sign in
 					</Link>
 				</p>
 			</CardContent>

@@ -32,7 +32,7 @@ describe("the page title", () => {
 
 		render(<PageTitle name={name} onRename={(next) => renamed.push(next)} />);
 
-		return { renamed, field: screen.getByLabelText("Назва сторінки") };
+		return { renamed, field: screen.getByLabelText("Page title") };
 	};
 
 	test("renames on blur, once, with the text trimmed", () => {
@@ -78,7 +78,7 @@ describe("the icon picker", () => {
 		const picked: (string | undefined)[] = [];
 
 		render(<EmojiPicker onPick={(icon) => picked.push(icon)} />);
-		fireEvent.click(screen.getByLabelText("Іконка сторінки"));
+		fireEvent.click(screen.getByLabelText("Page icon"));
 		fireEvent.click(screen.getByLabelText("🧬"));
 
 		expect(picked).toEqual(["🧬"]);
@@ -88,19 +88,19 @@ describe("the icon picker", () => {
 	test("offers to remove only an icon that is there", () => {
 		const { rerender } = render(<EmojiPicker onPick={() => undefined} />);
 
-		fireEvent.click(screen.getByLabelText("Іконка сторінки"));
-		expect(screen.queryByText("Прибрати")).toBeNull();
+		fireEvent.click(screen.getByLabelText("Page icon"));
+		expect(screen.queryByText("Remove")).toBeNull();
 
 		rerender(<EmojiPicker icon="🧬" onPick={() => undefined} />);
-		expect(screen.getByText("Прибрати")).toBeDefined();
+		expect(screen.getByText("Remove")).toBeDefined();
 	});
 
 	test("clears the icon when asked", () => {
 		const picked: (string | undefined)[] = [];
 
 		render(<EmojiPicker icon="🧬" onPick={(icon) => picked.push(icon)} />);
-		fireEvent.click(screen.getByLabelText("Іконка сторінки"));
-		fireEvent.click(screen.getByText("Прибрати"));
+		fireEvent.click(screen.getByLabelText("Page icon"));
+		fireEvent.click(screen.getByText("Remove"));
 
 		expect(picked).toEqual([undefined]);
 	});
@@ -134,7 +134,7 @@ describe("the page tree", () => {
 
 		expect(await screen.findByText("Chapter 1")).toBeDefined();
 
-		fireEvent.click(screen.getByLabelText("Згорнути Biology"));
+		fireEvent.click(screen.getByLabelText("Collapse Biology"));
 
 		expect(screen.queryByText("Chapter 1")).toBeNull();
 		expect(screen.getByText("Physics")).toBeDefined();
@@ -143,7 +143,7 @@ describe("the page tree", () => {
 	test("says so when there are no pages", async () => {
 		routed(<PageTree nodes={[]} />);
 
-		expect(await screen.findByText("Сторінок ще немає.")).toBeDefined();
+		expect(await screen.findByText("No pages yet.")).toBeDefined();
 	});
 
 	test("the ends of a list cannot be pushed past them", async () => {
@@ -160,13 +160,13 @@ describe("the page tree", () => {
 		const disabled = (label: string) =>
 			(screen.getByLabelText(label) as HTMLButtonElement).disabled;
 
-		expect(await screen.findByLabelText("Підняти Biology")).toBeDefined();
-		expect(disabled("Підняти Biology")).toBe(true);
-		expect(disabled("Опустити Biology")).toBe(false);
-		expect(disabled("Підняти Chemistry")).toBe(false);
-		expect(disabled("Опустити Chemistry")).toBe(false);
-		expect(disabled("Підняти Physics")).toBe(false);
-		expect(disabled("Опустити Physics")).toBe(true);
+		expect(await screen.findByLabelText("Move Biology up")).toBeDefined();
+		expect(disabled("Move Biology up")).toBe(true);
+		expect(disabled("Move Biology down")).toBe(false);
+		expect(disabled("Move Chemistry up")).toBe(false);
+		expect(disabled("Move Chemistry down")).toBe(false);
+		expect(disabled("Move Physics up")).toBe(false);
+		expect(disabled("Move Physics down")).toBe(true);
 	});
 
 	test("a page can be picked up for dragging, and a busy tree cannot", async () => {
@@ -174,10 +174,9 @@ describe("the page tree", () => {
 			<PageTree nodes={[node("a", "Biology", 0), node("c", "Physics", 0)]} />,
 		);
 
-		expect(await screen.findByLabelText("Перетягнути Biology")).toBeDefined();
+		expect(await screen.findByLabelText("Drag Biology")).toBeDefined();
 		expect(
-			(screen.getByLabelText("Перетягнути Physics") as HTMLButtonElement)
-				.disabled,
+			(screen.getByLabelText("Drag Physics") as HTMLButtonElement).disabled,
 		).toBe(false);
 	});
 
@@ -195,7 +194,7 @@ describe("the page tree", () => {
 		expect(await screen.findByText("Chapter 1")).toBeDefined();
 		expect(screen.queryByText("Section")).toBeNull();
 
-		fireEvent.click(screen.getByLabelText("Розгорнути Chapter 1"));
+		fireEvent.click(screen.getByLabelText("Expand Chapter 1"));
 
 		expect(screen.getByText("Section")).toBeDefined();
 	});
@@ -208,11 +207,11 @@ describe("the page tree", () => {
 		);
 
 		expect(
-			((await screen.findByLabelText("Підняти Chapter 1")) as HTMLButtonElement)
+			((await screen.findByLabelText("Move Chapter 1 up")) as HTMLButtonElement)
 				.disabled,
 		).toBe(true);
 		expect(
-			(screen.getByLabelText("Опустити Chapter 1") as HTMLButtonElement)
+			(screen.getByLabelText("Move Chapter 1 down") as HTMLButtonElement)
 				.disabled,
 		).toBe(true);
 	});

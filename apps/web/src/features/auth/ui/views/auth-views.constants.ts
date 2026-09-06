@@ -1,23 +1,23 @@
 export const SENT_NOTICE =
-	"Якщо такий акаунт існує, ми надіслали посилання на пошту. Воно діє 30 хвилин.";
+	"If that account exists, we have emailed a link. It is good for 30 minutes.";
 
 const MESSAGES: Readonly<Record<string, string>> = {
-	INVALID_EMAIL_OR_PASSWORD: "Невірна пошта або пароль.",
-	USER_ALREADY_EXISTS: "Акаунт із такою поштою вже існує.",
-	PASSWORD_TOO_SHORT: "Пароль закороткий.",
-	INVALID_TOKEN: "Посилання прострочене або вже використане.",
-	INVALID_PASSWORD: "Теперішній пароль невірний.",
+	INVALID_EMAIL_OR_PASSWORD: "Wrong email or password.",
+	USER_ALREADY_EXISTS: "An account with that email already exists.",
+	PASSWORD_TOO_SHORT: "That password is too short.",
+	INVALID_TOKEN: "That link has expired or was already used.",
+	INVALID_PASSWORD: "That current password is wrong.",
 	RESET_PASSWORD_DISABLED:
-		"Відновлення пароля не налаштоване на цьому сервері.",
+		"Password recovery is not configured on this server.",
 };
 
 export const failureText = (message: string | undefined): string => {
 	if (message === undefined) {
-		return "Не вдалося. Спробуйте ще раз.";
+		return "That did not work. Try again.";
 	}
 
 	if (message.toLowerCase().includes("too many requests")) {
-		return "Забагато спроб. Зачекайте трохи.";
+		return "Too many attempts. Wait a moment.";
 	}
 
 	return MESSAGES[message] ?? message;

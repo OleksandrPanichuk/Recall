@@ -7,7 +7,7 @@ export interface RecallChoice {
 }
 
 export const RECALL_CHOICES: readonly RecallChoice[] = [
-	{ grade: "hard", label: "Важко", caption: "згадав через силу" },
-	{ grade: "good", label: "Норм", caption: "згадав як завжди" },
-	{ grade: "easy", label: "Легко", caption: "знав одразу" },
+	{ grade: "hard", label: "Hard", caption: "dragged it up" },
+	{ grade: "good", label: "Good", caption: "came back as usual" },
+	{ grade: "easy", label: "Easy", caption: "knew it at once" },
 ];

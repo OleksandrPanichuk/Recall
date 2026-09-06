@@ -26,7 +26,7 @@ export const Route = createFileRoute("/quizzes/$quizId")({
 	head: ({ loaderData }) => ({
 		meta: [
 			{
-				title: `${loaderData?.statistics?.title ?? "Набір"} · Recall`,
+				title: `${loaderData?.statistics?.title ?? "Quiz"} · Recall`,
 			},
 		],
 	}),

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/settings")({
 
 		return { settings, tokens: tokens.tokens };
 	},
-	head: () => ({ meta: [{ title: "Налаштування · Recall" }] }),
+	head: () => ({ meta: [{ title: "Settings · Recall" }] }),
 	component: Settings,
 });
 

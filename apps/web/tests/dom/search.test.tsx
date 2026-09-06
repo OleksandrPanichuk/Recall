@@ -30,7 +30,7 @@ const show = (onSearch: (query: string) => Promise<readonly PageMatch[]>) => {
 };
 
 const type = async (value: string) => {
-	fireEvent.change(await screen.findByLabelText("Пошук сторінок"), {
+	fireEvent.change(await screen.findByLabelText("Search pages"), {
 		target: { value },
 	});
 };
@@ -56,7 +56,7 @@ describe("searching the library", () => {
 
 		await type("quantum");
 
-		expect(await screen.findByText("Нічого не знайдено.")).toBeDefined();
+		expect(await screen.findByText("Nothing found.")).toBeDefined();
 	});
 
 	test("asks for nothing until something is typed", async () => {
@@ -71,6 +71,6 @@ describe("searching the library", () => {
 		await type("   ");
 
 		expect(asked).toEqual([]);
-		expect(screen.queryByText("Нічого не знайдено.")).toBeNull();
+		expect(screen.queryByText("Nothing found.")).toBeNull();
 	});
 });

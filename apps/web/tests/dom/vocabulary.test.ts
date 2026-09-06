@@ -44,13 +44,13 @@ describe("writing several alternatives on one line", () => {
 describe("what a half-written pair is refused for", () => {
 	test("no term", () => {
 		expect(pairProblems(pair({ term: " , " }))).toContain(
-			"Потрібен щонайменше один термін",
+			"At least one term is needed",
 		);
 	});
 
 	test("no translation", () => {
 		expect(pairProblems(pair({ translation: "" }))).toContain(
-			"Потрібен щонайменше один переклад",
+			"At least one translation is needed",
 		);
 	});
 

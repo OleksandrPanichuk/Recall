@@ -17,16 +17,16 @@ export function VerdictPanel({
 			) : (
 				<CircleX className="size-4 text-destructive" />
 			)}
-			<AlertTitle>{correct ? "Правильно" : "Неправильно"}</AlertTitle>
+			<AlertTitle>{correct ? "Correct" : "Wrong"}</AlertTitle>
 			<AlertDescription className="space-y-1">
 				{!correct && answers.length > 0 ? (
 					<p>
-						Правильна відповідь:{" "}
+						The answer is:{" "}
 						<strong className="text-foreground">{answers}</strong>
 					</p>
 				) : null}
 				{verdict.nearMiss === undefined ? null : (
-					<p>Майже: {verdict.nearMiss}</p>
+					<p>So close: {verdict.nearMiss}</p>
 				)}
 				{verdict.explanation === undefined ? null : (
 					<p>{verdict.explanation}</p>

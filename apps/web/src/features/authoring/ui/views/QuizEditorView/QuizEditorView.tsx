@@ -29,10 +29,10 @@ import {
 	formFor,
 	toDraft,
 } from "@/features/authoring/lib/drafts";
-import { questionCount } from "@/features/authoring/lib/plurals";
 import { MoveQuizSet } from "@/features/authoring/ui/components/MoveQuizSet";
 import { QuestionDraftForm } from "@/features/authoring/ui/components/QuestionDraftForm";
 import { VocabularyList } from "@/features/authoring/ui/components/VocabularyList";
+import { questions } from "@/shared/lib/plural";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
 
 interface Props {
@@ -57,7 +57,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 			await work();
 			await router.invalidate();
 		} catch {
-			setFailure("Не вдалося зберегти. Спробуйте ще раз.");
+			setFailure("Could not save. Try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -67,7 +67,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 		<div className="space-y-5">
 			<PageHeading
 				title={quiz.title}
-				caption={`${STATUS_LABELS[quiz.status] ?? quiz.status} · ${questionCount(quiz.questions.length)}`}
+				caption={`${STATUS_LABELS[quiz.status] ?? quiz.status} · ${questions(quiz.questions.length)}`}
 			/>
 
 			{failure === null ? null : <Alert variant="destructive">{failure}</Alert>}
@@ -83,7 +83,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 						})
 					}
 				>
-					Опублікувати
+					Publish
 				</Button>
 				<Button
 					variant="outline"
@@ -94,7 +94,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 						})
 					}
 				>
-					В архів
+					Archive
 				</Button>
 				<MoveQuizSet
 					folderId={quiz.folderId}
@@ -111,8 +111,8 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 			<section className="space-y-2">
 				{quiz.questions.length === 0 ? (
 					<p className="text-sm text-muted-foreground">
-						Питань ще немає. Опублікувати можна лише набір, у якому є хоча б
-						одне.
+						No questions yet. A quiz can only be published once it has at least
+						one.
 					</p>
 				) : (
 					quiz.questions.map((question, index) =>
@@ -123,7 +123,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 										form={form}
 										busy={busy}
 										typeLocked
-										submitLabel="Зберегти питання"
+										submitLabel="Save question"
 										onChange={setForm}
 										onCancel={() => {
 											setEditing(null);
@@ -165,7 +165,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 									</div>
 									<button
 										type="button"
-										aria-label={`Редагувати питання ${index + 1}`}
+										aria-label={`Edit question ${index + 1}`}
 										disabled={busy}
 										onClick={() => {
 											setAdding(false);
@@ -178,7 +178,7 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 									</button>
 									<button
 										type="button"
-										aria-label={`Видалити питання ${index + 1}`}
+										aria-label={`Delete question ${index + 1}`}
 										disabled={busy}
 										onClick={() =>
 											void run(async () => {
@@ -221,14 +221,16 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 						/>
 					) : (
 						<Button variant="outline" onClick={() => setAdding(true)}>
-							<Plus className="size-4" /> Додати питання
+							<Plus className="size-4" /> Add question
 						</Button>
 					)}
 				</CardContent>
 			</Card>
 
 			<section className="space-y-3 pt-4">
-				<h2 className="text-sm font-medium text-muted-foreground">Словник</h2>
+				<h2 className="text-sm font-medium text-muted-foreground">
+					Vocabulary
+				</h2>
 				<VocabularyList quizSetId={quiz.id} items={vocabulary} />
 			</section>
 		</div>

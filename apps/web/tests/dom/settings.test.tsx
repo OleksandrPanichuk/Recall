@@ -47,20 +47,20 @@ describe("quiz settings", () => {
 	test("says where the settings came from", () => {
 		open();
 
-		expect(screen.getByText(/спільні налаштування/)).toBeDefined();
+		expect(screen.getByText(/the shared settings/)).toBeDefined();
 	});
 
 	test("reports a toggle as the single field that changed", () => {
 		const changes = open();
 
-		fireEvent.click(screen.getByLabelText("Режим іспиту"));
+		fireEvent.click(screen.getByLabelText("Exam mode"));
 
 		expect(changes).toEqual([{ examMode: true }]);
 	});
 
 	test("turns a written list of days into intervals", () => {
 		const changes = open();
-		const field = screen.getByLabelText("Інтервали повторення, дні");
+		const field = screen.getByLabelText("Review intervals, days");
 
 		fireEvent.change(field, { target: { value: "2, 5, 14" } });
 		fireEvent.blur(field);
@@ -80,9 +80,9 @@ describe("quiz settings", () => {
 
 	test("refuses an unreadable list and puts the old one back", () => {
 		const changes = open();
-		const field = screen.getByLabelText("Інтервали повторення, дні");
+		const field = screen.getByLabelText("Review intervals, days");
 
-		fireEvent.change(field, { target: { value: "хтозна" } });
+		fireEvent.change(field, { target: { value: "who knows" } });
 		fireEvent.blur(field);
 
 		expect(changes).toEqual([]);
@@ -91,7 +91,7 @@ describe("quiz settings", () => {
 });
 
 describe("a single set's settings", () => {
-	const OWN = "Власні налаштування для цього набору";
+	const OWN = "Give this quiz its own settings";
 
 	test("is not offered at all when editing the shared settings", () => {
 		open();
@@ -105,7 +105,9 @@ describe("a single set's settings", () => {
 		expect((screen.getByLabelText(OWN) as HTMLInputElement).checked).toBe(
 			false,
 		);
-		expect(screen.getByText(/використовує спільні налаштування/)).toBeDefined();
+		expect(
+			screen.getByText(/currently follows the shared settings/),
+		).toBeDefined();
 	});
 
 	test("taking ownership writes the values the set is inheriting", () => {
@@ -142,7 +144,7 @@ describe("a single set's settings", () => {
 	test("changing one toggle still sends only that toggle", () => {
 		const changes = open({ source: "global" }, true);
 
-		fireEvent.click(screen.getByLabelText("Режим іспиту"));
+		fireEvent.click(screen.getByLabelText("Exam mode"));
 
 		expect(changes).toEqual([{ examMode: true }]);
 	});
@@ -163,7 +165,7 @@ describe("choosing a scheduler", () => {
 
 		expect(
 			screen
-				.getByRole("button", { name: /Сходинка/ })
+				.getByRole("button", { name: /Ladder/ })
 				.getAttribute("aria-pressed"),
 		).toBe("true");
 		expect(
@@ -192,7 +194,7 @@ describe("choosing a scheduler", () => {
 	test("the intervals field is gone once fsrs computes them", () => {
 		fsrs();
 
-		expect(screen.queryByLabelText("Інтервали повторення, дні")).toBeNull();
+		expect(screen.queryByLabelText("Review intervals, days")).toBeNull();
 	});
 
 	test("retention is offered only under fsrs", () => {

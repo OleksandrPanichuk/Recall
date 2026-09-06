@@ -100,7 +100,7 @@ export function ChoiceOptions({
 					disabled={disabled || chosen.length === 0}
 					onClick={() => onAnswer(chosen)}
 				>
-					Відповісти
+					Answer
 				</Button>
 			) : null}
 		</div>

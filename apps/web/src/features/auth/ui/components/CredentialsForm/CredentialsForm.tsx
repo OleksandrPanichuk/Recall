@@ -46,8 +46,8 @@ export function CredentialsForm({ submitLabel, withName, onSubmit }: Props) {
 					name="name"
 					type="text"
 					autoComplete="name"
-					placeholder="Як вас звати"
-					aria-label="Імʼя"
+					placeholder="Your name"
+					aria-label="Name"
 				/>
 			) : null}
 
@@ -57,7 +57,7 @@ export function CredentialsForm({ submitLabel, withName, onSubmit }: Props) {
 				required
 				autoComplete="email"
 				placeholder="you@example.com"
-				aria-label="Пошта"
+				aria-label="Email"
 			/>
 
 			<Input
@@ -66,18 +66,18 @@ export function CredentialsForm({ submitLabel, withName, onSubmit }: Props) {
 				required
 				minLength={withName ? MIN_PASSWORD_LENGTH : undefined}
 				autoComplete={withName ? "new-password" : "current-password"}
-				placeholder="Пароль"
-				aria-label="Пароль"
+				placeholder="Password"
+				aria-label="Password"
 			/>
 
 			{withName ? (
 				<p className="text-xs text-muted-foreground">
-					Щонайменше {MIN_PASSWORD_LENGTH} символів.
+					At least {MIN_PASSWORD_LENGTH} characters.
 				</p>
 			) : null}
 
 			<Button type="submit" className="w-full" disabled={busy}>
-				{busy ? "Хвилинку…" : submitLabel}
+				{busy ? "One moment…" : submitLabel}
 			</Button>
 		</form>
 	);

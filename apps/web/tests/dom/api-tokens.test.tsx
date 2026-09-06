@@ -35,24 +35,24 @@ const now = new Date("2026-06-01T00:00:00.000Z");
 
 describe("how a token's life is described", () => {
 	test("no expiry says so rather than showing a date", () => {
-		expect(expiryLabel(undefined, now)).toBe("без терміну");
+		expect(expiryLabel(undefined, now)).toBe("no expiry");
 	});
 
 	test("a date in the future is shown as a deadline", () => {
-		expect(expiryLabel("2026-07-01T00:00:00.000Z", now)).toContain("до ");
+		expect(expiryLabel("2026-07-01T00:00:00.000Z", now)).toContain("until ");
 	});
 
 	test("a date already past says prostrochenyi, not a deadline", () => {
-		expect(expiryLabel("2026-05-01T00:00:00.000Z", now)).toBe("прострочений");
+		expect(expiryLabel("2026-05-01T00:00:00.000Z", now)).toBe("expired");
 	});
 
 	test("an unparsable date does not render Invalid Date", () => {
-		expect(expiryLabel("not a date", now)).toBe("без терміну");
+		expect(expiryLabel("not a date", now)).toBe("no expiry");
 	});
 
 	test("a token nobody has used says that, not a blank", () => {
-		expect(lastUsedLabel(undefined)).toBe("ще не використовувався");
-		expect(lastUsedLabel("2026-05-01T00:00:00.000Z")).toContain("востаннє");
+		expect(lastUsedLabel(undefined)).toBe("never used");
+		expect(lastUsedLabel("2026-05-01T00:00:00.000Z")).toContain("last used");
 	});
 });
 
@@ -60,14 +60,14 @@ describe("the token list", () => {
 	test("says what a token is for when there are none", async () => {
 		routed(<ApiTokens tokens={[]} />);
 
-		expect(await screen.findByText(/через MCP/)).toBeDefined();
+		expect(await screen.findByText(/over MCP/)).toBeDefined();
 	});
 
 	test("lists a token with a way to revoke it", async () => {
 		routed(<ApiTokens tokens={[token()]} />);
 
 		expect(await screen.findByText("Claude")).toBeDefined();
-		expect(screen.getByLabelText("Відкликати Claude")).toBeDefined();
+		expect(screen.getByLabelText("Revoke Claude")).toBeDefined();
 	});
 
 	test("cannot submit an unnamed token", async () => {
@@ -75,7 +75,7 @@ describe("the token list", () => {
 
 		expect(
 			(
-				(await screen.findByText("Створити токен")).closest(
+				(await screen.findByText("Create token")).closest(
 					"button",
 				) as HTMLButtonElement
 			).disabled,
@@ -86,7 +86,7 @@ describe("the token list", () => {
 		routed(<ApiTokens tokens={[]} />);
 
 		expect(
-			(await screen.findByText("Без терміну"))
+			(await screen.findByText("No expiry"))
 				.closest("button")
 				?.getAttribute("aria-pressed"),
 		).toBe("true");

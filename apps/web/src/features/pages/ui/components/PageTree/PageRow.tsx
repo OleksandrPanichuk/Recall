@@ -59,7 +59,7 @@ export function PageRow({
 			<div className="group flex items-center gap-0.5 rounded-md pr-1 hover:bg-accent/60">
 				<button
 					type="button"
-					aria-label={`Перетягнути ${node.name}`}
+					aria-label={`Drag ${node.name}`}
 					className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 focus-visible:opacity-100 group-hover:opacity-100 disabled:cursor-default"
 					disabled={busy}
 					{...attributes}
@@ -71,7 +71,7 @@ export function PageRow({
 					<button
 						type="button"
 						aria-label={
-							collapsed ? `Розгорнути ${node.name}` : `Згорнути ${node.name}`
+							collapsed ? `Expand ${node.name}` : `Collapse ${node.name}`
 						}
 						onClick={() => onToggle(node.id)}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent"
@@ -107,7 +107,7 @@ export function PageRow({
 				<span className="flex shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
 					<button
 						type="button"
-						aria-label={`Підняти ${node.name}`}
+						aria-label={`Move ${node.name} up`}
 						disabled={busy || !canGoUp}
 						onClick={() => onReorder(node, "up")}
 						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
@@ -116,7 +116,7 @@ export function PageRow({
 					</button>
 					<button
 						type="button"
-						aria-label={`Опустити ${node.name}`}
+						aria-label={`Move ${node.name} down`}
 						disabled={busy || !canGoDown}
 						onClick={() => onReorder(node, "down")}
 						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"

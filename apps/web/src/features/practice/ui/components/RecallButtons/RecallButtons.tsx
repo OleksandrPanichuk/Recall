@@ -12,7 +12,7 @@ export function RecallButtons({ chosen, busy, onRate }: Props) {
 	return (
 		<div className="space-y-1.5">
 			<p className="text-xs text-muted-foreground">
-				Наскільки легко це згадалось? Від цього залежить наступне повторення.
+				How easily did that come back? It decides when you see it again.
 			</p>
 			<div className="grid grid-cols-3 gap-1.5">
 				{RECALL_CHOICES.map((choice) => (

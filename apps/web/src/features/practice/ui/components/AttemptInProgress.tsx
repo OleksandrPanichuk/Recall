@@ -16,11 +16,11 @@ export function AttemptInProgress({ title, quizSetId, onAbandon }: Props) {
 	return (
 		<Card className="space-y-4 p-8 text-center">
 			<div>
-				<p className="font-medium">Спершу завершіть попередню спробу</p>
+				<p className="font-medium">Finish the attempt you already started</p>
 				<p className="mt-1 text-sm text-muted-foreground">
 					{title === null
-						? "Ви вже почали інший набір і не завершили його."
-						: `Ви вже почали «${title}» і не завершили цей набір.`}
+						? "You started another quiz and never finished it."
+						: `You started “${title}” and never finished it.`}
 				</p>
 			</div>
 			<div className="flex flex-wrap justify-center gap-2">
@@ -28,7 +28,7 @@ export function AttemptInProgress({ title, quizSetId, onAbandon }: Props) {
 					<Link to="/practice/$quizId" params={{ quizId: quizSetId }}>
 						<Button>
 							<CirclePlay />
-							Продовжити ту спробу
+							Carry on with that one
 						</Button>
 					</Link>
 				)}
@@ -46,7 +46,7 @@ export function AttemptInProgress({ title, quizSetId, onAbandon }: Props) {
 					}}
 				>
 					<Trash2 />
-					{busy ? "Скасовуємо…" : "Скасувати її та почати цей набір"}
+					{busy ? "Abandoning…" : "Abandon it and start this quiz"}
 				</Button>
 			</div>
 		</Card>

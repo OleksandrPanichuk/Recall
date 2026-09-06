@@ -51,19 +51,18 @@ export function SharePage({ token, busy, onShare, onUnshare }: Props) {
 				variant="ghost"
 				size="sm"
 				disabled={busy}
-				aria-label="Поділитися сторінкою"
+				aria-label="Share page"
 				onClick={() => setOpen(!open)}
 			>
 				<Link />
-				{token === undefined ? "Поділитися" : "Доступна за посиланням"}
+				{token === undefined ? "Share" : "Shared by link"}
 			</Button>
 			{open ? (
 				<div className="absolute right-0 z-20 mt-1 w-80 space-y-2 rounded-lg border border-border bg-popover p-3 shadow-lg">
 					{token === undefined ? (
 						<>
 							<p className="text-sm text-muted-foreground">
-								Хто має посилання — читає цю сторінку. Без входу, без права
-								змінювати.
+								Anyone with the link can read this page. No sign-in, no editing.
 							</p>
 							<Button
 								size="sm"
@@ -71,7 +70,7 @@ export function SharePage({ token, busy, onShare, onUnshare }: Props) {
 								disabled={busy}
 								onClick={() => onShare(false)}
 							>
-								Створити посилання
+								Create link
 							</Button>
 						</>
 					) : (
@@ -87,13 +86,13 @@ export function SharePage({ token, busy, onShare, onUnshare }: Props) {
 									onClick={copy}
 								>
 									{copied ? <Check /> : <Copy />}
-									{copied ? "Скопійовано" : "Копіювати"}
+									{copied ? "Copied" : "Copy"}
 								</Button>
 								<Button
 									variant="outline"
 									size="sm"
 									disabled={busy}
-									aria-label="Створити нове посилання"
+									aria-label="Create a new link"
 									onClick={() => onShare(true)}
 								>
 									<RefreshCw />
@@ -102,14 +101,14 @@ export function SharePage({ token, busy, onShare, onUnshare }: Props) {
 									variant="outline"
 									size="sm"
 									disabled={busy}
-									aria-label="Закрити доступ"
+									aria-label="Stop sharing"
 									onClick={onUnshare}
 								>
 									<X />
 								</Button>
 							</div>
 							<p className="text-xs text-muted-foreground">
-								Нове посилання одразу вимикає старе.
+								A new link switches the old one off at once.
 							</p>
 						</>
 					)}

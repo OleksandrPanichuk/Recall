@@ -8,7 +8,6 @@ import {
 	problemsWith,
 	toDraft,
 } from "@/features/authoring/lib/drafts";
-import { questionCount } from "@/features/authoring/lib/plurals";
 
 const form = (over: Partial<DraftForm> = {}): DraftForm => ({
 	...emptyForm(),
@@ -21,26 +20,26 @@ const form = (over: Partial<DraftForm> = {}): DraftForm => ({
 describe("what a half-written question is refused for", () => {
 	test("an empty prompt", () => {
 		expect(problemsWith(form({ prompt: "   " }))).toContain(
-			"Питання не може бути порожнім",
+			"A question cannot be empty",
 		);
 	});
 
 	test("a choice question with one answer", () => {
 		expect(problemsWith(form({ answers: ["Bun", "  "] }))).toContain(
-			"Потрібно щонайменше два варіанти",
+			"At least two options are needed",
 		);
 	});
 
 	test("a choice question with nothing marked correct", () => {
 		expect(problemsWith(form({ correct: [] }))).toContain(
-			"Позначте правильну відповідь",
+			"Mark the correct answer",
 		);
 	});
 
 	test("a cloze question whose prompt has no blank", () => {
 		expect(
 			problemsWith(form({ type: QuestionType.Cloze, prompt: "no blank here" })),
-		).toContain("Пропуск позначається як ___");
+		).toContain("A blank is written as ___");
 	});
 
 	test("a cloze question with a blank and an answer is accepted", () => {
@@ -64,7 +63,7 @@ describe("what a half-written question is refused for", () => {
 					rights: ["1", "  "],
 				}),
 			),
-		).toContain("Потрібно щонайменше дві повні пари");
+		).toContain("At least two complete pairs are needed");
 	});
 
 	test("a complete question has nothing to complain about", () => {
@@ -134,31 +133,12 @@ describe("the shape each type is sent in", () => {
 	});
 });
 
-describe("counting questions in Ukrainian", () => {
-	test("one takes the singular", () => {
-		expect(questionCount(1)).toBe("1 питання");
-		expect(questionCount(21)).toBe("21 питання");
-	});
-
-	test("two through four take the same form", () => {
-		expect(questionCount(3)).toBe("3 питання");
-		expect(questionCount(24)).toBe("24 питання");
-	});
-
-	test("five and up, and the teens, take the genitive", () => {
-		expect(questionCount(5)).toBe("5 питань");
-		expect(questionCount(11)).toBe("11 питань");
-		expect(questionCount(14)).toBe("14 питань");
-		expect(questionCount(0)).toBe("0 питань");
-	});
-});
-
 describe("what a fresh form starts as", () => {
 	test("nothing is marked correct, so the author has to choose", () => {
 		expect(emptyForm().correct).toEqual([]);
 		expect(
 			problemsWith({ ...emptyForm(), prompt: "q", answers: ["a", "b"] }),
-		).toContain("Позначте правильну відповідь");
+		).toContain("Mark the correct answer");
 	});
 });
 

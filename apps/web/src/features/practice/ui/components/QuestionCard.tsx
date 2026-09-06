@@ -18,11 +18,11 @@ interface Props {
 }
 
 const hint: Readonly<Record<string, string>> = {
-	[QuestionType.MultipleChoice]: "Оберіть усі правильні варіанти",
-	[QuestionType.Ordering]: "Клікайте в правильному порядку",
-	[QuestionType.Matching]: "Складіть пари: спершу зліва, потім справа",
-	[QuestionType.TypedAnswer]: "Напишіть відповідь",
-	[QuestionType.Cloze]: "Заповніть пропуск",
+	[QuestionType.MultipleChoice]: "Pick every correct option",
+	[QuestionType.Ordering]: "Click them in the right order",
+	[QuestionType.Matching]: "Make pairs: left first, then right",
+	[QuestionType.TypedAnswer]: "Type your answer",
+	[QuestionType.Cloze]: "Fill in the blank",
 };
 
 export function QuestionCard({ view, question, disabled, onAnswer }: Props) {

@@ -1,13 +1,13 @@
 export const SCHEDULERS = [
 	{
 		kind: "ladder" as const,
-		title: "Сходинка",
-		hint: "Фіксовані інтервали, які ви задаєте самі",
+		title: "Ladder",
+		hint: "Fixed intervals that you set yourself",
 	},
 	{
 		kind: "fsrs" as const,
 		title: "FSRS",
-		hint: "Інтервал рахується з того, як ви насправді пам'ятаєте",
+		hint: "The interval follows how well you actually remember",
 	},
 ];
 

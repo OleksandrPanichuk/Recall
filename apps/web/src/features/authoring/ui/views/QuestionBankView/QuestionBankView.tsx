@@ -9,6 +9,7 @@ import {
 	STATUS_LABELS,
 	TYPE_LABELS,
 } from "@/features/authoring/constants/question-types";
+import { answers, quizzes } from "@/shared/lib/plural";
 import { NotFound } from "@/shared/ui/components/NotFound";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
 import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
@@ -32,11 +33,11 @@ export function QuestionBankView({ rows, signedIn }: Props) {
 	return (
 		<>
 			<PageHeading
-				title="Питання"
+				title="Questions"
 				caption={
 					rows.length === 0
-						? "Жодного питання ще не написано."
-						: `${rows.length} у ${new Set(rows.map((row) => row.quizSetId)).size} наборах · ${untouched} без жодної відповіді`
+						? "No questions written yet."
+						: `${rows.length} across ${quizzes(new Set(rows.map((row) => row.quizSetId)).size)} · ${untouched} never answered`
 				}
 			/>
 
@@ -44,9 +45,9 @@ export function QuestionBankView({ rows, signedIn }: Props) {
 				<div className="relative mb-4">
 					<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 					<Input
-						aria-label="Пошук питань"
+						aria-label="Search questions"
 						className="pl-9"
-						placeholder="Пошук за текстом, темою або набором"
+						placeholder="Search by text, topic or quiz"
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
 					/>
@@ -56,8 +57,8 @@ export function QuestionBankView({ rows, signedIn }: Props) {
 			{shown.length === 0 ? (
 				<Card className="p-8 text-center text-sm text-muted-foreground">
 					{rows.length === 0
-						? "Створіть набір і додайте питання — вони зберуться тут."
-						: "Нічого не знайшлося."}
+						? "Create a quiz and add questions — they gather here."
+						: "Nothing matched."}
 				</Card>
 			) : (
 				<Card className="divide-y divide-border overflow-hidden">
@@ -84,8 +85,8 @@ export function QuestionBankView({ rows, signedIn }: Props) {
 								<span>
 									·{" "}
 									{row.answerCount === 0
-										? "жодної відповіді"
-										: `${row.answerCount} відповідей`}
+										? "never answered"
+										: answers(row.answerCount)}
 								</span>
 							</p>
 						</div>

@@ -46,7 +46,7 @@ export function announcementsFor(nodes: readonly PageTreeNode[]) {
 
 	return {
 		onDragStart: ({ active }: { active: { id: string | number } }) =>
-			`Взяли сторінку ${nameOf(active.id)}. Стрілками пересуньте її, пробілом покладіть.`,
+			`Picked up ${nameOf(active.id)}. Use the arrow keys to move it, space to drop it.`,
 		onDragOver: ({
 			active,
 			over,
@@ -56,7 +56,7 @@ export function announcementsFor(nodes: readonly PageTreeNode[]) {
 		}) =>
 			over === null || over.id === active.id
 				? undefined
-				: `${nameOf(active.id)} — біля сторінки ${nameOf(over.id)}.`,
+				: `${nameOf(active.id)} is next to ${nameOf(over.id)}.`,
 		onDragEnd: ({
 			active,
 			over,
@@ -65,9 +65,9 @@ export function announcementsFor(nodes: readonly PageTreeNode[]) {
 			over: { id: string | number } | null;
 		}) =>
 			over === null || over.id === active.id
-				? `Сторінку ${nameOf(active.id)} залишено на місці.`
-				: `Сторінку ${nameOf(active.id)} покладено біля ${nameOf(over.id)}.`,
+				? `${nameOf(active.id)} was left where it was.`
+				: `${nameOf(active.id)} was dropped next to ${nameOf(over.id)}.`,
 		onDragCancel: ({ active }: { active: { id: string | number } }) =>
-			`Переміщення сторінки ${nameOf(active.id)} скасовано.`,
+			`Moving ${nameOf(active.id)} was cancelled.`,
 	};
 }

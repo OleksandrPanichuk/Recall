@@ -16,9 +16,9 @@ interface Props {
 }
 
 const source: Record<string, string> = {
-	set: "власні налаштування набору",
-	global: "спільні налаштування",
-	default: "типові значення",
+	set: "this quiz's own settings",
+	global: "the shared settings",
+	default: "the defaults",
 };
 
 export function SettingsForm({
@@ -37,7 +37,7 @@ export function SettingsForm({
 		<div className="space-y-4">
 			<div className="flex items-center justify-between gap-3">
 				<p className="text-sm text-muted-foreground">
-					Діють {source[resolved.source] ?? resolved.source}
+					Using {source[resolved.source] ?? resolved.source}
 				</p>
 				<SaveState state={state} />
 			</div>
@@ -46,11 +46,11 @@ export function SettingsForm({
 				<Card>
 					<CardContent className="pt-2">
 						<Switch
-							label="Власні налаштування для цього набору"
+							label="Give this quiz its own settings"
 							hint={
 								own
-									? "Зміни нижче стосуються лише цього набору"
-									: "Зараз набір використовує спільні налаштування"
+									? "Changes below apply to this quiz only"
+									: "This quiz currently follows the shared settings"
 							}
 							checked={own}
 							onChange={(wanted) =>
@@ -73,20 +73,20 @@ export function SettingsForm({
 			<Card>
 				<CardContent className="divide-y divide-border pt-2">
 					<Switch
-						label="Перемішувати варіанти"
-						hint="Порядок відповідей змінюється щоразу"
+						label="Shuffle options"
+						hint="The order of answers changes every time"
 						checked={settings.shuffleOptions}
 						onChange={(shuffleOptions) => onChange({ shuffleOptions })}
 					/>
 					<Switch
-						label="Перемішувати питання"
-						hint="Набір іде не по порядку"
+						label="Shuffle questions"
+						hint="The quiz runs out of order"
 						checked={settings.shuffleQuestions}
 						onChange={(shuffleQuestions) => onChange({ shuffleQuestions })}
 					/>
 					<Switch
-						label="Режим іспиту"
-						hint="Відповіді показуються тільки в кінці"
+						label="Exam mode"
+						hint="Answers are shown only at the end"
 						checked={settings.examMode}
 						onChange={(examMode) => onChange({ examMode })}
 					/>
@@ -97,7 +97,7 @@ export function SettingsForm({
 				<CardContent className="space-y-4 pt-5">
 					<div className="space-y-2">
 						<span className="block text-sm font-medium">
-							Як рахувати наступне повторення
+							How the next review is worked out
 						</span>
 						<SchedulerChoice
 							value={settings.repetition.scheduler}
@@ -112,7 +112,7 @@ export function SettingsForm({
 					{settings.repetition.scheduler === "fsrs" ? (
 						<div className="space-y-2">
 							<span className="block text-sm font-medium">
-								Цільове запам'ятовування
+								Target retention
 							</span>
 							<RetentionChoice
 								value={settings.repetition.desiredRetention}
@@ -123,14 +123,14 @@ export function SettingsForm({
 								}
 							/>
 							<p className="text-xs text-muted-foreground">
-								Яку частку питань ви хочете пам'ятати на момент повторення. Вище
-								— повторень більше, інтервали коротші.
+								How much you want to remember by the time a question comes back.
+								Higher means more reviews and shorter intervals.
 							</p>
 						</div>
 					) : (
 						<div className="space-y-1.5">
 							<label htmlFor="intervals" className="block text-sm font-medium">
-								Інтервали повторення, дні
+								Review intervals, days
 							</label>
 							<Input
 								id="intervals"
@@ -155,8 +155,8 @@ export function SettingsForm({
 								}}
 							/>
 							<p className="text-xs text-muted-foreground">
-								Через скільки днів питання повертається після кожної правильної
-								відповіді.
+								How many days until a question comes back after each correct
+								answer.
 							</p>
 						</div>
 					)}

@@ -22,7 +22,7 @@ export function AnsweredQuestion({ answer }: Props) {
 			{typed ? (
 				<div className="mt-3 space-y-1 pl-6.5 text-sm">
 					<p className="text-muted-foreground">
-						Ви написали:{" "}
+						You wrote:{" "}
 						<span className="text-foreground">{answer.typedAnswer ?? "—"}</span>
 					</p>
 				</div>
@@ -43,9 +43,9 @@ export function AnsweredQuestion({ answer }: Props) {
 							<span>{option.text}</span>
 							<span className="shrink-0 text-xs text-muted-foreground">
 								{option.isCorrect
-									? "правильна"
+									? "correct"
 									: chosen.has(option.id)
-										? "ваш вибір"
+										? "your pick"
 										: ""}
 							</span>
 						</li>

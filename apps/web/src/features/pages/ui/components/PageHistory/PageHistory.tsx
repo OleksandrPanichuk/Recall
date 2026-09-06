@@ -28,7 +28,7 @@ export function PageHistory({ revisions, current, busy, onRestore }: Props) {
 		return (
 			<Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
 				<History className="size-3.5" />
-				Історія ({revisions.length})
+				History ({revisions.length})
 			</Button>
 		);
 	}
@@ -37,10 +37,10 @@ export function PageHistory({ revisions, current, busy, onRestore }: Props) {
 		<div className="space-y-2">
 			<div className="flex items-center justify-between">
 				<h2 className="text-sm font-medium text-muted-foreground">
-					Попередні версії
+					Earlier versions
 				</h2>
 				<Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
-					Згорнути
+					Collapse
 				</Button>
 			</div>
 
@@ -71,7 +71,7 @@ export function PageHistory({ revisions, current, busy, onRestore }: Props) {
 								onClick={() => onRestore(revision.summary ?? "")}
 							>
 								<RotateCcw className="size-3.5" />
-								{changedSince(revision, current) ? "Повернути" : "Це поточна"}
+								{changedSince(revision, current) ? "Restore" : "Current"}
 							</Button>
 						</CardContent>
 					</Card>

@@ -30,9 +30,9 @@ export function PageSearch({ onSearch }: Props) {
 			<div className="relative">
 				<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 				<Input
-					aria-label="Пошук сторінок"
+					aria-label="Search pages"
 					className="pl-9"
-					placeholder="Пошук у конспектах"
+					placeholder="Search your notes"
 					value={query}
 					onChange={(event) => run(event.target.value)}
 				/>
@@ -41,7 +41,7 @@ export function PageSearch({ onSearch }: Props) {
 				<Card className="divide-y divide-border overflow-hidden">
 					{matches.length === 0 ? (
 						<p className="px-4 py-3 text-sm text-muted-foreground">
-							Нічого не знайдено.
+							Nothing found.
 						</p>
 					) : (
 						matches.map((match) => (

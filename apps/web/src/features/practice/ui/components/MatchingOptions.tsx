@@ -75,7 +75,7 @@ export function MatchingOptions({ question, disabled, onAnswer }: Props) {
 
 			{pairs.length > 0 ? (
 				<p className="text-xs text-muted-foreground">
-					Складено пар: {pairs.length} з {left.length}
+					Pairs made: {pairs.length} of {left.length}
 				</p>
 			) : null}
 
@@ -85,7 +85,7 @@ export function MatchingOptions({ question, disabled, onAnswer }: Props) {
 					disabled={disabled || !complete}
 					onClick={() => onAnswer(pairs.flat())}
 				>
-					Відповісти
+					Answer
 				</Button>
 				<Button
 					variant="ghost"
@@ -95,7 +95,7 @@ export function MatchingOptions({ question, disabled, onAnswer }: Props) {
 						setPendingLeft(null);
 					}}
 				>
-					Скинути
+					Reset
 				</Button>
 			</div>
 		</div>

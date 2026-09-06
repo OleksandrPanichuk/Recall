@@ -91,7 +91,7 @@ describe("a page without a summary", () => {
 		show(aView());
 
 		expect(
-			await screen.findByText("Напишіть щось або натисніть «/» для команд"),
+			await screen.findByText("Write something, or press “/” for commands"),
 		).toBeDefined();
 	});
 

@@ -1,4 +1,5 @@
 import type { DailyActivity } from "@recall/contracts";
+import { answers, weeks as countedWeeks } from "@/shared/lib/plural";
 import {
 	CHART_HEIGHT,
 	CHART_PADDING,
@@ -21,10 +22,10 @@ export function AccuracyTrend({ activity }: Props) {
 	if (weeks.length < 2) {
 		return (
 			<div className="space-y-1">
-				<h2 className="text-sm font-medium">Точність по тижнях</h2>
+				<h2 className="text-sm font-medium">Accuracy by week</h2>
 				<p className="text-sm text-muted-foreground">
-					Тижні щонайменше з {MIN_ANSWERS_PER_WEEK} відповідями з'являться тут.
-					Поки таких {weeks.length}.
+					Weeks with at least {MIN_ANSWERS_PER_WEEK} answers show up here. So
+					far there are {weeks.length}.
 				</p>
 			</div>
 		);
@@ -41,7 +42,7 @@ export function AccuracyTrend({ activity }: Props) {
 	return (
 		<div className="space-y-3">
 			<div className="flex flex-wrap items-baseline justify-between gap-2">
-				<h2 className="text-sm font-medium">Точність по тижнях</h2>
+				<h2 className="text-sm font-medium">Accuracy by week</h2>
 				<p className="text-xs text-muted-foreground tabular-nums">
 					{percent(first?.accuracy ?? 0)} → {percent(last?.accuracy ?? 0)}
 					<span
@@ -59,11 +60,11 @@ export function AccuracyTrend({ activity }: Props) {
 					viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
 					className="h-36 w-full min-w-[320px]"
 					role="img"
-					aria-label={`Точність за ${weeks.length} тижнів, від ${percent(
+					aria-label={`Accuracy over ${weeks.length} weeks, from ${percent(
 						first?.accuracy ?? 0,
-					)} до ${percent(last?.accuracy ?? 0)}`}
+					)} to ${percent(last?.accuracy ?? 0)}`}
 				>
-					<title>Точність по тижнях</title>
+					<title>Accuracy by week</title>
 					{[0.5, 0.75, 1].map((level) => (
 						<line
 							key={level}
@@ -101,7 +102,8 @@ export function AccuracyTrend({ activity }: Props) {
 			<p className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
 				<span>{shortDay(first?.weekStart ?? "")}</span>
 				<span>
-					{weeks.length} тижнів · {last?.answered} відповідей за останній
+					{countedWeeks(weeks.length)} · {answers(last?.answered ?? 0)} in the
+					last one
 				</span>
 				<span>{shortDay(last?.weekStart ?? "")}</span>
 			</p>

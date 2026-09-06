@@ -37,7 +37,7 @@ export function AttemptReviewView({ attempt }: Props) {
 			>
 				<Button variant="ghost">
 					<ArrowLeft />
-					до набору
+					back to quiz
 				</Button>
 			</Link>
 		</>

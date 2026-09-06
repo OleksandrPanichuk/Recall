@@ -61,9 +61,9 @@ const optionLabels = (): readonly string[] =>
 		.filter(
 			(text) =>
 				text.length > 0 &&
-				text !== "Показати відповідь" &&
-				text !== "Відповісти" &&
-				text !== "Скинути",
+				text !== "Show the answer" &&
+				text !== "Answer" &&
+				text !== "Reset",
 		);
 
 const mount = (question: Question, view = aView()) => {
@@ -172,7 +172,7 @@ describe("multiple choice", () => {
 
 		expect(answers).toEqual([]);
 
-		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
+		fireEvent.click(screen.getByRole("button", { name: "Answer" }));
 
 		expect(answers).toEqual([{ selectedOptionPositions: [0, 1] }]);
 	});
@@ -188,7 +188,7 @@ describe("multiple choice", () => {
 		fireEvent.click(screen.getByText("First"));
 		fireEvent.click(screen.getByText("Second"));
 		fireEvent.click(screen.getByText("Second"));
-		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
+		fireEvent.click(screen.getByRole("button", { name: "Answer" }));
 
 		expect(answers).toEqual([{ selectedOptionPositions: [0] }]);
 	});
@@ -199,10 +199,10 @@ describe("typed answer", () => {
 		const answers = answersOf(
 			aQuestion(QuestionType.TypedAnswer, [option("write-ahead log", 0, true)]),
 		);
-		const field = screen.getByPlaceholderText("Ваша відповідь");
+		const field = screen.getByPlaceholderText("Your answer");
 
 		fireEvent.change(field, { target: { value: "  write-ahead log  " } });
-		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
+		fireEvent.click(screen.getByRole("button", { name: "Answer" }));
 
 		expect(answers).toEqual([{ typedAnswer: "write-ahead log" }]);
 	});
@@ -210,7 +210,7 @@ describe("typed answer", () => {
 	test("will not send an empty answer", () => {
 		const answers = answersOf(aQuestion(QuestionType.Cloze, []));
 
-		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
+		fireEvent.click(screen.getByRole("button", { name: "Answer" }));
 
 		expect(answers).toEqual([]);
 	});
@@ -232,7 +232,7 @@ describe("ordering", () => {
 			fireEvent.click(screen.getByText(label));
 		}
 
-		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
+		fireEvent.click(screen.getByRole("button", { name: "Answer" }));
 
 		expect(answers).toEqual([{ selectedOptionPositions: [2, 0, 4, 1, 3] }]);
 	});
@@ -252,7 +252,7 @@ describe("ordering", () => {
 		mount(ordered);
 
 		const submit = screen.getByRole("button", {
-			name: "Відповісти",
+			name: "Answer",
 		}) as HTMLButtonElement;
 
 		expect(submit.disabled).toBe(true);
@@ -274,7 +274,7 @@ describe("matching", () => {
 		fireEvent.click(screen.getByText("Right one"));
 		fireEvent.click(screen.getByText("Left one"));
 		fireEvent.click(screen.getByText("Right two"));
-		fireEvent.click(screen.getByRole("button", { name: "Відповісти" }));
+		fireEvent.click(screen.getByRole("button", { name: "Answer" }));
 
 		expect(answers).toEqual([{ selectedOptionPositions: [1, 2, 0, 3] }]);
 	});
@@ -285,7 +285,7 @@ describe("matching", () => {
 		fireEvent.click(screen.getByText("Left one"));
 
 		const submit = screen.getByRole("button", {
-			name: "Відповісти",
+			name: "Answer",
 		}) as HTMLButtonElement;
 
 		expect(submit.disabled).toBe(true);

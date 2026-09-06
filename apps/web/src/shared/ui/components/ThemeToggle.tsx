@@ -13,7 +13,7 @@ export function ThemeToggle() {
 	return (
 		<button
 			type="button"
-			aria-label={next === "dark" ? "Темна тема" : "Світла тема"}
+			aria-label={next === "dark" ? "Dark theme" : "Light theme"}
 			onClick={() => choose(next)}
 			className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 		>

@@ -13,7 +13,7 @@ interface Props {
 export function AttemptFinished({ finished, quizId }: Props) {
 	return (
 		<>
-			<PageHeading title="Спроба завершена" />
+			<PageHeading title="Attempt finished" />
 			<Card>
 				<CardContent className="space-y-4 pt-5">
 					<ScoreSummary
@@ -28,10 +28,10 @@ export function AttemptFinished({ finished, quizId }: Props) {
 							to="/attempts/$attemptId"
 							params={{ attemptId: finished.attemptId }}
 						>
-							<Button>Розібрати відповіді</Button>
+							<Button>Go through the answers</Button>
 						</Link>
 						<Link to="/quizzes/$quizId" params={{ quizId }}>
-							<Button variant="ghost">До набору</Button>
+							<Button variant="ghost">Back to quiz</Button>
 						</Link>
 					</div>
 				</CardContent>
