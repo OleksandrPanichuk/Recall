@@ -1,4 +1,8 @@
-import type { QuizDetail, VocabularyItem } from "@recall/contracts";
+import type {
+	PageTreeNode,
+	QuizDetail,
+	VocabularyItem,
+} from "@recall/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -15,6 +19,7 @@ import {
 	addQuestions,
 	archiveQuizSet,
 	deleteQuestion,
+	moveQuizSet,
 	publishQuizSet,
 	updateQuestion,
 } from "@/features/authoring/lib/authoring.api";
@@ -25,6 +30,7 @@ import {
 	toDraft,
 } from "@/features/authoring/lib/drafts";
 import { questionCount } from "@/features/authoring/lib/plurals";
+import { MoveQuizSet } from "@/features/authoring/ui/components/MoveQuizSet";
 import { QuestionDraftForm } from "@/features/authoring/ui/components/QuestionDraftForm";
 import { VocabularyList } from "@/features/authoring/ui/components/VocabularyList";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
@@ -32,9 +38,10 @@ import { PageHeading } from "@/shared/ui/components/PageHeading";
 interface Props {
 	readonly quiz: QuizDetail;
 	readonly vocabulary: readonly VocabularyItem[];
+	readonly pages: readonly PageTreeNode[];
 }
 
-export function QuizEditorView({ quiz, vocabulary }: Props) {
+export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 	const router = useRouter();
 	const [form, setForm] = useState(emptyForm);
 	const [adding, setAdding] = useState(false);
@@ -89,6 +96,16 @@ export function QuizEditorView({ quiz, vocabulary }: Props) {
 				>
 					В архів
 				</Button>
+				<MoveQuizSet
+					folderId={quiz.folderId}
+					pages={pages}
+					busy={busy}
+					onMove={(folderId) =>
+						run(async () => {
+							await moveQuizSet({ data: { quizSetId: quiz.id, folderId } });
+						})
+					}
+				/>
 			</div>
 
 			<section className="space-y-2">
