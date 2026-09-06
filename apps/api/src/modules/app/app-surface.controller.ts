@@ -31,6 +31,7 @@ import {
 	issueOwnApiTokenCommandSchema,
 	leechesCommandSchema,
 	listOwnApiTokensCommandSchema,
+	listQuestionsCommandSchema,
 	listRevisionsCommandSchema,
 	listSetsCommandSchema,
 	listVocabularyCommandSchema,
@@ -80,6 +81,7 @@ import {
 	leechToWire,
 	pageTreeNodeToWire,
 	practiceResultToWire,
+	questionRowToWire,
 	quizDetailToWire,
 	quizSummaryToWire,
 	resolvedSettingsToWire,
@@ -233,6 +235,21 @@ export class AppSurfaceController {
 		return (await this.of(request).listQuizSets.execute(command)).map(
 			quizSummaryToWire,
 		);
+	}
+
+	@Post(BOT_ROUTES.listQuestions)
+	@HttpCode(HttpStatus.OK)
+	async listQuestions(@Req() request: SessionRequest, @Body() body: unknown) {
+		const command = parseBody(listQuestionsCommandSchema, body);
+
+		return (
+			await this.of(request).listQuestions.execute({
+				quizSetId:
+					command.quizSetId === undefined
+						? undefined
+						: toQuizSetId(command.quizSetId),
+			})
+		).map(questionRowToWire);
 	}
 
 	@Post(BOT_ROUTES.addQuestions)

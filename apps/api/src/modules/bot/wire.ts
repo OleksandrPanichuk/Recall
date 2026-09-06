@@ -13,6 +13,7 @@ import type {
 	PageTreeNode as WirePageTreeNode,
 	StartPracticeSessionResult as WirePracticeResult,
 	Question as WireQuestion,
+	QuestionRow as WireQuestionRow,
 	QuizDetail as WireQuizDetail,
 	QuizSettings as WireQuizSettings,
 	QuizSummary as WireQuizSummary,
@@ -34,6 +35,7 @@ import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
 import type { DetachedQuiz } from "@/application/use-cases/folders/detach-quiz";
 import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
+import type { QuestionRow } from "@/application/use-cases/quiz-sets/list-questions";
 import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
 import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
@@ -64,6 +66,14 @@ export const questionToWire = (question: Question): WireQuestion => ({
 	topic: text(question.topic),
 	hint: text(question.hint),
 	vocabularyItemId: text(question.vocabularyItemId),
+});
+
+export const questionRowToWire = (row: QuestionRow): WireQuestionRow => ({
+	question: questionToWire(row.question),
+	quizSetId: String(row.quizSetId),
+	setTitle: row.setTitle,
+	setStatus: row.setStatus,
+	answerCount: row.answerCount,
 });
 
 export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({

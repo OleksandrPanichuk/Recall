@@ -16,14 +16,18 @@ import {
 	type DeleteQuestionCommand,
 	deletedQuestionSchema,
 	deleteQuestionCommandSchema,
+	type ListQuestionsCommand,
 	type ListSetsCommand,
 	type ListVocabularyCommand,
+	listQuestionsCommandSchema,
 	listSetsCommandSchema,
 	listVocabularyCommandSchema,
 	type MoveSetCommand,
 	moveSetCommandSchema,
+	type QuestionRow,
 	type QuizDetail,
 	type QuizSetIdCommand,
+	questionRowSchema,
 	quizDetailSchema,
 	quizSetIdCommandSchema,
 	type UpdatedVocabulary,
@@ -271,6 +275,10 @@ export interface AuthoringUseCases {
 	readonly archiveQuizSet: UseCaseLike<QuizSetIdCommand, void>;
 	readonly getQuizSet: UseCaseLike<QuizSetIdCommand, QuizDetail>;
 	readonly listQuizSets: UseCaseLike<ListSetsCommand, readonly QuizSummary[]>;
+	readonly listQuestions: UseCaseLike<
+		ListQuestionsCommand,
+		readonly QuestionRow[]
+	>;
 	readonly addQuestions: UseCaseLike<AddQuestionsCommand, AddedQuestions>;
 	readonly updateQuestion: UseCaseLike<UpdateQuestionCommand, void>;
 	readonly deleteQuestion: UseCaseLike<DeleteQuestionCommand, DeletedQuestion>;
@@ -391,6 +399,7 @@ export const BOT_ROUTES = {
 	archiveQuizSet: "sets/archive",
 	getQuizSet: "sets/get",
 	listQuizSets: "sets/list",
+	listQuestions: "sets/questions/list",
 	addQuestions: "sets/questions/add",
 	updateQuestion: "sets/questions/update",
 	deleteQuestion: "sets/questions/delete",
@@ -558,6 +567,11 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.listQuizSets,
 			listSetsCommandSchema,
 			quizSummarySchema.array().readonly(),
+		),
+		listQuestions: operation(
+			BOT_ROUTES.listQuestions,
+			listQuestionsCommandSchema,
+			questionRowSchema.array().readonly(),
 		),
 		addQuestions: operation(
 			BOT_ROUTES.addQuestions,
