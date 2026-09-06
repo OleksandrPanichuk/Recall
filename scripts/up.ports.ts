@@ -141,3 +141,34 @@ export async function waitForHttp(
 
 	return false;
 }
+
+export async function stopHolder(
+	pid: number,
+	signal: NodeJS.Signals = "SIGTERM",
+): Promise<boolean> {
+	try {
+		process.kill(pid, signal);
+	} catch {
+		return false;
+	}
+
+	return true;
+}
+
+export async function waitForPortFree(
+	host: string,
+	port: number,
+	timeoutMs: number,
+): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+
+	while (Date.now() < deadline) {
+		if (await isPortFree(host, port)) {
+			return true;
+		}
+
+		await Bun.sleep(100);
+	}
+
+	return isPortFree(host, port);
+}

@@ -27,6 +27,7 @@
 		"db:generate": "bun run --filter '@recall/api' db:generate:pg",
 		"db:migrate": "bun run --filter '@recall/api' db:migrate:pg",
 		"up": "bun run ./scripts/up.ts",
+		"down": "bun run ./scripts/down.ts",
 		"dev": "bun run --filter '@recall/bot' dev",
 		"start": "bun run ./apps/bot/dist/main.js",
 		"status": "bun run ./apps/api/src/entrypoints/status.ts",
