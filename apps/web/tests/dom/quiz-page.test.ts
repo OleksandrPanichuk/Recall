@@ -42,6 +42,19 @@ describe("what the quiz page offers", () => {
 		);
 	});
 
+	test("says a paused attempt is paused, not merely started", () => {
+		expect(
+			quizCallToAction(1, active({ status: "paused", index: 5, total: 26 }))
+				.caption,
+		).toBe("1 спроб(и) · призупинено на 6 з 26");
+	});
+
+	test("still offers to continue a paused attempt", () => {
+		expect(quizCallToAction(1, active({ status: "paused" })).label).toBe(
+			"Продовжити спробу",
+		);
+	});
+
 	test("asks to finish when every question is behind you", () => {
 		const action = quizCallToAction(1, active({ awaitingFinish: true }));
 

@@ -28,8 +28,13 @@ export function quizCallToAction(
 		};
 	}
 
+	const where = `${active.index + 1} з ${active.total}`;
+
 	return {
-		caption: `${done} · почато, ${active.index + 1} з ${active.total}`,
+		caption:
+			active.status === "paused"
+				? `${done} · призупинено на ${where}`
+				: `${done} · почато, ${where}`,
 		label: "Продовжити спробу",
 		resuming: true,
 	};

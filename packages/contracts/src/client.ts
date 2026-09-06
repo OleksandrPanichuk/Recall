@@ -112,9 +112,11 @@ import {
 	type PageMatch,
 	type PageRevision,
 	type PageTreeNode,
+	type PauseAttemptCommand,
 	pageMatchSchema,
 	pageRevisionSchema,
 	pageTreeNodeSchema,
+	pauseAttemptCommandSchema,
 	practiceCommandSchema,
 	practiceResultSchema,
 	type QuizSettings,
@@ -127,6 +129,7 @@ import {
 	type ReorderPageCommand,
 	type ResolvedQuizSettings,
 	type ResolveQuizSettingsCommand,
+	type ResumedAttempt,
 	type RevokeApiTokenCommand,
 	type RevokedApiToken,
 	type RevokeOwnApiTokenCommand,
@@ -134,6 +137,7 @@ import {
 	reorderPageCommandSchema,
 	resolvedSettingsSchema,
 	resolveSettingsCommandSchema,
+	resumedAttemptSchema,
 	revokeApiTokenCommandSchema,
 	revokedApiTokenSchema,
 	revokeOwnApiTokenCommandSchema,
@@ -335,6 +339,8 @@ export interface PracticeUseCases extends AuthoringUseCases {
 		FinishQuizAttemptCommand,
 		FinishQuizAttemptResult
 	>;
+	readonly pauseQuizAttempt: UseCaseLike<PauseAttemptCommand, void>;
+	readonly resumeQuizAttempt: UseCaseLike<PauseAttemptCommand, ResumedAttempt>;
 	readonly getQuizStatistics: UseCaseLike<
 		GetQuizStatisticsCommand,
 		QuizStatistics
@@ -410,6 +416,8 @@ export const BOT_ROUTES = {
 	currentQuestion: "attempts/current",
 	answer: "attempts/answer",
 	finish: "attempts/finish",
+	pause: "attempts/pause",
+	resume: "attempts/resume",
 	abandon: "attempts/abandon",
 	statistics: "statistics",
 	attemptDetail: "attempts/detail",
@@ -691,6 +699,16 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.finish,
 			finishCommandSchema,
 			finishResultSchema,
+		),
+		pauseQuizAttempt: operation(
+			BOT_ROUTES.pause,
+			pauseAttemptCommandSchema,
+			z.void(),
+		),
+		resumeQuizAttempt: operation(
+			BOT_ROUTES.resume,
+			pauseAttemptCommandSchema,
+			resumedAttemptSchema,
 		),
 		getQuizStatistics: operation(
 			BOT_ROUTES.statistics,

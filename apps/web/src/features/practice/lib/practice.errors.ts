@@ -4,7 +4,7 @@ const messages: Readonly<Record<string, string>> = {
 	[ApiErrorName.NoActiveAttempt]:
 		"Спроби вже немає. Поверніться до набору й почніть знову.",
 	[ApiErrorName.AttemptNotActive]:
-		"Спробу призупинено. Поверніться до набору, щоб продовжити.",
+		"Спробу призупинено. Натисніть «Продовжити», щоб відповідати.",
 	[ApiErrorName.QuestionNotInAttempt]:
 		"Це питання вже позаду. Оновіть сторінку.",
 };
