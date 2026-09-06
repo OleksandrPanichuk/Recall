@@ -29,6 +29,7 @@ import {
 	listRevisionsCommandSchema,
 	loginLinkCommandSchema,
 	movePageCommandSchema,
+	pauseAttemptCommandSchema,
 	practiceCommandSchema,
 	renamePageCommandSchema,
 	reorderPageCommandSchema,
@@ -47,6 +48,10 @@ import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/aban
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import {
+	PauseQuizAttemptUseCase,
+	ResumeQuizAttemptUseCase,
+} from "@/application/use-cases/attempts/resume-quiz-attempt";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
@@ -90,6 +95,7 @@ import {
 	pageTreeNodeToWire,
 	practiceResultToWire,
 	resolvedSettingsToWire,
+	resumedAttemptToWire,
 	revisionToWire,
 	settingsToWire,
 	startResultToWire,
@@ -115,6 +121,10 @@ export class BotController {
 		private readonly getInsights: GetInsightsUseCase,
 		@Inject(AbandonQuizAttemptUseCase)
 		private readonly abandonQuizAttempt: AbandonQuizAttemptUseCase,
+		@Inject(PauseQuizAttemptUseCase)
+		private readonly pauseQuizAttempt: PauseQuizAttemptUseCase,
+		@Inject(ResumeQuizAttemptUseCase)
+		private readonly resumeQuizAttempt: ResumeQuizAttemptUseCase,
 		@Inject(CreateFolderUseCase)
 		private readonly createFolder: CreateFolderUseCase,
 		@Inject(RenameFolderUseCase)
@@ -454,6 +464,22 @@ export class BotController {
 		const command = parseBody(finishCommandSchema, body);
 
 		return finishResultToWire(await this.finishQuizAttempt.execute(command));
+	}
+
+	@Post(BOT_ROUTES.pause)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async pause(@Body() body: unknown) {
+		parseBody(pauseAttemptCommandSchema, body);
+
+		await this.pauseQuizAttempt.execute({});
+	}
+
+	@Post(BOT_ROUTES.resume)
+	@HttpCode(HttpStatus.OK)
+	async resume(@Body() body: unknown) {
+		parseBody(pauseAttemptCommandSchema, body);
+
+		return resumedAttemptToWire(await this.resumeQuizAttempt.execute({}));
 	}
 
 	@Post(BOT_ROUTES.abandon)

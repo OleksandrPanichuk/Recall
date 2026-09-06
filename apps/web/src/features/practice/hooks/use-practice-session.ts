@@ -8,6 +8,8 @@ import {
 	abandonAttempt,
 	answerQuestion,
 	finishAttempt,
+	pauseAttempt,
+	resumeAttempt,
 } from "@/features/practice/lib/practice.api";
 import { messageFor } from "@/features/practice/lib/practice.errors";
 import type {
@@ -23,6 +25,7 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 	const [finished, setFinished] = useState<FinishedAttempt | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [failure, setFailure] = useState<string | null>(null);
+	const [paused, setPaused] = useState(started?.status === "paused");
 
 	const finish = async (): Promise<void> => {
 		setBusy(true);
@@ -51,7 +54,34 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 		verdict,
 		finished,
 		busy,
+		paused,
 		finish,
+		pause: async (): Promise<void> => {
+			setBusy(true);
+			setFailure(null);
+
+			try {
+				await pauseAttempt();
+				setPaused(true);
+			} catch (error) {
+				setFailure(messageFor(error));
+			} finally {
+				setBusy(false);
+			}
+		},
+		resume: async (): Promise<void> => {
+			setBusy(true);
+			setFailure(null);
+
+			try {
+				setCurrent((await resumeAttempt()).current);
+				setPaused(false);
+			} catch (error) {
+				setFailure(messageFor(error));
+			} finally {
+				setBusy(false);
+			}
+		},
 		send: async (answer: Answer): Promise<void> => {
 			const question = current?.question;
 

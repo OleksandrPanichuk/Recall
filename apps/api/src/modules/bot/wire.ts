@@ -17,6 +17,7 @@ import type {
 	QuizSettings as WireQuizSettings,
 	QuizSummary as WireQuizSummary,
 	ResolvedQuizSettings as WireResolvedSettings,
+	ResumedAttempt as WireResumedAttempt,
 	StartQuizAttemptResult as WireStartResult,
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
@@ -26,6 +27,7 @@ import type { Insights } from "@/application/use-cases/analytics/get-insights";
 import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answer-question";
 import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
+import type { ResumeQuizAttemptResult } from "@/application/use-cases/attempts/resume-quiz-attempt";
 import type { StartQuizAttemptResult } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { AttachedQuiz } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
@@ -87,6 +89,16 @@ export const detachedQuizToWire = (
 	folderId: String(detached.folderId),
 	folderName: detached.folderName,
 	quizSetId: String(detached.quizSetId),
+});
+
+export const resumedAttemptToWire = (
+	resumed: ResumeQuizAttemptResult,
+): WireResumedAttempt => ({
+	attemptId: String(resumed.attemptId),
+	currentQuestionId:
+		resumed.currentQuestionId === undefined
+			? undefined
+			: String(resumed.currentQuestionId),
 });
 
 export const revisionToWire = (revision: PageRevision): WirePageRevision => ({

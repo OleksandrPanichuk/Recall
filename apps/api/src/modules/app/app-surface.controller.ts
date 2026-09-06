@@ -36,6 +36,7 @@ import {
 	listVocabularyCommandSchema,
 	movePageCommandSchema,
 	moveSetCommandSchema,
+	pauseAttemptCommandSchema,
 	practiceCommandSchema,
 	quizSetIdCommandSchema,
 	renamePageCommandSchema,
@@ -82,6 +83,7 @@ import {
 	quizDetailToWire,
 	quizSummaryToWire,
 	resolvedSettingsToWire,
+	resumedAttemptToWire,
 	revisionToWire,
 	settingsToWire,
 	startResultToWire,
@@ -563,6 +565,24 @@ export class AppSurfaceController {
 
 		return finishResultToWire(
 			await this.of(request).finishQuizAttempt.execute({}),
+		);
+	}
+
+	@Post(BOT_ROUTES.pause)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async pause(@Req() request: SessionRequest, @Body() body: unknown) {
+		parseBody(pauseAttemptCommandSchema, body);
+
+		await this.of(request).pauseQuizAttempt.execute({});
+	}
+
+	@Post(BOT_ROUTES.resume)
+	@HttpCode(HttpStatus.OK)
+	async resume(@Req() request: SessionRequest, @Body() body: unknown) {
+		parseBody(pauseAttemptCommandSchema, body);
+
+		return resumedAttemptToWire(
+			await this.of(request).resumeQuizAttempt.execute({}),
 		);
 	}
 

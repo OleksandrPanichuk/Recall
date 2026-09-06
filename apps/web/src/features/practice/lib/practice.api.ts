@@ -44,6 +44,20 @@ export const abandonAttempt = createServerFn({ method: "POST" }).handler(
 	async () => api().abandonQuizAttempt.execute({}),
 );
 
+export const pauseAttempt = createServerFn({ method: "POST" }).handler(
+	async () => {
+		await api().pauseQuizAttempt.execute({});
+	},
+);
+
+export const resumeAttempt = createServerFn({ method: "POST" }).handler(
+	async () => {
+		await api().resumeQuizAttempt.execute({});
+
+		return { current: (await api().getCurrentQuestion.execute({})) ?? null };
+	},
+);
+
 export const answerQuestion = createServerFn({ method: "POST" })
 	.inputValidator((value: unknown) => {
 		const input = value as {

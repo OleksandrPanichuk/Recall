@@ -1,6 +1,6 @@
 import type { CurrentQuestionView } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Eye, Flag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, Flag, Pause } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +8,7 @@ import { usePracticeKeys } from "@/features/practice/hooks/use-practice-keys";
 import { usePracticeSession } from "@/features/practice/hooks/use-practice-session";
 import { AttemptFinished } from "@/features/practice/ui/components/AttemptFinished";
 import { AttemptInProgress } from "@/features/practice/ui/components/AttemptInProgress";
+import { AttemptPaused } from "@/features/practice/ui/components/AttemptPaused";
 import { OutOfQuestions } from "@/features/practice/ui/components/OutOfQuestions";
 import { QuestionCard } from "@/features/practice/ui/components/QuestionCard";
 import { VerdictPanel } from "@/features/practice/ui/components/VerdictPanel";
@@ -64,6 +65,17 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 
 	const current = session.current;
 
+	if (session.paused && current !== null) {
+		return (
+			<AttemptPaused
+				index={current.index}
+				total={current.total}
+				busy={session.busy}
+				onResume={session.resume}
+			/>
+		);
+	}
+
 	if (current?.question === undefined) {
 		return <OutOfQuestions busy={session.busy} onFinish={session.finish} />;
 	}
@@ -117,12 +129,23 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 				</div>
 			)}
 
-			<Link to="/quizzes/$quizId" params={{ quizId }}>
-				<Button variant="ghost" size="sm">
-					<ArrowLeft />
-					до набору
+			<div className="flex items-center justify-between">
+				<Link to="/quizzes/$quizId" params={{ quizId }}>
+					<Button variant="ghost" size="sm">
+						<ArrowLeft />
+						до набору
+					</Button>
+				</Link>
+				<Button
+					variant="ghost"
+					size="sm"
+					disabled={session.busy || session.verdict !== null}
+					onClick={session.pause}
+				>
+					<Pause />
+					Пауза
 				</Button>
-			</Link>
+			</div>
 		</div>
 	);
 }

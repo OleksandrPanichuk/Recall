@@ -127,6 +127,13 @@ export const answerResultSchema = z.object({
 	credit: z.object({ earned: z.number(), possible: z.number() }),
 });
 
+export const pauseAttemptCommandSchema = z.object({});
+
+export const resumedAttemptSchema = z.object({
+	attemptId: id,
+	currentQuestionId: optionalId,
+});
+
 export const finishResultSchema = z.object({
 	attemptId: id,
 	quizSetId: id,
@@ -525,6 +532,8 @@ export type GetCurrentQuestionCommand = z.infer<
 	typeof currentQuestionCommandSchema
 >;
 export type AnswerQuestionCommand = z.infer<typeof answerCommandSchema>;
+export type PauseAttemptCommand = z.infer<typeof pauseAttemptCommandSchema>;
+export type ResumedAttempt = z.infer<typeof resumedAttemptSchema>;
 export type FinishQuizAttemptCommand = z.infer<typeof finishCommandSchema>;
 export type GetQuizStatisticsCommand = z.infer<typeof statisticsCommandSchema>;
 export type GetAttemptDetailCommand = z.infer<

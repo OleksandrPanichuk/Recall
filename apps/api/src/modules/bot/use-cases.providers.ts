@@ -5,6 +5,10 @@ import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/aban
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
+import {
+	PauseQuizAttemptUseCase,
+	ResumeQuizAttemptUseCase,
+} from "@/application/use-cases/attempts/resume-quiz-attempt";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
@@ -58,6 +62,8 @@ export const botUseCases: Provider[] = [
 	GetCurrentQuestionUseCase,
 	AnswerQuestionUseCase,
 	FinishQuizAttemptUseCase,
+	PauseQuizAttemptUseCase,
+	ResumeQuizAttemptUseCase,
 	GetQuizStatisticsUseCase,
 	GetAttemptDetailUseCase,
 	ListDueRepetitionsUseCase,
