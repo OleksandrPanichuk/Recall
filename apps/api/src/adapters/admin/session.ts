@@ -27,7 +27,11 @@ const cookieValue = (header: string, name: string): string | undefined => {
 	return undefined;
 };
 
-export function issueSession(secret: string, now: Date): string {
+export function issueSession(
+	secret: string,
+	now: Date,
+	secure = false,
+): string {
 	const expiry = String(now.getTime() + SESSION_LIFETIME_MS);
 	const value = `${expiry}.${signatureOf(expiry, secret)}`;
 
@@ -37,16 +41,18 @@ export function issueSession(secret: string, now: Date): string {
 		`Max-Age=${Math.floor(SESSION_LIFETIME_MS / 1000)}`,
 		"HttpOnly",
 		"SameSite=Strict",
+		...(secure ? ["Secure"] : []),
 	].join("; ");
 }
 
-export function clearSession(): string {
+export function clearSession(secure = false): string {
 	return [
 		`${SESSION_COOKIE}=`,
 		`Path=${COOKIE_PATH}`,
 		"Max-Age=0",
 		"HttpOnly",
 		"SameSite=Strict",
+		...(secure ? ["Secure"] : []),
 	].join("; ");
 }
 

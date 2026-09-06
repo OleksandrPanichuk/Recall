@@ -6,6 +6,7 @@ import {
 import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
 import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
 import { createAdminApi } from "./api";
+import { BASE_DELAY_MS, FREE_ATTEMPTS } from "./throttle";
 
 const PASSPHRASE = "correct horse battery staple";
 
@@ -168,6 +169,36 @@ describe("the session", () => {
 
 	test("answers a signed-in check, which is how the admin knows to show the app", async () => {
 		expect((await call("/api/session")).status).toBe(200);
+	});
+
+	test("slows down once guessing has clearly started", async () => {
+		const guess = () =>
+			call("/api/session", {
+				method: "POST",
+				signedIn: false,
+				body: JSON.stringify({ passphrase: "not it" }),
+			});
+
+		for (let attempt = 0; attempt < FREE_ATTEMPTS; attempt += 1) {
+			await guess();
+		}
+
+		const started = Date.now();
+
+		expect((await guess()).status).toBe(401);
+		expect(Date.now() - started).toBeGreaterThanOrEqual(BASE_DELAY_MS);
+	});
+
+	test("and the right passphrase still gets straight in", async () => {
+		const started = Date.now();
+		const response = await call("/api/session", {
+			method: "POST",
+			signedIn: false,
+			body: JSON.stringify({ passphrase: PASSPHRASE }),
+		});
+
+		expect(response.status).toBe(200);
+		expect(Date.now() - started).toBeLessThan(BASE_DELAY_MS);
 	});
 
 	test("clears the cookie on sign-out", async () => {
