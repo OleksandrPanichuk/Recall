@@ -6,6 +6,7 @@ export interface BotEnvironment {
 	readonly apiUrl: URL;
 	readonly apiToken: string;
 	readonly timezone: string;
+	readonly telegramApiRoot?: URL;
 	readonly webhook?: WebhookSettings;
 }
 
@@ -45,6 +46,7 @@ const schema = z.object({
 	RECALL_API_URL: z.string().trim().url().default(DEFAULT_API_URL),
 	BOT_API_TOKEN: z.string().trim().min(MIN_TOKEN_LENGTH),
 	APP_TIMEZONE: z.string().trim().min(1).refine(supportedTimezone),
+	TELEGRAM_API_ROOT: z.string().trim().url().optional(),
 	TELEGRAM_WEBHOOK_URL: z.string().trim().url().optional(),
 	TELEGRAM_WEBHOOK_SECRET: z
 		.string()
@@ -66,6 +68,8 @@ const messages: Record<keyof z.input<typeof schema>, string> = {
 	RECALL_API_URL: `RECALL_API_URL must be the url of the recall api (default ${DEFAULT_API_URL})`,
 	BOT_API_TOKEN: `BOT_API_TOKEN is required and must be at least ${MIN_TOKEN_LENGTH} characters — the same token the api was given`,
 	APP_TIMEZONE: "APP_TIMEZONE must be a supported IANA timezone",
+	TELEGRAM_API_ROOT:
+		"TELEGRAM_API_ROOT must be the url of a telegram bot api server; leave it unset to use api.telegram.org",
 	TELEGRAM_WEBHOOK_URL:
 		"TELEGRAM_WEBHOOK_URL must be the public https url telegram should post updates to; leave it unset to long-poll instead",
 	TELEGRAM_WEBHOOK_SECRET: `TELEGRAM_WEBHOOK_SECRET is required alongside TELEGRAM_WEBHOOK_URL and must be at least ${MIN_WEBHOOK_SECRET_LENGTH} characters`,
@@ -102,6 +106,10 @@ export function loadBotEnvironment(
 		apiUrl: new URL(parsed.data.RECALL_API_URL),
 		apiToken: parsed.data.BOT_API_TOKEN,
 		timezone: parsed.data.APP_TIMEZONE,
+		telegramApiRoot:
+			parsed.data.TELEGRAM_API_ROOT === undefined
+				? undefined
+				: new URL(parsed.data.TELEGRAM_API_ROOT),
 		webhook:
 			webhookUrl === undefined || webhookSecret === undefined
 				? undefined

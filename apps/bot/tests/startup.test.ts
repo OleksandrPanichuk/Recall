@@ -136,3 +136,31 @@ describe("choosing how telegram delivers updates", () => {
 		).toThrow(BotEnvironmentError);
 	});
 });
+
+describe("which telegram the bot talks to", () => {
+	const base = {
+		TELEGRAM_BOT_KEY: "key",
+		ALLOWED_TELEGRAM_USER_ID: "42",
+		BOT_API_TOKEN: "b".repeat(40),
+		APP_TIMEZONE: "Europe/Kyiv",
+	};
+
+	test("api.telegram.org, unless told otherwise", () => {
+		expect(loadBotEnvironment(base).telegramApiRoot).toBeUndefined();
+	});
+
+	test("a bot api server of your own, when one is given", () => {
+		expect(
+			loadBotEnvironment({
+				...base,
+				TELEGRAM_API_ROOT: "http://127.0.0.1:8081",
+			}).telegramApiRoot?.origin,
+		).toBe("http://127.0.0.1:8081");
+	});
+
+	test("and something that is not a url is refused", () => {
+		expect(() =>
+			loadBotEnvironment({ ...base, TELEGRAM_API_ROOT: "127.0.0.1:8081" }),
+		).toThrow(BotEnvironmentError);
+	});
+});

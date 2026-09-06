@@ -5,6 +5,7 @@ import {
 	BotEnvironmentError,
 	loadBotEnvironment,
 } from "./config";
+import { onLaunchFailure } from "./lifecycle/launch-failure";
 import { createBot } from "./telegram/bot";
 import { startDailyReminder } from "./telegram/reminders";
 import { createWebhookHandler } from "./telegram/webhook";
@@ -47,6 +48,7 @@ function main(): void {
 		allowedTelegramUserId: environment.allowedTelegramUserId,
 		useCases,
 		logger,
+		apiRoot: environment.telegramApiRoot,
 	});
 	const reminder = startDailyReminder({
 		bot,
@@ -70,17 +72,22 @@ function main(): void {
 	shutdown.register({
 		name: "telegram",
 		run: () => {
-			bot.stop("shutdown");
+			try {
+				bot.stop("shutdown");
+			} catch (error) {
+				logger.debug("telegram was not running", { error });
+			}
 		},
 	});
 	shutdown.listen();
 
-	const fail = (error: unknown): void => {
-		logger.error("bot stopped", { error });
-		void shutdown.trigger("launch-failed").then(() => {
+	const fail = onLaunchFailure({
+		logger,
+		shutdown,
+		onFatal: () => {
 			process.exitCode = 1;
-		});
-	};
+		},
+	});
 
 	logger.info("starting bot", {
 		api: environment.apiUrl.href,
