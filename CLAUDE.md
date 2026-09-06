@@ -35,7 +35,7 @@ Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITEC
 - Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
 - Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+- Bun automatically loads .env, so don't use dotenv — but it loads it **per package directory**, so a script reached through `bun run --filter` sees none of it. See the `--env-file` note under Postgres.
 
 ## APIs
 
@@ -213,16 +213,43 @@ then strips, so `/mcp` never matches and every request 404s. `/mcp` exists only 
 **Two schedulers, one seam.** `study_settings.scheduler` is `ladder` or `fsrs`, and
 `scheduleAfter` dispatches on it; the ladder stays the default. FSRS is `ts-fsrs` rather than a
 hand-rolled memory model, configured with `enable_short_term: false` so every interval is a whole
-day and `enable_fuzz: false` so the same history always schedules the same day. The app knows only
-right and wrong, so the four FSRS grades collapse to **Again / Good** — adding Hard and Easy means
-a richer answer model first, not a scheduler change.
+day and `enable_fuzz: false` so the same history always schedules the same day.
 
-Three behaviours differ between them, and all three are pinned by tests. **`maxRepetitions` retires
+**All four FSRS grades are now reachable.** `scheduleAfter` takes a `RecallGrade`
+(`again | hard | good | easy`), not a boolean. A wrong answer is `again` whatever the learner
+clicks; a correct answer nobody rated is `good`, which is exactly the old behaviour; and `again`
+is never offerable as a feeling, because it is the answer's own verdict. The rating lives on
+`responses.recall` and is read at **finish**, not at answer time — scheduling has always happened
+in `FinishQuizAttemptUseCase`, which is the only reason a learner can rate after seeing the
+verdict without anything being scheduled twice. `answerQuestion` returns `gradable`, true only for
+a correct answer in a Full attempt under FSRS; the browser shows the three buttons on that alone.
+
+Four behaviours differ between the schedulers, and all four are pinned by tests. **`maxRepetitions` retires
 a question under the ladder only** — FSRS keeps scheduling, bounded by `maxIntervalDays`. **A first
 wrong answer is a lapse under the ladder but not under FSRS**, which counts a lapse only when
 something already learned is forgotten; that makes the leech list stricter under FSRS. And FSRS
 writes `review_states.stability` / `difficulty`, which the ladder leaves null — a schedule the
 ladder wrote is picked up by FSRS as a fresh card, which is the honest reading of no memory state.
+And **the ladder ignores `hard` and `easy` on purpose** — its intervals are fixed, so all three
+land on the same rung while FSRS spreads them out.
+
+**`bun run --filter` starts the child without `.env`.** Bun loads `.env` per package
+directory and no app has one, so a script run through the workspace filter sees none of the
+configuration the root process can see. Most such scripts fail loudly; `db:migrate` did not — its
+drizzle config falls back to the compose default, so the documented way to apply migrations
+quietly migrated `recall` instead of whatever `DATABASE_URL` named. Every root script that reads
+configuration therefore runs as `bun --env-file=.env run --filter …`, and
+`scripts/root-scripts.test.ts` fails if a new one is added without it. `build` and `test` are the
+named exemptions: neither reads configuration, and `test` passes `--env-file=/dev/null`
+deliberately.
+
+**Backups exist and are one command.** `bun run backup` writes
+`backups/<UTC stamp>/{postgres.sql,minio/}`, `bun run restore` puts the newest one back and wants
+`--yes`. The dump refuses to be called a backup unless it starts like a `pg_dump` — `Bun.write(file,
+child.stdout)` stringifies the stream and reports success, which produced a 23-byte
+`[object ReadableStream]`; `Bun.spawn(cmd, { stdout: Bun.file(dest) })` is the form that works. A
+byte-count floor is the wrong guard: an empty database dumps to 672 bytes and a fresh install
+deserves its first backup.
 
 **Postgres.** `bun run db:up` starts Postgres 17 in Docker on
 port 55432; `db:down` stops it, `db:reset` wipes the volume. Tests that need it discover it via
@@ -232,7 +259,11 @@ instead: if it is set and Postgres is missing, the suite fails rather than skipp
 
 **A field the in-memory double keeps for free is the one Postgres silently drops.** The
 double stores the domain object whole, so a property with no column and no mapper round-trips
-there and vanishes on Postgres — every unit test green, the feature broken in production.
+there and vanishes on Postgres — every unit test green, the feature broken in production. It is
+not only a missing column: `responses.recall` had a column and a mapper and still did not
+persist, because the response insert was `onConflictDoNothing` and a rating arrives *after* the
+row exists. Reverting that one line leaves the contract at 13 pass / 2 fail on Postgres and 15 / 0
+on memory.
 `questions.vocabulary_item_id` was exactly that: four call sites read
 `question.vocabularyItemId`, no column existed, so `listVocabulary` always reported zero
 questions per term pair and `updateVocabulary` rebuilt nothing. Editing a pair left its
@@ -495,6 +526,19 @@ src/
   talks to the API directly rather than through a server function: an `<img>` needs a real GET,
   so `WEB_APP_URL` is a CORS origin with credentials. Objects are keyed `<owner>/<id>` and the
   `attachments` row is owner-scoped, so serving checks ownership before it streams.
+- **A shared page is a link, and the link is the credential.** A `page_shares` row holds one
+  page, one owner and one token; `ownerForShare` in `persistence/postgres/share.ts` maps a token
+  to an owner and nothing else — the same seam `findTelegramOwner` is — and everything after that
+  runs through the ordinary owner-scoped `useCasesFor(owner)`. There is no second identity model,
+  and no repository method that takes an owner. The token is stored in plain text, unlike a
+  personal api token, because the owner has to be able to copy the link twice and it grants read
+  of one page. `pages.visibility` and `quizzes.visibility` were dropped with it: both were written
+  and read nowhere, and a column beside a rotatable token would be a second answer to the same
+  question. **Images are the difference between shared and broken** — markdown stores
+  `/app/uploads/<id>`, which 404s for a stranger, so a shared page renders through
+  `/public/uploads/<token>/<id>` and that route serves an attachment only if the shared page's own
+  markdown references it. The reader gets no app chrome: `__root` renders the outlet bare under
+  `/p/`.
 - **The page editor is Milkdown's Crepe**, and it is *uncontrolled on purpose*. Markdown is the
   document model — the same `content_md` an AI writes over MCP — so there is no lossy block-JSON
   round-trip, but it also means the editor owns the document once it is created. It takes the
@@ -534,6 +578,18 @@ concurrent retries of one update being handled exactly once.
 
 Do not delete the webhook on shutdown; that drops updates for the length of a deploy.
 
+**A rejection that arrives after the shutdown began is the shutdown, not a failure.** Stopping the
+bot aborts the in-flight `getUpdates`; Bun raises that as a `DOMException` whose `message` is a
+read-only accessor, and telegraf's `redactToken` assigns to `error.message` on the fetch rejection
+path. The `TypeError` that throws no longer looks like an `AbortError` to `polling.js`, so
+`launch()` rejects and the process exited **1 on every clean SIGTERM** — a crash on every deploy,
+once there are deploys. `onLaunchFailure` asks `Shutdown.triggered` before treating a rejection as
+fatal. A genuine launch failure still exits 1, and `bot.stop()` is wrapped because its one throw
+site fires exactly when a launch has already failed.
+
+`TELEGRAM_API_ROOT` points the bot at another Bot API server. It exists so a test can drive a
+real signal against a stub, which is the only way that bug was ever going to be caught.
+
 **Never assert that a shuffle came out different.** `shuffled(items, seed)` is a seeded
 Fisher-Yates, so it is deterministic — but an attempt seeds it with its own id, which is a
 fresh uuid every run, and identity is a legitimate outcome (1 in 5040 for seven questions).
@@ -542,6 +598,20 @@ reproduce. Assert the exact permutation instead: `expect(planned).toEqual(shuffl
 String(attemptId)))`, taking `before` from a run with the toggle off when the pre-shuffle
 order is not the authored one. The property that shuffling reorders at all belongs in
 `packages/kit/src/utils/shuffle.test.ts`, where the seeds are fixed.
+
+**`bun run verify` proves less than it looks like, and CI makes up the difference.**
+Every suite that needs Postgres skips when it is unreachable, which is most of `apps/api/tests`
+outside `unit/`. The `postgres` job in CI is what actually runs them — `integration/postgres`,
+`integration/app`, `integration/auth` and `e2e` — and it starts MinIO from this repo's own
+compose file, because the uploads path is real in some of them. For a long time that job ran only
+`integration/postgres`, and 190 tests never ran anywhere. If you add a suite that calls
+`postgresAvailable()`, put its directory in that job or it is decoration.
+
+**An `/app/*` integration test opens with `openAppSession`, not ninety lines of its own.**
+`apps/api/tests/fixtures/app-session.ts` gives a signed-in owner, `app` and `bot` callers,
+`as(cookie)` for a second account, `signUp` to make one, and a `close` that restores the
+environment. `app-shapes.ts` holds the wire shapes and builders (`aSet`, `aPage`, `aQuestion`).
+Hand-rolling the preamble is how a test forgets to restore `DATABASE_URL`.
 
 **`bun run verify` builds before it typechecks, and the order is load-bearing.**
 `apps/web/src/routeTree.gen.ts` is generated by the TanStack Router Vite plugin and is
