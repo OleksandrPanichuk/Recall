@@ -55,6 +55,8 @@ export function PageDetailView({
 						onChanged={editing.invalidate}
 						onFlush={editing.flush}
 						onAttach={editing.attach}
+						onShare={editing.share}
+						onUnshare={editing.unshare}
 					/>
 				</div>
 			</div>

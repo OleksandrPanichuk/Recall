@@ -8,6 +8,8 @@ import {
 	renamePage,
 	saveSummary,
 	setPageIcon,
+	sharePage,
+	unsharePage,
 } from "@/features/pages/lib/pages.api";
 
 export function usePageEditing(folderId: string, loaded: BrowseView | null) {
@@ -34,6 +36,9 @@ export function usePageEditing(folderId: string, loaded: BrowseView | null) {
 			setRestored((count) => count + 1);
 		},
 		invalidate: () => router.invalidate(),
+		share: async (rotate: boolean) =>
+			refresh(await sharePage({ data: { folderId, rotate } })),
+		unshare: async () => refresh(await unsharePage({ data: folderId })),
 		attach: async (quizSetId: string) =>
 			refresh(await attachQuiz({ data: { folderId, quizSetId } })),
 		detach: async (quizSetId: string) =>

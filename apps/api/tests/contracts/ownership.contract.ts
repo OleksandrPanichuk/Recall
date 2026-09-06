@@ -148,6 +148,74 @@ export function describeOwnership(
 				).toBeDefined();
 			});
 
+			test("a share one owner mints is invisible to the other", async () => {
+				const id = uuid();
+
+				await harness.mine.unitOfWork.run(async ({ pages }) => {
+					await pages.save(
+						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+					);
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "mine-alone",
+						createdAt: at,
+					});
+				});
+
+				expect(
+					await harness.theirs.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+				expect(
+					(await harness.mine.scope.pages.shareOf(toFolderId(id)))?.token,
+				).toBe("mine-alone");
+			});
+
+			test("one owner cannot share another's page", async () => {
+				const id = uuid();
+
+				await harness.mine.unitOfWork.run(({ pages }) =>
+					pages.save(
+						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+					),
+				);
+				await harness.theirs.unitOfWork.run(({ pages }) =>
+					pages.saveShare({
+						pageId: toFolderId(id),
+						token: "not-theirs-to-give",
+						createdAt: at,
+					}),
+				);
+
+				expect(
+					await harness.mine.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+				expect(
+					await harness.theirs.scope.pages.shareOf(toFolderId(id)),
+				).toBeUndefined();
+			});
+
+			test("one owner cannot close another's link", async () => {
+				const id = uuid();
+
+				await harness.mine.unitOfWork.run(async ({ pages }) => {
+					await pages.save(
+						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+					);
+					await pages.saveShare({
+						pageId: toFolderId(id),
+						token: "still-open",
+						createdAt: at,
+					});
+				});
+				await harness.theirs.unitOfWork.run(({ pages }) =>
+					pages.deleteShare(toFolderId(id)),
+				);
+
+				expect(
+					(await harness.mine.scope.pages.shareOf(toFolderId(id)))?.token,
+				).toBe("still-open");
+			});
+
 			test("an attempt one owner starts is invisible to the other", async () => {
 				const quizId = uuid();
 				const questionId = uuid();
