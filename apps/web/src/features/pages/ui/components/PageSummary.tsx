@@ -17,7 +17,7 @@ export function PageSummary({ summary, resolveUrl = displayUrl }: Props) {
 	}
 
 	return (
-		<div className="prose prose-sm max-w-none px-1 dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-primary prose-pre:bg-muted prose-pre:text-foreground prose-code:before:content-none prose-code:after:content-none">
+		<div className="recall-prose prose prose-sm max-w-none px-1 dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-primary prose-code:before:content-none prose-code:after:content-none">
 			<Markdown remarkPlugins={[remarkGfm]} urlTransform={resolveUrl}>
 				{summary}
 			</Markdown>
