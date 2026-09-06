@@ -4,7 +4,11 @@ export {
 	millisecondsUntil,
 	startDailyTimer,
 } from "./lifecycle/daily-timer";
-export { createShutdown } from "./lifecycle/shutdown";
+export {
+	createShutdown,
+	type Shutdown,
+	type ShutdownTask,
+} from "./lifecycle/shutdown";
 export { createLogger, silentLogger } from "./logging/logger";
 export {
 	type LogFields,

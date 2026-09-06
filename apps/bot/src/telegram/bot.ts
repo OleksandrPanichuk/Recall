@@ -41,10 +41,16 @@ export interface TelegramBotOptions {
 	readonly allowedTelegramUserId: number;
 	readonly useCases: TelegramUseCases;
 	readonly logger: Logger;
+	readonly apiRoot?: URL;
 }
 
 export function createBot(options: TelegramBotOptions): Telegraf {
-	const bot = new Telegraf(options.token);
+	const bot = new Telegraf(
+		options.token,
+		options.apiRoot === undefined
+			? undefined
+			: { telegram: { apiRoot: options.apiRoot.href } },
+	);
 	const { useCases, logger } = options;
 
 	bot.use(errorMiddleware(logger));
