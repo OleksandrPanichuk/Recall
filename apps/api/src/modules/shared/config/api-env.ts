@@ -68,6 +68,14 @@ export class ApiEnvironmentError extends Error {
 	}
 }
 
+export const hostList = (value: string | undefined): readonly string[] =>
+	value === undefined
+		? []
+		: value
+				.split(",")
+				.map((host) => host.trim())
+				.filter((host) => host.length > 0);
+
 export function loadApiEnvironment(
 	source: Readonly<Record<string, string | undefined>> = process.env,
 ): ApiEnvironment {
@@ -113,10 +121,7 @@ export function loadApiEnvironment(
 		authLinkTtlSeconds: parsed.data.AUTH_LINK_TTL_SECONDS,
 		mcpIssuer: issuer === undefined ? undefined : new URL(issuer),
 		mcpPassphrase: passphrase,
-		mcpAllowedHosts:
-			parsed.data.MCP_HTTP_ALLOWED_HOST === undefined
-				? []
-				: [parsed.data.MCP_HTTP_ALLOWED_HOST],
+		mcpAllowedHosts: hostList(parsed.data.MCP_HTTP_ALLOWED_HOST),
 		webAppUrl: parsed.data.WEB_APP_URL,
 		signUpsPerHour: parsed.data.SIGN_UPS_PER_HOUR,
 		authRateLimit: parsed.data.AUTH_RATE_LIMIT === "on",
