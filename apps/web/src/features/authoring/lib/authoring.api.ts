@@ -3,7 +3,7 @@ import { api } from "@/shared/lib/api";
 import { idInput, missingAsNull } from "@/shared/lib/request";
 
 export const createQuizSet = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(value: unknown) =>
 			value as { title: string; language: string; folderId?: string },
 	)
@@ -18,7 +18,7 @@ export const loadQuestions = createServerFn().handler(async () => ({
 }));
 
 export const loadQuizSet = createServerFn()
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) =>
 		missingAsNull(
 			() => api().getQuizSet.execute({ quizSetId: data.id }),
@@ -27,7 +27,7 @@ export const loadQuizSet = createServerFn()
 	);
 
 export const updateQuizSet = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.validator((value: unknown) => value as Record<string, unknown>)
 	.handler(async ({ data }) => {
 		await api().updateQuizSet.execute(data as never);
 	});
@@ -43,43 +43,43 @@ export const moveQuizSet = createServerFn({ method: "POST" })
 	});
 
 export const publishQuizSet = createServerFn({ method: "POST" })
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) => {
 		await api().publishQuizSet.execute({ quizSetId: data.id });
 	});
 
 export const archiveQuizSet = createServerFn({ method: "POST" })
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) => {
 		await api().archiveQuizSet.execute({ quizSetId: data.id });
 	});
 
 export const addQuestions = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.validator((value: unknown) => value as Record<string, unknown>)
 	.handler(async ({ data }) => api().addQuestions.execute(data as never));
 
 export const updateQuestion = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.validator((value: unknown) => value as Record<string, unknown>)
 	.handler(async ({ data }) => {
 		await api().updateQuestion.execute(data as never);
 	});
 
 export const deleteQuestion = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(value: unknown) => value as { quizSetId: string; questionId: string },
 	)
 	.handler(async ({ data }) => api().deleteQuestion.execute(data));
 
 export const loadVocabulary = createServerFn()
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) => ({
 		items: await api().listVocabulary.execute({ quizSetId: data.id }),
 	}));
 
 export const addVocabulary = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.validator((value: unknown) => value as Record<string, unknown>)
 	.handler(async ({ data }) => api().addVocabulary.execute(data as never));
 
 export const updateVocabulary = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as Record<string, unknown>)
+	.validator((value: unknown) => value as Record<string, unknown>)
 	.handler(async ({ data }) => api().updateVocabulary.execute(data as never));

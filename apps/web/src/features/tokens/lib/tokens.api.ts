@@ -6,11 +6,11 @@ export const loadApiTokens = createServerFn().handler(async () => ({
 }));
 
 export const issueApiToken = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(value: unknown) => value as { name: string; expiresInDays?: number },
 	)
 	.handler(async ({ data }) => api().issueApiToken.execute(data));
 
 export const revokeApiToken = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => value as { tokenId: string })
+	.validator((value: unknown) => value as { tokenId: string })
 	.handler(async ({ data }) => api().revokeApiToken.execute(data));

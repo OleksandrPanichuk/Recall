@@ -8,7 +8,7 @@ export const loadCurrentQuestion = createServerFn().handler(async () => ({
 }));
 
 export const startAttempt = createServerFn({ method: "POST" })
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) => {
 		try {
 			await api().startQuizAttempt.execute({ quizSetId: data.id });
@@ -59,7 +59,7 @@ export const resumeAttempt = createServerFn({ method: "POST" }).handler(
 );
 
 export const answerQuestion = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as {
 			questionId: string;
 			selectedOptionPositions?: number[];

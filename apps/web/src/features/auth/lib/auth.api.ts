@@ -47,13 +47,13 @@ const forward = async (
 };
 
 export const signIn = createServerFn({ method: "POST" })
-	.inputValidator(credentialsOf)
+	.validator(credentialsOf)
 	.handler(async ({ data }: { data: Credentials }) =>
 		forward("sign-in/email", { email: data.email, password: data.password }),
 	);
 
 export const signUp = createServerFn({ method: "POST" })
-	.inputValidator(credentialsOf)
+	.validator(credentialsOf)
 	.handler(async ({ data }: { data: Credentials }) =>
 		forward("sign-up/email", {
 			email: data.email,
@@ -67,7 +67,7 @@ export const signOut = createServerFn({ method: "POST" }).handler(async () =>
 );
 
 export const requestReset = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => ({ email: String(value ?? "").trim() }))
+	.validator((value: unknown) => ({ email: String(value ?? "").trim() }))
 	.handler(async ({ data }) =>
 		forward("request-password-reset", {
 			email: data.email,
@@ -76,7 +76,7 @@ export const requestReset = createServerFn({ method: "POST" })
 	);
 
 export const resetPassword = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { token: string; password: string };
 
 		return {
@@ -92,7 +92,7 @@ export const resetPassword = createServerFn({ method: "POST" })
 	);
 
 export const changePassword = createServerFn({ method: "POST" })
-	.inputValidator((value: unknown) => {
+	.validator((value: unknown) => {
 		const input = value as { current: string; next: string };
 
 		return {

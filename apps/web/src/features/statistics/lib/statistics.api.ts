@@ -8,7 +8,7 @@ export const loadInsights = createServerFn().handler(async () =>
 );
 
 export const loadStatistics = createServerFn()
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) =>
 		missingAsNull(
 			() => api().getQuizStatistics.execute({ quizSetId: data.id }),
@@ -17,7 +17,7 @@ export const loadStatistics = createServerFn()
 	);
 
 export const loadAttempt = createServerFn()
-	.inputValidator(idInput)
+	.validator(idInput)
 	.handler(async ({ data }) =>
 		api().getAttemptDetail.execute({ attemptId: data.id }),
 	);
