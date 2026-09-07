@@ -163,7 +163,6 @@
 			"includes": [
 				"apps/api/src/infrastructure/**",
 				"!apps/api/src/infrastructure/auth/**",
-				"!apps/api/src/infrastructure/config/**",
 				"!apps/api/src/infrastructure/lifecycle/**"
 			],
 			"linter": {

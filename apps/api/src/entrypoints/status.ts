@@ -1,6 +1,6 @@
-import { describeDatabaseUrl } from "@/infrastructure/config/database-url";
+import { describeDatabaseUrl } from "@/configs/database-url";
+import { loadApiEnvironment } from "@/configs/env.config";
 import { formatStatus, readStatus } from "@/infrastructure/lifecycle/status";
-import { loadApiEnvironment } from "@/modules/shared/config/api-env";
 import { createPostgresConnection } from "@/persistence/postgres/client";
 
 async function main(): Promise<void> {

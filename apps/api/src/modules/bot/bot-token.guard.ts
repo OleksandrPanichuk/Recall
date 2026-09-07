@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { bearerTokenOf, matchesToken } from "@/adapters/mcp/http/bearer";
-import { loadApiEnvironment } from "../shared/config/api-env";
+import { loadApiEnvironment } from "@/configs/env.config";
 
 @Injectable()
 export class BotTokenGuard implements CanActivate {

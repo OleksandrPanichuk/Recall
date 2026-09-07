@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { toNodeHandler } from "better-auth/node";
 import { type Express, json, urlencoded } from "express";
+import { loadApiEnvironment } from "@/configs/env.config";
 import { AppModule } from "@/modules/app.module";
 import { AUTH_BASE_PATH, type RecallAuth } from "@/modules/auth/build-auth";
 import { AUTH } from "@/modules/auth/tokens";
@@ -9,7 +10,6 @@ import {
 	MCP_SURFACE,
 	type McpSurface,
 } from "@/modules/integration/mcp/mcp.module";
-import { loadApiEnvironment } from "@/modules/shared/config/api-env";
 import { DomainExceptionFilter } from "@/modules/shared/errors/domain-exception.filter";
 import {
 	mountSwagger,

@@ -8,6 +8,7 @@ import {
 	systemClock,
 	uuidGenerator,
 } from "@/composition/create-application";
+import { loadApiEnvironment } from "@/configs/env.config";
 import type { RecallAuth } from "@/modules/auth/build-auth";
 import { ownerOfSession } from "@/modules/auth/session-owner";
 import { AUTH } from "@/modules/auth/tokens";
@@ -23,7 +24,6 @@ import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
 } from "@/persistence/postgres/unit-of-work";
-import { loadApiEnvironment } from "../../shared/config/api-env";
 import { CONNECTION, INSTANCE_OWNER } from "../../shared/database/tokens";
 
 export const MCP_SURFACE = Symbol("MCP_SURFACE");

@@ -1,9 +1,9 @@
 import { ServiceUnavailableException } from "@nestjs/common";
 import type { OwnerId } from "@/application/ports/owner";
+import { loadApiEnvironment } from "@/configs/env.config";
 import type { RecallDatabase } from "@/persistence/postgres/client";
 import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
 import { findTelegramOwner } from "@/persistence/postgres/owner";
-import { loadApiEnvironment } from "../config/api-env";
 
 export function instanceOwnerResolver(db: RecallDatabase): OwnerResolver {
 	let cached: OwnerId | undefined;
