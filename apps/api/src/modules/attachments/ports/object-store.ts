@@ -10,8 +10,12 @@ export interface ObjectBody {
 	readonly size: number;
 }
 
-export interface ObjectStore {
-	put(key: string, body: Buffer, contentType: string): Promise<StoredObject>;
-	get(key: string): Promise<ObjectBody | undefined>;
-	remove(key: string): Promise<void>;
+export abstract class ObjectStore {
+	abstract put(
+		key: string,
+		body: Buffer,
+		contentType: string,
+	): Promise<StoredObject>;
+	abstract get(key: string): Promise<ObjectBody | undefined>;
+	abstract remove(key: string): Promise<void>;
 }

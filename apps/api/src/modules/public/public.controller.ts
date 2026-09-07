@@ -8,10 +8,10 @@ import {
 } from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
 import type { Response } from "express";
-import type { ObjectStore } from "@/application/ports/object-store";
-import { OBJECT_STORE, USE_CASES_FOR } from "@/application/tokens";
+import { USE_CASES_FOR } from "@/application/tokens";
 import { referencedUploads } from "@/application/use-cases/sharing/referenced-uploads";
 import { DatabaseConnection } from "@/db/connection";
+import { ObjectStore } from "@/modules/attachments";
 import { ownerForShare } from "@/persistence/postgres/share";
 import { scopeFor } from "@/persistence/postgres/unit-of-work";
 import { sharedPageViewToWire } from "../bot/wire";
@@ -23,7 +23,7 @@ export class PublicController {
 	constructor(
 		@Inject(USE_CASES_FOR) private readonly useCasesFor: UseCasesFor,
 		private readonly connection: DatabaseConnection,
-		@Inject(OBJECT_STORE) private readonly objects: ObjectStore,
+		private readonly objects: ObjectStore,
 	) {}
 
 	private async sharedPage(token: string) {

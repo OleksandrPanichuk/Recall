@@ -8,12 +8,12 @@ import {
 	type Executor,
 	PostgresTransaction,
 } from "@/db/executor";
+import { PostgresAttachmentsRepository } from "@/modules/attachments";
 import { PostgresPagesRepository } from "@/modules/pages";
 import { PostgresQuizzesRepository } from "@/modules/quizzes";
 import { PostgresTermPairsRepository } from "@/modules/vocabulary";
 import { FixedOwnerContext } from "@/shared/request-context";
 import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
-import { createAttachmentPostgresRepository } from "./repositories/attachment.repository";
 import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
 import { createReviewPostgresRepository } from "./repositories/review.repository";
 
@@ -41,7 +41,10 @@ export const scopeFor = (
 			new FixedOwnerContext(owner),
 		),
 		analytics: createAnalyticsPostgresRepository(executor, owner),
-		attachments: createAttachmentPostgresRepository(executor, owner),
+		attachments: new PostgresAttachmentsRepository(
+			new DatabaseHandle(db),
+			new FixedOwnerContext(owner),
+		),
 	};
 };
 

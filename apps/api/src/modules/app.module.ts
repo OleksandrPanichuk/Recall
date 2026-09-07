@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { ApiTokensModule } from "@/modules/api-tokens";
+import { AttachmentsModule } from "@/modules/attachments";
 import { AuthModule } from "@/modules/auth";
 import { OAuthModule } from "@/modules/oauth";
 import { PagesModule } from "@/modules/pages";
@@ -30,6 +31,7 @@ import { HealthController } from "./shared/health/health.controller";
 		}),
 		TelegramLinkModule,
 		ApiTokensModule,
+		AttachmentsModule,
 		OAuthModule,
 		PagesModule,
 		QuizzesModule,

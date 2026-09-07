@@ -1,4 +1,3 @@
-import type { Attachment } from "@/application/ports/repositories/attachment.repository";
 import type {
 	PageRevision,
 	PageShare,
@@ -6,6 +5,7 @@ import type {
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import type { AttachmentEntity } from "@/modules/attachments";
 import { PageEntity, type PageId } from "@/modules/pages";
 import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
 import { TermPairEntity } from "@/modules/vocabulary";
@@ -21,7 +21,7 @@ export interface MemoryStore {
 	attachments: Map<string, Set<string>>;
 	revisions: PageRevision[];
 	shares: Map<string, PageShare>;
-	files: Map<string, Attachment>;
+	files: Map<string, AttachmentEntity>;
 	quizzes: Map<string, MemoryQuiz>;
 	quizAggregates: Map<string, QuizSetEntity>;
 	quizVersions: Map<string, number>;

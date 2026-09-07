@@ -6,9 +6,9 @@ export type {
 	RevisionAuthor,
 } from "@/modules/pages";
 
+import type { AttachmentsRepository } from "@/modules/attachments";
 import type { PagesRepository } from "@/modules/pages";
 import type { AnalyticsRepository } from "./analytics.repository";
-import type { AttachmentRepository } from "./attachment.repository";
 import type { AttemptRepository } from "./attempt.repository";
 import type { QuizRepository } from "./quiz.repository";
 import type { ReviewRepository } from "./review.repository";
@@ -21,5 +21,5 @@ export interface RepositoryScope {
 	readonly reviews: ReviewRepository;
 	readonly termPairs: TermPairRepository;
 	readonly analytics: AnalyticsRepository;
-	readonly attachments: AttachmentRepository;
+	readonly attachments: AttachmentsRepository;
 }
