@@ -1,23 +1,15 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import {
-	FolderValidationError,
-	type PageId,
-	PagePosition,
-} from "@/modules/pages";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import { ReorderFolderUseCase } from "./reorder-folder";
+import { type PageId, PagePosition } from "@/modules/pages";
+import { FolderValidationError } from "../pages.errors";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
+import type { ReorderPageUseCase } from "./reorder-page";
 
-let harness: FoldersHarness;
-let reorder: ReorderFolderUseCase;
+let harness: PagesHarness;
+let reorder: ReorderPageUseCase;
 
 beforeEach(() => {
-	harness = createFoldersHarness();
-	reorder = new ReorderFolderUseCase({
-		unitOfWork: harness.context.unitOfWork,
-		scope: harness.context.scope,
-		clock: harness.context.clock,
-		idGenerator: harness.context.idGenerator,
-	});
+	harness = createPagesHarness();
+	reorder = harness.reorderPage;
 });
 
 const named = async (...names: readonly string[]): Promise<PageId[]> => {

@@ -2,27 +2,27 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
 import { type PageId } from "@/modules/pages";
-import { FolderNotFoundError } from "./create-folder";
-import { type DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
+import { FolderNotEmptyError, FolderNotFoundError } from "../pages.errors";
+import type { DeletePageUseCase } from "./delete-page";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
-let deleteFolder: DeleteFolderUseCase;
-let create: FoldersHarness["create"];
+let deletePage: DeletePageUseCase;
+let create: PagesHarness["create"];
 
 beforeEach(() => {
-	({ context, deleteFolder, create } = createFoldersHarness());
+	({ context, deletePage, create } = createPagesHarness());
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("DeleteFolderUseCase", () => {
+describe("DeletePageUseCase", () => {
 	test("deletes an empty folder", async () => {
 		const id = await create("Scratch");
 
-		await deleteFolder.execute({ folderId: id });
+		await deletePage.execute({ folderId: id });
 
 		expect(await context.scope.pages.findById(id)).toBeUndefined();
 	});
@@ -31,7 +31,7 @@ describe("DeleteFolderUseCase", () => {
 		const parentId = await create("English");
 		await create("Vocabulary", parentId);
 
-		expect(deleteFolder.execute({ folderId: parentId })).rejects.toBeInstanceOf(
+		expect(deletePage.execute({ folderId: parentId })).rejects.toBeInstanceOf(
 			FolderNotEmptyError,
 		);
 	});
@@ -47,14 +47,14 @@ describe("DeleteFolderUseCase", () => {
 			quizzes.save({ ...draft, folderId }),
 		);
 
-		await expect(deleteFolder.execute({ folderId })).rejects.toBeInstanceOf(
+		await expect(deletePage.execute({ folderId })).rejects.toBeInstanceOf(
 			FolderNotEmptyError,
 		);
 	});
 
 	test("rejects an unknown folder", async () => {
 		expect(
-			deleteFolder.execute({ folderId: "missing" as PageId }),
+			deletePage.execute({ folderId: "missing" as PageId }),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 });

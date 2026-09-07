@@ -1,31 +1,29 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import {
-	FolderPathNotFoundError,
-	type ResolveFolderPathUseCase,
-} from "./resolve-folder-path";
+import { FolderPathNotFoundError } from "../pages.errors";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
+import type { ResolvePagePathUseCase } from "./resolve-page-path";
 
 let context: MemoryContext;
-let resolveFolderPath: ResolveFolderPathUseCase;
-let create: FoldersHarness["create"];
-let chain: FoldersHarness["chain"];
+let resolvePagePath: ResolvePagePathUseCase;
+let create: PagesHarness["create"];
+let chain: PagesHarness["chain"];
 
 beforeEach(() => {
-	({ context, resolveFolderPath, create, chain } = createFoldersHarness());
+	({ context, resolvePagePath, create, chain } = createPagesHarness());
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("ResolveFolderPathUseCase", () => {
+describe("ResolvePagePathUseCase", () => {
 	test("returns the folder at the path", async () => {
 		const levels = await chain("English", "Vocabulary", "By levels");
 
 		expect(
 			(
-				await resolveFolderPath.execute({
+				await resolvePagePath.execute({
 					path: ["English", "Vocabulary", "By levels"],
 				})
 			).folderId,
@@ -37,7 +35,7 @@ describe("ResolveFolderPathUseCase", () => {
 
 		expect(
 			(
-				await resolveFolderPath.execute({
+				await resolvePagePath.execute({
 					path: ["ENGLISH", "vocabulary", "bY LeVeLs"],
 				})
 			).folderId,
@@ -49,7 +47,7 @@ describe("ResolveFolderPathUseCase", () => {
 		await create("Vocabulary", english);
 
 		expect(
-			(await resolveFolderPath.execute({ path: ["English"] })).folderId,
+			(await resolvePagePath.execute({ path: ["English"] })).folderId,
 		).toBe(english);
 	});
 
@@ -57,14 +55,14 @@ describe("ResolveFolderPathUseCase", () => {
 		await create("English");
 
 		expect(
-			resolveFolderPath.execute({ path: ["English", "Missing"] }),
+			resolvePagePath.execute({ path: ["English", "Missing"] }),
 		).rejects.toBeInstanceOf(FolderPathNotFoundError);
 	});
 
 	test("never creates anything", async () => {
 		await create("English");
 
-		await resolveFolderPath
+		await resolvePagePath
 			.execute({ path: ["English", "Missing"] })
 			.catch(() => undefined);
 

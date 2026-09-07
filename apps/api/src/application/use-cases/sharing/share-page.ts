@@ -9,8 +9,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { type PageId } from "@/modules/pages";
-import { requireFolder } from "../folders/create-folder";
+import { type PageId, PagesService } from "@/modules/pages";
 
 export interface SharePageCommand {
 	readonly folderId: PageId;
@@ -41,7 +40,7 @@ export class SharePageUseCase
 
 	execute(request: Command<SharePageCommand>): Promise<SharedPage> {
 		return this.unitOfWork.run(async ({ pages }) => {
-			const page = await requireFolder(pages, request.folderId);
+			const page = await new PagesService(pages).require(request.folderId);
 			const existing = await pages.shareOf(page.id);
 
 			if (existing !== undefined && request.rotate !== true) {
@@ -89,7 +88,7 @@ export class UnsharePageUseCase
 
 	async execute(request: Command<UnsharePageCommand>): Promise<void> {
 		await this.unitOfWork.run(async ({ pages }) => {
-			const page = await requireFolder(pages, request.folderId);
+			const page = await new PagesService(pages).require(request.folderId);
 
 			await pages.deleteShare(page.id);
 		});

@@ -5,6 +5,7 @@ import type { IdGenerator } from "@/application/ports/id-generator";
 import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import { UnitOfWorkTransaction } from "@/application/unit-of-work.transaction";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
@@ -19,19 +20,6 @@ import {
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
-import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
-import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
-import { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
-import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
-import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
-import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
-import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
-import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
-import { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
-import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
-import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
-import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
@@ -60,6 +48,22 @@ import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { DatabaseConnection } from "@/db/connection";
 import {
+	CreatePageUseCase,
+	DeletePageUseCase,
+	DetachQuizUseCase,
+	EnsurePagePathUseCase,
+	ListPageRevisionsUseCase,
+	ListPageTreeUseCase,
+	MovePageUseCase,
+	PagesService,
+	RenamePageUseCase,
+	ReorderPageUseCase,
+	ResolvePagePathUseCase,
+	SearchPagesUseCase,
+	SetPageIconUseCase,
+	WriteSummaryUseCase,
+} from "@/modules/pages";
+import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
 } from "@/persistence/postgres/unit-of-work";
@@ -83,17 +87,17 @@ export interface UseCases {
 	readonly listQuestions: ListQuestionsUseCase;
 	readonly getQuizSet: GetQuizSetUseCase;
 	readonly moveQuizSet: MoveQuizSetUseCase;
-	readonly createFolder: CreateFolderUseCase;
-	readonly renameFolder: RenameFolderUseCase;
-	readonly moveFolder: MoveFolderUseCase;
-	readonly reorderFolder: ReorderFolderUseCase;
-	readonly deleteFolder: DeleteFolderUseCase;
-	readonly ensureFolderPath: EnsureFolderPathUseCase;
-	readonly resolveFolderPath: ResolveFolderPathUseCase;
-	readonly listFolderTree: ListFolderTreeUseCase;
+	readonly createFolder: CreatePageUseCase;
+	readonly renameFolder: RenamePageUseCase;
+	readonly moveFolder: MovePageUseCase;
+	readonly reorderFolder: ReorderPageUseCase;
+	readonly deleteFolder: DeletePageUseCase;
+	readonly ensureFolderPath: EnsurePagePathUseCase;
+	readonly resolveFolderPath: ResolvePagePathUseCase;
+	readonly listFolderTree: ListPageTreeUseCase;
 	readonly browseFolder: BrowseFolderUseCase;
 	readonly writeSummary: WriteSummaryUseCase;
-	readonly listRevisions: ListRevisionsUseCase;
+	readonly listRevisions: ListPageRevisionsUseCase;
 	readonly searchPages: SearchPagesUseCase;
 	readonly setPageIcon: SetPageIconUseCase;
 	readonly getInsights: GetInsightsUseCase;
@@ -142,6 +146,10 @@ export function createUseCases(
 	dependencies: ApplicationDependencies,
 ): UseCases {
 	const addQuestions = new AddQuestionsUseCase(dependencies);
+	const pages = dependencies.scope.pages;
+	const pagesService = new PagesService(pages);
+	const transaction = new UnitOfWorkTransaction(dependencies.unitOfWork);
+	const { clock, idGenerator } = dependencies;
 
 	return {
 		createQuizSet: new CreateQuizSetUseCase(dependencies),
@@ -156,26 +164,59 @@ export function createUseCases(
 		listQuestions: new ListQuestionsUseCase(dependencies),
 		getQuizSet: new GetQuizSetUseCase(dependencies),
 		moveQuizSet: new MoveQuizSetUseCase(dependencies),
-		createFolder: new CreateFolderUseCase(dependencies),
-		renameFolder: new RenameFolderUseCase(dependencies),
-		moveFolder: new MoveFolderUseCase(dependencies),
-		reorderFolder: new ReorderFolderUseCase(dependencies),
-		deleteFolder: new DeleteFolderUseCase(dependencies),
-		ensureFolderPath: new EnsureFolderPathUseCase(dependencies),
-		resolveFolderPath: new ResolveFolderPathUseCase(dependencies),
-		listFolderTree: new ListFolderTreeUseCase(dependencies),
+		createFolder: new CreatePageUseCase(
+			pages,
+			pagesService,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		renameFolder: new RenamePageUseCase(
+			pages,
+			pagesService,
+			transaction,
+			clock,
+		),
+		moveFolder: new MovePageUseCase(pages, pagesService, transaction, clock),
+		reorderFolder: new ReorderPageUseCase(
+			pages,
+			pagesService,
+			transaction,
+			clock,
+		),
+		deleteFolder: new DeletePageUseCase(pages, pagesService, transaction),
+		ensureFolderPath: new EnsurePagePathUseCase(
+			pages,
+			pagesService,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		resolveFolderPath: new ResolvePagePathUseCase(pages),
+		listFolderTree: new ListPageTreeUseCase(pages),
 		browseFolder: new BrowseFolderUseCase(dependencies),
-		writeSummary: new WriteSummaryUseCase(dependencies),
-		listRevisions: new ListRevisionsUseCase(dependencies),
-		searchPages: new SearchPagesUseCase(dependencies),
-		setPageIcon: new SetPageIconUseCase(dependencies),
+		writeSummary: new WriteSummaryUseCase(
+			pages,
+			pagesService,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		listRevisions: new ListPageRevisionsUseCase(pages, pagesService),
+		searchPages: new SearchPagesUseCase(pages),
+		setPageIcon: new SetPageIconUseCase(
+			pages,
+			pagesService,
+			transaction,
+			clock,
+		),
 		getInsights: new GetInsightsUseCase(dependencies),
 		abandonQuizAttempt: new AbandonQuizAttemptUseCase(dependencies),
 		sharePage: new SharePageUseCase(dependencies),
 		unsharePage: new UnsharePageUseCase(dependencies),
 		readSharedPage: new ReadSharedPageUseCase(dependencies),
 		attachQuiz: new AttachQuizUseCase(dependencies),
-		detachQuiz: new DetachQuizUseCase(dependencies),
+		detachQuiz: new DetachQuizUseCase(pages, pagesService, transaction),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
 		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
 		updateQuestion: new UpdateQuestionUseCase(dependencies),

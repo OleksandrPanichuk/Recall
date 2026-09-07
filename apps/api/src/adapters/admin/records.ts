@@ -1,7 +1,7 @@
-import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { QuestionRow } from "@/application/use-cases/quiz-sets/list-questions";
 import type { VocabularyItemView } from "@/application/use-cases/quiz-sets/list-vocabulary";
 import type { QuizSet } from "@/domain/quiz-set/quiz-set";
+import type { PageTreeNode } from "@/modules/pages";
 import type { ListShape } from "./query";
 
 export interface SetRecord {
@@ -115,7 +115,7 @@ export const questionRecordOf = (row: QuestionRow): QuestionRecord => ({
 	editable: row.setStatus !== "archived",
 });
 
-export const folderRecordOf = (node: FolderTreeNode): FolderRecord => ({
+export const folderRecordOf = (node: PageTreeNode): FolderRecord => ({
 	id: String(node.id),
 	name: node.name,
 	parentId: node.parentId === undefined ? null : String(node.parentId),

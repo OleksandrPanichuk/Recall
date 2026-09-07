@@ -54,6 +54,15 @@ export class PagePosition {
 		return PagePosition.round((before + after) / 2);
 	}
 
+	static lastAmong(siblings: readonly { position: number }[]): number {
+		return PagePosition.between(
+			siblings.length === 0
+				? undefined
+				: Math.max(...siblings.map((sibling) => sibling.position)),
+			undefined,
+		);
+	}
+
 	static renumbered(count: number): readonly number[] {
 		return Array.from(
 			{ length: count },

@@ -7,6 +7,7 @@ export {
 } from "./page.entity";
 export { PagePosition } from "./page.ordering";
 export * from "./pages.errors";
+export { PagesModule } from "./pages.module";
 export {
 	type PageMatch,
 	type PageRevision,
@@ -14,8 +15,10 @@ export {
 	PagesRepository,
 	type RevisionAuthor,
 } from "./pages.repository";
+export { PagesService } from "./pages.service";
 export {
 	excerptAround,
 	PostgresPagesRepository,
 	slugOf,
 } from "./repositories/pages.postgres.repository";
+export * from "./use-cases";

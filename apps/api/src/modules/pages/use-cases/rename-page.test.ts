@@ -1,28 +1,28 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { DuplicateFolderNameError, type PageId } from "@/modules/pages";
-import { FolderNotFoundError } from "./create-folder";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import type { RenameFolderUseCase } from "./rename-folder";
+import { type PageId } from "@/modules/pages";
+import { DuplicateFolderNameError, FolderNotFoundError } from "../pages.errors";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
+import type { RenamePageUseCase } from "./rename-page";
 
 let context: MemoryContext;
-let renameFolder: RenameFolderUseCase;
-let create: FoldersHarness["create"];
-let nameOf: FoldersHarness["nameOf"];
+let renamePage: RenamePageUseCase;
+let create: PagesHarness["create"];
+let nameOf: PagesHarness["nameOf"];
 
 beforeEach(() => {
-	({ context, renameFolder, create, nameOf } = createFoldersHarness());
+	({ context, renamePage, create, nameOf } = createPagesHarness());
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("RenameFolderUseCase", () => {
+describe("RenamePageUseCase", () => {
 	test("renames a folder", async () => {
 		const id = await create("Programing");
 
-		await renameFolder.execute({ folderId: id, name: "Programming" });
+		await renamePage.execute({ folderId: id, name: "Programming" });
 
 		expect(await nameOf(id)).toBe("Programming");
 	});
@@ -33,21 +33,21 @@ describe("RenameFolderUseCase", () => {
 		const id = await create("Rust", parentId);
 
 		expect(
-			renameFolder.execute({ folderId: id, name: "sql" }),
+			renamePage.execute({ folderId: id, name: "sql" }),
 		).rejects.toBeInstanceOf(DuplicateFolderNameError);
 	});
 
 	test("accepts renaming a folder to its own name", async () => {
 		const id = await create("SQL");
 
-		await renameFolder.execute({ folderId: id, name: "SQL" });
+		await renamePage.execute({ folderId: id, name: "SQL" });
 
 		expect(await nameOf(id)).toBe("SQL");
 	});
 
 	test("rejects an unknown folder", async () => {
 		expect(
-			renameFolder.execute({ folderId: "missing" as PageId, name: "SQL" }),
+			renamePage.execute({ folderId: "missing" as PageId, name: "SQL" }),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 });

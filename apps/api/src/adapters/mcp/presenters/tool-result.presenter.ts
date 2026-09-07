@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
-import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { QuizSet } from "@/domain/quiz-set/quiz-set";
+import type { PageTreeNode } from "@/modules/pages";
 import { describeError } from "./tool-error.presenter";
 
 export type ToolResult = CallToolResult;
@@ -59,7 +59,7 @@ export function describeSummaries(sets: readonly QuizSummary[]): string {
 
 const MAX_TREE_LINES = 200;
 
-export function describeFolderTree(nodes: readonly FolderTreeNode[]): string {
+export function describeFolderTree(nodes: readonly PageTreeNode[]): string {
 	if (nodes.length === 0) {
 		return "No folders yet. Create one with quiz_ensure_folder_path.";
 	}

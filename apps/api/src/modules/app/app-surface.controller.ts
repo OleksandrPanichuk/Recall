@@ -527,7 +527,7 @@ export class AppSurfaceController {
 	@Post(BOT_ROUTES.pageTree)
 	@HttpCode(HttpStatus.OK)
 	async pageTree(@Req() request: SessionRequest) {
-		const nodes = await this.of(request).listFolderTree.execute({});
+		const nodes = await this.of(request).listFolderTree.execute();
 
 		return nodes.map(pageTreeNodeToWire);
 	}

@@ -1,33 +1,34 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+
 import {
 	DuplicateFolderNameError,
 	FolderCycleError,
 	FolderDepthError,
-} from "@/modules/pages";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import type { MoveFolderUseCase } from "./move-folder";
+} from "../pages.errors";
+import type { MovePageUseCase } from "./move-page";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
-let moveFolder: MoveFolderUseCase;
-let create: FoldersHarness["create"];
-let chain: FoldersHarness["chain"];
+let movePage: MovePageUseCase;
+let create: PagesHarness["create"];
+let chain: PagesHarness["chain"];
 
 beforeEach(() => {
-	({ context, moveFolder, create, chain } = createFoldersHarness());
+	({ context, movePage, create, chain } = createPagesHarness());
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("MoveFolderUseCase", () => {
+describe("MovePageUseCase", () => {
 	test("moves a folder to another parent", async () => {
 		const programming = await create("Programming");
 		const english = await create("English");
 		const id = await create("Basics", programming);
 
-		await moveFolder.execute({ folderId: id, parentId: english });
+		await movePage.execute({ folderId: id, parentId: english });
 
 		expect((await context.scope.pages.findById(id))?.parentId).toBe(english);
 		expect(await context.scope.pages.listChildren(programming)).toHaveLength(0);
@@ -37,7 +38,7 @@ describe("MoveFolderUseCase", () => {
 		const programming = await create("Programming");
 		const id = await create("SQL", programming);
 
-		await moveFolder.execute({ folderId: id, parentId: undefined });
+		await movePage.execute({ folderId: id, parentId: undefined });
 
 		expect((await context.scope.pages.findById(id))?.parentId).toBeUndefined();
 	});
@@ -47,7 +48,7 @@ describe("MoveFolderUseCase", () => {
 		const childId = await create("Vocabulary", parentId);
 
 		expect(
-			moveFolder.execute({ folderId: parentId, parentId: childId }),
+			movePage.execute({ folderId: parentId, parentId: childId }),
 		).rejects.toBeInstanceOf(FolderCycleError);
 	});
 
@@ -55,7 +56,7 @@ describe("MoveFolderUseCase", () => {
 		const id = await create("English");
 
 		expect(
-			moveFolder.execute({ folderId: id, parentId: id }),
+			movePage.execute({ folderId: id, parentId: id }),
 		).rejects.toBeInstanceOf(FolderCycleError);
 	});
 
@@ -65,7 +66,7 @@ describe("MoveFolderUseCase", () => {
 		const id = await create("Basics");
 
 		expect(
-			moveFolder.execute({ folderId: id, parentId: english }),
+			movePage.execute({ folderId: id, parentId: english }),
 		).rejects.toBeInstanceOf(DuplicateFolderNameError);
 	});
 
@@ -77,7 +78,7 @@ describe("MoveFolderUseCase", () => {
 		const destination = await chain("d1", "d2", "d3", "d4");
 
 		expect(
-			moveFolder.execute({ folderId: subtreeRoot, parentId: destination }),
+			movePage.execute({ folderId: subtreeRoot, parentId: destination }),
 		).rejects.toBeInstanceOf(FolderDepthError);
 	});
 
@@ -88,7 +89,7 @@ describe("MoveFolderUseCase", () => {
 
 		const destination = await chain("d1", "d2", "d3");
 
-		await moveFolder.execute({ folderId: subtreeRoot, parentId: destination });
+		await movePage.execute({ folderId: subtreeRoot, parentId: destination });
 
 		expect((await context.scope.pages.findById(subtreeRoot))?.parentId).toBe(
 			destination,
@@ -106,7 +107,7 @@ describe("where a moved page lands among its new siblings", () => {
 
 		const drifter = await create("Drifter", source);
 
-		await moveFolder.execute({ folderId: drifter, parentId: target });
+		await movePage.execute({ folderId: drifter, parentId: target });
 
 		expect(
 			(await context.scope.pages.listChildren(target)).map((page) => page.name),
@@ -118,7 +119,7 @@ describe("where a moved page lands among its new siblings", () => {
 		const inner = await create("Inner", outer);
 
 		await create("Later");
-		await moveFolder.execute({ folderId: inner });
+		await movePage.execute({ folderId: inner });
 
 		expect(
 			(await context.scope.pages.listChildren(undefined)).map(
@@ -131,7 +132,7 @@ describe("where a moved page lands among its new siblings", () => {
 		const first = await create("First");
 		await create("Second");
 
-		await moveFolder.execute({ folderId: first });
+		await movePage.execute({ folderId: first });
 
 		expect(
 			(await context.scope.pages.listChildren(undefined)).map(

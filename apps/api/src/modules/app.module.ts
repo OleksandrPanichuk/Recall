@@ -3,6 +3,7 @@ import { loadApiEnvironment } from "@/configs/env.config";
 import { ApiTokensModule } from "@/modules/api-tokens";
 import { AuthModule } from "@/modules/auth";
 import { OAuthModule } from "@/modules/oauth";
+import { PagesModule } from "@/modules/pages";
 import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
 import { CoreModule } from "@/shared/core.module";
@@ -28,6 +29,7 @@ import { HealthController } from "./shared/health/health.controller";
 		TelegramLinkModule,
 		ApiTokensModule,
 		OAuthModule,
+		PagesModule,
 		ContentModule,
 		AppSurfaceModule,
 		PublicModule,

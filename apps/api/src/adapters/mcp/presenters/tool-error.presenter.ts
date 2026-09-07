@@ -1,6 +1,3 @@
-import { FolderNotFoundError } from "@/application/use-cases/folders/create-folder";
-import { FolderNotEmptyError } from "@/application/use-cases/folders/delete-folder";
-import { FolderPathNotFoundError } from "@/application/use-cases/folders/resolve-folder-path";
 import {
 	EmptyQuestionBatchError,
 	QuestionBatchTooLargeError,
@@ -19,6 +16,9 @@ import {
 	DuplicateFolderNameError,
 	FolderCycleError,
 	FolderDepthError,
+	FolderNotEmptyError,
+	FolderNotFoundError,
+	FolderPathNotFoundError,
 	FolderValidationError,
 } from "@/modules/pages";
 

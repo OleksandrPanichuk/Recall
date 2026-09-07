@@ -13,17 +13,6 @@ import {
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
-import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
-import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
-import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
-import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
-import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
-import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
-import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
-import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
-import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
-import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
@@ -43,19 +32,8 @@ const fromDependencies = (useCase: Constructor): Provider => ({
 });
 
 export const botUseCases: Provider[] = [
-	BrowseFolderUseCase,
-	WriteSummaryUseCase,
-	SearchPagesUseCase,
-	CreateFolderUseCase,
-	RenameFolderUseCase,
-	SetPageIconUseCase,
-	DeleteFolderUseCase,
-	ListFolderTreeUseCase,
-	ListRevisionsUseCase,
-	MoveFolderUseCase,
-	ReorderFolderUseCase,
 	AttachQuizUseCase,
-	DetachQuizUseCase,
+	BrowseFolderUseCase,
 	GetInsightsUseCase,
 	AbandonQuizAttemptUseCase,
 	StartQuizAttemptUseCase,

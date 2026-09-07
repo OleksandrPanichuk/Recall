@@ -3,16 +3,6 @@ import type { GetInsightsUseCase } from "@/application/use-cases/analytics/get-i
 import type { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import type { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
-import type { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
-import type { EnsureFolderPathUseCase } from "@/application/use-cases/folders/ensure-folder-path";
-import type { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
-import type { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
-import type { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
-import type { ResolveFolderPathUseCase } from "@/application/use-cases/folders/resolve-folder-path";
-import type { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
-import type { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
-import type { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import type { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import type { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
 import type { ArchiveQuizSetUseCase } from "@/application/use-cases/quiz-sets/archive-quiz-set";
@@ -28,6 +18,18 @@ import type { UpdateQuizSetUseCase } from "@/application/use-cases/quiz-sets/upd
 import type { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import type { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
+import type {
+	DeletePageUseCase,
+	DetachQuizUseCase,
+	EnsurePagePathUseCase,
+	ListPageRevisionsUseCase,
+	ListPageTreeUseCase,
+	RenamePageUseCase,
+	ResolvePagePathUseCase,
+	SearchPagesUseCase,
+	SetPageIconUseCase,
+	WriteSummaryUseCase,
+} from "@/modules/pages";
 
 export interface McpUseCases {
 	readonly createQuizSet: CreateQuizSetUseCase;
@@ -43,14 +45,14 @@ export interface McpUseCases {
 	readonly getQuizSet: GetQuizSetUseCase;
 	readonly listQuizSets: ListQuizSetsUseCase;
 	readonly moveQuizSet: MoveQuizSetUseCase;
-	readonly ensureFolderPath: EnsureFolderPathUseCase;
-	readonly resolveFolderPath: ResolveFolderPathUseCase;
-	readonly renameFolder: RenameFolderUseCase;
-	readonly deleteFolder: DeleteFolderUseCase;
-	readonly listFolderTree: ListFolderTreeUseCase;
+	readonly ensureFolderPath: EnsurePagePathUseCase;
+	readonly resolveFolderPath: ResolvePagePathUseCase;
+	readonly renameFolder: RenamePageUseCase;
+	readonly deleteFolder: DeletePageUseCase;
+	readonly listFolderTree: ListPageTreeUseCase;
 	readonly browseFolder: BrowseFolderUseCase;
 	readonly writeSummary: WriteSummaryUseCase;
-	readonly listRevisions: ListRevisionsUseCase;
+	readonly listRevisions: ListPageRevisionsUseCase;
 	readonly searchPages: SearchPagesUseCase;
 	readonly setPageIcon: SetPageIconUseCase;
 	readonly getInsights: GetInsightsUseCase;

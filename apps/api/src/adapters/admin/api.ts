@@ -179,7 +179,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 		).map(questionRecordOf);
 
 	const folderRecords = async () =>
-		(await application.listFolderTree.execute({})).map(folderRecordOf);
+		(await application.listFolderTree.execute()).map(folderRecordOf);
 
 	const vocabularyRecords = async (quizSetId?: string) => {
 		const ids =

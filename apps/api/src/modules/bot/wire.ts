@@ -34,8 +34,6 @@ import type { ResumeQuizAttemptResult } from "@/application/use-cases/attempts/r
 import type { StartQuizAttemptResult } from "@/application/use-cases/attempts/start-quiz-attempt";
 import type { AttachedQuiz } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
-import type { DetachedQuiz } from "@/application/use-cases/folders/detach-quiz";
-import type { FolderTreeNode } from "@/application/use-cases/folders/list-folder-tree";
 import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
 import type { QuestionRow } from "@/application/use-cases/quiz-sets/list-questions";
 import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
@@ -48,6 +46,7 @@ import type { Question } from "@/domain/quiz-set/question";
 import type { QuizSet } from "@/domain/quiz-set/quiz-set";
 import type { DueSet } from "@/domain/repetition/repetition.types";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import type { DetachedQuiz, PageTreeNode } from "@/modules/pages";
 
 const text = (value: string | undefined): string | undefined =>
 	value === undefined ? undefined : value;
@@ -172,7 +171,7 @@ export const insightsToWire = (insights: Insights): WireInsights => ({
 	correct: insights.correct,
 });
 
-export const pageTreeNodeToWire = (node: FolderTreeNode): WirePageTreeNode => ({
+export const pageTreeNodeToWire = (node: PageTreeNode): WirePageTreeNode => ({
 	id: String(node.id),
 	name: node.name,
 	icon: text(node.icon),

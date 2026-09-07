@@ -1,22 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
-import type { ListFolderTreeUseCase } from "./list-folder-tree";
+import type { ListPageTreeUseCase } from "./list-page-tree";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
-let listFolderTree: ListFolderTreeUseCase;
-let create: FoldersHarness["create"];
+let listPageTree: ListPageTreeUseCase;
+let create: PagesHarness["create"];
 
 beforeEach(() => {
-	({ context, listFolderTree, create } = createFoldersHarness());
+	({ context, listPageTree, create } = createPagesHarness());
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("ListFolderTreeUseCase", () => {
+describe("ListPageTreeUseCase", () => {
 	test("walks depth-first, in the order the owner put them, with each depth", async () => {
 		const english = await create("English");
 		const vocabulary = await create("Vocabulary", english);
@@ -25,7 +25,7 @@ describe("ListFolderTreeUseCase", () => {
 		await create("Programming");
 
 		expect(
-			(await listFolderTree.execute({})).map((node) => [node.name, node.depth]),
+			(await listPageTree.execute()).map((node) => [node.name, node.depth]),
 		).toEqual([
 			["English", 0],
 			["Vocabulary", 1],
@@ -46,13 +46,13 @@ describe("ListFolderTreeUseCase", () => {
 			quizzes.save({ ...draft, folderId }),
 		);
 
-		const [node] = await listFolderTree.execute({});
+		const [node] = await listPageTree.execute();
 
 		expect(node?.setCount).toBe(0);
 		expect(node?.unpublishedCount).toBe(1);
 	});
 
 	test("is empty for an empty library", async () => {
-		expect(await listFolderTree.execute({})).toEqual([]);
+		expect(await listPageTree.execute()).toEqual([]);
 	});
 });

@@ -13,8 +13,7 @@ import {
 	type QuizSetId,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import { type PageId } from "@/modules/pages";
-import { requireFolder } from "../folders/create-folder";
+import { type PageId, PagesService } from "@/modules/pages";
 
 export interface CreateQuizSetCommand {
 	readonly title: string;
@@ -50,7 +49,7 @@ export class CreateQuizSetUseCase
 	): Promise<CreateQuizSetResult> {
 		return this.unitOfWork.run(async ({ pages, quizzes }) => {
 			if (request.folderId !== undefined) {
-				await requireFolder(pages, request.folderId);
+				await new PagesService(pages).require(request.folderId);
 			}
 
 			const quizSet = createQuizSet({

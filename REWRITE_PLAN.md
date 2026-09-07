@@ -600,10 +600,15 @@ export abstract class ModuleError extends Error {
   injectables happen to live today. `tests/unit/decorator-metadata.test.ts` boots a module
   whose consumer names its dependency only as a parameter type, and passes
   `abortOnError: false` so a regression fails loudly instead of exiting the process.
-- **`noStaticOnlyClass` is off for `apps/api/**` too**, and for the same kind of reason: §4.4
+- **`noStaticOnlyClass`, `noUnsafeDeclarationMerging` and `noConfusingVoidType` are off for
+  `apps/api/**` too**, each for the same kind of reason. §4.4
   makes an entity a class of statics over a merged interface, which is precisely the shape that
-  rule exists to discourage. Where the conventions and a default lint rule disagree, the
-  conventions win and the rule goes, scoped to this app so the other workspaces keep it.
+  rule exists to discourage, and §4.5 writes `type Options = void` for a use case that takes
+  no input, which the third rule reads as a confusing void. Where the conventions and a default
+  lint rule disagree, the conventions win and the rule goes, scoped to this app so the other
+  workspaces keep it. Each of the three is a style rule about a shape this codebase chose
+  deliberately, not a correctness rule; an entity class gets a private constructor so its merge
+  is provably safe rather than merely permitted.
 - Use cases, services and repositories are all `@Injectable()` providers listed in their
   module. A module `exports` only what another module legitimately needs; the import graph is
   declared in `*.module.ts` rather than implied by whatever got imported.

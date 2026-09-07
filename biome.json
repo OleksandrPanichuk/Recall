@@ -57,7 +57,10 @@
 			"linter": {
 				"rules": {
 					"complexity": { "noStaticOnlyClass": "off" },
-					"suspicious": { "noUnsafeDeclarationMerging": "off" },
+					"suspicious": {
+						"noConfusingVoidType": "off",
+						"noUnsafeDeclarationMerging": "off"
+					},
 					"style": { "useImportType": "off" }
 				}
 			}

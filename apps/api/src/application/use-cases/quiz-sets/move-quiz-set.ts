@@ -10,8 +10,7 @@ import {
 	moveQuizSetToFolder,
 	type QuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import { type PageId } from "@/modules/pages";
-import { requireFolder } from "../folders/create-folder";
+import { type PageId, PagesService } from "@/modules/pages";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface MoveQuizSetCommand {
@@ -41,7 +40,7 @@ export class MoveQuizSetUseCase
 			}
 
 			if (request.folderId !== undefined) {
-				await requireFolder(pages, request.folderId);
+				await new PagesService(pages).require(request.folderId);
 			}
 
 			await quizzes.save(

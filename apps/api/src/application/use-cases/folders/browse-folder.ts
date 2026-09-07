@@ -2,8 +2,7 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { Command, UseCase } from "@/application/use-case";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { type PageId } from "@/modules/pages";
-import { requireFolder } from "./create-folder";
+import { type PageId, PagesService } from "@/modules/pages";
 
 export interface BrowseCrumb {
 	readonly id: PageId;
@@ -51,7 +50,7 @@ export class BrowseFolderUseCase
 		const current =
 			request.folderId === undefined
 				? undefined
-				: await requireFolder(pages, request.folderId);
+				: await new PagesService(pages).require(request.folderId);
 
 		const children: BrowseChild[] = [];
 

@@ -1,11 +1,12 @@
 import { Module } from "@nestjs/common";
 import { ApiTokensModule } from "@/modules/api-tokens";
+import { PagesModule } from "@/modules/pages";
 import { TelegramLinkModule } from "@/modules/telegram-link";
 import { BotController } from "./bot.controller";
 import { botUseCases } from "./use-cases.providers";
 
 @Module({
-	imports: [ApiTokensModule, TelegramLinkModule],
+	imports: [ApiTokensModule, PagesModule, TelegramLinkModule],
 	controllers: [BotController],
 	providers: [...botUseCases],
 })

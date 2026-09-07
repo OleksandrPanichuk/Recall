@@ -1,27 +1,27 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+import { type PageId } from "@/modules/pages";
 import {
 	DuplicateFolderNameError,
 	FolderDepthError,
-	type PageId,
-} from "@/modules/pages";
-import { FolderNotFoundError } from "./create-folder";
-import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
+	FolderNotFoundError,
+} from "../pages.errors";
+import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
-let create: FoldersHarness["create"];
-let chain: FoldersHarness["chain"];
-let nameOf: FoldersHarness["nameOf"];
+let create: PagesHarness["create"];
+let chain: PagesHarness["chain"];
+let nameOf: PagesHarness["nameOf"];
 
 beforeEach(() => {
-	({ context, create, chain, nameOf } = createFoldersHarness());
+	({ context, create, chain, nameOf } = createPagesHarness());
 });
 
 afterEach(() => {
 	context.close();
 });
 
-describe("CreateFolderUseCase", () => {
+describe("CreatePageUseCase", () => {
 	test("creates a root folder", async () => {
 		const id = await create("Programming");
 

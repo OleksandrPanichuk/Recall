@@ -8,25 +8,32 @@ import {
 	type QuizSetId,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
-import { type PageId } from "@/modules/pages";
+import {
+	CreatePageUseCase,
+	FolderNotFoundError,
+	type PageId,
+	PagesService,
+} from "@/modules/pages";
 import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
-import {
-	CreateFolderUseCase,
-	FolderNotFoundError,
-} from "../folders/create-folder";
 import { CreateQuizSetUseCase } from "./create-quiz-set";
 import { MoveQuizSetUseCase } from "./move-quiz-set";
 
 let context: MemoryContext;
 let moveQuizSet: MoveQuizSetUseCase;
-let createFolder: CreateFolderUseCase;
+let createFolder: CreatePageUseCase;
 
 beforeEach(() => {
 	context = createMemoryContext();
-	createFolder = new CreateFolderUseCase(context);
+	createFolder = new CreatePageUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+		context.transaction,
+		context.clock,
+		context.idGenerator,
+	);
 	moveQuizSet = new MoveQuizSetUseCase(context);
 });
 

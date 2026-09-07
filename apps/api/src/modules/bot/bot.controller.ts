@@ -57,17 +57,6 @@ import {
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
-import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
-import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
-import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
-import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
-import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
-import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
-import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
-import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
-import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
-import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
@@ -80,7 +69,20 @@ import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { BotTokenGuard } from "@/modules/auth";
-import { toPageId } from "@/modules/pages";
+import {
+	CreatePageUseCase,
+	DeletePageUseCase,
+	DetachQuizUseCase,
+	ListPageRevisionsUseCase,
+	ListPageTreeUseCase,
+	MovePageUseCase,
+	RenamePageUseCase,
+	ReorderPageUseCase,
+	SearchPagesUseCase,
+	SetPageIconUseCase,
+	toPageId,
+	WriteSummaryUseCase,
+} from "@/modules/pages";
 import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {
@@ -129,22 +131,22 @@ export class BotController {
 		private readonly pauseQuizAttempt: PauseQuizAttemptUseCase,
 		@Inject(ResumeQuizAttemptUseCase)
 		private readonly resumeQuizAttempt: ResumeQuizAttemptUseCase,
-		@Inject(CreateFolderUseCase)
-		private readonly createFolder: CreateFolderUseCase,
-		@Inject(RenameFolderUseCase)
-		private readonly renameFolder: RenameFolderUseCase,
+		@Inject(CreatePageUseCase)
+		private readonly createFolder: CreatePageUseCase,
+		@Inject(RenamePageUseCase)
+		private readonly renameFolder: RenamePageUseCase,
 		@Inject(SetPageIconUseCase)
 		private readonly setIcon: SetPageIconUseCase,
-		@Inject(DeleteFolderUseCase)
-		private readonly deleteFolder: DeleteFolderUseCase,
-		@Inject(ListFolderTreeUseCase)
-		private readonly listFolderTree: ListFolderTreeUseCase,
-		@Inject(MoveFolderUseCase)
-		private readonly moveFolder: MoveFolderUseCase,
-		@Inject(ListRevisionsUseCase)
-		private readonly revisions: ListRevisionsUseCase,
-		@Inject(ReorderFolderUseCase)
-		private readonly reorderFolder: ReorderFolderUseCase,
+		@Inject(DeletePageUseCase)
+		private readonly deleteFolder: DeletePageUseCase,
+		@Inject(ListPageTreeUseCase)
+		private readonly listFolderTree: ListPageTreeUseCase,
+		@Inject(MovePageUseCase)
+		private readonly moveFolder: MovePageUseCase,
+		@Inject(ListPageRevisionsUseCase)
+		private readonly revisions: ListPageRevisionsUseCase,
+		@Inject(ReorderPageUseCase)
+		private readonly reorderFolder: ReorderPageUseCase,
 		@Inject(AttachQuizUseCase)
 		private readonly attachQuizSet: AttachQuizUseCase,
 		@Inject(DetachQuizUseCase)
@@ -390,7 +392,7 @@ export class BotController {
 	@Post(BOT_ROUTES.pageTree)
 	@HttpCode(HttpStatus.OK)
 	async pageTree() {
-		const nodes = await this.listFolderTree.execute({});
+		const nodes = await this.listFolderTree.execute();
 
 		return nodes.map(pageTreeNodeToWire);
 	}

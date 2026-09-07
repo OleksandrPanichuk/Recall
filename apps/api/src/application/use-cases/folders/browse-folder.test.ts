@@ -9,27 +9,41 @@ import {
 	type QuizSet,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
-import { type PageId } from "@/modules/pages";
+import {
+	CreatePageUseCase,
+	DeletePageUseCase,
+	FolderNotEmptyError,
+	type PageId,
+	PagesService,
+} from "@/modules/pages";
 import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
 import { MoveQuizSetUseCase } from "../quiz-sets/move-quiz-set";
 import { BrowseFolderUseCase } from "./browse-folder";
-import { CreateFolderUseCase } from "./create-folder";
-import { DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 
 let context: MemoryContext;
 let browseFolder: BrowseFolderUseCase;
-let createFolder: CreateFolderUseCase;
-let deleteFolder: DeleteFolderUseCase;
+let createFolder: CreatePageUseCase;
+let deleteFolder: DeletePageUseCase;
 let moveQuizSet: MoveQuizSetUseCase;
 
 beforeEach(() => {
 	context = createMemoryContext();
 
-	createFolder = new CreateFolderUseCase(context);
-	deleteFolder = new DeleteFolderUseCase(context);
+	createFolder = new CreatePageUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+		context.transaction,
+		context.clock,
+		context.idGenerator,
+	);
+	deleteFolder = new DeletePageUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+		context.transaction,
+	);
 	browseFolder = new BrowseFolderUseCase(context);
 	moveQuizSet = new MoveQuizSetUseCase(context);
 });
@@ -232,7 +246,7 @@ describe("BrowseFolderUseCase inside a folder", () => {
 	});
 });
 
-describe("DeleteFolderUseCase with sets", () => {
+describe("DeletePageUseCase with sets", () => {
 	test("refuses a folder that still holds a set", async () => {
 		const english = await create("English");
 		await fileInto("set-english", english);
