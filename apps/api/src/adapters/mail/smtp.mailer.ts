@@ -2,10 +2,7 @@ import {
 	createSmtpTransport,
 	type SmtpTransport,
 } from "@/infrastructure/mail/smtp.transport";
-import {
-	type Letter,
-	Mailer,
-} from "@/modules/notifications/notifications.port";
+import { type Letter, Mailer } from "@/modules/notifications/ports/mailer";
 
 export interface SmtpOptions {
 	readonly url: string;

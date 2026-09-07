@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { OwnerId } from "@/core/owner";
 import type { RecallDatabase } from "@/db/client";
-import { executorFor, inTransaction } from "@/db/executor";
+import { DatabaseExecutor } from "@/db/executor";
 import * as schema from "@/db/schema";
 import { pages } from "@/db/schema";
 import { createFolder } from "@/domain/folder/folder";
@@ -38,7 +38,7 @@ afterAll(async () => {
 });
 
 const titleOf = async (id: string): Promise<string | undefined> => {
-	const [row] = await executorFor(db)
+	const [row] = await DatabaseExecutor.for(db)
 		.select({ title: pages.title })
 		.from(pages)
 		.where(eq(pages.id, id))
@@ -59,14 +59,14 @@ describe.skipIf(!available)("the executor bridge", () => {
 		const page = aPage("visible inside");
 
 		await createPostgresUnitOfWork(db, owner).run(async (scope) => {
-			expect(inTransaction()).toBe(true);
+			expect(DatabaseExecutor.isOpen()).toBe(true);
 
 			await scope.pages.save(page);
 
 			expect(await titleOf(page.id)).toBe("visible inside");
 		});
 
-		expect(inTransaction()).toBe(false);
+		expect(DatabaseExecutor.isOpen()).toBe(false);
 		expect(await titleOf(page.id)).toBe("visible inside");
 	});
 
@@ -114,7 +114,7 @@ describe.skipIf(!available)("the executor bridge", () => {
 			scope.pages.save(page),
 		);
 
-		expect(inTransaction()).toBe(false);
+		expect(DatabaseExecutor.isOpen()).toBe(false);
 		expect(await titleOf(page.id)).toBe("committed");
 	});
 });

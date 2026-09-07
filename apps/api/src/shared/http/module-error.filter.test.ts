@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ModuleError } from "@/core/errors";
-import { refusalFor } from "./module-error.filter";
+import { ModuleErrorFilter } from "./module-error.filter";
 
 class QuizSetArchivedError extends ModuleError {
 	readonly status = 409;
@@ -25,9 +25,11 @@ class LegacyQuizSetNotFoundError extends Error {
 	}
 }
 
-describe("refusalFor", () => {
+describe("ModuleErrorFilter.refusalFor", () => {
 	test("reads a module error off the class", () => {
-		expect(refusalFor(new QuizSetArchivedError("q1"))).toEqual({
+		expect(
+			ModuleErrorFilter.refusalFor(new QuizSetArchivedError("q1")),
+		).toEqual({
 			status: 409,
 			name: "QuizSetArchivedError",
 			message: "an archived quiz set cannot be published",
@@ -36,7 +38,9 @@ describe("refusalFor", () => {
 	});
 
 	test("still reads a v1 domain error out of the name table", () => {
-		expect(refusalFor(new LegacyQuizSetNotFoundError())).toEqual({
+		expect(
+			ModuleErrorFilter.refusalFor(new LegacyQuizSetNotFoundError()),
+		).toEqual({
 			status: 404,
 			name: "QuizSetNotFoundError",
 			message: "Quiz set q7 was not found",
@@ -46,22 +50,26 @@ describe("refusalFor", () => {
 
 	test("carries only whitelisted details off a v1 error", () => {
 		expect(
-			refusalFor(new LegacyQuizSetNotFoundError())?.details,
+			ModuleErrorFilter.refusalFor(new LegacyQuizSetNotFoundError())?.details,
 		).not.toHaveProperty("secret");
 	});
 
 	test("sends the class name, because the bot maps refusals by name", () => {
-		expect(refusalFor(new QuizSetArchivedError("q1"))?.name).toBe(
-			"QuizSetArchivedError",
-		);
+		expect(
+			ModuleErrorFilter.refusalFor(new QuizSetArchivedError("q1"))?.name,
+		).toBe("QuizSetArchivedError");
 	});
 
 	test("refuses to guess at an error it does not recognise", () => {
-		expect(refusalFor(new Error("something broke"))).toBeUndefined();
-		expect(refusalFor("a thrown string")).toBeUndefined();
+		expect(
+			ModuleErrorFilter.refusalFor(new Error("something broke")),
+		).toBeUndefined();
+		expect(ModuleErrorFilter.refusalFor("a thrown string")).toBeUndefined();
 	});
 
 	test("a module error needs no entry in the name table", () => {
-		expect(refusalFor(new QuizSetArchivedError("q1"))?.status).toBe(409);
+		expect(
+			ModuleErrorFilter.refusalFor(new QuizSetArchivedError("q1"))?.status,
+		).toBe(409);
 	});
 });

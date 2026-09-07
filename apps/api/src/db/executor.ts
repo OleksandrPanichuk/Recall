@@ -10,10 +10,15 @@ export type Executor = RecallDatabase | PostgresTransactionScope;
 
 const storage = new AsyncLocalStorage<PostgresTransactionScope>();
 
-export const executorFor = (db: RecallDatabase): Executor =>
-	storage.getStore() ?? db;
+export class DatabaseExecutor {
+	static for(db: RecallDatabase): Executor {
+		return storage.getStore() ?? db;
+	}
 
-export const inTransaction = (): boolean => storage.getStore() !== undefined;
+	static isOpen(): boolean {
+		return storage.getStore() !== undefined;
+	}
+}
 
 export class PostgresTransaction extends Transaction {
 	constructor(private readonly db: RecallDatabase) {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { RecallDatabase } from "./client";
-import { executorFor, inTransaction, PostgresTransaction } from "./executor";
+import { DatabaseExecutor, PostgresTransaction } from "./executor";
 
 const scope = { marker: "transaction-scope" };
 
@@ -23,16 +23,16 @@ describe("the postgres executor", () => {
 	test("hands out the connection when no transaction is open", () => {
 		const { db } = fakeDatabase();
 
-		expect(executorFor(db)).toBe(db);
-		expect(inTransaction()).toBe(false);
+		expect(DatabaseExecutor.for(db)).toBe(db);
+		expect(DatabaseExecutor.isOpen()).toBe(false);
 	});
 
 	test("hands out the transaction scope inside one", async () => {
 		const { db } = fakeDatabase();
 
 		await new PostgresTransaction(db).run(async () => {
-			expect(executorFor(db)).toBe(scope as never);
-			expect(inTransaction()).toBe(true);
+			expect(DatabaseExecutor.for(db)).toBe(scope as never);
+			expect(DatabaseExecutor.isOpen()).toBe(true);
 		});
 	});
 
@@ -42,7 +42,7 @@ describe("the postgres executor", () => {
 
 		await transaction.run(async () => {
 			await transaction.run(async () => {
-				expect(executorFor(db)).toBe(scope as never);
+				expect(DatabaseExecutor.for(db)).toBe(scope as never);
 			});
 		});
 
@@ -54,8 +54,8 @@ describe("the postgres executor", () => {
 
 		await new PostgresTransaction(db).run(async () => undefined);
 
-		expect(executorFor(db)).toBe(db);
-		expect(inTransaction()).toBe(false);
+		expect(DatabaseExecutor.for(db)).toBe(db);
+		expect(DatabaseExecutor.isOpen()).toBe(false);
 	});
 
 	test("a failure propagates so the boundary is discarded", async () => {
@@ -76,11 +76,11 @@ describe("the postgres executor", () => {
 		await Promise.all([
 			transaction.run(async () => {
 				await Promise.resolve();
-				seen.push(executorFor(db));
+				seen.push(DatabaseExecutor.for(db));
 			}),
 			(async () => {
 				await Promise.resolve();
-				seen.push(executorFor(db));
+				seen.push(DatabaseExecutor.for(db));
 			})(),
 		]);
 

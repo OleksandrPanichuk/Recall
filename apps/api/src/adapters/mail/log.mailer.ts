@@ -1,8 +1,5 @@
 import type { Logger } from "@recall/kit";
-import {
-	type Letter,
-	Mailer,
-} from "@/modules/notifications/notifications.port";
+import { type Letter, Mailer } from "@/modules/notifications/ports/mailer";
 
 export class LogMailer extends Mailer {
 	constructor(private readonly logger: Logger) {
