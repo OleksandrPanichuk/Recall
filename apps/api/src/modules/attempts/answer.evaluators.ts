@@ -1,7 +1,7 @@
 import { normaliseForComparison } from "@recall/kit";
 import { QuestionEntity, type QuestionOptionId } from "@/modules/quizzes";
 import type { AnswerGrade, OptionPair } from "./answer.types";
-import { QuizAttemptValidationError } from "./quiz-attempt.errors";
+import { QuizAttemptValidationError } from "./attempts.errors";
 
 export function correctOptionIds(
 	question: QuestionEntity,

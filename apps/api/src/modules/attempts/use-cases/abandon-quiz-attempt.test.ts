@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import {
+	type AttemptsHarness,
+	createAttemptsHarness,
+} from "@tests/fixtures/attempts.fixture";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
+import {
 	AbandonQuizAttemptUseCase,
 	AttemptAlreadyFinishedError,
 } from "./abandon-quiz-attempt";
-import {
-	type AttemptsHarness,
-	createAttemptsHarness,
-} from "./attempts.fixture";
 import { AttemptAlreadyInProgressError } from "./start-quiz-attempt";
 
 let harness: AttemptsHarness;
@@ -14,7 +15,7 @@ let abandon: AbandonQuizAttemptUseCase;
 
 beforeEach(() => {
 	harness = createAttemptsHarness();
-	abandon = new AbandonQuizAttemptUseCase(harness.context);
+	abandon = attemptsOver(harness.context).abandonQuizAttempt;
 });
 
 describe("abandoning an attempt", () => {

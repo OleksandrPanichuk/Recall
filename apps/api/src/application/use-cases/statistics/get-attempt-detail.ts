@@ -4,11 +4,8 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import {
-	attemptScore,
-	type QuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
-import type { Score } from "@/domain/quiz-attempt/score";
+import type { Score } from "@/modules/attempts";
+import { AttemptEntity, type QuizAttemptId } from "@/modules/attempts";
 import {
 	QuestionEntity,
 	type QuestionOptionId,
@@ -105,7 +102,7 @@ export class GetAttemptDetailUseCase
 			attemptId: attempt.id,
 			quizSetId: attempt.quizSetId,
 			quizSetTitle: quizSet?.title ?? "—",
-			score: attemptScore(attempt),
+			score: AttemptEntity.score(attempt),
 			completedAt: attempt.completedAt,
 			answers,
 		};

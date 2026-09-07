@@ -5,8 +5,8 @@ import {
 	type Application,
 	createApplication,
 } from "@/composition/create-application";
-import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { readStatus } from "@/infrastructure/lifecycle/status";
+import { QuizAttemptStatus } from "@/modules/attempts";
 import { Difficulty, QuestionType, type QuizSetId } from "@/modules/quizzes";
 import {
 	applyMigration,

@@ -1,4 +1,4 @@
-import type { QuizAttemptStatus } from "./quiz-attempt.constants";
+import type { QuizAttemptStatus } from "./attempts.constants";
 
 export class QuizAttemptValidationError extends Error {
 	readonly issues: readonly string[];

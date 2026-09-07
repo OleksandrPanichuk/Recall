@@ -9,6 +9,7 @@ import {
 	PostgresTransaction,
 } from "@/db/executor";
 import { PostgresAttachmentsRepository } from "@/modules/attachments";
+import { PostgresAttemptsRepository } from "@/modules/attempts";
 import { PostgresPagesRepository } from "@/modules/pages";
 import { PostgresQuizzesRepository } from "@/modules/quizzes";
 import { PostgresSchedulesRepository } from "@/modules/scheduling";
@@ -16,7 +17,6 @@ import { PostgresStudySettingsRepository } from "@/modules/study-settings";
 import { PostgresTermPairsRepository } from "@/modules/vocabulary";
 import { FixedOwnerContext } from "@/shared/request-context";
 import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
-import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
 
 export type { Executor } from "@/db/executor";
 
@@ -63,7 +63,7 @@ export const scopeFor = (
 			new DatabaseHandle(db),
 			new FixedOwnerContext(owner),
 		),
-		attempts: createAttemptPostgresRepository(executor, owner),
+		attempts: new PostgresAttemptsRepository(handle, context),
 		reviews: { ...scheduleMethods(schedules), ...settingsMethods(settings) },
 		termPairs: new PostgresTermPairsRepository(
 			new DatabaseHandle(db),

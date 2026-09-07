@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
-import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
-import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
@@ -46,8 +45,8 @@ const questionsOf = async (quizSetId: ReturnType<typeof toQuizSetId>) =>
 	(await harness.context.scope.quizzes.findById(quizSetId))?.questions ?? [];
 
 const answerFirst = async (quizSetId: ReturnType<typeof toQuizSetId>) => {
-	const start = new StartQuizAttemptUseCase(harness.context);
-	const answer = new AnswerQuestionUseCase(harness.context);
+	const start = attemptsOver(harness.context).startQuizAttempt;
+	const answer = attemptsOver(harness.context).answerQuestion;
 	const question = (await questionsOf(quizSetId))[0];
 
 	await start.execute({ quizSetId, telegramUserId: USER });

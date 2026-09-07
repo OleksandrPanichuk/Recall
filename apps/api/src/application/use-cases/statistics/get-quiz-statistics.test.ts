@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import {
+	AnswerQuestionUseCase,
+	FinishQuizAttemptUseCase,
+	StartQuizAttemptUseCase,
+} from "@/modules/attempts";
 import {
 	AddQuestionsUseCase,
 	CreateQuizSetUseCase,
@@ -15,9 +21,6 @@ import {
 	QuizSetNotFoundError,
 	toQuizSetId,
 } from "@/modules/quizzes";
-import { AnswerQuestionUseCase } from "../attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "../attempts/finish-quiz-attempt";
-import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
 import { GetQuizStatisticsUseCase } from "./get-quiz-statistics";
 
 const USER = 42;
@@ -36,9 +39,9 @@ beforeEach(() => {
 	create = quizzesOver(context).createQuizSet;
 	add = quizzesOver(context).addQuestions;
 	publish = quizzesOver(context).publishQuizSet;
-	start = new StartQuizAttemptUseCase(context);
-	answer = new AnswerQuestionUseCase(context);
-	finish = new FinishQuizAttemptUseCase(context);
+	start = attemptsOver(context).startQuizAttempt;
+	answer = attemptsOver(context).answerQuestion;
+	finish = attemptsOver(context).finishQuizAttempt;
 	statistics = new GetQuizStatisticsUseCase(context);
 });
 

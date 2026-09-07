@@ -2,8 +2,8 @@ import type {
 	PageRevision,
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
-import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
 import type { AttachmentEntity } from "@/modules/attachments";
+import type { AttemptEntity } from "@/modules/attempts";
 import { PageEntity, type PageId } from "@/modules/pages";
 import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
 import { ScheduleEntity } from "@/modules/scheduling";
@@ -26,7 +26,7 @@ export interface MemoryStore {
 	quizAggregates: Map<string, QuizSetEntity>;
 	quizVersions: Map<string, number>;
 	answeredQuestionIds: Set<string>;
-	attempts: Map<string, QuizAttempt>;
+	attempts: Map<string, AttemptEntity>;
 	schedules: Map<string, ScheduleEntity>;
 	settings: Map<string, StudySettingsEntity>;
 	termPairs: Map<string, TermPairEntity>;

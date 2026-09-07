@@ -1,8 +1,16 @@
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import type {
+	AnswerQuestionUseCase,
+	FinishQuizAttemptUseCase,
+	PauseQuizAttemptUseCase,
+	ResumeQuizAttemptUseCase,
+	StartQuizAttemptUseCase,
+} from "@/modules/attempts";
 import {
 	AddQuestionsUseCase,
 	ArchiveQuizSetUseCase,
@@ -13,13 +21,6 @@ import {
 	QuestionType,
 	type QuizSetId,
 } from "@/modules/quizzes";
-import { AnswerQuestionUseCase } from "./answer-question";
-import { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
-import {
-	PauseQuizAttemptUseCase,
-	ResumeQuizAttemptUseCase,
-} from "./resume-quiz-attempt";
-import { StartQuizAttemptUseCase } from "./start-quiz-attempt";
 
 export const USER = 42;
 
@@ -58,6 +59,7 @@ export function createAttemptsHarness(): AttemptsHarness {
 	const create = quizzesOver(context).createQuizSet;
 	const add = quizzesOver(context).addQuestions;
 	const publish = quizzesOver(context).publishQuizSet;
+	const attempts = attemptsOver(context);
 
 	const questionsOf = async (quizSetId: QuizSetId) =>
 		(await context.scope.quizzes.findById(quizSetId))?.questions ?? [];
@@ -67,11 +69,11 @@ export function createAttemptsHarness(): AttemptsHarness {
 		create,
 		add,
 		archive: quizzesOver(context).archiveQuizSet,
-		start: new StartQuizAttemptUseCase(context),
-		pause: new PauseQuizAttemptUseCase(context),
-		resume: new ResumeQuizAttemptUseCase(context),
-		answer: new AnswerQuestionUseCase(context),
-		finish: new FinishQuizAttemptUseCase(context),
+		start: attempts.startQuizAttempt,
+		pause: attempts.pauseQuizAttempt,
+		resume: attempts.resumeQuizAttempt,
+		answer: attempts.answerQuestion,
+		finish: attempts.finishQuizAttempt,
 
 		seedPublishedSet: async (prompts = ["One", "Two"]) => {
 			const { quizSetId } = await create.execute({

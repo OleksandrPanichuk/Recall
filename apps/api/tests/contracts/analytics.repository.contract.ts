@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import {
+	AttemptEntity,
 	QuizAttemptMode,
-	recordResponse,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
+} from "@/modules/attempts";
 import {
 	createQuestion,
 	Difficulty,
@@ -84,7 +83,7 @@ export function describeAnalyticsRepository(
 
 			const answer = async (questionId: string, correct: boolean, at: Date) => {
 				const selected = await optionOf(questionId, correct);
-				const attempt = startQuizAttempt({
+				const attempt = AttemptEntity.start({
 					id: toQuizAttemptId(uuid()),
 					quizSetId: toQuizSetId(quizId),
 					mode: QuizAttemptMode.Full,
@@ -94,7 +93,7 @@ export function describeAnalyticsRepository(
 
 				await harness.unitOfWork.run(({ attempts }) =>
 					attempts.save(
-						recordResponse(attempt, {
+						AttemptEntity.recordResponse(attempt, {
 							questionId: toQuestionId(questionId),
 							selectedOptionIds: [selected],
 							isCorrect: correct,

@@ -5,6 +5,7 @@ import { Timezone } from "@api/core/ports/timezone";
 import { Transaction } from "@api/core/transaction";
 import { Database, DatabaseConnection } from "@api/db/connection";
 import { AttachmentsRepository } from "@api/modules/attachments";
+import { AttemptsRepository } from "@api/modules/attempts";
 import { AuthModule } from "@api/modules/auth";
 import { BotModule } from "@api/modules/bot/bot.module";
 import { PagesRepository } from "@api/modules/pages";
@@ -26,6 +27,7 @@ interface MemoryDependencies {
 		readonly quizzes: QuizzesRepository;
 		readonly termPairs: TermPairsRepository;
 		readonly attachments: AttachmentsRepository;
+		readonly attempts: AttemptsRepository;
 		readonly reviews: SchedulesRepository & StudySettingsRepository;
 	};
 	readonly transaction: Transaction;
@@ -108,6 +110,8 @@ async function startApi(
 		await Test.createTestingModule({ imports: [TestApiModule] })
 			.overrideProvider(PagesRepository)
 			.useValue(memory.scope.pages)
+			.overrideProvider(AttemptsRepository)
+			.useValue(memory.scope.attempts)
 			.overrideProvider(QuizzesRepository)
 			.useValue(memory.scope.quizzes)
 			.overrideProvider(TermPairsRepository)

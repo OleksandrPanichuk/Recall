@@ -1,8 +1,10 @@
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import { FinishQuizAttemptUseCase } from "@/modules/attempts";
 import {
 	ArchiveQuizSetUseCase,
 	Difficulty,
@@ -10,9 +12,6 @@ import {
 	QuestionType,
 	type QuizSetId,
 } from "@/modules/quizzes";
-import { AnswerQuestionUseCase } from "../attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "../attempts/finish-quiz-attempt";
-import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
 import { StartPracticeSessionUseCase } from "./start-practice-session";
 
 export const USER = 42;
@@ -49,9 +48,9 @@ export function createPracticeHarness(): PracticeHarness {
 	const create = quizzesOver(context).createQuizSet;
 	const add = quizzesOver(context).addQuestions;
 	const publish = quizzesOver(context).publishQuizSet;
-	const start = new StartQuizAttemptUseCase(context);
-	const answer = new AnswerQuestionUseCase(context);
-	const finish = new FinishQuizAttemptUseCase(context);
+	const start = attemptsOver(context).startQuizAttempt;
+	const answer = attemptsOver(context).answerQuestion;
+	const finish = attemptsOver(context).finishQuizAttempt;
 
 	const questionsOf = async (quizSetId: QuizSetId) =>
 		(await context.scope.quizzes.findById(quizSetId))?.questions ?? [];

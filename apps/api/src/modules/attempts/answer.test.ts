@@ -1,17 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { anOption, aQuestion } from "@tests/fixtures/quiz-set.fixture";
 import { QuestionType, toQuestionOptionId } from "@/modules/quizzes";
-import {
-	correctOptionIds,
-	evaluateAnswer,
-	gradeAnswer,
-	isFullyCorrect,
-	optionsAnswer,
-	orderAnswer,
-	pairsAnswer,
-	textAnswer,
-} from "./answer";
-import { QuizAttemptValidationError } from "./quiz-attempt.errors";
+import { Answer } from "./answer";
+import { QuizAttemptValidationError } from "./attempts.errors";
 
 const singleChoice = () => aQuestion({ id: "question-1" });
 
@@ -34,7 +25,7 @@ describe("evaluateAnswer", () => {
 		const question = singleChoice();
 		const [correct] = idsOf(question);
 
-		expect(evaluateAnswer(question, optionsAnswer([correct as never]))).toBe(
+		expect(Answer.evaluate(question, Answer.options([correct as never]))).toBe(
 			true,
 		);
 	});
@@ -43,7 +34,7 @@ describe("evaluateAnswer", () => {
 		const question = singleChoice();
 		const wrong = idsOf(question)[1];
 
-		expect(evaluateAnswer(question, optionsAnswer([wrong as never]))).toBe(
+		expect(Answer.evaluate(question, Answer.options([wrong as never]))).toBe(
 			false,
 		);
 	});
@@ -53,7 +44,7 @@ describe("evaluateAnswer", () => {
 		const [a, b] = idsOf(question);
 
 		expect(
-			evaluateAnswer(question, optionsAnswer([b as never, a as never])),
+			Answer.evaluate(question, Answer.options([b as never, a as never])),
 		).toBe(true);
 	});
 
@@ -61,7 +52,7 @@ describe("evaluateAnswer", () => {
 		const question = multipleChoice();
 		const [a] = idsOf(question);
 
-		expect(evaluateAnswer(question, optionsAnswer([a as never]))).toBe(false);
+		expect(Answer.evaluate(question, Answer.options([a as never]))).toBe(false);
 	});
 
 	test("rejects a multiple choice with an extra wrong option", () => {
@@ -69,9 +60,9 @@ describe("evaluateAnswer", () => {
 		const [a, b, c] = idsOf(question);
 
 		expect(
-			evaluateAnswer(
+			Answer.evaluate(
 				question,
-				optionsAnswer([a as never, b as never, c as never]),
+				Answer.options([a as never, b as never, c as never]),
 			),
 		).toBe(false);
 	});
@@ -81,24 +72,24 @@ describe("evaluateAnswer", () => {
 		const [correct] = idsOf(question);
 
 		expect(
-			evaluateAnswer(
+			Answer.evaluate(
 				question,
-				optionsAnswer([correct as never, correct as never]),
+				Answer.options([correct as never, correct as never]),
 			),
 		).toBe(true);
 	});
 
 	test("rejects an option that belongs to another question", () => {
 		expect(() =>
-			evaluateAnswer(
+			Answer.evaluate(
 				singleChoice(),
-				optionsAnswer([idsOf(multipleChoice())[0] as never]),
+				Answer.options([idsOf(multipleChoice())[0] as never]),
 			),
 		).toThrow(QuizAttemptValidationError);
 	});
 
 	test("rejects an empty selection", () => {
-		expect(() => evaluateAnswer(singleChoice(), optionsAnswer([]))).toThrow(
+		expect(() => Answer.evaluate(singleChoice(), Answer.options([]))).toThrow(
 			QuizAttemptValidationError,
 		);
 	});
@@ -106,7 +97,7 @@ describe("evaluateAnswer", () => {
 
 describe("correctOptionIds", () => {
 	test("returns every correct option in order", () => {
-		expect(correctOptionIds(multipleChoice()).map(String)).toEqual([
+		expect(Answer.correctOptionsOf(multipleChoice()).map(String)).toEqual([
 			"option-a",
 			"option-b",
 		]);
@@ -184,19 +175,19 @@ const matching = () =>
 
 describe("evaluateAnswer for typed answers", () => {
 	test("accepts an exact match", () => {
-		expect(evaluateAnswer(typedAnswer(), textAnswer("cat"))).toBe(true);
+		expect(Answer.evaluate(typedAnswer(), Answer.text("cat"))).toBe(true);
 	});
 
 	test("ignores case and surrounding whitespace", () => {
-		expect(evaluateAnswer(typedAnswer(), textAnswer("  CAT "))).toBe(true);
+		expect(Answer.evaluate(typedAnswer(), Answer.text("  CAT "))).toBe(true);
 	});
 
 	test("rejects a different word", () => {
-		expect(evaluateAnswer(typedAnswer(), textAnswer("dog"))).toBe(false);
+		expect(Answer.evaluate(typedAnswer(), Answer.text("dog"))).toBe(false);
 	});
 
 	test("rejects a near miss rather than quietly accepting it", () => {
-		expect(evaluateAnswer(typedAnswer(), textAnswer("cta"))).toBe(false);
+		expect(Answer.evaluate(typedAnswer(), Answer.text("cta"))).toBe(false);
 	});
 
 	test("accepts any of several accepted spellings", () => {
@@ -210,21 +201,21 @@ describe("evaluateAnswer for typed answers", () => {
 			],
 		});
 
-		expect(evaluateAnswer(question, textAnswer("color"))).toBe(true);
-		expect(evaluateAnswer(question, textAnswer("colour"))).toBe(true);
+		expect(Answer.evaluate(question, Answer.text("color"))).toBe(true);
+		expect(Answer.evaluate(question, Answer.text("colour"))).toBe(true);
 	});
 
 	test("rejects an empty answer", () => {
-		expect(() => evaluateAnswer(typedAnswer(), textAnswer("   "))).toThrow(
+		expect(() => Answer.evaluate(typedAnswer(), Answer.text("   "))).toThrow(
 			QuizAttemptValidationError,
 		);
 	});
 
 	test("refuses an option answer", () => {
 		expect(() =>
-			evaluateAnswer(
+			Answer.evaluate(
 				typedAnswer(),
-				optionsAnswer([toQuestionOptionId("accepted-cat")]),
+				Answer.options([toQuestionOptionId("accepted-cat")]),
 			),
 		).toThrow(QuizAttemptValidationError);
 	});
@@ -234,7 +225,7 @@ describe("evaluateAnswer for ordering", () => {
 	test("accepts the declared order", () => {
 		const question = ordering();
 
-		expect(evaluateAnswer(question, orderAnswer(idsOf(question)))).toBe(true);
+		expect(Answer.evaluate(question, Answer.order(idsOf(question)))).toBe(true);
 	});
 
 	test("rejects a different order", () => {
@@ -242,9 +233,9 @@ describe("evaluateAnswer for ordering", () => {
 		const [first, second, third] = idsOf(question);
 
 		expect(
-			evaluateAnswer(
+			Answer.evaluate(
 				question,
-				orderAnswer([first as never, third as never, second as never]),
+				Answer.order([first as never, third as never, second as never]),
 			),
 		).toBe(false);
 	});
@@ -253,14 +244,16 @@ describe("evaluateAnswer for ordering", () => {
 		const question = ordering();
 		const [first] = idsOf(question);
 
-		expect(evaluateAnswer(question, orderAnswer([first as never]))).toBe(false);
+		expect(Answer.evaluate(question, Answer.order([first as never]))).toBe(
+			false,
+		);
 	});
 
 	test("refuses an unordered option answer", () => {
 		const question = ordering();
 
 		expect(() =>
-			evaluateAnswer(question, optionsAnswer(idsOf(question))),
+			Answer.evaluate(question, Answer.options(idsOf(question))),
 		).toThrow(QuizAttemptValidationError);
 	});
 });
@@ -271,34 +264,34 @@ describe("evaluateAnswer for matching", () => {
 
 	test("accepts every correct pair", () => {
 		expect(
-			evaluateAnswer(
+			Answer.evaluate(
 				matching(),
-				pairsAnswer([pair("en-cat", "ua-cat"), pair("en-dog", "ua-dog")]),
+				Answer.pairs([pair("en-cat", "ua-cat"), pair("en-dog", "ua-dog")]),
 			),
 		).toBe(true);
 	});
 
 	test("accepts pairs given in either direction", () => {
 		expect(
-			evaluateAnswer(
+			Answer.evaluate(
 				matching(),
-				pairsAnswer([pair("ua-cat", "en-cat"), pair("ua-dog", "en-dog")]),
+				Answer.pairs([pair("ua-cat", "en-cat"), pair("ua-dog", "en-dog")]),
 			),
 		).toBe(true);
 	});
 
 	test("rejects a crossed pair", () => {
 		expect(
-			evaluateAnswer(
+			Answer.evaluate(
 				matching(),
-				pairsAnswer([pair("en-cat", "ua-dog"), pair("en-dog", "ua-cat")]),
+				Answer.pairs([pair("en-cat", "ua-dog"), pair("en-dog", "ua-cat")]),
 			),
 		).toBe(false);
 	});
 
 	test("rejects a partial answer", () => {
 		expect(
-			evaluateAnswer(matching(), pairsAnswer([pair("en-cat", "ua-cat")])),
+			Answer.evaluate(matching(), Answer.pairs([pair("en-cat", "ua-cat")])),
 		).toBe(false);
 	});
 });
@@ -309,9 +302,9 @@ describe("gradeAnswer", () => {
 
 	test("credits every correctly matched pair", () => {
 		expect(
-			gradeAnswer(
+			Answer.grade(
 				matching(),
-				pairsAnswer([pair("en-cat", "ua-cat"), pair("en-dog", "ua-dog")]),
+				Answer.pairs([pair("en-cat", "ua-cat"), pair("en-dog", "ua-dog")]),
 			),
 		).toEqual({ earned: 2, possible: 2 });
 	});
@@ -368,18 +361,18 @@ describe("gradeAnswer", () => {
 		});
 
 		expect(
-			gradeAnswer(
+			Answer.grade(
 				question,
-				pairsAnswer([pair("a", "x"), pair("b", "z"), pair("c", "y")]),
+				Answer.pairs([pair("a", "x"), pair("b", "z"), pair("c", "y")]),
 			),
 		).toEqual({ earned: 1, possible: 3 });
 	});
 
 	test("credits nothing when every pair is crossed", () => {
 		expect(
-			gradeAnswer(
+			Answer.grade(
 				matching(),
-				pairsAnswer([pair("en-cat", "ua-dog"), pair("en-dog", "ua-cat")]),
+				Answer.pairs([pair("en-cat", "ua-dog"), pair("en-dog", "ua-cat")]),
 			),
 		).toEqual({ earned: 0, possible: 2 });
 	});
@@ -388,7 +381,7 @@ describe("gradeAnswer", () => {
 		const question = singleChoice();
 		const [correct] = idsOf(question);
 
-		expect(gradeAnswer(question, optionsAnswer([correct as never]))).toEqual({
+		expect(Answer.grade(question, Answer.options([correct as never]))).toEqual({
 			earned: 1,
 			possible: 1,
 		});
@@ -397,19 +390,19 @@ describe("gradeAnswer", () => {
 
 describe("isFullyCorrect", () => {
 	test("is true only when every unit is earned", () => {
-		expect(isFullyCorrect({ earned: 2, possible: 2 })).toBe(true);
-		expect(isFullyCorrect({ earned: 1, possible: 2 })).toBe(false);
-		expect(isFullyCorrect({ earned: 0, possible: 2 })).toBe(false);
+		expect(Answer.isFullyCorrect({ earned: 2, possible: 2 })).toBe(true);
+		expect(Answer.isFullyCorrect({ earned: 1, possible: 2 })).toBe(false);
+		expect(Answer.isFullyCorrect({ earned: 0, possible: 2 })).toBe(false);
 	});
 
 	test("a partly correct matching answer is not correct", () => {
 		const question = matching();
-		const answer = pairsAnswer([
+		const answer = Answer.pairs([
 			[toQuestionOptionId("en-cat"), toQuestionOptionId("ua-cat")],
 			[toQuestionOptionId("en-dog"), toQuestionOptionId("ua-cat")],
 		]);
 
-		expect(gradeAnswer(question, answer).earned).toBeGreaterThan(0);
-		expect(evaluateAnswer(question, answer)).toBe(false);
+		expect(Answer.grade(question, answer).earned).toBeGreaterThan(0);
+		expect(Answer.evaluate(question, answer)).toBe(false);
 	});
 });

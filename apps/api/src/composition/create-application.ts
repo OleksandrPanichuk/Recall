@@ -8,22 +8,22 @@ import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { UnitOfWorkTransaction } from "@/application/unit-of-work.transaction";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
-import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
-import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
-import { RateRecallUseCase } from "@/application/use-cases/attempts/rate-recall";
-import {
-	PauseQuizAttemptUseCase,
-	ResumeQuizAttemptUseCase,
-} from "@/application/use-cases/attempts/resume-quiz-attempt";
-import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { DatabaseConnection } from "@/db/connection";
+import {
+	AbandonQuizAttemptUseCase,
+	AnswerQuestionUseCase,
+	FinishQuizAttemptUseCase,
+	GetCurrentQuestionUseCase,
+	PauseQuizAttemptUseCase,
+	RateRecallUseCase,
+	ResumeQuizAttemptUseCase,
+	StartQuizAttemptUseCase,
+} from "@/modules/attempts";
 import {
 	PageSharesRepository,
 	ReadSharedPageUseCase,
@@ -162,6 +162,7 @@ export function createUseCases(
 	const termPairs = dependencies.scope.termPairs;
 	const reviews = dependencies.scope.reviews;
 	const settingsService = new StudySettingsService(reviews);
+	const timezone = { name: () => dependencies.timezone };
 	const shares = new (class extends PageSharesRepository {
 		shareOf = (id: never) => pages.shareOf(id);
 		save = (share: never) => pages.saveShare(share);
@@ -259,7 +260,10 @@ export function createUseCases(
 			clock,
 		),
 		getInsights: new GetInsightsUseCase(dependencies),
-		abandonQuizAttempt: new AbandonQuizAttemptUseCase(dependencies),
+		abandonQuizAttempt: new AbandonQuizAttemptUseCase(
+			attemptsRepo,
+			transaction,
+		),
 		sharePage: new SharePageUseCase(
 			shares,
 			pagesService,
@@ -271,7 +275,15 @@ export function createUseCases(
 		readSharedPage: new ReadSharedPageUseCase(shares, pages),
 		attachQuiz: new AttachQuizUseCase(dependencies),
 		detachQuiz: new DetachQuizUseCase(pages, pagesService, transaction),
-		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
+		startQuizAttempt: new StartQuizAttemptUseCase(
+			attemptsRepo,
+			quizzes,
+			reviews,
+			settingsService,
+			transaction,
+			clock,
+			idGenerator,
+		),
 		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
 		updateQuestion: new UpdateQuestionUseCase(
 			quizzes,
@@ -285,17 +297,45 @@ export function createUseCases(
 			transaction,
 			clock,
 		),
-		rateRecall: new RateRecallUseCase(dependencies),
-		pauseQuizAttempt: new PauseQuizAttemptUseCase(dependencies),
-		resumeQuizAttempt: new ResumeQuizAttemptUseCase(dependencies),
-		getCurrentQuestion: new GetCurrentQuestionUseCase(dependencies),
-		answerQuestion: new AnswerQuestionUseCase(dependencies),
-		finishQuizAttempt: new FinishQuizAttemptUseCase(dependencies),
+		rateRecall: new RateRecallUseCase(attemptsRepo, transaction, clock),
+		pauseQuizAttempt: new PauseQuizAttemptUseCase(
+			attemptsRepo,
+			transaction,
+			clock,
+		),
+		resumeQuizAttempt: new ResumeQuizAttemptUseCase(
+			attemptsRepo,
+			transaction,
+			clock,
+		),
+		getCurrentQuestion: new GetCurrentQuestionUseCase(
+			attemptsRepo,
+			quizzes,
+			settingsService,
+		),
+		answerQuestion: new AnswerQuestionUseCase(
+			attemptsRepo,
+			quizzes,
+			settingsService,
+			transaction,
+			clock,
+		),
+		finishQuizAttempt: new FinishQuizAttemptUseCase(
+			attemptsRepo,
+			reviews,
+			settingsService,
+			transaction,
+			clock,
+			timezone,
+		),
 		getQuizStatistics: new GetQuizStatisticsUseCase(dependencies),
 		getAttemptDetail: new GetAttemptDetailUseCase(dependencies),
-		listDueRepetitions: new ListDueRepetitionsUseCase(reviews, quizzes, clock, {
-			name: () => dependencies.timezone,
-		}),
+		listDueRepetitions: new ListDueRepetitionsUseCase(
+			reviews,
+			quizzes,
+			clock,
+			timezone,
+		),
 		listLeeches: new ListLeechesUseCase(reviews, quizzes),
 		resolveQuizSettings: new ResolveQuizSettingsUseCase(
 			settingsService,

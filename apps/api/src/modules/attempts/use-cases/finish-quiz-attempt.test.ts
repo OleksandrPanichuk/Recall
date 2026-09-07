@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { StudySettingsEntity } from "@/modules/study-settings";
-import type { AnswerQuestionUseCase } from "./answer-question";
 import {
 	type AttemptsHarness,
 	createAttemptsHarness,
 	USER,
-} from "./attempts.fixture";
+} from "@tests/fixtures/attempts.fixture";
+import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+import { QuizAttemptStatus } from "@/modules/attempts";
+import { StudySettingsEntity } from "@/modules/study-settings";
+import type { AnswerQuestionUseCase } from "./answer-question";
 import type { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
 import {
 	NoActiveAttemptError,

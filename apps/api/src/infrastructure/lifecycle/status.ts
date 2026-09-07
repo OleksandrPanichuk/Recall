@@ -2,7 +2,7 @@ import { count, eq, inArray } from "drizzle-orm";
 import { describeDatabaseUrl } from "@/configs/database-url";
 import type { RecallDatabase } from "@/db/client";
 import { attempts, questions, quizzes, responses } from "@/db/schema";
-import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
+import { QuizAttemptStatus } from "@/modules/attempts";
 import { QuizSetStatus } from "@/modules/quizzes";
 
 export interface StatusReport {

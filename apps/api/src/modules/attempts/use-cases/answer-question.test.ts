@@ -1,22 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+	type AttemptsHarness,
+	createAttemptsHarness,
+	USER,
+} from "@tests/fixtures/attempts.fixture";
+import {
 	type MemoryContext,
 	responseCount,
 } from "@tests/fixtures/memory.fixture";
-
 import {
 	QuestionNotInAttemptError,
 	QuizAttemptValidationError,
-} from "@/domain/quiz-attempt/quiz-attempt.errors";
+} from "@/modules/attempts";
 import {
 	type AnswerQuestionUseCase,
 	AttemptNotActiveError,
 } from "./answer-question";
-import {
-	type AttemptsHarness,
-	createAttemptsHarness,
-	USER,
-} from "./attempts.fixture";
 import {
 	NoActiveAttemptError,
 	type PauseQuizAttemptUseCase,

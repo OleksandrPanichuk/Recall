@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
-import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import {
+	AnswerQuestionUseCase,
+	FinishQuizAttemptUseCase,
+	GetCurrentQuestionUseCase,
+	StartQuizAttemptUseCase,
+} from "@/modules/attempts";
 import { QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 import { ScheduleEntity } from "@/modules/scheduling";
 import {
@@ -32,16 +35,16 @@ let updateSettings: UpdateQuizSettingsUseCase;
 
 beforeEach(() => {
 	context = createMemoryContext();
-	start = new StartQuizAttemptUseCase(context);
-	finish = new FinishQuizAttemptUseCase(context);
+	start = attemptsOver(context).startQuizAttempt;
+	finish = attemptsOver(context).finishQuizAttempt;
 	listDue = new ListDueRepetitionsUseCase(
 		context.scope.reviews,
 		context.scope.quizzes,
 		context.clock,
 		{ name: () => context.timezone },
 	);
-	answer = new AnswerQuestionUseCase(context);
-	current = new GetCurrentQuestionUseCase(context);
+	answer = attemptsOver(context).answerQuestion;
+	current = attemptsOver(context).getCurrentQuestion;
 	updateSettings = new UpdateQuizSettingsUseCase(
 		new StudySettingsService(context.scope.reviews),
 		context.scope.quizzes,

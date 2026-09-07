@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { ApiTokensModule } from "@/modules/api-tokens";
 import { AttachmentsModule } from "@/modules/attachments";
+import { AttemptsModule } from "@/modules/attempts";
 import { AuthModule } from "@/modules/auth";
 import { OAuthModule } from "@/modules/oauth";
 import { PageSharesModule } from "@/modules/page-shares";
@@ -34,6 +35,7 @@ import { HealthController } from "./shared/health/health.controller";
 		TelegramLinkModule,
 		ApiTokensModule,
 		AttachmentsModule,
+		AttemptsModule,
 		OAuthModule,
 		PagesModule,
 		QuizzesModule,

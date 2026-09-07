@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { shuffled } from "@recall/kit";
 import {
+	type AttemptsHarness,
+	aQuestionInput,
+	createAttemptsHarness,
+	USER,
+} from "@tests/fixtures/attempts.fixture";
+import {
 	attemptCount,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
+import { QuizAttemptStatus } from "@/modules/attempts";
 import {
 	AddQuestionsUseCase,
 	ArchiveQuizSetUseCase,
@@ -18,12 +24,6 @@ import {
 	quizScope,
 	StudySettingsEntity,
 } from "@/modules/study-settings";
-import {
-	type AttemptsHarness,
-	aQuestionInput,
-	createAttemptsHarness,
-	USER,
-} from "./attempts.fixture";
 import type { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
 import type { PauseQuizAttemptUseCase } from "./resume-quiz-attempt";
 import {

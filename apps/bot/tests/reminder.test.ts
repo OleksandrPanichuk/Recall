@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { AnswerQuestionUseCase } from "@api/application/use-cases/attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "@api/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestionUseCase } from "@api/application/use-cases/attempts/get-current-question";
-import { StartQuizAttemptUseCase } from "@api/application/use-cases/attempts/start-quiz-attempt";
 import { QuizSetStatus, toQuizSetId } from "@api/modules/quizzes";
 import { ListDueRepetitionsUseCase } from "@api/modules/scheduling";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import {
 	createMemoryContext,
 	createMutableClock,
@@ -61,20 +58,20 @@ const publishAndTake = async (id: string, title: string): Promise<void> => {
 		}),
 	);
 
-	await new StartQuizAttemptUseCase(context).execute({
+	await attemptsOver(context).startQuizAttempt.execute({
 		quizSetId: toQuizSetId(id),
 	});
 
-	const view = await new GetCurrentQuestionUseCase(context).execute({});
+	const view = await attemptsOver(context).getCurrentQuestion.execute({});
 
 	if (view?.question !== undefined) {
-		await new AnswerQuestionUseCase(context).execute({
+		await attemptsOver(context).answerQuestion.execute({
 			questionId: view.question.id,
 			selectedOptionPositions: [0],
 		});
 	}
 
-	await new FinishQuizAttemptUseCase(context).execute({});
+	await attemptsOver(context).finishQuizAttempt.execute({});
 };
 
 const fireOnce = async (): Promise<void> => {

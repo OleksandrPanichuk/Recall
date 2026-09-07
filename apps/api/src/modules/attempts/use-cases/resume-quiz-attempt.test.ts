@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
-	attemptCount,
-	type MemoryContext,
-} from "@tests/fixtures/memory.fixture";
-import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import {
 	type AttemptsHarness,
 	createAttemptsHarness,
 	USER,
-} from "./attempts.fixture";
+} from "@tests/fixtures/attempts.fixture";
+import {
+	attemptCount,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
+import { QuizAttemptStatus } from "@/modules/attempts";
 import {
 	NoActiveAttemptError,
 	type PauseQuizAttemptUseCase,

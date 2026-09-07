@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import {
+	AttemptEntity,
 	QuizAttemptMode,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
+} from "@/modules/attempts";
 import { PageEntity, toPageId } from "@/modules/pages";
 import {
 	createQuestion,
@@ -254,7 +254,7 @@ export function describeOwnership(
 				await harness.mine.unitOfWork.run(async ({ quizzes, attempts }) => {
 					await quizzes.save(quiz);
 					await attempts.save(
-						startQuizAttempt({
+						AttemptEntity.start({
 							id: toQuizAttemptId(attemptId),
 							quizSetId: toQuizSetId(quizId),
 							telegramUserId,

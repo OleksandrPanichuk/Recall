@@ -1,8 +1,8 @@
 import type { Logger } from "@recall/kit";
 import type { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
-import type { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
+import type { AbandonQuizAttemptUseCase } from "@/modules/attempts";
 import type {
 	DeletePageUseCase,
 	DetachQuizUseCase,

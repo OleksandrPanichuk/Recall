@@ -61,8 +61,8 @@ import type { Response } from "express";
 import type { OwnerId } from "@/application/ports/owner";
 import { USE_CASES_FOR } from "@/application/tokens";
 import type { UseCases } from "@/composition/create-application";
-import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { ApiTokensService } from "@/modules/api-tokens";
+import { toQuizAttemptId } from "@/modules/attempts";
 import { SessionGuard, type SessionRequest } from "@/modules/auth";
 import { sharedPageToWire } from "@/modules/page-shares";
 import {

@@ -1,10 +1,9 @@
 import {
+	AttemptEntity,
 	type QuestionResponse,
-	type QuizAttempt,
 	QuizAttemptMode,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
+} from "@/modules/attempts";
 import {
 	type QuestionOptionId,
 	toQuestionId,
@@ -21,8 +20,8 @@ interface AttemptOverrides {
 	readonly startedAt?: Date;
 }
 
-export function anAttempt(overrides: AttemptOverrides = {}): QuizAttempt {
-	return startQuizAttempt({
+export function anAttempt(overrides: AttemptOverrides = {}): AttemptEntity {
+	return AttemptEntity.start({
 		id: toQuizAttemptId(overrides.id ?? "attempt-1"),
 		quizSetId: toQuizSetId(overrides.quizSetId ?? "set-1"),
 		telegramUserId: overrides.telegramUserId ?? 42,
@@ -51,6 +50,6 @@ export function anAnswer(
 }
 
 export const answeredQuestionIdsOf = (
-	attempt: QuizAttempt,
+	attempt: AttemptEntity,
 ): readonly string[] =>
 	attempt.responses.map((response): string => response.questionId);

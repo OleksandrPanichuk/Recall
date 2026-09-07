@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { shuffled } from "@recall/kit";
-import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
-import { QuizSetNotFoundError, toQuizSetId } from "@/modules/quizzes";
-import { quizScope, StudySettingsEntity } from "@/modules/study-settings";
 import {
 	AttemptAlreadyInProgressError,
+	QuizAttemptMode,
 	QuizSetNotPublishedError,
-} from "../attempts/start-quiz-attempt";
+} from "@/modules/attempts";
+import { QuizSetNotFoundError, toQuizSetId } from "@/modules/quizzes";
+import { quizScope, StudySettingsEntity } from "@/modules/study-settings";
 import {
 	aQuestionInput,
 	createPracticeHarness,

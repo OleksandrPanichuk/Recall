@@ -1,19 +1,17 @@
 import { isValidDate } from "@/shared/utils/date";
 import { hasDuplicates } from "@/shared/utils/duplicates";
+import type {
+	AttemptDraft,
+	AttemptSnapshot,
+	QuestionResponse,
+} from "./attempt.entity.types";
 import {
 	isQuizAttemptMode,
 	isQuizAttemptStatus,
 	QuizAttemptStatus,
-} from "./quiz-attempt.constants";
-import type {
-	QuestionResponse,
-	QuizAttemptDraft,
-	QuizAttemptSnapshot,
-} from "./quiz-attempt.types";
+} from "./attempts.constants";
 
-export const collectDraftIssues = (
-	draft: QuizAttemptDraft,
-): readonly string[] => {
+export const collectDraftIssues = (draft: AttemptDraft): readonly string[] => {
 	const issues: string[] = [];
 
 	if (
@@ -61,7 +59,7 @@ export const collectResponseIssues = (
 };
 
 const collectTimelineIssues = (
-	snapshot: QuizAttemptSnapshot,
+	snapshot: AttemptSnapshot,
 ): readonly string[] => {
 	const issues: string[] = [];
 	let previous = snapshot.startedAt;
@@ -101,7 +99,7 @@ const collectTimelineIssues = (
 };
 
 const collectCompletionIssues = (
-	snapshot: QuizAttemptSnapshot,
+	snapshot: AttemptSnapshot,
 ): readonly string[] => {
 	if (snapshot.status !== QuizAttemptStatus.Completed) {
 		return snapshot.completedAt === undefined
@@ -123,7 +121,7 @@ const collectCompletionIssues = (
 };
 
 export const collectSnapshotIssues = (
-	snapshot: QuizAttemptSnapshot,
+	snapshot: AttemptSnapshot,
 ): readonly string[] => {
 	const issues: string[] = [];
 

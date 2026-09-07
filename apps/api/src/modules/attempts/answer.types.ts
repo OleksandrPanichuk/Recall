@@ -15,18 +15,3 @@ export interface AnswerGrade {
 	readonly earned: number;
 	readonly possible: number;
 }
-
-export const optionsAnswer = (
-	optionIds: readonly QuestionOptionId[],
-): Answer => ({ kind: "options", optionIds });
-
-export const textAnswer = (text: string): Answer => ({ kind: "text", text });
-
-export const orderAnswer = (
-	optionIds: readonly QuestionOptionId[],
-): Answer => ({ kind: "order", optionIds });
-
-export const pairsAnswer = (pairs: readonly OptionPair[]): Answer => ({
-	kind: "pairs",
-	pairs,
-});

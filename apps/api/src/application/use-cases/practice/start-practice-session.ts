@@ -1,7 +1,6 @@
 import { shuffled } from "@recall/kit";
 import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
-import type { AttemptRepository } from "@/application/ports/repositories/attempt.repository";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type {
@@ -10,13 +9,15 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import { weakTopicsOf } from "@/domain/practice/weak-topics";
+import type { AttemptsRepository } from "@/modules/attempts";
 import {
-	currentQuestionId,
+	AttemptAlreadyInProgressError,
+	AttemptEntity,
 	type QuizAttemptId,
 	QuizAttemptMode,
-	startQuizAttempt,
+	QuizSetNotPublishedError,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
+} from "@/modules/attempts";
 import { type PageId } from "@/modules/pages";
 import {
 	QuestionEntity,
@@ -27,11 +28,6 @@ import {
 	QuizSetStatus,
 } from "@/modules/quizzes";
 import { StudySettingsService } from "@/modules/study-settings";
-
-import {
-	AttemptAlreadyInProgressError,
-	QuizSetNotPublishedError,
-} from "../attempts/start-quiz-attempt";
 
 export type PracticeMode =
 	| typeof QuizAttemptMode.Mistakes
@@ -125,7 +121,7 @@ export class StartPracticeSessionUseCase
 				await new StudySettingsService(reviews).resolve(quizSet.id)
 			).settings;
 
-			const attempt = startQuizAttempt({
+			const attempt = AttemptEntity.start({
 				id,
 				quizSetId: quizSet.id,
 				telegramUserId: request.telegramUserId,
@@ -138,7 +134,7 @@ export class StartPracticeSessionUseCase
 
 			return {
 				attemptId: attempt.id,
-				currentQuestionId: currentQuestionId(attempt),
+				currentQuestionId: AttemptEntity.currentQuestionId(attempt),
 				questionCount: attempt.questionIds.length,
 				topics,
 			};
@@ -147,7 +143,7 @@ export class StartPracticeSessionUseCase
 
 	private async weakTopics(
 		request: Command<StartPracticeSessionCommand>,
-		attempts: AttemptRepository,
+		attempts: AttemptsRepository,
 	): Promise<readonly string[]> {
 		return weakTopicsOf(await attempts.topicAccuracy(request.quizSetId)).map(
 			(weak) => weak.topic,
@@ -157,7 +153,7 @@ export class StartPracticeSessionUseCase
 	private async outstandingMistakes(
 		request: Command<StartPracticeSessionCommand>,
 		quizSet: QuizSetEntity,
-		attempts: AttemptRepository,
+		attempts: AttemptsRepository,
 	): Promise<readonly QuestionId[]> {
 		const present = new Set<string>(
 			quizSet.questions.map((question) => String(question.id)),

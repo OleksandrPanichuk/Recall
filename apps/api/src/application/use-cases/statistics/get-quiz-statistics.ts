@@ -1,12 +1,11 @@
-import type { TopicAccuracy } from "@/application/ports/repositories/attempt.repository";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type {
 	ApplicationDependencies,
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
-import { percentageOf, type Score } from "@/domain/quiz-attempt/score";
+import type { QuizAttemptId, TopicAccuracy } from "@/modules/attempts";
+import { Score } from "@/modules/attempts";
 import { type PageId } from "@/modules/pages";
 import {
 	type QuestionId,
@@ -46,7 +45,7 @@ export type GetQuizStatisticsDependencies = ApplicationDependencies;
 const scoreOf = (correct: number, total: number): Score => ({
 	correct,
 	total,
-	percentage: percentageOf(correct, total),
+	percentage: Score.percentageOf(correct, total),
 });
 
 export class GetQuizStatisticsUseCase

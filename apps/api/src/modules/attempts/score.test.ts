@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { toQuestionId, toQuestionOptionId } from "@/modules/quizzes";
-import type { QuestionResponse } from "./quiz-attempt";
-import { QuizAttemptValidationError } from "./quiz-attempt.errors";
-import { calculateScore } from "./score";
+import type { QuestionResponse } from "./attempt.entity";
+import { QuizAttemptValidationError } from "./attempts.errors";
+import { Score } from "./score";
 
 const answeredAt = new Date("2026-08-01T10:00:00.000Z");
 
@@ -23,7 +23,7 @@ const issuesOf = (
 	total: number,
 ): readonly string[] => {
 	try {
-		calculateScore(responses, total);
+		Score.of(responses, total);
 	} catch (caught) {
 		expect(caught).toBeInstanceOf(QuizAttemptValidationError);
 
@@ -36,7 +36,7 @@ const issuesOf = (
 describe("calculateScore", () => {
 	describe("with no responses", () => {
 		test("reports a zero score for an empty plan", () => {
-			expect(calculateScore([], 0)).toEqual({
+			expect(Score.of([], 0)).toEqual({
 				correct: 0,
 				total: 0,
 				percentage: 0,
@@ -44,7 +44,7 @@ describe("calculateScore", () => {
 		});
 
 		test("reports zero correct against a planned total", () => {
-			expect(calculateScore([], 5)).toEqual({
+			expect(Score.of([], 5)).toEqual({
 				correct: 0,
 				total: 5,
 				percentage: 0,
@@ -55,7 +55,7 @@ describe("calculateScore", () => {
 	describe("with mixed responses", () => {
 		test("rounds the percentage to one decimal", () => {
 			expect(
-				calculateScore(
+				Score.of(
 					[response("a", true), response("b", true), response("c", false)],
 					3,
 				),
@@ -63,7 +63,7 @@ describe("calculateScore", () => {
 		});
 
 		test("reports a half-answered plan", () => {
-			expect(calculateScore([response("a", true)], 2)).toEqual({
+			expect(Score.of([response("a", true)], 2)).toEqual({
 				correct: 1,
 				total: 2,
 				percentage: 50,
@@ -76,7 +76,7 @@ describe("calculateScore", () => {
 			[1, 6, 16.7],
 			[5, 6, 83.3],
 		])("rounds %p correct of %p to %p percent", (correct, total, percentage) => {
-			expect(calculateScore(correctResponses(correct), total)).toEqual({
+			expect(Score.of(correctResponses(correct), total)).toEqual({
 				correct,
 				total,
 				percentage,
@@ -86,22 +86,24 @@ describe("calculateScore", () => {
 
 	describe("with every answer correct", () => {
 		test("reports one hundred percent", () => {
-			expect(
-				calculateScore([response("a", true), response("b", true)], 2),
-			).toEqual({ correct: 2, total: 2, percentage: 100 });
+			expect(Score.of([response("a", true), response("b", true)], 2)).toEqual({
+				correct: 2,
+				total: 2,
+				percentage: 100,
+			});
 		});
 	});
 
 	describe("total", () => {
 		test("takes total from the argument, not from the response count", () => {
-			const score = calculateScore([response("a", true)], 4);
+			const score = Score.of([response("a", true)], 4);
 
 			expect(score.total).toBe(4);
 			expect(score.percentage).toBe(25);
 		});
 
 		test("returns a frozen score", () => {
-			expect(Object.isFrozen(calculateScore([], 1))).toBe(true);
+			expect(Object.isFrozen(Score.of([], 1))).toBe(true);
 		});
 	});
 
@@ -124,13 +126,13 @@ describe("calculateScore", () => {
 		});
 
 		test("names the issue in the error message", () => {
-			expect(() => calculateScore([], -1)).toThrow(
+			expect(() => Score.of([], -1)).toThrow(
 				"Invalid quiz attempt:\n- total must be a non-negative integer",
 			);
 		});
 
 		test("accepts a total equal to the number of responses", () => {
-			expect(calculateScore(correctResponses(2), 2).percentage).toBe(100);
+			expect(Score.of(correctResponses(2), 2).percentage).toBe(100);
 		});
 	});
 });
@@ -150,18 +152,18 @@ describe("partial credit", () => {
 	});
 
 	test("counts a third of a question as a third of its weight", () => {
-		const score = calculateScore([partial("q-1", 1, 3)], 4);
+		const score = Score.of([partial("q-1", 1, 3)], 4);
 
 		expect(score.correct).toBe(0);
 		expect(score.percentage).toBe(8.3);
 	});
 
 	test("a fully correct matching question weighs the same as any other", () => {
-		expect(calculateScore([partial("q-1", 3, 3)], 4).percentage).toBe(25);
+		expect(Score.of([partial("q-1", 3, 3)], 4).percentage).toBe(25);
 	});
 
 	test("a wholly wrong answer earns nothing", () => {
-		expect(calculateScore([partial("q-1", 0, 3)], 4).percentage).toBe(0);
+		expect(Score.of([partial("q-1", 0, 3)], 4).percentage).toBe(0);
 	});
 
 	test("responses without credit still count as whole questions", () => {
@@ -172,14 +174,11 @@ describe("partial credit", () => {
 			answeredAt: new Date("2026-08-15T10:00:00.000Z"),
 		};
 
-		expect(calculateScore([whole], 4).percentage).toBe(25);
+		expect(Score.of([whole], 4).percentage).toBe(25);
 	});
 
 	test("correct counts whole questions, percentage counts credit", () => {
-		const score = calculateScore(
-			[partial("q-1", 3, 3), partial("q-2", 1, 3)],
-			4,
-		);
+		const score = Score.of([partial("q-1", 3, 3), partial("q-2", 1, 3)], 4);
 
 		expect(score.correct).toBe(1);
 		expect(score.percentage).toBe(33.3);

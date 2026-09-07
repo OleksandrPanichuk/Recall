@@ -7,29 +7,21 @@ import {
 	toQuizSetId,
 } from "@/modules/quizzes";
 import {
-	attemptScore,
-	completeQuizAttempt,
-	currentQuestionId,
+	AttemptEntity,
 	isQuizAttemptMode,
 	isQuizAttemptStatus,
-	pauseQuizAttempt,
 	type QuestionResponse,
-	type QuizAttempt,
 	QuizAttemptMode,
 	QuizAttemptStatus,
-	recordResponse,
-	restoreQuizAttempt,
-	resumeQuizAttempt,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "./quiz-attempt";
+} from "./attempt.entity";
 import {
 	DuplicateResponseError,
 	EmptyQuizAttemptError,
 	QuestionNotInAttemptError,
 	QuizAttemptTransitionError,
 	QuizAttemptValidationError,
-} from "./quiz-attempt.errors";
+} from "./attempts.errors";
 
 const startedAt = new Date("2026-08-01T10:00:00.000Z");
 const laterAt = new Date("2026-08-01T11:00:00.000Z");
@@ -50,18 +42,18 @@ const validDraft = {
 	startedAt,
 };
 
-type QuizAttemptDraft = Parameters<typeof startQuizAttempt>[0];
+type QuizAttemptDraft = Parameters<typeof AttemptEntity.start>[0];
 
 const issuesOf = (draft: QuizAttemptDraft): readonly string[] => {
 	try {
-		startQuizAttempt(draft);
+		AttemptEntity.start(draft);
 	} catch (caught) {
 		expect(caught).toBeInstanceOf(QuizAttemptValidationError);
 
 		return (caught as QuizAttemptValidationError).issues;
 	}
 
-	throw new Error("expected startQuizAttempt to throw");
+	throw new Error("expected AttemptEntity.start to throw");
 };
 
 const answer = (
@@ -78,12 +70,15 @@ const answer = (
 	answeredAt,
 });
 
-const activeAttempt = (): QuizAttempt => startQuizAttempt(validDraft);
+const activeAttempt = (): AttemptEntity => AttemptEntity.start(validDraft);
 
-const answeredOnce = (isCorrect = true): QuizAttempt =>
-	recordResponse(activeAttempt(), answer(firstQuestionId, isCorrect, laterAt));
+const answeredOnce = (isCorrect = true): AttemptEntity =>
+	AttemptEntity.recordResponse(
+		activeAttempt(),
+		answer(firstQuestionId, isCorrect, laterAt),
+	);
 
-describe("QuizAttempt", () => {
+describe("AttemptEntity", () => {
 	describe("isQuizAttemptStatus", () => {
 		test.each(Object.values(QuizAttemptStatus))("accepts %p", (value) => {
 			expect(isQuizAttemptStatus(value)).toBe(true);
@@ -124,7 +119,7 @@ describe("QuizAttempt", () => {
 		});
 	});
 
-	describe("startQuizAttempt", () => {
+	describe("AttemptEntity.start", () => {
 		test("starts active with no responses", () => {
 			const attempt = activeAttempt();
 
@@ -147,7 +142,7 @@ describe("QuizAttempt", () => {
 
 		test("does not alias the caller's questionIds", () => {
 			const questionIds = [firstQuestionId];
-			const attempt = startQuizAttempt({ ...validDraft, questionIds });
+			const attempt = AttemptEntity.start({ ...validDraft, questionIds });
 
 			expect(Object.isFrozen(questionIds)).toBe(false);
 
@@ -158,7 +153,10 @@ describe("QuizAttempt", () => {
 
 		test("copies startedAt so later mutation cannot reach the attempt", () => {
 			const mutable = new Date(startedAt.getTime());
-			const attempt = startQuizAttempt({ ...validDraft, startedAt: mutable });
+			const attempt = AttemptEntity.start({
+				...validDraft,
+				startedAt: mutable,
+			});
 
 			mutable.setFullYear(1999);
 
@@ -168,10 +166,10 @@ describe("QuizAttempt", () => {
 
 		test("rejects an empty plan", () => {
 			expect(() =>
-				startQuizAttempt({ ...validDraft, questionIds: [] }),
+				AttemptEntity.start({ ...validDraft, questionIds: [] }),
 			).toThrow(EmptyQuizAttemptError);
 			expect(() =>
-				startQuizAttempt({ ...validDraft, questionIds: [] }),
+				AttemptEntity.start({ ...validDraft, questionIds: [] }),
 			).toThrow("An attempt requires at least one question");
 		});
 
@@ -187,7 +185,7 @@ describe("QuizAttempt", () => {
 		test("accepts a draft with no telegram id, for a web attempt", () => {
 			const { telegramUserId: _omitted, ...withoutUser } = validDraft;
 
-			expect(startQuizAttempt(withoutUser).telegramUserId).toBeUndefined();
+			expect(AttemptEntity.start(withoutUser).telegramUserId).toBeUndefined();
 		});
 
 		test.each([
@@ -225,7 +223,7 @@ describe("QuizAttempt", () => {
 
 		test("names every issue in the error message", () => {
 			expect(() =>
-				startQuizAttempt({ ...validDraft, telegramUserId: 0 }),
+				AttemptEntity.start({ ...validDraft, telegramUserId: 0 }),
 			).toThrow(
 				"Invalid quiz attempt:\n- telegramUserId must be a positive integer",
 			);
@@ -233,7 +231,7 @@ describe("QuizAttempt", () => {
 
 		test("reports the empty plan before the other issues", () => {
 			expect(() =>
-				startQuizAttempt({
+				AttemptEntity.start({
 					...validDraft,
 					questionIds: [],
 					telegramUserId: 0,
@@ -242,26 +240,30 @@ describe("QuizAttempt", () => {
 		});
 	});
 
-	describe("currentQuestionId", () => {
+	describe("AttemptEntity.currentQuestionId", () => {
 		test("points at the first planned question initially", () => {
-			expect(currentQuestionId(activeAttempt())).toBe(firstQuestionId);
+			expect(AttemptEntity.currentQuestionId(activeAttempt())).toBe(
+				firstQuestionId,
+			);
 		});
 
 		test("advances to the second question after one response", () => {
-			expect(currentQuestionId(answeredOnce())).toBe(secondQuestionId);
+			expect(AttemptEntity.currentQuestionId(answeredOnce())).toBe(
+				secondQuestionId,
+			);
 		});
 
 		test("is undefined once every planned question is answered", () => {
-			const answered = recordResponse(
+			const answered = AttemptEntity.recordResponse(
 				answeredOnce(),
 				answer(secondQuestionId, false, evenLaterAt),
 			);
 
-			expect(currentQuestionId(answered)).toBeUndefined();
+			expect(AttemptEntity.currentQuestionId(answered)).toBeUndefined();
 		});
 	});
 
-	describe("recordResponse", () => {
+	describe("AttemptEntity.recordResponse", () => {
 		test("appends the response and advances the current question", () => {
 			const attempt = answeredOnce();
 
@@ -269,13 +271,16 @@ describe("QuizAttempt", () => {
 			expect(attempt.responses[0]?.questionId).toBe(firstQuestionId);
 			expect(attempt.responses[0]?.answeredAt).toEqual(laterAt);
 			expect(attempt.updatedAt).toEqual(laterAt);
-			expect(currentQuestionId(attempt)).toBe(secondQuestionId);
+			expect(AttemptEntity.currentQuestionId(attempt)).toBe(secondQuestionId);
 		});
 
 		test("does not mutate the input attempt", () => {
 			const attempt = activeAttempt();
 
-			recordResponse(attempt, answer(firstQuestionId, true, laterAt));
+			AttemptEntity.recordResponse(
+				attempt,
+				answer(firstQuestionId, true, laterAt),
+			);
 
 			expect(attempt.responses).toHaveLength(0);
 			expect(attempt.updatedAt).toEqual(startedAt);
@@ -292,7 +297,7 @@ describe("QuizAttempt", () => {
 
 		test("does not alias the caller's selectedOptionIds", () => {
 			const selectedOptionIds = [toQuestionOptionId("option-a")];
-			const attempt = recordResponse(
+			const attempt = AttemptEntity.recordResponse(
 				activeAttempt(),
 				answer(firstQuestionId, true, laterAt, selectedOptionIds),
 			);
@@ -306,7 +311,7 @@ describe("QuizAttempt", () => {
 
 		test("copies answeredAt so later mutation cannot reach the attempt", () => {
 			const mutable = new Date(laterAt.getTime());
-			const attempt = recordResponse(
+			const attempt = AttemptEntity.recordResponse(
 				activeAttempt(),
 				answer(firstQuestionId, true, mutable),
 			);
@@ -321,10 +326,16 @@ describe("QuizAttempt", () => {
 			const attempt = answeredOnce();
 
 			expect(() =>
-				recordResponse(attempt, answer(firstQuestionId, true, evenLaterAt)),
+				AttemptEntity.recordResponse(
+					attempt,
+					answer(firstQuestionId, true, evenLaterAt),
+				),
 			).toThrow(DuplicateResponseError);
 			expect(() =>
-				recordResponse(attempt, answer(firstQuestionId, true, evenLaterAt)),
+				AttemptEntity.recordResponse(
+					attempt,
+					answer(firstQuestionId, true, evenLaterAt),
+				),
 			).toThrow("An attempt cannot answer the same question twice");
 		});
 
@@ -332,7 +343,7 @@ describe("QuizAttempt", () => {
 			const attempt = answeredOnce();
 
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					attempt,
 					answer(firstQuestionId, false, evenLaterAt, [
 						toQuestionOptionId("option-z"),
@@ -344,13 +355,13 @@ describe("QuizAttempt", () => {
 
 		test("rejects a question outside the plan", () => {
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(unplannedQuestionId, true, laterAt),
 				),
 			).toThrow(QuestionNotInAttemptError);
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(unplannedQuestionId, true, laterAt),
 				),
@@ -359,7 +370,7 @@ describe("QuizAttempt", () => {
 
 		test("rejects answering out of order", () => {
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(secondQuestionId, true, laterAt),
 				),
@@ -368,7 +379,7 @@ describe("QuizAttempt", () => {
 
 		test("rejects a response with neither options nor typed text", () => {
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(firstQuestionId, false, laterAt, []),
 				),
@@ -378,7 +389,7 @@ describe("QuizAttempt", () => {
 		});
 
 		test("accepts a typed answer with no options", () => {
-			const recorded = recordResponse(activeAttempt(), {
+			const recorded = AttemptEntity.recordResponse(activeAttempt(), {
 				...answer(firstQuestionId, true, laterAt, []),
 				typedAnswer: "cat",
 			});
@@ -388,7 +399,7 @@ describe("QuizAttempt", () => {
 
 		test("rejects a typed answer that is only whitespace", () => {
 			expect(() =>
-				recordResponse(activeAttempt(), {
+				AttemptEntity.recordResponse(activeAttempt(), {
 					...answer(firstQuestionId, true, laterAt, []),
 					typedAnswer: "   ",
 				}),
@@ -399,7 +410,7 @@ describe("QuizAttempt", () => {
 			const repeated = toQuestionOptionId("option-a");
 
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(firstQuestionId, false, laterAt, [repeated, repeated]),
 				),
@@ -410,13 +421,13 @@ describe("QuizAttempt", () => {
 
 		test("rejects an invalid answeredAt", () => {
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(firstQuestionId, true, invalidDate),
 				),
 			).toThrow(QuizAttemptValidationError);
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(firstQuestionId, true, invalidDate),
 				),
@@ -425,7 +436,7 @@ describe("QuizAttempt", () => {
 
 		test("rejects an answeredAt that precedes startedAt", () => {
 			expect(() =>
-				recordResponse(
+				AttemptEntity.recordResponse(
 					activeAttempt(),
 					answer(firstQuestionId, true, earlierAt),
 				),
@@ -435,7 +446,7 @@ describe("QuizAttempt", () => {
 		});
 
 		test("accepts an answeredAt equal to startedAt", () => {
-			const attempt = recordResponse(
+			const attempt = AttemptEntity.recordResponse(
 				activeAttempt(),
 				answer(firstQuestionId, true, startedAt),
 			);
@@ -447,23 +458,29 @@ describe("QuizAttempt", () => {
 			const pausedAt = new Date("2026-08-01T20:00:00.000Z");
 			const resumedAt = new Date("2026-08-01T21:00:00.000Z");
 			const staleAt = new Date("2026-08-01T10:00:01.000Z");
-			const resumed = resumeQuizAttempt(
-				pauseQuizAttempt(activeAttempt(), pausedAt),
+			const resumed = AttemptEntity.resume(
+				AttemptEntity.pause(activeAttempt(), pausedAt),
 				resumedAt,
 			);
 
 			expect(() =>
-				recordResponse(resumed, answer(firstQuestionId, true, staleAt)),
+				AttemptEntity.recordResponse(
+					resumed,
+					answer(firstQuestionId, true, staleAt),
+				),
 			).toThrow(QuizAttemptValidationError);
 			expect(() =>
-				recordResponse(resumed, answer(firstQuestionId, true, staleAt)),
+				AttemptEntity.recordResponse(
+					resumed,
+					answer(firstQuestionId, true, staleAt),
+				),
 			).toThrow(
 				"Invalid quiz attempt:\n- answeredAt must not precede updatedAt",
 			);
 		});
 
 		test("accepts an answeredAt equal to the previous response", () => {
-			const attempt = recordResponse(
+			const attempt = AttemptEntity.recordResponse(
 				answeredOnce(),
 				answer(secondQuestionId, false, laterAt),
 			);
@@ -473,42 +490,57 @@ describe("QuizAttempt", () => {
 		});
 
 		test("rejects an answeredAt that precedes the previous response", () => {
-			const attempt = recordResponse(
+			const attempt = AttemptEntity.recordResponse(
 				activeAttempt(),
 				answer(firstQuestionId, true, evenLaterAt),
 			);
 
 			expect(() =>
-				recordResponse(attempt, answer(secondQuestionId, true, laterAt)),
+				AttemptEntity.recordResponse(
+					attempt,
+					answer(secondQuestionId, true, laterAt),
+				),
 			).toThrow(
 				"Invalid quiz attempt:\n- answeredAt must not precede updatedAt",
 			);
 		});
 
 		test("rejects recording on a paused attempt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
 			expect(() =>
-				recordResponse(paused, answer(firstQuestionId, true, evenLaterAt)),
+				AttemptEntity.recordResponse(
+					paused,
+					answer(firstQuestionId, true, evenLaterAt),
+				),
 			).toThrow(QuizAttemptTransitionError);
 			expect(() =>
-				recordResponse(paused, answer(firstQuestionId, true, evenLaterAt)),
+				AttemptEntity.recordResponse(
+					paused,
+					answer(firstQuestionId, true, evenLaterAt),
+				),
 			).toThrow("A paused attempt cannot be answered");
 		});
 
 		test("rejects recording on a completed attempt", () => {
-			const completed = completeQuizAttempt(activeAttempt(), laterAt);
+			const completed = AttemptEntity.complete(activeAttempt(), laterAt);
 
 			expect(() =>
-				recordResponse(completed, answer(firstQuestionId, true, evenLaterAt)),
+				AttemptEntity.recordResponse(
+					completed,
+					answer(firstQuestionId, true, evenLaterAt),
+				),
 			).toThrow(QuizAttemptTransitionError);
 		});
 
 		test("reports the status failure before an invalid answeredAt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
 			expect(() =>
-				recordResponse(paused, answer(firstQuestionId, true, invalidDate)),
+				AttemptEntity.recordResponse(
+					paused,
+					answer(firstQuestionId, true, invalidDate),
+				),
 			).toThrow(QuizAttemptTransitionError);
 		});
 
@@ -516,24 +548,27 @@ describe("QuizAttempt", () => {
 			const attempt = answeredOnce();
 
 			expect(() =>
-				recordResponse(attempt, answer(firstQuestionId, true, evenLaterAt)),
+				AttemptEntity.recordResponse(
+					attempt,
+					answer(firstQuestionId, true, evenLaterAt),
+				),
 			).toThrow(DuplicateResponseError);
 		});
 	});
 
 	describe("transitions", () => {
 		test("walks active to paused to active to completed", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
 			expect(paused.status).toBe(QuizAttemptStatus.Paused);
 			expect(paused.updatedAt).toEqual(laterAt);
 
-			const resumed = resumeQuizAttempt(paused, evenLaterAt);
+			const resumed = AttemptEntity.resume(paused, evenLaterAt);
 
 			expect(resumed.status).toBe(QuizAttemptStatus.Active);
 			expect(resumed.updatedAt).toEqual(evenLaterAt);
 
-			const completed = completeQuizAttempt(resumed, evenLaterAt);
+			const completed = AttemptEntity.complete(resumed, evenLaterAt);
 
 			expect(completed.status).toBe(QuizAttemptStatus.Completed);
 			expect(completed.completedAt).toEqual(evenLaterAt);
@@ -543,8 +578,8 @@ describe("QuizAttempt", () => {
 		test("does not mutate the input attempt", () => {
 			const attempt = activeAttempt();
 
-			pauseQuizAttempt(attempt, laterAt);
-			completeQuizAttempt(attempt, laterAt);
+			AttemptEntity.pause(attempt, laterAt);
+			AttemptEntity.complete(attempt, laterAt);
 
 			expect(attempt.status).toBe(QuizAttemptStatus.Active);
 			expect(attempt.completedAt).toBeUndefined();
@@ -552,7 +587,7 @@ describe("QuizAttempt", () => {
 		});
 
 		test("returns frozen attempts", () => {
-			const paused = pauseQuizAttempt(answeredOnce(), evenLaterAt);
+			const paused = AttemptEntity.pause(answeredOnce(), evenLaterAt);
 
 			expect(Object.isFrozen(paused)).toBe(true);
 			expect(Object.isFrozen(paused.responses)).toBe(true);
@@ -564,7 +599,7 @@ describe("QuizAttempt", () => {
 
 		test("copies the completion date", () => {
 			const mutable = new Date(laterAt.getTime());
-			const completed = completeQuizAttempt(activeAttempt(), mutable);
+			const completed = AttemptEntity.complete(activeAttempt(), mutable);
 
 			mutable.setFullYear(1999);
 
@@ -573,57 +608,57 @@ describe("QuizAttempt", () => {
 		});
 
 		test("rejects pausing a paused attempt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
-			expect(() => pauseQuizAttempt(paused, evenLaterAt)).toThrow(
+			expect(() => AttemptEntity.pause(paused, evenLaterAt)).toThrow(
 				QuizAttemptTransitionError,
 			);
-			expect(() => pauseQuizAttempt(paused, evenLaterAt)).toThrow(
+			expect(() => AttemptEntity.pause(paused, evenLaterAt)).toThrow(
 				"A paused attempt cannot be paused",
 			);
 		});
 
 		test("rejects pausing a completed attempt", () => {
-			const completed = completeQuizAttempt(activeAttempt(), laterAt);
+			const completed = AttemptEntity.complete(activeAttempt(), laterAt);
 
-			expect(() => pauseQuizAttempt(completed, evenLaterAt)).toThrow(
+			expect(() => AttemptEntity.pause(completed, evenLaterAt)).toThrow(
 				QuizAttemptTransitionError,
 			);
 		});
 
 		test("rejects resuming an active attempt", () => {
-			expect(() => resumeQuizAttempt(activeAttempt(), laterAt)).toThrow(
+			expect(() => AttemptEntity.resume(activeAttempt(), laterAt)).toThrow(
 				"A active attempt cannot be resumed",
 			);
 		});
 
 		test("rejects resuming a completed attempt", () => {
-			const completed = completeQuizAttempt(activeAttempt(), laterAt);
+			const completed = AttemptEntity.complete(activeAttempt(), laterAt);
 
-			expect(() => resumeQuizAttempt(completed, evenLaterAt)).toThrow(
+			expect(() => AttemptEntity.resume(completed, evenLaterAt)).toThrow(
 				QuizAttemptTransitionError,
 			);
 		});
 
 		test("completes a paused attempt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
-			const completed = completeQuizAttempt(paused, evenLaterAt);
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
+			const completed = AttemptEntity.complete(paused, evenLaterAt);
 
 			expect(completed.status).toBe(QuizAttemptStatus.Completed);
 			expect(completed.completedAt).toEqual(evenLaterAt);
 		});
 
 		test("rejects completing twice", () => {
-			const completed = completeQuizAttempt(activeAttempt(), laterAt);
+			const completed = AttemptEntity.complete(activeAttempt(), laterAt);
 
-			expect(() => completeQuizAttempt(completed, evenLaterAt)).toThrow(
+			expect(() => AttemptEntity.complete(completed, evenLaterAt)).toThrow(
 				"A completed attempt cannot be completed",
 			);
 		});
 
 		test.each([
-			["pauseQuizAttempt", pauseQuizAttempt],
-			["completeQuizAttempt", completeQuizAttempt],
+			["AttemptEntity.pause", AttemptEntity.pause],
+			["AttemptEntity.complete", AttemptEntity.complete],
 		] as const)("%s rejects an invalid at date", (_name, transition) => {
 			expect(() => transition(activeAttempt(), invalidDate)).toThrow(
 				"Invalid quiz attempt:\n- at must be a valid date",
@@ -631,8 +666,8 @@ describe("QuizAttempt", () => {
 		});
 
 		test.each([
-			["pauseQuizAttempt", pauseQuizAttempt],
-			["completeQuizAttempt", completeQuizAttempt],
+			["AttemptEntity.pause", AttemptEntity.pause],
+			["AttemptEntity.complete", AttemptEntity.complete],
 		] as const)("%s rejects an at date before startedAt", (_name, transition) => {
 			expect(() => transition(activeAttempt(), earlierAt)).toThrow(
 				"Invalid quiz attempt:\n- at must not precede updatedAt",
@@ -640,8 +675,8 @@ describe("QuizAttempt", () => {
 		});
 
 		test.each([
-			["pauseQuizAttempt", pauseQuizAttempt],
-			["completeQuizAttempt", completeQuizAttempt],
+			["AttemptEntity.pause", AttemptEntity.pause],
+			["AttemptEntity.complete", AttemptEntity.complete],
 		] as const)("%s rejects an at date before updatedAt", (_name, transition) => {
 			const answered = answeredOnce();
 
@@ -652,52 +687,52 @@ describe("QuizAttempt", () => {
 		});
 
 		test.each([
-			["pauseQuizAttempt", pauseQuizAttempt],
-			["completeQuizAttempt", completeQuizAttempt],
+			["AttemptEntity.pause", AttemptEntity.pause],
+			["AttemptEntity.complete", AttemptEntity.complete],
 		] as const)("%s accepts an at date equal to updatedAt", (_name, transition) => {
 			expect(transition(answeredOnce(), laterAt).updatedAt).toEqual(laterAt);
 		});
 
-		test("resumeQuizAttempt rejects an at date before updatedAt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), evenLaterAt);
+		test("AttemptEntity.resume rejects an at date before updatedAt", () => {
+			const paused = AttemptEntity.pause(activeAttempt(), evenLaterAt);
 
-			expect(() => resumeQuizAttempt(paused, laterAt)).toThrow(
+			expect(() => AttemptEntity.resume(paused, laterAt)).toThrow(
 				"Invalid quiz attempt:\n- at must not precede updatedAt",
 			);
 		});
 
-		test("resumeQuizAttempt accepts an at date equal to updatedAt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+		test("AttemptEntity.resume accepts an at date equal to updatedAt", () => {
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
-			expect(resumeQuizAttempt(paused, laterAt).updatedAt).toEqual(laterAt);
+			expect(AttemptEntity.resume(paused, laterAt).updatedAt).toEqual(laterAt);
 		});
 
-		test("resumeQuizAttempt rejects an invalid at date", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+		test("AttemptEntity.resume rejects an invalid at date", () => {
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
-			expect(() => resumeQuizAttempt(paused, invalidDate)).toThrow(
+			expect(() => AttemptEntity.resume(paused, invalidDate)).toThrow(
 				"Invalid quiz attempt:\n- at must be a valid date",
 			);
 		});
 
-		test("resumeQuizAttempt rejects an at date before startedAt", () => {
-			const paused = pauseQuizAttempt(activeAttempt(), laterAt);
+		test("AttemptEntity.resume rejects an at date before startedAt", () => {
+			const paused = AttemptEntity.pause(activeAttempt(), laterAt);
 
-			expect(() => resumeQuizAttempt(paused, earlierAt)).toThrow(
+			expect(() => AttemptEntity.resume(paused, earlierAt)).toThrow(
 				"Invalid quiz attempt:\n- at must not precede updatedAt",
 			);
 		});
 
 		test("accepts an at date equal to startedAt", () => {
-			expect(pauseQuizAttempt(activeAttempt(), startedAt).updatedAt).toEqual(
+			expect(AttemptEntity.pause(activeAttempt(), startedAt).updatedAt).toEqual(
 				startedAt,
 			);
 		});
 	});
 
-	describe("attemptScore", () => {
+	describe("AttemptEntity.score", () => {
 		test("scores one correct answer out of two planned questions", () => {
-			expect(attemptScore(answeredOnce())).toEqual({
+			expect(AttemptEntity.score(answeredOnce())).toEqual({
 				correct: 1,
 				total: 2,
 				percentage: 50,
@@ -705,7 +740,7 @@ describe("QuizAttempt", () => {
 		});
 
 		test("scores an untouched attempt as zero", () => {
-			expect(attemptScore(activeAttempt())).toEqual({
+			expect(AttemptEntity.score(activeAttempt())).toEqual({
 				correct: 0,
 				total: 2,
 				percentage: 0,
@@ -713,7 +748,7 @@ describe("QuizAttempt", () => {
 		});
 
 		test("scores a wrong answer as zero correct", () => {
-			expect(attemptScore(answeredOnce(false))).toEqual({
+			expect(AttemptEntity.score(answeredOnce(false))).toEqual({
 				correct: 0,
 				total: 2,
 				percentage: 0,
@@ -721,10 +756,10 @@ describe("QuizAttempt", () => {
 		});
 	});
 
-	describe("restoreQuizAttempt", () => {
-		type QuizAttemptSnapshot = Parameters<typeof restoreQuizAttempt>[0];
+	describe("AttemptEntity.restore", () => {
+		type QuizAttemptSnapshot = Parameters<typeof AttemptEntity.restore>[0];
 
-		const snapshotOf = (attempt: QuizAttempt): QuizAttemptSnapshot => ({
+		const snapshotOf = (attempt: AttemptEntity): QuizAttemptSnapshot => ({
 			id: attempt.id,
 			quizSetId: attempt.quizSetId,
 			telegramUserId: attempt.telegramUserId,
@@ -748,30 +783,32 @@ describe("QuizAttempt", () => {
 			candidate: QuizAttemptSnapshot,
 		): readonly string[] => {
 			try {
-				restoreQuizAttempt(candidate);
+				AttemptEntity.restore(candidate);
 			} catch (caught) {
 				expect(caught).toBeInstanceOf(QuizAttemptValidationError);
 
 				return (caught as QuizAttemptValidationError).issues;
 			}
 
-			throw new Error("expected restoreQuizAttempt to throw");
+			throw new Error("expected AttemptEntity.restore to throw");
 		};
 
 		test("restores the attempt the transitions produce", () => {
 			const expected = answeredOnce();
 
-			expect(restoreQuizAttempt(snapshotOf(expected))).toEqual(expected);
+			expect(AttemptEntity.restore(snapshotOf(expected))).toEqual(expected);
 		});
 
 		test("restores a completed attempt", () => {
-			const expected = completeQuizAttempt(answeredOnce(), evenLaterAt);
+			const expected = AttemptEntity.complete(answeredOnce(), evenLaterAt);
 
-			expect(restoreQuizAttempt(snapshotOf(expected))).toEqual(expected);
+			expect(AttemptEntity.restore(snapshotOf(expected))).toEqual(expected);
 		});
 
 		test("restores an active attempt whose updatedAt advanced past its last answer", () => {
-			const restored = restoreQuizAttempt(snapshot({ updatedAt: evenLaterAt }));
+			const restored = AttemptEntity.restore(
+				snapshot({ updatedAt: evenLaterAt }),
+			);
 
 			expect(restored.status).toBe(QuizAttemptStatus.Active);
 			expect(restored.updatedAt).toEqual(evenLaterAt);
@@ -780,12 +817,12 @@ describe("QuizAttempt", () => {
 		test("restores an attempt that has not been answered yet", () => {
 			const expected = activeAttempt();
 
-			expect(restoreQuizAttempt(snapshotOf(expected))).toEqual(expected);
+			expect(AttemptEntity.restore(snapshotOf(expected))).toEqual(expected);
 		});
 
 		test("copies dates and freezes the restored attempt", () => {
 			const source = snapshot();
-			const restored = restoreQuizAttempt(source);
+			const restored = AttemptEntity.restore(source);
 
 			source.startedAt.setFullYear(1999);
 
@@ -797,7 +834,7 @@ describe("QuizAttempt", () => {
 
 		test("rejects an empty plan", () => {
 			expect(() =>
-				restoreQuizAttempt(snapshot({ questionIds: [], responses: [] })),
+				AttemptEntity.restore(snapshot({ questionIds: [], responses: [] })),
 			).toThrow(EmptyQuizAttemptError);
 		});
 
@@ -961,7 +998,7 @@ describe("QuizAttempt", () => {
 describe("skipped responses", () => {
 	test("cannot be correct", () => {
 		expect(() =>
-			recordResponse(activeAttempt(), {
+			AttemptEntity.recordResponse(activeAttempt(), {
 				...answer(firstQuestionId, true, laterAt, []),
 				skipped: true,
 			}),
@@ -969,7 +1006,7 @@ describe("skipped responses", () => {
 	});
 
 	test("are recorded when wrong", () => {
-		const recorded = recordResponse(activeAttempt(), {
+		const recorded = AttemptEntity.recordResponse(activeAttempt(), {
 			...answer(firstQuestionId, false, laterAt, []),
 			skipped: true,
 		});

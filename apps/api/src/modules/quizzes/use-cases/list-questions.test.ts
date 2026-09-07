@@ -8,7 +8,7 @@ import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
 } from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
-import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
+import { AttemptEntity } from "@/modules/attempts";
 import { type QuizSetId } from "@/modules/quizzes";
 import { ListQuestionsUseCase } from "./list-questions";
 
@@ -104,7 +104,7 @@ describe("ListQuestionsUseCase", () => {
 
 		await context.unitOfWork.run(({ attempts }) =>
 			attempts.save(
-				recordResponse(
+				AttemptEntity.recordResponse(
 					anAttempt({
 						quizSetId: String(quizSetId),
 						questionIds: [questionId],

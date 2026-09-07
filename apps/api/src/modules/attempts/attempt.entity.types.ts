@@ -5,10 +5,7 @@ import {
 	type QuizSetId,
 } from "@/modules/quizzes";
 import { RecallGrade } from "@/modules/scheduling";
-import type {
-	QuizAttemptMode,
-	QuizAttemptStatus,
-} from "./quiz-attempt.constants";
+import type { QuizAttemptMode, QuizAttemptStatus } from "./attempts.constants";
 
 export type QuizAttemptId = BrandedId<"QuizAttemptId">;
 
@@ -24,20 +21,7 @@ export interface QuestionResponse {
 	readonly recall?: RecallGrade;
 }
 
-export interface QuizAttempt {
-	readonly id: QuizAttemptId;
-	readonly quizSetId: QuizSetId;
-	readonly telegramUserId?: number;
-	readonly mode: QuizAttemptMode;
-	readonly status: QuizAttemptStatus;
-	readonly questionIds: readonly QuestionId[];
-	readonly responses: readonly QuestionResponse[];
-	readonly startedAt: Date;
-	readonly updatedAt: Date;
-	readonly completedAt?: Date;
-}
-
-export interface QuizAttemptDraft {
+export interface AttemptDraft {
 	readonly id: QuizAttemptId;
 	readonly quizSetId: QuizSetId;
 	readonly telegramUserId?: number;
@@ -46,7 +30,7 @@ export interface QuizAttemptDraft {
 	readonly startedAt: Date;
 }
 
-export interface QuizAttemptSnapshot {
+export interface AttemptSnapshot {
 	readonly id: QuizAttemptId;
 	readonly quizSetId: QuizSetId;
 	readonly telegramUserId?: number;
