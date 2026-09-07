@@ -4,7 +4,7 @@ import type {
 	DailyActivity,
 	DueForecastDay,
 	QuestionStat,
-} from "@/application/ports/repositories/analytics.repository";
+} from "@/modules/insights";
 import { toQuizSetId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 

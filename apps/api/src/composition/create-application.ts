@@ -7,12 +7,8 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { UnitOfWorkTransaction } from "@/application/unit-of-work.transaction";
 import type { ApplicationDependencies } from "@/application/use-case";
-import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
-import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { DatabaseConnection } from "@/db/connection";
 import {
 	AbandonQuizAttemptUseCase,
@@ -24,6 +20,7 @@ import {
 	ResumeQuizAttemptUseCase,
 	StartQuizAttemptUseCase,
 } from "@/modules/attempts";
+import { GetInsightsUseCase } from "@/modules/insights";
 import {
 	PageSharesRepository,
 	ReadSharedPageUseCase,
@@ -46,6 +43,7 @@ import {
 	SetPageIconUseCase,
 	WriteSummaryUseCase,
 } from "@/modules/pages";
+import { StartPracticeSessionUseCase } from "@/modules/practice";
 import {
 	AddQuestionsUseCase,
 	ArchiveQuizSetUseCase,
@@ -63,6 +61,10 @@ import {
 	ListDueRepetitionsUseCase,
 	ListLeechesUseCase,
 } from "@/modules/scheduling";
+import {
+	GetAttemptDetailUseCase,
+	GetQuizStatisticsUseCase,
+} from "@/modules/statistics";
 import {
 	ResolveQuizSettingsUseCase,
 	StudySettingsService,
@@ -161,6 +163,7 @@ export function createUseCases(
 	const attemptsRepo = dependencies.scope.attempts;
 	const termPairs = dependencies.scope.termPairs;
 	const reviews = dependencies.scope.reviews;
+	const analytics = dependencies.scope.analytics;
 	const settingsService = new StudySettingsService(reviews);
 	const timezone = { name: () => dependencies.timezone };
 	const shares = new (class extends PageSharesRepository {
@@ -259,7 +262,7 @@ export function createUseCases(
 			transaction,
 			clock,
 		),
-		getInsights: new GetInsightsUseCase(dependencies),
+		getInsights: new GetInsightsUseCase(analytics, clock, timezone),
 		abandonQuizAttempt: new AbandonQuizAttemptUseCase(
 			attemptsRepo,
 			transaction,
@@ -284,7 +287,14 @@ export function createUseCases(
 			clock,
 			idGenerator,
 		),
-		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
+		startPracticeSession: new StartPracticeSessionUseCase(
+			attemptsRepo,
+			quizzes,
+			settingsService,
+			transaction,
+			clock,
+			idGenerator,
+		),
 		updateQuestion: new UpdateQuestionUseCase(
 			quizzes,
 			transaction,
@@ -328,8 +338,8 @@ export function createUseCases(
 			clock,
 			timezone,
 		),
-		getQuizStatistics: new GetQuizStatisticsUseCase(dependencies),
-		getAttemptDetail: new GetAttemptDetailUseCase(dependencies),
+		getQuizStatistics: new GetQuizStatisticsUseCase(attemptsRepo, quizzes),
+		getAttemptDetail: new GetAttemptDetailUseCase(attemptsRepo, quizzes),
 		listDueRepetitions: new ListDueRepetitionsUseCase(
 			reviews,
 			quizzes,

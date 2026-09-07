@@ -5,6 +5,7 @@ import {
 } from "@tests/fixtures/memory.fixture";
 import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import { FinishQuizAttemptUseCase } from "@/modules/attempts";
+import { StartPracticeSessionUseCase } from "@/modules/practice";
 import {
 	ArchiveQuizSetUseCase,
 	Difficulty,
@@ -12,7 +13,7 @@ import {
 	QuestionType,
 	type QuizSetId,
 } from "@/modules/quizzes";
-import { StartPracticeSessionUseCase } from "./start-practice-session";
+import { StudySettingsService } from "@/modules/study-settings";
 
 export const USER = 42;
 
@@ -85,7 +86,14 @@ export function createPracticeHarness(): PracticeHarness {
 
 	return {
 		context,
-		practice: new StartPracticeSessionUseCase(context),
+		practice: new StartPracticeSessionUseCase(
+			context.scope.attempts,
+			context.scope.quizzes,
+			new StudySettingsService(context.scope.reviews),
+			context.transaction,
+			context.clock,
+			context.idGenerator,
+		),
 		archive: quizzesOver(context).archiveQuizSet,
 		finish,
 		seedDraftSet,

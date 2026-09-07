@@ -8,8 +8,8 @@ export type {
 
 import type { AttachmentsRepository } from "@/modules/attachments";
 import type { AttemptsRepository } from "@/modules/attempts";
+import type { AnalyticsRepository } from "@/modules/insights";
 import type { PagesRepository } from "@/modules/pages";
-import type { AnalyticsRepository } from "./analytics.repository";
 import type { QuizRepository } from "./quiz.repository";
 import type { ReviewRepository } from "./review.repository";
 import type { TermPairRepository } from "./term-pair.repository";

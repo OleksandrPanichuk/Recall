@@ -8,6 +8,7 @@ import { AttachmentsRepository } from "@api/modules/attachments";
 import { AttemptsRepository } from "@api/modules/attempts";
 import { AuthModule } from "@api/modules/auth";
 import { BotModule } from "@api/modules/bot/bot.module";
+import { AnalyticsRepository } from "@api/modules/insights";
 import { PagesRepository } from "@api/modules/pages";
 import type { QuestionInput } from "@api/modules/quizzes";
 import {
@@ -28,6 +29,7 @@ interface MemoryDependencies {
 		readonly termPairs: TermPairsRepository;
 		readonly attachments: AttachmentsRepository;
 		readonly attempts: AttemptsRepository;
+		readonly analytics: AnalyticsRepository;
 		readonly reviews: SchedulesRepository & StudySettingsRepository;
 	};
 	readonly transaction: Transaction;
@@ -112,6 +114,8 @@ async function startApi(
 			.useValue(memory.scope.pages)
 			.overrideProvider(AttemptsRepository)
 			.useValue(memory.scope.attempts)
+			.overrideProvider(AnalyticsRepository)
+			.useValue(memory.scope.analytics)
 			.overrideProvider(QuizzesRepository)
 			.useValue(memory.scope.quizzes)
 			.overrideProvider(TermPairsRepository)

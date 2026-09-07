@@ -7,13 +7,13 @@ import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
 } from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
-import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import {
 	QuestionType,
 	QuestionValidationError,
 	toQuestionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { GetAttemptDetailUseCase } from "@/modules/statistics";
 import {
 	QuestionNotFoundError,
 	QuizSetNotFoundError,
@@ -231,7 +231,10 @@ describe("UpdateQuestionUseCase", () => {
 		const start = attemptsOver(harness.context).startQuizAttempt;
 		const answer = attemptsOver(harness.context).answerQuestion;
 		const finish = attemptsOver(harness.context).finishQuizAttempt;
-		const detail = new GetAttemptDetailUseCase(harness.context);
+		const detail = new GetAttemptDetailUseCase(
+			harness.context.scope.attempts,
+			harness.context.scope.quizzes,
+		);
 
 		const { attemptId } = await start.execute({
 			quizSetId,

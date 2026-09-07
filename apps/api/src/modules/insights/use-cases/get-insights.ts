@@ -1,15 +1,13 @@
-import type { Clock } from "@/application/ports/clock";
-import type {
-	DailyActivity,
-	DueForecastDay,
-	QuestionStat,
-} from "@/application/ports/repositories/analytics.repository";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type {
-	ApplicationDependencies,
-	Command,
-	UseCase,
-} from "@/application/use-case";
+import { Injectable } from "@nestjs/common";
+import { Clock } from "@/core/ports/clock";
+import { Timezone } from "@/core/ports/timezone";
+import { UseCase } from "@/core/use-case";
+import {
+	AnalyticsRepository,
+	type DailyActivity,
+	type DueForecastDay,
+	type QuestionStat,
+} from "../insights.repository";
 
 export const DEFAULT_HISTORY_DAYS = 371;
 export const DEFAULT_FORECAST_DAYS = 14;
@@ -18,7 +16,7 @@ export const MINIMUM_ANSWERS = 2;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export interface GetInsightsCommand {
+export interface GetInsightsUseCaseOptions {
 	readonly historyDays?: number;
 	readonly forecastDays?: number;
 }
@@ -33,8 +31,6 @@ export interface Insights {
 	readonly answered: number;
 	readonly correct: number;
 }
-
-export type GetInsightsDependencies = ApplicationDependencies;
 
 const midnightAfter = (at: Date): Date =>
 	new Date(Math.floor(at.getTime() / DAY_MS) * DAY_MS + DAY_MS);
@@ -63,38 +59,36 @@ export const streakOf = (
 	return streak;
 };
 
-export class GetInsightsUseCase
-	implements UseCase<Command<GetInsightsCommand>, Insights>
-{
-	private readonly scope: RepositoryScope;
-	private readonly clock: Clock;
-	private readonly timezone: string;
+type Options = GetInsightsUseCaseOptions;
 
-	constructor(dependencies: GetInsightsDependencies) {
-		this.scope = dependencies.scope;
-		this.clock = dependencies.clock;
-		this.timezone = dependencies.timezone;
+@Injectable()
+export class GetInsightsUseCase extends UseCase<Options, Insights> {
+	constructor(
+		private readonly analytics: AnalyticsRepository,
+		private readonly clock: Clock,
+		private readonly zone: Timezone,
+	) {
+		super();
 	}
 
-	async execute(request: Command<GetInsightsCommand>): Promise<Insights> {
-		const { analytics } = this.scope;
+	async execute(options: Options): Promise<Insights> {
 		const now = this.clock.now();
-		const historyDays = request.historyDays ?? DEFAULT_HISTORY_DAYS;
-		const forecastDays = request.forecastDays ?? DEFAULT_FORECAST_DAYS;
+		const historyDays = options.historyDays ?? DEFAULT_HISTORY_DAYS;
+		const forecastDays = options.forecastDays ?? DEFAULT_FORECAST_DAYS;
 		const endOfToday = midnightAfter(now);
-		const timezone = this.timezone;
+		const timezone = this.zone.name();
 
-		const activity = await analytics.dailyActivity({
+		const activity = await this.analytics.dailyActivity({
 			from: new Date(endOfToday.getTime() - historyDays * DAY_MS),
 			to: endOfToday,
 			timezone,
 		});
-		const forecast = await analytics.dueForecast({
+		const forecast = await this.analytics.dueForecast({
 			from: new Date(endOfToday.getTime() - DAY_MS),
 			to: new Date(endOfToday.getTime() + forecastDays * DAY_MS),
 			timezone,
 		});
-		const hardest = await analytics.hardestQuestions(
+		const hardest = await this.analytics.hardestQuestions(
 			HARDEST_QUESTIONS,
 			MINIMUM_ANSWERS,
 		);

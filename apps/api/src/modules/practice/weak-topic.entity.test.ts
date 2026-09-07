@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type TopicScore, weakTopicsOf } from "./weak-topics";
+import { type TopicScore, WeakTopicEntity } from "./weak-topic.entity";
 
 const score = (
 	topic: string | undefined,
@@ -8,7 +8,7 @@ const score = (
 ): TopicScore => ({ topic, answered, correct });
 
 const topicsOf = (scores: readonly TopicScore[]): readonly string[] =>
-	weakTopicsOf(scores).map((weak) => weak.topic);
+	WeakTopicEntity.from(scores).map((weak) => weak.topic);
 
 describe("weakTopicsOf", () => {
 	test("keeps a topic answered enough times and mostly wrong", () => {
@@ -66,11 +66,11 @@ describe("weakTopicsOf", () => {
 	});
 
 	test("reports nothing for no history at all", () => {
-		expect(weakTopicsOf([])).toEqual([]);
+		expect(WeakTopicEntity.from([])).toEqual([]);
 	});
 
 	test("carries the counts through for the screen to show", () => {
-		expect(weakTopicsOf([score("Alpha", 4, 1)])).toEqual([
+		expect(WeakTopicEntity.from([score("Alpha", 4, 1)])).toEqual([
 			{ topic: "Alpha", answered: 4, correct: 1 },
 		]);
 	});

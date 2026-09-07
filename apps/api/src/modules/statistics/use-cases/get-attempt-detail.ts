@@ -1,15 +1,16 @@
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type {
-	ApplicationDependencies,
-	Command,
-	UseCase,
-} from "@/application/use-case";
+import { Injectable } from "@nestjs/common";
+import { UseCase } from "@/core/use-case";
 import type { Score } from "@/modules/attempts";
-import { AttemptEntity, type QuizAttemptId } from "@/modules/attempts";
+import {
+	AttemptEntity,
+	AttemptsRepository,
+	type QuizAttemptId,
+} from "@/modules/attempts";
 import {
 	QuestionEntity,
 	type QuestionOptionId,
 	type QuizSetId,
+	QuizzesRepository,
 } from "@/modules/quizzes";
 
 export class AttemptNotFoundError extends Error {
@@ -42,32 +43,29 @@ export interface AttemptDetail {
 	readonly answers: readonly AnsweredQuestion[];
 }
 
-export interface GetAttemptDetailCommand {
+export interface GetAttemptDetailUseCaseOptions {
 	readonly attemptId: QuizAttemptId;
 }
 
-export type GetAttemptDetailDependencies = ApplicationDependencies;
+type Options = GetAttemptDetailUseCaseOptions;
 
-export class GetAttemptDetailUseCase
-	implements UseCase<Command<GetAttemptDetailCommand>, AttemptDetail>
-{
-	private readonly scope: RepositoryScope;
-
-	constructor(dependencies: GetAttemptDetailDependencies) {
-		this.scope = dependencies.scope;
+@Injectable()
+export class GetAttemptDetailUseCase extends UseCase<Options, AttemptDetail> {
+	constructor(
+		private readonly attempts: AttemptsRepository,
+		private readonly quizzes: QuizzesRepository,
+	) {
+		super();
 	}
 
-	async execute(
-		request: Command<GetAttemptDetailCommand>,
-	): Promise<AttemptDetail> {
-		const { quizzes, attempts } = this.scope;
-		const attempt = await attempts.findById(request.attemptId);
+	async execute(options: Options): Promise<AttemptDetail> {
+		const attempt = await this.attempts.findById(options.attemptId);
 
 		if (attempt === undefined) {
-			throw new AttemptNotFoundError(request.attemptId);
+			throw new AttemptNotFoundError(options.attemptId);
 		}
 
-		const quizSet = await quizzes.findById(attempt.quizSetId);
+		const quizSet = await this.quizzes.findById(attempt.quizSetId);
 		const byId = new Map(
 			(quizSet?.questions ?? []).map((question) => [question.id, question]),
 		);

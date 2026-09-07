@@ -1,16 +1,13 @@
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type {
-	ApplicationDependencies,
-	Command,
-	UseCase,
-} from "@/application/use-case";
+import { Injectable } from "@nestjs/common";
+import { UseCase } from "@/core/use-case";
 import type { QuizAttemptId, TopicAccuracy } from "@/modules/attempts";
-import { Score } from "@/modules/attempts";
+import { AttemptsRepository, Score } from "@/modules/attempts";
 import { type PageId } from "@/modules/pages";
 import {
 	type QuestionId,
 	type QuizSetId,
 	QuizSetNotFoundError,
+	QuizzesRepository,
 } from "@/modules/quizzes";
 
 export interface AttemptSummary {
@@ -36,11 +33,9 @@ export interface QuizStatistics {
 	readonly improvement?: Improvement;
 }
 
-export interface GetQuizStatisticsCommand {
+export interface GetQuizStatisticsUseCaseOptions {
 	readonly quizSetId: QuizSetId;
 }
-
-export type GetQuizStatisticsDependencies = ApplicationDependencies;
 
 const scoreOf = (correct: number, total: number): Score => ({
 	correct,
@@ -48,27 +43,26 @@ const scoreOf = (correct: number, total: number): Score => ({
 	percentage: Score.percentageOf(correct, total),
 });
 
-export class GetQuizStatisticsUseCase
-	implements UseCase<Command<GetQuizStatisticsCommand>, QuizStatistics>
-{
-	private readonly scope: RepositoryScope;
+type Options = GetQuizStatisticsUseCaseOptions;
 
-	constructor(dependencies: GetQuizStatisticsDependencies) {
-		this.scope = dependencies.scope;
+@Injectable()
+export class GetQuizStatisticsUseCase extends UseCase<Options, QuizStatistics> {
+	constructor(
+		private readonly attemptRepository: AttemptsRepository,
+		private readonly quizzes: QuizzesRepository,
+	) {
+		super();
 	}
 
-	async execute(
-		request: Command<GetQuizStatisticsCommand>,
-	): Promise<QuizStatistics> {
-		const { quizzes, attempts: attemptRepository } = this.scope;
-		const quizSet = await quizzes.findById(request.quizSetId);
+	async execute(options: Options): Promise<QuizStatistics> {
+		const quizSet = await this.quizzes.findById(options.quizSetId);
 
 		if (quizSet === undefined) {
-			throw new QuizSetNotFoundError(request.quizSetId);
+			throw new QuizSetNotFoundError(options.quizSetId);
 		}
 
-		const completed = await attemptRepository.listCompletedForQuiz(
-			request.quizSetId,
+		const completed = await this.attemptRepository.listCompletedForQuiz(
+			options.quizSetId,
 		);
 		const attempts = completed.map(
 			(entry): AttemptSummary => ({
@@ -87,9 +81,9 @@ export class GetQuizStatisticsUseCase
 				completed.reduce((sum, entry) => sum + entry.correct, 0),
 				completed.reduce((sum, entry) => sum + entry.total, 0),
 			),
-			topics: await attemptRepository.topicAccuracy(request.quizSetId),
-			incorrectQuestionIds: await attemptRepository.incorrectQuestionIds(
-				request.quizSetId,
+			topics: await this.attemptRepository.topicAccuracy(options.quizSetId),
+			incorrectQuestionIds: await this.attemptRepository.incorrectQuestionIds(
+				options.quizSetId,
 			),
 			improvement: improvementOf(attempts),
 		};

@@ -10,13 +10,13 @@ import {
 } from "@/db/executor";
 import { PostgresAttachmentsRepository } from "@/modules/attachments";
 import { PostgresAttemptsRepository } from "@/modules/attempts";
+import { PostgresAnalyticsRepository } from "@/modules/insights";
 import { PostgresPagesRepository } from "@/modules/pages";
 import { PostgresQuizzesRepository } from "@/modules/quizzes";
 import { PostgresSchedulesRepository } from "@/modules/scheduling";
 import { PostgresStudySettingsRepository } from "@/modules/study-settings";
 import { PostgresTermPairsRepository } from "@/modules/vocabulary";
 import { FixedOwnerContext } from "@/shared/request-context";
-import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
 
 export type { Executor } from "@/db/executor";
 
@@ -69,7 +69,7 @@ export const scopeFor = (
 			new DatabaseHandle(db),
 			new FixedOwnerContext(owner),
 		),
-		analytics: createAnalyticsPostgresRepository(executor, owner),
+		analytics: new PostgresAnalyticsRepository(handle, context),
 		attachments: new PostgresAttachmentsRepository(
 			new DatabaseHandle(db),
 			new FixedOwnerContext(owner),

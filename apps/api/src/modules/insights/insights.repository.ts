@@ -28,10 +28,14 @@ export interface AnalyticsWindow {
 	readonly timezone: string;
 }
 
-export interface AnalyticsRepository {
-	dailyActivity(window: AnalyticsWindow): Promise<readonly DailyActivity[]>;
-	dueForecast(window: AnalyticsWindow): Promise<readonly DueForecastDay[]>;
-	hardestQuestions(
+export abstract class AnalyticsRepository {
+	abstract dailyActivity(
+		window: AnalyticsWindow,
+	): Promise<readonly DailyActivity[]>;
+	abstract dueForecast(
+		window: AnalyticsWindow,
+	): Promise<readonly DueForecastDay[]>;
+	abstract hardestQuestions(
 		limit: number,
 		minimumAnswers: number,
 	): Promise<readonly QuestionStat[]>;

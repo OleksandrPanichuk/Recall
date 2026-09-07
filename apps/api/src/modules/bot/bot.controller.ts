@@ -44,12 +44,8 @@ import {
 	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
-import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
-import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { ApiTokensService } from "@/modules/api-tokens";
 import {
 	AbandonQuizAttemptUseCase,
@@ -63,6 +59,7 @@ import {
 	toQuizAttemptId,
 } from "@/modules/attempts";
 import { BotTokenGuard } from "@/modules/auth";
+import { GetInsightsUseCase } from "@/modules/insights";
 import {
 	CreatePageUseCase,
 	DeletePageUseCase,
@@ -80,11 +77,16 @@ import {
 	toPageId,
 	WriteSummaryUseCase,
 } from "@/modules/pages";
+import { StartPracticeSessionUseCase } from "@/modules/practice";
 import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import {
 	ListDueRepetitionsUseCase,
 	ListLeechesUseCase,
 } from "@/modules/scheduling";
+import {
+	GetAttemptDetailUseCase,
+	GetQuizStatisticsUseCase,
+} from "@/modules/statistics";
 import {
 	ResolveQuizSettingsUseCase,
 	UpdateQuizSettingsUseCase,

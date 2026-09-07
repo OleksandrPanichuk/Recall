@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { shuffled } from "@recall/kit";
 import {
+	aQuestionInput,
+	createPracticeHarness,
+	type PracticeHarness,
+} from "@tests/fixtures/practice.fixture";
+import {
 	AttemptAlreadyInProgressError,
 	QuizAttemptMode,
 	QuizSetNotPublishedError,
 } from "@/modules/attempts";
 import { QuizSetNotFoundError, toQuizSetId } from "@/modules/quizzes";
 import { quizScope, StudySettingsEntity } from "@/modules/study-settings";
-import {
-	aQuestionInput,
-	createPracticeHarness,
-	type PracticeHarness,
-} from "./practice.fixture";
 import { NothingToPracticeError } from "./start-practice-session";
 
 let harness: PracticeHarness;

@@ -42,7 +42,10 @@ beforeEach(() => {
 	start = attemptsOver(context).startQuizAttempt;
 	answer = attemptsOver(context).answerQuestion;
 	finish = attemptsOver(context).finishQuizAttempt;
-	statistics = new GetQuizStatisticsUseCase(context);
+	statistics = new GetQuizStatisticsUseCase(
+		context.scope.attempts,
+		context.scope.quizzes,
+	);
 });
 
 afterEach(() => {
