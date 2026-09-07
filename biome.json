@@ -53,6 +53,10 @@
 	},
 	"overrides": [
 		{
+			"includes": ["apps/api/src/modules/**", "apps/api/tests/**"],
+			"linter": { "rules": { "style": { "useImportType": "off" } } }
+		},
+		{
 			"includes": [
 				"apps/api/src/modules/**",
 				"apps/api/src/main.ts",
