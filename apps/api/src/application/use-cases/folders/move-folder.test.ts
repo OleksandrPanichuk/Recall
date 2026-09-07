@@ -4,7 +4,7 @@ import {
 	DuplicateFolderNameError,
 	FolderCycleError,
 	FolderDepthError,
-} from "@/domain/folder/folder.errors";
+} from "@/modules/pages";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import type { MoveFolderUseCase } from "./move-folder";
 

@@ -1,11 +1,11 @@
 import { trimmedOrUndefined } from "@recall/kit";
 import { brandedId } from "@/core/branded-id";
+import { type PageId } from "@/modules/pages";
 import {
 	copiedDate,
 	copiedOptionalDate,
 	isValidDate,
 } from "@/shared/utils/date";
-import type { FolderId } from "../folder/folder";
 import type { Question, QuestionId } from "./question";
 import { QuizSetStatus } from "./quiz-set.constants";
 import {
@@ -226,7 +226,7 @@ export function updateQuizSetMetadata(
 
 export function moveQuizSetToFolder(
 	quizSet: QuizSet,
-	folderId: FolderId | undefined,
+	folderId: PageId | undefined,
 	at: Date,
 ): QuizSet {
 	assertTransitionDate(quizSet, at);

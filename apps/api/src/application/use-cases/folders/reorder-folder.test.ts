@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { FolderId } from "@/domain/folder/folder";
-import { FolderValidationError } from "@/domain/folder/folder.errors";
-import { POSITION_SCALE } from "@/domain/folder/ordering";
+import {
+	FolderValidationError,
+	type PageId,
+	PagePosition,
+} from "@/modules/pages";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import { ReorderFolderUseCase } from "./reorder-folder";
 
@@ -18,8 +20,8 @@ beforeEach(() => {
 	});
 });
 
-const named = async (...names: readonly string[]): Promise<FolderId[]> => {
-	const ids: FolderId[] = [];
+const named = async (...names: readonly string[]): Promise<PageId[]> => {
+	const ids: PageId[] = [];
 
 	for (const name of names) {
 		ids.push(await harness.create(name));
@@ -44,7 +46,7 @@ describe("putting pages in the order their owner wants", () => {
 		const [, , mango] = await named("Zebra", "Apple", "Mango");
 
 		await reorder.execute({
-			folderId: mango as FolderId,
+			folderId: mango as PageId,
 			beforeId: (await harness.context.scope.pages.listChildren(undefined))[0]
 				?.id,
 		});
@@ -56,9 +58,9 @@ describe("putting pages in the order their owner wants", () => {
 		const [zebra, apple, mango] = await named("Zebra", "Apple", "Mango");
 
 		await reorder.execute({
-			folderId: mango as FolderId,
-			afterId: zebra as FolderId,
-			beforeId: apple as FolderId,
+			folderId: mango as PageId,
+			afterId: zebra as PageId,
+			beforeId: apple as PageId,
 		});
 
 		expect(await order()).toEqual(["Zebra", "Mango", "Apple"]);
@@ -68,8 +70,8 @@ describe("putting pages in the order their owner wants", () => {
 		const [zebra, , mango] = await named("Zebra", "Apple", "Mango");
 
 		await reorder.execute({
-			folderId: zebra as FolderId,
-			afterId: mango as FolderId,
+			folderId: zebra as PageId,
+			afterId: mango as PageId,
 		});
 
 		expect(await order()).toEqual(["Apple", "Mango", "Zebra"]);
@@ -77,17 +79,17 @@ describe("putting pages in the order their owner wants", () => {
 
 	test("reordering one parent leaves another alone", async () => {
 		const [outer] = await named("Outer");
-		const inner = await harness.create("Inner", outer as FolderId);
+		const inner = await harness.create("Inner", outer as PageId);
 		const [zebra, apple] = await named("Zebra", "Apple");
 
 		await reorder.execute({
-			folderId: apple as FolderId,
-			beforeId: zebra as FolderId,
+			folderId: apple as PageId,
+			beforeId: zebra as PageId,
 		});
 
 		expect(await order()).toEqual(["Apple", "Outer", "Zebra"]);
 		expect(
-			(await harness.context.scope.pages.listChildren(outer as FolderId)).map(
+			(await harness.context.scope.pages.listChildren(outer as PageId)).map(
 				(page) => page.name,
 			),
 		).toEqual(["Inner"]);
@@ -96,11 +98,11 @@ describe("putting pages in the order their owner wants", () => {
 
 	test("a sibling from another parent is refused, not silently ignored", async () => {
 		const [outer, zebra] = await named("Outer", "Zebra");
-		const inner = await harness.create("Inner", outer as FolderId);
+		const inner = await harness.create("Inner", outer as PageId);
 
 		expect(
 			reorder.execute({
-				folderId: zebra as FolderId,
+				folderId: zebra as PageId,
 				beforeId: inner,
 			}),
 		).rejects.toThrow(FolderValidationError);
@@ -111,24 +113,24 @@ describe("putting pages in the order their owner wants", () => {
 
 		expect(
 			reorder.execute({
-				folderId: zebra as FolderId,
-				beforeId: zebra as FolderId,
+				folderId: zebra as PageId,
+				beforeId: zebra as PageId,
 			}),
 		).rejects.toThrow(FolderValidationError);
 	});
 
 	test("running out of room renumbers the parent instead of failing", async () => {
 		const [first, second] = await named("First", "Second");
-		const quantum = 10 ** -POSITION_SCALE;
+		const quantum = 10 ** -PagePosition.SCALE;
 
-		let nearest = second as FolderId;
+		let nearest = second as PageId;
 
 		for (let round = 0; round < 40; round += 1) {
 			const wedged = await harness.create(`Wedge ${round}`);
 
 			await reorder.execute({
 				folderId: wedged,
-				afterId: first as FolderId,
+				afterId: first as PageId,
 				beforeId: nearest,
 			});
 

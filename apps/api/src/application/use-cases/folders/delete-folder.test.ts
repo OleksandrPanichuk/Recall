@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 import { FolderNotFoundError } from "./create-folder";
 import { type DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
@@ -54,7 +54,7 @@ describe("DeleteFolderUseCase", () => {
 
 	test("rejects an unknown folder", async () => {
 		expect(
-			deleteFolder.execute({ folderId: "missing" as FolderId }),
+			deleteFolder.execute({ folderId: "missing" as PageId }),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 });

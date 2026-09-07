@@ -1,6 +1,6 @@
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { Command, UseCase } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 
 export class FolderPathNotFoundError extends Error {
 	readonly path: readonly string[];
@@ -17,7 +17,7 @@ export interface ResolveFolderPathCommand {
 }
 
 export interface ResolveFolderPathResult {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 }
 
 export interface ResolveFolderPathDependencies {
@@ -36,7 +36,7 @@ export class ResolveFolderPathUseCase
 	async execute(
 		request: Command<ResolveFolderPathCommand>,
 	): Promise<ResolveFolderPathResult> {
-		let parentId: FolderId | undefined;
+		let parentId: PageId | undefined;
 
 		for (const segment of request.path) {
 			const children = await this.scope.pages.listChildren(parentId);

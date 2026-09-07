@@ -6,17 +6,17 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
 import {
 	moveQuizSetToFolder,
 	type QuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 import { requireFolder } from "../folders/create-folder";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface MoveQuizSetCommand {
 	readonly quizSetId: QuizSetId;
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 }
 
 export type MoveQuizSetDependencies = ApplicationDependencies;

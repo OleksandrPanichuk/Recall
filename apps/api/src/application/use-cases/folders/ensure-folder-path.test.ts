@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import {
-	FolderDepthError,
-	FolderValidationError,
-} from "@/domain/folder/folder.errors";
+import { FolderDepthError, FolderValidationError } from "@/modules/pages";
 import type { EnsureFolderPathUseCase } from "./ensure-folder-path";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 

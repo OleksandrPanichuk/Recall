@@ -1,9 +1,9 @@
-import type { FolderId } from "@/domain/folder/folder";
 import type {
 	QuizSet,
 	QuizSetId,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 
 export interface QuizSummary {
 	readonly id: QuizSetId;
@@ -15,7 +15,7 @@ export interface QuizSummary {
 
 export interface QuizListFilter {
 	readonly statuses?: readonly QuizSetStatus[];
-	readonly pageId?: FolderId | null;
+	readonly pageId?: PageId | null;
 	readonly ids?: readonly QuizSetId[];
 }
 

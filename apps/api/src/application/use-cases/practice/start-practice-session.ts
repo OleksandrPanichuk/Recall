@@ -9,7 +9,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
 import { weakTopicsOf } from "@/domain/practice/weak-topics";
 import {
 	currentQuestionId,
@@ -24,6 +23,7 @@ import {
 	type QuizSetId,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
@@ -38,9 +38,9 @@ export type PracticeMode =
 export class NothingToPracticeError extends Error {
 	readonly quizSetId: QuizSetId;
 	readonly mode: PracticeMode;
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 
-	constructor(quizSetId: QuizSetId, mode: PracticeMode, folderId?: FolderId) {
+	constructor(quizSetId: QuizSetId, mode: PracticeMode, folderId?: PageId) {
 		super(`Quiz set ${quizSetId} has nothing to practise in ${mode} mode`);
 		this.name = "NothingToPracticeError";
 		this.quizSetId = quizSetId;

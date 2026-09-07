@@ -1,5 +1,5 @@
 import type { BrandedId } from "@/core/branded-id";
-import type { FolderId } from "../folder/folder";
+import { type PageId } from "@/modules/pages";
 import type { Question } from "./question";
 import type { QuizSetStatus } from "./quiz-set.constants";
 
@@ -19,7 +19,7 @@ export interface QuizSet {
 	readonly sourceChapters?: string;
 	readonly publishedAt?: Date;
 	readonly archivedAt?: Date;
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 }
 
 export interface QuizSetDraft {

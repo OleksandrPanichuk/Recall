@@ -1,5 +1,4 @@
 import type { questionOptions, questions, quizzes } from "@/db/schema";
-import { toFolderId } from "@/domain/folder/folder";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	isDifficulty,
@@ -14,6 +13,7 @@ import {
 	type QuizSet,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import { toPageId } from "@/modules/pages";
 
 export type QuizRow = typeof quizzes.$inferSelect;
 export type QuestionRow = typeof questions.$inferSelect;
@@ -106,6 +106,6 @@ export function toQuiz(
 		sourceChapters: row.sourceChapters ?? undefined,
 		publishedAt: row.publishedAt ?? undefined,
 		archivedAt: row.archivedAt ?? undefined,
-		folderId: row.pageId === null ? undefined : toFolderId(row.pageId),
+		folderId: row.pageId === null ? undefined : toPageId(row.pageId),
 	}) as QuizSet;
 }

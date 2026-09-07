@@ -1,13 +1,13 @@
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { Command, UseCase } from "@/application/use-case";
-import type { Folder, FolderId } from "@/domain/folder/folder";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { PageEntity, type PageId } from "@/modules/pages";
 
 export interface FolderTreeNode {
-	readonly id: FolderId;
+	readonly id: PageId;
 	readonly name: string;
 	readonly icon?: string;
-	readonly parentId?: FolderId;
+	readonly parentId?: PageId;
 	readonly depth: number;
 	readonly setCount: number;
 	readonly unpublishedCount: number;
@@ -34,7 +34,7 @@ export class ListFolderTreeUseCase
 		_request: Command<ListFolderTreeCommand>,
 	): Promise<readonly FolderTreeNode[]> {
 		const all = await this.scope.pages.listAll();
-		const childrenByParent = new Map<string, Folder[]>();
+		const childrenByParent = new Map<string, PageEntity[]>();
 
 		for (const folder of all) {
 			const key = folder.parentId ?? "";
@@ -45,7 +45,7 @@ export class ListFolderTreeUseCase
 		const nodes: FolderTreeNode[] = [];
 
 		const walk = async (
-			parentId: FolderId | undefined,
+			parentId: PageId | undefined,
 			depth: number,
 		): Promise<void> => {
 			for (const folder of childrenByParent.get(parentId ?? "") ?? []) {

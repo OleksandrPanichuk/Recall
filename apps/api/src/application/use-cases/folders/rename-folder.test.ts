@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import type { FolderId } from "@/domain/folder/folder";
-import { DuplicateFolderNameError } from "@/domain/folder/folder.errors";
+import { DuplicateFolderNameError, type PageId } from "@/modules/pages";
 import { FolderNotFoundError } from "./create-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 import type { RenameFolderUseCase } from "./rename-folder";
@@ -48,7 +47,7 @@ describe("RenameFolderUseCase", () => {
 
 	test("rejects an unknown folder", async () => {
 		expect(
-			renameFolder.execute({ folderId: "missing" as FolderId, name: "SQL" }),
+			renameFolder.execute({ folderId: "missing" as PageId, name: "SQL" }),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 });

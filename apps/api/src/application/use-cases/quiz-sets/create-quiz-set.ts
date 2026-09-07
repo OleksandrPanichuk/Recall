@@ -7,13 +7,13 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
 import {
 	createQuizSet,
 	moveQuizSetToFolder,
 	type QuizSetId,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 import { requireFolder } from "../folders/create-folder";
 
 export interface CreateQuizSetCommand {
@@ -23,7 +23,7 @@ export interface CreateQuizSetCommand {
 	readonly source?: string;
 	readonly sourceChapters?: string;
 	readonly tags?: readonly string[];
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 }
 
 export interface CreateQuizSetResult {

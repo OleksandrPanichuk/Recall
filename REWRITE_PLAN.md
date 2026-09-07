@@ -206,6 +206,14 @@ override per row of the table above, plus one per module for the dependency grap
 each module lands. The rule is what makes the direction real; without it the table is a wish.
 The two old overrides stay until phase 6 deletes the directories they guard.
 
+One rule is deliberately relaxed for the duration. Neither `domain/**` nor `application/**`
+still forbids `@/modules/**`, because migrating a shared kernel one capability at a time means the
+un-migrated half has to name the types the migrated half now owns: the moment `Folder` becomes
+`PageEntity` in `modules/pages`, `RepositoryScope` and every use case still living in
+`application/` must import it from there. The alternatives were to duplicate each port as a
+structural interface for the duration, or to move all seven repositories and 47 use cases in
+one commit. `application/` is deleted in phase 6, and the rule goes with it.
+
 Two limits worth knowing rather than discovering:
 
 - **The rule matches the import string, not the resolved file.** `../../adapters/minio` slips

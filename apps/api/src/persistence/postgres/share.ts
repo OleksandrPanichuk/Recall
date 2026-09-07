@@ -2,11 +2,11 @@ import { eq } from "drizzle-orm";
 import { type OwnerId, toOwnerId } from "@/application/ports/owner";
 import type { RecallDatabase } from "@/db/client";
 import { pageShares } from "@/db/schema";
-import { type FolderId, toFolderId } from "@/domain/folder/folder";
+import { type PageId, toPageId } from "@/modules/pages";
 
 export interface SharedPageOwner {
 	readonly owner: OwnerId;
-	readonly pageId: FolderId;
+	readonly pageId: PageId;
 }
 
 export async function ownerForShare(
@@ -25,5 +25,5 @@ export async function ownerForShare(
 
 	return row === undefined
 		? undefined
-		: { owner: toOwnerId(row.ownerId), pageId: toFolderId(row.pageId) };
+		: { owner: toOwnerId(row.ownerId), pageId: toPageId(row.pageId) };
 }

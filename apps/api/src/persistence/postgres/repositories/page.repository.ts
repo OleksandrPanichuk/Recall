@@ -16,26 +16,20 @@ import {
 } from "@/db/schema";
 import { isUuid } from "@/db/uuid";
 import {
-	type Folder,
-	type FolderId,
-	MAX_FOLDER_DEPTH,
-	restoreFolder,
-	toFolderId,
-} from "@/domain/folder/folder";
-import {
 	type QuizSetId,
 	type QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import { PageEntity, type PageId, toPageId } from "@/modules/pages";
 import type { Executor } from "../unit-of-work";
 
 type PageRow = typeof pages.$inferSelect;
 
-const toPage = (row: PageRow): Folder =>
-	restoreFolder({
-		id: toFolderId(row.id),
+const toPage = (row: PageRow): PageEntity =>
+	PageEntity.restore({
+		id: toPageId(row.id),
 		name: row.title,
-		parentId: row.parentId === null ? undefined : toFolderId(row.parentId),
+		parentId: row.parentId === null ? undefined : toPageId(row.parentId),
 		summary: row.contentMd ?? undefined,
 		icon: row.icon ?? undefined,
 		position: Number(row.position),
@@ -79,7 +73,7 @@ export function createPagePostgresRepository(
 ): PageRepository {
 	const mine = eq(pages.ownerId, owner);
 	const ownedPair = async (
-		id: FolderId,
+		id: PageId,
 		quizId: QuizSetId,
 	): Promise<{ pageId: string; quizId: string } | undefined> => {
 		if (!isUuid(String(id)) || !isUuid(String(quizId))) {
@@ -101,7 +95,7 @@ export function createPagePostgresRepository(
 			? undefined
 			: { pageId: page.id, quizId: quiz.id };
 	};
-	const byId = async (id: string): Promise<Folder | undefined> => {
+	const byId = async (id: string): Promise<PageEntity | undefined> => {
 		if (!isUuid(id)) {
 			return undefined;
 		}
@@ -116,7 +110,7 @@ export function createPagePostgresRepository(
 	};
 
 	return {
-		async save(page: Folder): Promise<void> {
+		async save(page: PageEntity): Promise<void> {
 			const slug = slugOf(page.name);
 			const values = {
 				id: String(page.id),
@@ -148,13 +142,13 @@ export function createPagePostgresRepository(
 				});
 		},
 
-		findById(id: FolderId): Promise<Folder | undefined> {
+		findById(id: PageId): Promise<PageEntity | undefined> {
 			return byId(String(id));
 		},
 
 		async listChildren(
-			parentId: FolderId | undefined,
-		): Promise<readonly Folder[]> {
+			parentId: PageId | undefined,
+		): Promise<readonly PageEntity[]> {
 			if (parentId !== undefined && !isUuid(String(parentId))) {
 				return [];
 			}
@@ -175,13 +169,13 @@ export function createPagePostgresRepository(
 			return rows.map(toPage);
 		},
 
-		async listAncestors(id: FolderId): Promise<readonly Folder[]> {
-			const chain: Folder[] = [];
+		async listAncestors(id: PageId): Promise<readonly PageEntity[]> {
+			const chain: PageEntity[] = [];
 			let current = (await byId(String(id)))?.parentId;
 
 			for (
 				let step = 0;
-				step < MAX_FOLDER_DEPTH && current !== undefined;
+				step < PageEntity.MAX_DEPTH && current !== undefined;
 				step += 1
 			) {
 				const parent = await byId(String(current));
@@ -197,7 +191,7 @@ export function createPagePostgresRepository(
 			return chain;
 		},
 
-		async listAll(): Promise<readonly Folder[]> {
+		async listAll(): Promise<readonly PageEntity[]> {
 			const rows = await executor
 				.select()
 				.from(pages)
@@ -208,7 +202,7 @@ export function createPagePostgresRepository(
 		},
 
 		async countQuizzesIn(
-			id: FolderId,
+			id: PageId,
 			statuses?: readonly QuizSetStatus[],
 		): Promise<number> {
 			if (!isUuid(String(id))) {
@@ -231,7 +225,7 @@ export function createPagePostgresRepository(
 			return Number(row?.total ?? 0);
 		},
 
-		async countChildPages(id: FolderId): Promise<number> {
+		async countChildPages(id: PageId): Promise<number> {
 			if (!isUuid(String(id))) {
 				return 0;
 			}
@@ -244,7 +238,7 @@ export function createPagePostgresRepository(
 			return Number(row?.total ?? 0);
 		},
 
-		async attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+		async attachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {
 			const owned = await ownedPair(id, quizId);
 
 			if (owned === undefined) {
@@ -257,7 +251,7 @@ export function createPagePostgresRepository(
 				.onConflictDoNothing();
 		},
 
-		async detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+		async detachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {
 			const owned = await ownedPair(id, quizId);
 
 			if (owned === undefined) {
@@ -274,7 +268,7 @@ export function createPagePostgresRepository(
 				);
 		},
 
-		async listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]> {
+		async listAttachedQuizIds(id: PageId): Promise<readonly QuizSetId[]> {
 			if (!isUuid(String(id))) {
 				return [];
 			}
@@ -322,7 +316,7 @@ export function createPagePostgresRepository(
 		},
 
 		async listRevisions(
-			id: FolderId,
+			id: PageId,
 			limit = 20,
 		): Promise<readonly PageRevision[]> {
 			if (!isUuid(String(id))) {
@@ -346,7 +340,7 @@ export function createPagePostgresRepository(
 
 			return rows.map((row) => ({
 				id: row.id,
-				pageId: toFolderId(row.pageId),
+				pageId: toPageId(row.pageId),
 				title: row.title,
 				summary: row.contentMd ?? undefined,
 				authorKind: row.authorKind as RevisionAuthor,
@@ -382,13 +376,13 @@ export function createPagePostgresRepository(
 				.limit(limit);
 
 			return rows.map((row) => ({
-				id: toFolderId(row.id),
+				id: toPageId(row.id),
 				name: row.title,
 				excerpt: excerptAround(row.contentMd, trimmed),
 			}));
 		},
 
-		async shareOf(id: FolderId): Promise<PageShare | undefined> {
+		async shareOf(id: PageId): Promise<PageShare | undefined> {
 			if (!isUuid(String(id))) {
 				return undefined;
 			}
@@ -404,7 +398,7 @@ export function createPagePostgresRepository(
 			return row === undefined
 				? undefined
 				: {
-						pageId: toFolderId(row.pageId),
+						pageId: toPageId(row.pageId),
 						token: row.token,
 						createdAt: row.createdAt,
 					};
@@ -439,7 +433,7 @@ export function createPagePostgresRepository(
 				});
 		},
 
-		async deleteShare(id: FolderId): Promise<void> {
+		async deleteShare(id: PageId): Promise<void> {
 			if (!isUuid(String(id))) {
 				return;
 			}
@@ -451,7 +445,7 @@ export function createPagePostgresRepository(
 				);
 		},
 
-		async delete(id: FolderId): Promise<void> {
+		async delete(id: PageId): Promise<void> {
 			if (!isUuid(String(id))) {
 				return;
 			}

@@ -7,19 +7,17 @@ import type {
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import {
-	assertPlacement,
-	createFolder,
-	type Folder,
-	type FolderId,
-	toFolderId,
-} from "@/domain/folder/folder";
-import { positionBetween } from "@/domain/folder/ordering";
+	PageEntity,
+	type PageId,
+	PagePosition,
+	toPageId,
+} from "@/modules/pages";
 
 export class FolderNotFoundError extends Error {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 
-	constructor(folderId: FolderId) {
-		super(`Folder ${folderId} does not exist`);
+	constructor(folderId: PageId) {
+		super(`PageEntity ${folderId} does not exist`);
 		this.name = "FolderNotFoundError";
 		this.folderId = folderId;
 	}
@@ -34,8 +32,8 @@ export interface FolderDependencies {
 
 export async function requireFolder(
 	pages: PageRepository,
-	folderId: FolderId,
-): Promise<Folder> {
+	folderId: PageId,
+): Promise<PageEntity> {
 	const folder = await pages.findById(folderId);
 
 	if (folder === undefined) {
@@ -47,8 +45,8 @@ export async function requireFolder(
 
 export async function parentChain(
 	pages: PageRepository,
-	parentId: FolderId | undefined,
-): Promise<readonly Folder[]> {
+	parentId: PageId | undefined,
+): Promise<readonly PageEntity[]> {
 	if (parentId === undefined) {
 		return [];
 	}
@@ -58,8 +56,8 @@ export async function parentChain(
 	return [...(await pages.listAncestors(parent.id)), parent];
 }
 
-export const lastPositionAmong = (siblings: readonly Folder[]): number =>
-	positionBetween(
+export const lastPositionAmong = (siblings: readonly PageEntity[]): number =>
+	PagePosition.between(
 		siblings.length === 0
 			? undefined
 			: Math.max(...siblings.map((sibling) => sibling.position)),
@@ -68,11 +66,11 @@ export const lastPositionAmong = (siblings: readonly Folder[]): number =>
 
 export interface CreateFolderCommand {
 	readonly name: string;
-	readonly parentId?: FolderId;
+	readonly parentId?: PageId;
 }
 
 export interface CreateFolderResult {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 }
 
 export class CreateFolderUseCase
@@ -91,15 +89,15 @@ export class CreateFolderUseCase
 	execute(request: Command<CreateFolderCommand>): Promise<CreateFolderResult> {
 		return this.unitOfWork.run(async ({ pages }) => {
 			const siblings = await pages.listChildren(request.parentId);
-			const folder = createFolder({
-				id: toFolderId(this.idGenerator.generate()),
+			const folder = PageEntity.create({
+				id: toPageId(this.idGenerator.generate()),
 				name: request.name,
 				parentId: request.parentId,
 				position: lastPositionAmong(siblings),
 				createdAt: this.clock.now(),
 			});
 
-			assertPlacement(
+			PageEntity.assertPlacement(
 				folder,
 				await parentChain(pages, request.parentId),
 				siblings,

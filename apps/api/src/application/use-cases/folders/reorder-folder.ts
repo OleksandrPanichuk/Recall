@@ -3,27 +3,22 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import {
-	type Folder,
-	type FolderId,
-	reorderFolder,
-} from "@/domain/folder/folder";
-import { FolderValidationError } from "@/domain/folder/folder.errors";
-import {
-	canSitBetween,
-	positionBetween,
-	renumbered,
-} from "@/domain/folder/ordering";
+	FolderValidationError,
+	PageEntity,
+	type PageId,
+	PagePosition,
+} from "@/modules/pages";
 import { type FolderDependencies, requireFolder } from "./create-folder";
 
 export interface ReorderFolderCommand {
-	readonly folderId: FolderId;
-	readonly afterId?: FolderId;
-	readonly beforeId?: FolderId;
+	readonly folderId: PageId;
+	readonly afterId?: PageId;
+	readonly beforeId?: PageId;
 }
 
 const positionOf = (
-	siblings: readonly Folder[],
-	id: FolderId | undefined,
+	siblings: readonly PageEntity[],
+	id: PageId | undefined,
 ): number | undefined => {
 	if (id === undefined) {
 		return undefined;
@@ -69,11 +64,13 @@ export class ReorderFolderUseCase
 			let after = positionOf(others, request.afterId);
 			let before = positionOf(others, request.beforeId);
 
-			if (!canSitBetween(after, before)) {
-				const spaced = renumbered(others.length);
+			if (!PagePosition.canSitBetween(after, before)) {
+				const spaced = PagePosition.renumbered(others.length);
 
 				for (const [index, sibling] of others.entries()) {
-					await pages.save(reorderFolder(sibling, spaced[index] as number, at));
+					await pages.save(
+						PageEntity.reordered(sibling, spaced[index] as number, at),
+					);
 				}
 
 				after = positionOf(
@@ -93,7 +90,7 @@ export class ReorderFolderUseCase
 			}
 
 			await pages.save(
-				reorderFolder(moved, positionBetween(after, before), at),
+				PageEntity.reordered(moved, PagePosition.between(after, before), at),
 			);
 		});
 	}

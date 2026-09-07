@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import type { FolderId } from "@/domain/folder/folder";
 import {
 	DuplicateFolderNameError,
 	FolderDepthError,
-} from "@/domain/folder/folder.errors";
+	type PageId,
+} from "@/modules/pages";
 import { FolderNotFoundError } from "./create-folder";
 import { createFoldersHarness, type FoldersHarness } from "./folders.fixture";
 
@@ -54,7 +54,7 @@ describe("CreateFolderUseCase", () => {
 	});
 
 	test("rejects an unknown parent", async () => {
-		expect(create("SQL", "missing" as FolderId)).rejects.toBeInstanceOf(
+		expect(create("SQL", "missing" as PageId)).rejects.toBeInstanceOf(
 			FolderNotFoundError,
 		);
 	});

@@ -10,18 +10,18 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { type FolderId, writeSummary } from "@/domain/folder/folder";
+import { PageEntity, type PageId } from "@/modules/pages";
 import { requireFolder } from "./create-folder";
 
 export interface WriteSummaryCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly summary?: string;
 	readonly append?: boolean;
 	readonly authorKind?: RevisionAuthor;
 }
 
 export interface WrittenSummary {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly name: string;
 	readonly length: number;
 }
@@ -74,7 +74,7 @@ export class WriteSummaryUseCase
 				request.append === true
 					? joined(page.summary, request.summary)
 					: request.summary;
-			const written = writeSummary(page, next, at);
+			const written = PageEntity.withSummary(page, next, at);
 
 			await pages.save(written);
 

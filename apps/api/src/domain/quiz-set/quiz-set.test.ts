@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { toFolderId } from "../folder/folder";
+import { toPageId } from "@/modules/pages";
 import { createQuestion } from "./create-question";
 import {
 	Difficulty,
@@ -770,12 +770,12 @@ describe("moveQuizSetToFolder", () => {
 	const filed = (): QuizSet =>
 		moveQuizSetToFolder(
 			draftWith(question("Filed?", 0)),
-			toFolderId("english"),
+			toPageId("english"),
 			laterAt,
 		);
 
 	test("files a draft into a folder", () => {
-		expect(filed().folderId).toBe(toFolderId("english"));
+		expect(filed().folderId).toBe(toPageId("english"));
 	});
 
 	test("clears the folder when given undefined", () => {
@@ -787,13 +787,9 @@ describe("moveQuizSetToFolder", () => {
 	test("files a published set, because filing is not content", () => {
 		const published = publishQuizSet(draftWith(question("Filed?", 0)), laterAt);
 
-		const moved = moveQuizSetToFolder(
-			published,
-			toFolderId("english"),
-			laterAt,
-		);
+		const moved = moveQuizSetToFolder(published, toPageId("english"), laterAt);
 
-		expect(moved.folderId).toBe(toFolderId("english"));
+		expect(moved.folderId).toBe(toPageId("english"));
 		expect(moved.status).toBe(QuizSetStatus.Published);
 		expect(moved.questions).toHaveLength(published.questions.length);
 	});
@@ -802,8 +798,8 @@ describe("moveQuizSetToFolder", () => {
 		const archived = archiveQuizSet(draftWith(question("Filed?", 0)), laterAt);
 
 		expect(
-			moveQuizSetToFolder(archived, toFolderId("english"), laterAt).folderId,
-		).toBe(toFolderId("english"));
+			moveQuizSetToFolder(archived, toPageId("english"), laterAt).folderId,
+		).toBe(toPageId("english"));
 	});
 
 	test("advances updatedAt", () => {
@@ -814,7 +810,7 @@ describe("moveQuizSetToFolder", () => {
 		expect(() =>
 			moveQuizSetToFolder(
 				draftWith(question("Filed?", 0)),
-				toFolderId("x"),
+				toPageId("x"),
 				earlierAt,
 			),
 		).toThrow(QuizSetValidationError);
@@ -824,7 +820,7 @@ describe("moveQuizSetToFolder", () => {
 		expect(() =>
 			moveQuizSetToFolder(
 				draftWith(question("Filed?", 0)),
-				toFolderId("x"),
+				toPageId("x"),
 				invalidDate,
 			),
 		).toThrow(QuizSetValidationError);

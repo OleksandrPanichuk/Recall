@@ -4,7 +4,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 
 export class PageNotSharedError extends Error {
 	constructor() {
@@ -14,7 +14,7 @@ export class PageNotSharedError extends Error {
 }
 
 export interface ReadSharedPageCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 }
 
 export interface SharedPageView {

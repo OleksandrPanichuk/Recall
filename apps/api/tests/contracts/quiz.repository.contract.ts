@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { toFolderId } from "@/domain/folder/folder";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
 	Difficulty,
@@ -15,6 +14,7 @@ import {
 	type QuizSet,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
+import { toPageId } from "@/modules/pages";
 
 export interface QuizRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -163,7 +163,7 @@ export function describeQuizRepository(
 				expect(await harness.scope.quizzes.findById(missing)).toBeUndefined();
 				expect(await harness.scope.quizzes.versionOf(missing)).toBeUndefined();
 				expect(
-					await harness.scope.quizzes.list({ pageId: toFolderId("nonsense") }),
+					await harness.scope.quizzes.list({ pageId: toPageId("nonsense") }),
 				).toEqual([]);
 			});
 

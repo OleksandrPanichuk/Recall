@@ -9,16 +9,16 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 import { requireFolder } from "../folders/create-folder";
 
 export interface SharePageCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly rotate?: boolean;
 }
 
 export interface SharedPage {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly name: string;
 	readonly token: string;
 	readonly createdAt: Date;
@@ -75,7 +75,7 @@ export class SharePageUseCase
 }
 
 export interface UnsharePageCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 }
 
 export class UnsharePageUseCase

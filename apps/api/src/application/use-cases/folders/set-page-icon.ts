@@ -2,11 +2,11 @@ import type { Clock } from "@/application/ports/clock";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
-import { type FolderId, setIcon } from "@/domain/folder/folder";
+import { PageEntity, type PageId } from "@/modules/pages";
 import { type FolderDependencies, requireFolder } from "./create-folder";
 
 export interface SetPageIconCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly icon?: string;
 }
 
@@ -25,7 +25,9 @@ export class SetPageIconUseCase
 		await this.unitOfWork.run(async ({ pages }) => {
 			const stored = await requireFolder(pages, request.folderId);
 
-			await pages.save(setIcon(stored, request.icon, this.clock.now()));
+			await pages.save(
+				PageEntity.withIcon(stored, request.icon, this.clock.now()),
+			);
 		});
 	}
 }

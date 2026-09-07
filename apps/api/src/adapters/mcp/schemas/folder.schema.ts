@@ -1,11 +1,7 @@
 import { z } from "zod";
-import {
-	MAX_FOLDER_NAME,
-	MAX_ICON_LENGTH,
-	MAX_SUMMARY_LENGTH,
-} from "@/domain/folder/folder";
+import { PageEntity } from "@/modules/pages";
 
-const folderName = z.string().trim().min(1).max(MAX_FOLDER_NAME);
+const folderName = z.string().trim().min(1).max(PageEntity.MAX_NAME);
 
 export const folderPathInput = z.array(folderName).min(1).max(20);
 
@@ -25,14 +21,14 @@ export const moveSetShape = {
 
 export const writeSummaryShape = {
 	path: folderPath,
-	summary: z.string().max(MAX_SUMMARY_LENGTH),
+	summary: z.string().max(PageEntity.MAX_SUMMARY),
 };
 
 export const readSummaryShape = { path: folderPath };
 
 export const appendSummaryShape = {
 	path: folderPath,
-	summary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
+	summary: z.string().min(1).max(PageEntity.MAX_SUMMARY),
 };
 
 export const summaryHistoryShape = {
@@ -47,7 +43,7 @@ export const attachSetShape = {
 
 export const setPageIconShape = {
 	path: folderPath,
-	icon: z.string().trim().max(MAX_ICON_LENGTH).optional(),
+	icon: z.string().trim().max(PageEntity.MAX_ICON).optional(),
 };
 
 export const searchPagesShape = {

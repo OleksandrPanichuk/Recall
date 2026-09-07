@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { createFolder, toFolderId } from "@/domain/folder/folder";
 import {
 	QuizAttemptMode,
 	startQuizAttempt,
@@ -20,6 +19,7 @@ import {
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
+import { PageEntity, toPageId } from "@/modules/pages";
 
 export interface OwnedSide {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -78,15 +78,19 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					),
 				);
 
 				expect(
-					await harness.mine.scope.pages.findById(toFolderId(id)),
+					await harness.mine.scope.pages.findById(toPageId(id)),
 				).toBeDefined();
 				expect(
-					await harness.theirs.scope.pages.findById(toFolderId(id)),
+					await harness.theirs.scope.pages.findById(toPageId(id)),
 				).toBeUndefined();
 				expect(await harness.theirs.scope.pages.listAll()).toEqual([]);
 			});
@@ -95,7 +99,7 @@ export function describeOwnership(
 				const mine = uuid();
 				const theirs = uuid();
 				const page = (id: string) =>
-					createFolder({ id: toFolderId(id), name: "Books", createdAt: at });
+					PageEntity.create({ id: toPageId(id), name: "Books", createdAt: at });
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(page(mine)),
@@ -136,15 +140,19 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					),
 				);
 				await harness.theirs.unitOfWork.run(({ pages }) =>
-					pages.delete(toFolderId(id)),
+					pages.delete(toPageId(id)),
 				);
 
 				expect(
-					await harness.mine.scope.pages.findById(toFolderId(id)),
+					await harness.mine.scope.pages.findById(toPageId(id)),
 				).toBeDefined();
 			});
 
@@ -153,20 +161,24 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(async ({ pages }) => {
 					await pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					);
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "mine-alone",
 						createdAt: at,
 					});
 				});
 
 				expect(
-					await harness.theirs.scope.pages.shareOf(toFolderId(id)),
+					await harness.theirs.scope.pages.shareOf(toPageId(id)),
 				).toBeUndefined();
 				expect(
-					(await harness.mine.scope.pages.shareOf(toFolderId(id)))?.token,
+					(await harness.mine.scope.pages.shareOf(toPageId(id)))?.token,
 				).toBe("mine-alone");
 			});
 
@@ -175,22 +187,26 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					),
 				);
 				await harness.theirs.unitOfWork.run(({ pages }) =>
 					pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "not-theirs-to-give",
 						createdAt: at,
 					}),
 				);
 
 				expect(
-					await harness.mine.scope.pages.shareOf(toFolderId(id)),
+					await harness.mine.scope.pages.shareOf(toPageId(id)),
 				).toBeUndefined();
 				expect(
-					await harness.theirs.scope.pages.shareOf(toFolderId(id)),
+					await harness.theirs.scope.pages.shareOf(toPageId(id)),
 				).toBeUndefined();
 			});
 
@@ -199,20 +215,24 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(async ({ pages }) => {
 					await pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					);
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "still-open",
 						createdAt: at,
 					});
 				});
 				await harness.theirs.unitOfWork.run(({ pages }) =>
-					pages.deleteShare(toFolderId(id)),
+					pages.deleteShare(toPageId(id)),
 				);
 
 				expect(
-					(await harness.mine.scope.pages.shareOf(toFolderId(id)))?.token,
+					(await harness.mine.scope.pages.shareOf(toPageId(id)))?.token,
 				).toBe("still-open");
 			});
 

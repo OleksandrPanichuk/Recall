@@ -5,17 +5,17 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 import { requireFolder } from "./create-folder";
 
 export interface DetachQuizCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly quizSetId: QuizSetId;
 }
 
 export interface DetachedQuiz {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly folderName: string;
 	readonly quizSetId: QuizSetId;
 }

@@ -4,16 +4,12 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
 import {
-	assertPlacement,
-	createFolder,
-	type FolderId,
-	MAX_FOLDER_DEPTH,
-	toFolderId,
-} from "@/domain/folder/folder";
-import {
 	FolderDepthError,
 	FolderValidationError,
-} from "@/domain/folder/folder.errors";
+	PageEntity,
+	type PageId,
+	toPageId,
+} from "@/modules/pages";
 import { type FolderDependencies, parentChain } from "./create-folder";
 
 export interface EnsureFolderPathCommand {
@@ -21,7 +17,7 @@ export interface EnsureFolderPathCommand {
 }
 
 export interface EnsureFolderPathResult {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly created: readonly string[];
 }
 
@@ -47,13 +43,13 @@ export class EnsureFolderPathUseCase
 			throw new FolderValidationError(["path must not contain empty segments"]);
 		}
 
-		if (segments.length > MAX_FOLDER_DEPTH) {
-			throw new FolderDepthError(segments.length, MAX_FOLDER_DEPTH);
+		if (segments.length > PageEntity.MAX_DEPTH) {
+			throw new FolderDepthError(segments.length, PageEntity.MAX_DEPTH);
 		}
 
 		return this.unitOfWork.run(async ({ pages }) => {
 			const created: string[] = [];
-			let parentId: FolderId | undefined;
+			let parentId: PageId | undefined;
 
 			for (const segment of segments) {
 				const siblings = await pages.listChildren(parentId);
@@ -67,14 +63,18 @@ export class EnsureFolderPathUseCase
 					continue;
 				}
 
-				const folder = createFolder({
-					id: toFolderId(this.idGenerator.generate()),
+				const folder = PageEntity.create({
+					id: toPageId(this.idGenerator.generate()),
 					name: segment,
 					parentId,
 					createdAt: this.clock.now(),
 				});
 
-				assertPlacement(folder, await parentChain(pages, parentId), siblings);
+				PageEntity.assertPlacement(
+					folder,
+					await parentChain(pages, parentId),
+					siblings,
+				);
 				await pages.save(folder);
 				created.push(folder.name);
 				parentId = folder.id;

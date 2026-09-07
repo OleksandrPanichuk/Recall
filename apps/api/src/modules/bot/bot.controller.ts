@@ -75,12 +75,12 @@ import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/res
 import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { BotTokenGuard } from "@/modules/auth";
+import { toPageId } from "@/modules/pages";
 import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {
@@ -246,7 +246,7 @@ export class BotController {
 				folderId:
 					command.folderId === undefined
 						? undefined
-						: toFolderId(command.folderId),
+						: toPageId(command.folderId),
 			}),
 		);
 	}
@@ -256,7 +256,7 @@ export class BotController {
 	async summary(@Body() body: unknown) {
 		const command = parseBody(writeSummaryCommandSchema, body);
 		const written = await this.writeSummary.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			summary: command.summary,
 			append: command.append,
 		});
@@ -284,9 +284,7 @@ export class BotController {
 		const created = await this.createFolder.execute({
 			name: command.name,
 			parentId:
-				command.parentId === undefined
-					? undefined
-					: toFolderId(command.parentId),
+				command.parentId === undefined ? undefined : toPageId(command.parentId),
 		});
 
 		return { folderId: String(created.folderId) };
@@ -298,7 +296,7 @@ export class BotController {
 		const command = parseBody(renamePageCommandSchema, body);
 
 		await this.renameFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			name: command.name,
 		});
 	}
@@ -309,7 +307,7 @@ export class BotController {
 		const command = parseBody(setPageIconCommandSchema, body);
 
 		await this.setIcon.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			icon: command.icon,
 		});
 	}
@@ -320,7 +318,7 @@ export class BotController {
 		const command = parseBody(deletePageCommandSchema, body);
 
 		await this.deleteFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 		});
 	}
 
@@ -330,13 +328,11 @@ export class BotController {
 		const command = parseBody(reorderPageCommandSchema, body);
 
 		await this.reorderFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			afterId:
-				command.afterId === undefined ? undefined : toFolderId(command.afterId),
+				command.afterId === undefined ? undefined : toPageId(command.afterId),
 			beforeId:
-				command.beforeId === undefined
-					? undefined
-					: toFolderId(command.beforeId),
+				command.beforeId === undefined ? undefined : toPageId(command.beforeId),
 		});
 	}
 
@@ -346,7 +342,7 @@ export class BotController {
 		const command = parseBody(attachQuizCommandSchema, body);
 
 		const attached = await this.attachQuizSet.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			quizSetId: toQuizSetId(command.quizSetId),
 		});
 
@@ -359,7 +355,7 @@ export class BotController {
 		const command = parseBody(detachQuizCommandSchema, body);
 
 		const detached = await this.detachQuizSet.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			quizSetId: toQuizSetId(command.quizSetId),
 		});
 
@@ -372,11 +368,9 @@ export class BotController {
 		const command = parseBody(movePageCommandSchema, body);
 
 		await this.moveFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			parentId:
-				command.parentId === undefined
-					? undefined
-					: toFolderId(command.parentId),
+				command.parentId === undefined ? undefined : toPageId(command.parentId),
 		});
 	}
 
@@ -387,7 +381,7 @@ export class BotController {
 
 		return (
 			await this.revisions.execute({
-				folderId: toFolderId(command.folderId),
+				folderId: toPageId(command.folderId),
 				limit: command.limit,
 			})
 		).map(revisionToWire);

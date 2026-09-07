@@ -3,13 +3,13 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import type { FolderId } from "@/domain/folder/folder";
 import {
 	archiveQuizSet,
 	publishQuizSet,
 	type QuizSet,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 import {
 	aQuestion,
 	aQuizSet,
@@ -38,7 +38,7 @@ afterEach(() => {
 	context.close();
 });
 
-const create = async (name: string, parentId?: FolderId): Promise<FolderId> =>
+const create = async (name: string, parentId?: PageId): Promise<PageId> =>
 	(await createFolder.execute({ name, parentId })).folderId;
 
 const store = async (
@@ -59,7 +59,7 @@ const store = async (
 	return quizSet;
 };
 
-const fileInto = async (id: string, folderId: FolderId): Promise<void> => {
+const fileInto = async (id: string, folderId: PageId): Promise<void> => {
 	const quizSet = await store(id);
 
 	await moveQuizSet.execute({ quizSetId: quizSet.id, folderId });
@@ -227,7 +227,7 @@ describe("BrowseFolderUseCase inside a folder", () => {
 
 	test("rejects an unknown folder", () => {
 		expect(
-			browseFolder.execute({ folderId: "missing" as FolderId }),
+			browseFolder.execute({ folderId: "missing" as PageId }),
 		).rejects.toBeInstanceOf(Error);
 	});
 });

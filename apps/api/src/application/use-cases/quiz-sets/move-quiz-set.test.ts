@@ -3,12 +3,12 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import type { FolderId } from "@/domain/folder/folder";
 import {
 	publishQuizSet,
 	type QuizSetId,
 	QuizSetStatus,
 } from "@/domain/quiz-set/quiz-set";
+import { type PageId } from "@/modules/pages";
 import {
 	aQuestion,
 	aQuizSet,
@@ -45,7 +45,7 @@ const storedSet = async (published = false): Promise<QuizSetId> => {
 	return quizSet.id;
 };
 
-const folderOf = async (quizSetId: QuizSetId): Promise<FolderId | undefined> =>
+const folderOf = async (quizSetId: QuizSetId): Promise<PageId | undefined> =>
 	(await context.scope.quizzes.findById(quizSetId))?.folderId;
 
 describe("MoveQuizSetUseCase", () => {
@@ -84,7 +84,7 @@ describe("MoveQuizSetUseCase", () => {
 		const quizSetId = await storedSet();
 
 		await expect(
-			moveQuizSet.execute({ quizSetId, folderId: "missing" as FolderId }),
+			moveQuizSet.execute({ quizSetId, folderId: "missing" as PageId }),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});
 
@@ -95,7 +95,7 @@ describe("MoveQuizSetUseCase", () => {
 			createQuizSet.execute({
 				title: "T",
 				language: "uk",
-				folderId: "missing" as FolderId,
+				folderId: "missing" as PageId,
 			}),
 		).rejects.toBeInstanceOf(FolderNotFoundError);
 	});

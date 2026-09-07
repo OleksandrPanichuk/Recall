@@ -3,12 +3,12 @@ import type {
 	PageRevision,
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
-import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
 import type { QuizSet, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import type { VocabularyItem } from "@/domain/vocabulary/vocabulary-item";
+import { PageEntity, type PageId } from "@/modules/pages";
 
 export interface MemoryQuiz {
 	readonly id: string;
@@ -17,7 +17,7 @@ export interface MemoryQuiz {
 }
 
 export interface MemoryStore {
-	pages: Map<string, Folder>;
+	pages: Map<string, PageEntity>;
 	attachments: Map<string, Set<string>>;
 	revisions: PageRevision[];
 	shares: Map<string, PageShare>;
@@ -87,5 +87,5 @@ export const restoreInto = (
 	store.termPairs = new Map(snapshot.termPairs);
 };
 
-export const pageIdsOf = (store: MemoryStore): readonly FolderId[] =>
-	[...store.pages.keys()].map((id) => id as FolderId);
+export const pageIdsOf = (store: MemoryStore): readonly PageId[] =>
+	[...store.pages.keys()].map((id) => id as PageId);

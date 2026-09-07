@@ -1,5 +1,5 @@
-import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { PageEntity, type PageId } from "@/modules/pages";
 import type { AnalyticsRepository } from "./analytics.repository";
 import type { AttachmentRepository } from "./attachment.repository";
 import type { AttemptRepository } from "./attempt.repository";
@@ -11,7 +11,7 @@ export type RevisionAuthor = "user" | "mcp";
 
 export interface PageRevision {
 	readonly id: string;
-	readonly pageId: FolderId;
+	readonly pageId: PageId;
 	readonly title: string;
 	readonly summary?: string;
 	readonly authorKind: RevisionAuthor;
@@ -19,38 +19,38 @@ export interface PageRevision {
 }
 
 export interface PageShare {
-	readonly pageId: FolderId;
+	readonly pageId: PageId;
 	readonly token: string;
 	readonly createdAt: Date;
 }
 
 export interface PageMatch {
-	readonly id: FolderId;
+	readonly id: PageId;
 	readonly name: string;
 	readonly excerpt?: string;
 }
 
 export interface PageRepository {
-	save(page: Folder): Promise<void>;
-	findById(id: FolderId): Promise<Folder | undefined>;
-	listChildren(parentId: FolderId | undefined): Promise<readonly Folder[]>;
-	listAncestors(id: FolderId): Promise<readonly Folder[]>;
-	listAll(): Promise<readonly Folder[]>;
+	save(page: PageEntity): Promise<void>;
+	findById(id: PageId): Promise<PageEntity | undefined>;
+	listChildren(parentId: PageId | undefined): Promise<readonly PageEntity[]>;
+	listAncestors(id: PageId): Promise<readonly PageEntity[]>;
+	listAll(): Promise<readonly PageEntity[]>;
 	countQuizzesIn(
-		id: FolderId,
+		id: PageId,
 		statuses?: readonly QuizSetStatus[],
 	): Promise<number>;
-	countChildPages(id: FolderId): Promise<number>;
-	attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void>;
-	detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void>;
-	listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]>;
+	countChildPages(id: PageId): Promise<number>;
+	attachQuiz(id: PageId, quizId: QuizSetId): Promise<void>;
+	detachQuiz(id: PageId, quizId: QuizSetId): Promise<void>;
+	listAttachedQuizIds(id: PageId): Promise<readonly QuizSetId[]>;
 	recordRevision(revision: PageRevision): Promise<void>;
-	listRevisions(id: FolderId, limit?: number): Promise<readonly PageRevision[]>;
+	listRevisions(id: PageId, limit?: number): Promise<readonly PageRevision[]>;
 	search(query: string, limit?: number): Promise<readonly PageMatch[]>;
-	shareOf(id: FolderId): Promise<PageShare | undefined>;
+	shareOf(id: PageId): Promise<PageShare | undefined>;
 	saveShare(share: PageShare): Promise<void>;
-	deleteShare(id: FolderId): Promise<void>;
-	delete(id: FolderId): Promise<void>;
+	deleteShare(id: PageId): Promise<void>;
+	delete(id: PageId): Promise<void>;
 }
 
 export interface RepositoryScope {

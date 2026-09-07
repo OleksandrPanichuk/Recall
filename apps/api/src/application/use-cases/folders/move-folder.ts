@@ -2,15 +2,7 @@ import type { Clock } from "@/application/ports/clock";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
-import {
-	assertPlacement,
-	type Folder,
-	type FolderId,
-	MAX_FOLDER_DEPTH,
-	reorderFolder,
-	reparentFolder,
-} from "@/domain/folder/folder";
-import { FolderDepthError } from "@/domain/folder/folder.errors";
+import { FolderDepthError, PageEntity, type PageId } from "@/modules/pages";
 import {
 	type FolderDependencies,
 	lastPositionAmong,
@@ -18,8 +10,8 @@ import {
 	requireFolder,
 } from "./create-folder";
 
-function subtreeHeight(all: readonly Folder[], rootId: FolderId): number {
-	const childrenByParent = new Map<FolderId, FolderId[]>();
+function subtreeHeight(all: readonly PageEntity[], rootId: PageId): number {
+	const childrenByParent = new Map<PageId, PageId[]>();
 
 	for (const folder of all) {
 		if (folder.parentId === undefined) {
@@ -32,10 +24,10 @@ function subtreeHeight(all: readonly Folder[], rootId: FolderId): number {
 		]);
 	}
 
-	let level: readonly FolderId[] = [rootId];
+	let level: readonly PageId[] = [rootId];
 	let height = 0;
 
-	while (level.length > 0 && height <= MAX_FOLDER_DEPTH) {
+	while (level.length > 0 && height <= PageEntity.MAX_DEPTH) {
 		height += 1;
 		level = level.flatMap((id) => childrenByParent.get(id) ?? []);
 	}
@@ -44,8 +36,8 @@ function subtreeHeight(all: readonly Folder[], rootId: FolderId): number {
 }
 
 export interface MoveFolderCommand {
-	readonly folderId: FolderId;
-	readonly parentId?: FolderId;
+	readonly folderId: PageId;
+	readonly parentId?: PageId;
 }
 
 export class MoveFolderUseCase
@@ -63,25 +55,25 @@ export class MoveFolderUseCase
 		await this.unitOfWork.run(async ({ pages }) => {
 			const stored = await requireFolder(pages, request.folderId);
 			const at = this.clock.now();
-			const moved = reparentFolder(stored, request.parentId, at);
+			const moved = PageEntity.reparented(stored, request.parentId, at);
 			const ancestors = await parentChain(pages, request.parentId);
 			const siblings = (await pages.listChildren(request.parentId)).filter(
 				(sibling) => sibling.id !== moved.id,
 			);
 
-			assertPlacement(moved, ancestors, siblings);
+			PageEntity.assertPlacement(moved, ancestors, siblings);
 
 			const deepestLeaf =
 				ancestors.length + subtreeHeight(await pages.listAll(), moved.id);
 
-			if (deepestLeaf > MAX_FOLDER_DEPTH) {
-				throw new FolderDepthError(deepestLeaf, MAX_FOLDER_DEPTH);
+			if (deepestLeaf > PageEntity.MAX_DEPTH) {
+				throw new FolderDepthError(deepestLeaf, PageEntity.MAX_DEPTH);
 			}
 
 			await pages.save(
 				stored.parentId === request.parentId
 					? moved
-					: reorderFolder(moved, lastPositionAmong(siblings), at),
+					: PageEntity.reordered(moved, lastPositionAmong(siblings), at),
 			);
 		});
 	}

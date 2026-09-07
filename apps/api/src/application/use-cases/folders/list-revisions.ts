@@ -7,11 +7,11 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 import { requireFolder } from "./create-folder";
 
 export interface ListRevisionsCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly limit?: number;
 }
 

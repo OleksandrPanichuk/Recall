@@ -8,12 +8,6 @@ import {
 import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { VocabularyItemNotFoundError } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import {
-	DuplicateFolderNameError,
-	FolderCycleError,
-	FolderDepthError,
-	FolderValidationError,
-} from "@/domain/folder/folder.errors";
-import {
 	DuplicateQuestionError,
 	EmptyQuizSetError,
 	QuestionValidationError,
@@ -21,6 +15,12 @@ import {
 	QuizSetValidationError,
 } from "@/domain/quiz-set/quiz-set.errors";
 import { VocabularyItemValidationError } from "@/domain/vocabulary/vocabulary-item.errors";
+import {
+	DuplicateFolderNameError,
+	FolderCycleError,
+	FolderDepthError,
+	FolderValidationError,
+} from "@/modules/pages";
 
 export function describeError(error: unknown): string {
 	if (error instanceof VocabularyItemValidationError) {

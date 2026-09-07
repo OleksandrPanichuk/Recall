@@ -2,7 +2,7 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 import { BrowseFolderUseCase } from "./browse-folder";
 import { CreateFolderUseCase } from "./create-folder";
 import { DeleteFolderUseCase } from "./delete-folder";
@@ -21,9 +21,9 @@ export interface FoldersHarness {
 	readonly resolveFolderPath: ResolveFolderPathUseCase;
 	readonly listFolderTree: ListFolderTreeUseCase;
 	readonly browseFolder: BrowseFolderUseCase;
-	create(name: string, parentId?: FolderId): Promise<FolderId>;
-	chain(...names: readonly string[]): Promise<FolderId>;
-	nameOf(id: FolderId): Promise<string | undefined>;
+	create(name: string, parentId?: PageId): Promise<PageId>;
+	chain(...names: readonly string[]): Promise<PageId>;
+	nameOf(id: PageId): Promise<string | undefined>;
 }
 
 export function createFoldersHarness(): FoldersHarness {
@@ -38,7 +38,7 @@ export function createFoldersHarness(): FoldersHarness {
 
 	const createFolder = new CreateFolderUseCase(dependencies);
 
-	const create = async (name: string, parentId?: FolderId): Promise<FolderId> =>
+	const create = async (name: string, parentId?: PageId): Promise<PageId> =>
 		(await createFolder.execute({ name, parentId })).folderId;
 
 	return {
@@ -54,7 +54,7 @@ export function createFoldersHarness(): FoldersHarness {
 		create,
 
 		chain: async (...names) => {
-			let parentId: FolderId | undefined;
+			let parentId: PageId | undefined;
 
 			for (const name of names) {
 				parentId = await create(name, parentId);

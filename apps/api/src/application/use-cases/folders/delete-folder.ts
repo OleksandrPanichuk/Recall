@@ -1,15 +1,15 @@
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { Command, UseCase } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
+import { type PageId } from "@/modules/pages";
 import { type FolderDependencies, requireFolder } from "./create-folder";
 
 export class FolderNotEmptyError extends Error {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly children: number;
 	readonly sets: number;
 
-	constructor(folderId: FolderId, children: number, sets: number) {
+	constructor(folderId: PageId, children: number, sets: number) {
 		const held = [
 			children === 0 ? undefined : `${children} folder(s)`,
 			sets === 0 ? undefined : `${sets} set(s)`,
@@ -24,7 +24,7 @@ export class FolderNotEmptyError extends Error {
 }
 
 export interface DeleteFolderCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 }
 
 export class DeleteFolderUseCase
