@@ -1,4 +1,4 @@
-import { InvalidIdentifierError } from "./quiz-set/quiz-set.errors";
+import { InvalidIdentifierError } from "./errors";
 
 declare const idBrand: unique symbol;
 

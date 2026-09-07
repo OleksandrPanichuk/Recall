@@ -1,9 +1,9 @@
+import { brandedId } from "@/core/branded-id";
 import {
 	copiedDate,
 	copiedOptionalDate,
 	isValidDate,
 } from "@/shared/utils/date";
-import { brandedId } from "../branded-id";
 import type { QuestionId } from "../quiz-set/question";
 import type { RecallGrade } from "../repetition/grade";
 import { QuizAttemptStatus } from "./quiz-attempt.constants";

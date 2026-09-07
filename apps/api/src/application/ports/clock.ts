@@ -1,3 +1,1 @@
-export interface Clock {
-	now(): Date;
-}
+export type { Clock } from "@/core/ports/clock";

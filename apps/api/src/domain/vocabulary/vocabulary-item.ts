@@ -1,6 +1,6 @@
 import { trimmedOrUndefined } from "@recall/kit";
+import { brandedId } from "@/core/branded-id";
 import { copiedDate } from "@/shared/utils/date";
-import { brandedId } from "../branded-id";
 import { VocabularyDirection } from "./vocabulary-item.constants";
 import { VocabularyItemValidationError } from "./vocabulary-item.errors";
 import type {

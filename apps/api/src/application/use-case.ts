@@ -1,13 +1,9 @@
-import type { Clock } from "./ports/clock";
-import type { IdGenerator } from "./ports/id-generator";
+import type { Clock } from "@/core/ports/clock";
+import type { IdGenerator } from "@/core/ports/id-generator";
 import type { RepositoryScope } from "./ports/repositories/page.repository";
 import type { UnitOfWork } from "./ports/unit-of-work";
 
-export type Command<TPayload> = Readonly<TPayload>;
-
-export interface UseCase<TRequest, TResult> {
-	execute(request: TRequest): Promise<TResult>;
-}
+export { type Command, UseCase } from "@/core/use-case";
 
 export interface ApplicationDependencies {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;

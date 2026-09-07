@@ -1,4 +1,4 @@
-import { brandedId } from "../branded-id";
+import { brandedId } from "@/core/branded-id";
 import { QuestionType } from "./question.constants";
 import type {
 	MatchingSides,

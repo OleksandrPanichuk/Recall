@@ -1,10 +1,10 @@
 import { trimmedOrUndefined } from "@recall/kit";
+import { brandedId } from "@/core/branded-id";
 import {
 	copiedDate,
 	copiedOptionalDate,
 	isValidDate,
 } from "@/shared/utils/date";
-import { brandedId } from "../branded-id";
 import type { FolderId } from "../folder/folder";
 import type { Question, QuestionId } from "./question";
 import { QuizSetStatus } from "./quiz-set.constants";
