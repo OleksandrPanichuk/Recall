@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { QuestionType, type QuizSetId } from "@api/modules/quizzes";
+import { shuffled } from "@recall/kit";
 import { DETAIL_PAGE_SIZE } from "../src/telegram/presenters/attempt-detail.presenter";
 import {
 	ALLOWED_USER,
@@ -1918,17 +1919,16 @@ describe("shuffled answer options (§3.9)", () => {
 		expect(optionLabels()).toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
 	});
 
-	test("shows a different order once the toggle is on", async () => {
+	test("shows the seeded order once the toggle is on", async () => {
 		await seedPublishedSet(harness, "Bun", [fourOptions("One")]);
 		await enableShuffle();
 		await openSet("Bun");
 
-		expect(optionLabels()).not.toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
-		expect(optionLabels().toSorted()).toEqual([
-			"Alpha",
-			"Bravo",
-			"Charlie",
-			"Delta",
+		const view = await harness.application.getCurrentQuestion.execute({});
+		const seed = `${view?.attemptId}:${view?.question?.id}`;
+
+		expect(optionLabels()).toEqual([
+			...shuffled(["Alpha", "Bravo", "Charlie", "Delta"], seed),
 		]);
 	});
 

@@ -5,6 +5,7 @@ export * from "./question.entity";
 export * from "./question.entity.types";
 export * from "./question.model";
 export * from "./question-fingerprint";
+export * from "./question-input.helpers";
 export * from "./quiz.model";
 export * from "./quiz-set.constants";
 export * from "./quiz-set.entity";

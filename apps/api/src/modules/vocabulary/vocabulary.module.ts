@@ -6,6 +6,7 @@ import {
 	ListVocabularyUseCase,
 	UpdateVocabularyUseCase,
 } from "./use-cases";
+import { VocabularyController } from "./vocabulary.controller";
 import { TermPairsRepository } from "./vocabulary.repository";
 
 const useCases = [
@@ -15,6 +16,7 @@ const useCases = [
 ];
 
 @Module({
+	controllers: [VocabularyController],
 	imports: [QuizzesModule],
 	providers: [
 		{ provide: TermPairsRepository, useClass: PostgresTermPairsRepository },

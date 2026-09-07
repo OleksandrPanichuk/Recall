@@ -17,9 +17,6 @@ import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
 import { VocabularyModule } from "@/modules/vocabulary";
 import { CoreModule } from "@/shared/core.module";
-import { AppSurfaceModule } from "./app/app-surface.module";
-import { BotModule } from "./bot/bot.module";
-import { ContentModule } from "./content/content.module";
 import { AdminModule } from "./integration/admin/admin.module";
 import { McpModule } from "./integration/mcp/mcp.module";
 import { DatabaseModule } from "./shared/database/database.module";
@@ -48,10 +45,7 @@ import { HealthController } from "./shared/health/health.controller";
 		VocabularyModule,
 		StudySettingsModule,
 		SchedulingModule,
-		ContentModule,
-		AppSurfaceModule,
 		PageSharesModule,
-		BotModule,
 		AdminModule,
 		McpModule,
 	],

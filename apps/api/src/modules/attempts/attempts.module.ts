@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { QuizzesModule } from "@/modules/quizzes";
 import { SchedulingModule } from "@/modules/scheduling";
 import { StudySettingsModule } from "@/modules/study-settings";
+import { AttemptsController } from "./attempts.controller";
 import { AttemptsRepository } from "./attempts.repository";
 import { PostgresAttemptsRepository } from "./repositories/attempts.postgres.repository";
 import {
@@ -27,6 +28,7 @@ const useCases = [
 ];
 
 @Module({
+	controllers: [AttemptsController],
 	imports: [QuizzesModule, SchedulingModule, StudySettingsModule],
 	providers: [
 		{ provide: AttemptsRepository, useClass: PostgresAttemptsRepository },

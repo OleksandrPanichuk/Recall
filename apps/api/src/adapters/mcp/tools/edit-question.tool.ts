@@ -1,6 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Difficulty, toQuestionId, toQuizSetId } from "@/modules/quizzes";
-import { answerOptionsOf } from "@/modules/shared/authoring/question-input";
+import {
+	answerOptionsOf,
+	Difficulty,
+	toQuestionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { ok } from "../presenters/tool-result.presenter";
 import {
 	deleteQuestionShape,
