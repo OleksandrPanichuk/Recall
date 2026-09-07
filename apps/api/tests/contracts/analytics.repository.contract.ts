@@ -7,7 +7,6 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { scheduleAfter } from "@/domain/repetition/repetition";
 import {
 	createQuestion,
 	Difficulty,
@@ -17,6 +16,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { ScheduleEntity } from "@/modules/scheduling";
 
 export interface AnalyticsRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -176,7 +176,7 @@ export function describeAnalyticsRepository(
 				await answer(easy, true, day("2026-08-10"));
 				await harness.unitOfWork.run(({ reviews }) =>
 					reviews.saveSchedules([
-						scheduleAfter(
+						ScheduleEntity.scheduleAfter(
 							undefined,
 							toQuestionId(easy),
 							undefined,

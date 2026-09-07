@@ -9,7 +9,6 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { RecallGrade } from "@/domain/repetition/grade";
 import {
 	createQuestion,
 	Difficulty,
@@ -20,6 +19,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { RecallGrade } from "@/modules/scheduling";
 
 export interface AttemptRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;

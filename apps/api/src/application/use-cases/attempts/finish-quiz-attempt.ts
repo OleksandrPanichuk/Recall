@@ -7,6 +7,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
+import { resolveRepetitionSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	attemptScore,
 	completeQuizAttempt,
@@ -14,10 +15,8 @@ import {
 	QuizAttemptMode,
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Score } from "@/domain/quiz-attempt/score";
-import { gradeOf } from "@/domain/repetition/grade";
-import { scheduleAfter } from "@/domain/repetition/repetition";
 import { type QuizSetId } from "@/modules/quizzes";
-import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
+import { gradeOf, ScheduleEntity } from "@/modules/scheduling";
 import {
 	type AttemptOfUserCommand,
 	NoActiveAttemptError,
@@ -85,7 +84,7 @@ export class FinishQuizAttemptUseCase
 
 				await reviews.saveSchedules(
 					completed.responses.map((response) =>
-						scheduleAfter(
+						ScheduleEntity.scheduleAfter(
 							existing.get(response.questionId),
 							response.questionId,
 							completed.telegramUserId,

@@ -8,12 +8,10 @@ import {
 } from "ts-fsrs";
 import { type QuestionId } from "@/modules/quizzes";
 import { copiedDate } from "@/shared/utils/date";
-import { RecallGrade } from "./grade";
-import { DAY_MS } from "./repetition.constants";
-import type {
-	RepetitionSchedule,
-	RepetitionSettings,
-} from "./repetition.types";
+import { RecallGrade } from "./recall-grade";
+import { ScheduleEntity } from "./schedule.entity";
+import { type RepetitionSettings } from "./schedule.entity.types";
+import { DAY_MS } from "./scheduling.constants";
 
 const RATINGS: Readonly<Record<RecallGrade, Grade>> = {
 	[RecallGrade.Again]: Rating.Again,
@@ -31,7 +29,7 @@ const schedulerFor = (settings: RepetitionSettings) =>
 	});
 
 const cardOf = (
-	previous: RepetitionSchedule | undefined,
+	previous: ScheduleEntity | undefined,
 	completedAt: Date,
 ): Card => {
 	if (previous?.stability === undefined || previous.difficulty === undefined) {
@@ -53,14 +51,14 @@ const cardOf = (
 };
 
 export function fsrsScheduleAfter(
-	previous: RepetitionSchedule | undefined,
+	previous: ScheduleEntity | undefined,
 	questionId: QuestionId,
 	telegramUserId: number | undefined,
 	settings: RepetitionSettings,
 	completedAt: Date,
 	completedDayStart: Date,
 	grade: RecallGrade,
-): RepetitionSchedule {
+): ScheduleEntity {
 	const { card } = schedulerFor(settings).next(
 		cardOf(previous, completedAt),
 		completedAt,

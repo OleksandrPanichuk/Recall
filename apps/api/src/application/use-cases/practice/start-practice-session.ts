@@ -9,6 +9,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
+import { resolveWithSource } from "@/application/use-cases/settings/resolve-quiz-settings";
 import { weakTopicsOf } from "@/domain/practice/weak-topics";
 import {
 	currentQuestionId,
@@ -26,11 +27,11 @@ import {
 	QuizSetNotFoundError,
 	QuizSetStatus,
 } from "@/modules/quizzes";
+
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
 } from "../attempts/start-quiz-attempt";
-import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export type PracticeMode =
 	| typeof QuizAttemptMode.Mistakes

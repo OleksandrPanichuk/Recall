@@ -6,14 +6,14 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { type DueSet, overdueDaysOf } from "@/domain/repetition/repetition";
 import {
 	type QuestionId,
 	type QuizSetId,
 	QuizSetStatus,
 } from "@/modules/quizzes";
+import { type DueSet, ScheduleEntity } from "@/modules/scheduling";
 
-export type { DueSet } from "@/domain/repetition/repetition";
+export type { DueSet } from "@/modules/scheduling";
 
 export type ListDueRepetitionsCommand = Readonly<Record<string, never>>;
 
@@ -85,7 +85,7 @@ export class ListDueRepetitionsUseCase
 			bucket.questionIds.push(schedule.questionId);
 			bucket.overdueDays = Math.max(
 				bucket.overdueDays,
-				overdueDaysOf(schedule, todayStart),
+				ScheduleEntity.overdueDaysOf(schedule, todayStart),
 			);
 			buckets.set(quizSetId, bucket);
 		}

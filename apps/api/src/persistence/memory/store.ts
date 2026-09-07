@@ -3,11 +3,11 @@ import type {
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
-import type { RepetitionSchedule } from "@/domain/repetition/repetition";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import type { AttachmentEntity } from "@/modules/attachments";
 import { PageEntity, type PageId } from "@/modules/pages";
 import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
+import { ScheduleEntity } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 import { TermPairEntity } from "@/modules/vocabulary";
 
 export interface MemoryQuiz {
@@ -27,8 +27,8 @@ export interface MemoryStore {
 	quizVersions: Map<string, number>;
 	answeredQuestionIds: Set<string>;
 	attempts: Map<string, QuizAttempt>;
-	schedules: Map<string, RepetitionSchedule>;
-	settings: Map<string, QuizSettings>;
+	schedules: Map<string, ScheduleEntity>;
+	settings: Map<string, StudySettingsEntity>;
 	termPairs: Map<string, TermPairEntity>;
 }
 

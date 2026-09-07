@@ -6,7 +6,6 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
 import { PageEntity, toPageId } from "@/modules/pages";
 import {
 	createQuestion,
@@ -17,6 +16,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { StudySettingsEntity } from "@/modules/study-settings";
 
 export interface OwnedSide {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -280,7 +280,7 @@ export function describeOwnership(
 				await harness.mine.unitOfWork.run(({ reviews }) =>
 					reviews.saveSettings(
 						{ kind: "owner" },
-						{ ...defaultQuizSettings(), examMode: true },
+						{ ...StudySettingsEntity.defaults(), examMode: true },
 					),
 				);
 

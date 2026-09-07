@@ -29,7 +29,6 @@ import {
 	isQuizAttemptMode,
 	isQuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt.constants";
-import type { RecallGrade } from "@/domain/repetition/grade";
 import {
 	type QuestionId,
 	type QuizSetId,
@@ -37,6 +36,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { RecallGrade } from "@/modules/scheduling";
 import type { Executor } from "../unit-of-work";
 
 type AttemptRow = typeof attempts.$inferSelect;

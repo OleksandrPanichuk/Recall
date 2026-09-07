@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { shuffled } from "@recall/kit";
+import { quizScope } from "@/application/use-cases/settings/resolve-quiz-settings";
 import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
-import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
 import { QuizSetNotFoundError, toQuizSetId } from "@/modules/quizzes";
+
+import { StudySettingsEntity } from "@/modules/study-settings";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
 } from "../attempts/start-quiz-attempt";
-import { quizScope } from "../settings/resolve-quiz-settings";
 import {
 	aQuestionInput,
 	createPracticeHarness,
@@ -313,7 +314,7 @@ describe("question order", () => {
 		await harness.finish.execute({});
 		await harness.context.unitOfWork.run(({ reviews }) =>
 			reviews.saveSettings(quizScope(quizSetId), {
-				...defaultQuizSettings(),
+				...StudySettingsEntity.defaults(),
 				shuffleQuestions: true,
 			}),
 		);

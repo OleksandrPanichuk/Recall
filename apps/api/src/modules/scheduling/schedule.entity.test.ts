@@ -1,19 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { toQuestionId } from "@/modules/quizzes";
-import { RecallGrade } from "./grade";
-import {
-	createRepetitionSettings,
-	defaultRepetitionSettings,
-	intervalDaysFor,
-	isDue,
-	isLeech,
-	isRetired,
-	leechOf,
-	overdueDaysOf,
-	type RepetitionSchedule,
-	RepetitionSettingsValidationError,
-	scheduleAfter,
-} from "./repetition";
+import { RecallGrade } from "./recall-grade";
+import { ScheduleEntity } from "./schedule.entity";
+import { RepetitionSettingsValidationError } from "./scheduling.errors";
 
 const questionId = toQuestionId("question-1");
 const user = 42;
@@ -21,21 +10,21 @@ const day = 24 * 60 * 60 * 1000;
 const at = (iso: string): Date => new Date(iso);
 const start = at("2026-08-15T09:00:00.000Z");
 
-const settings = defaultRepetitionSettings();
+const settings = ScheduleEntity.defaultSettings();
 
 const startOfDay = (at: Date): Date =>
 	new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
 
 const complete = (
-	previous: RepetitionSchedule | undefined,
+	previous: ScheduleEntity | undefined,
 	completedAt: Date,
-	overrides: Partial<Parameters<typeof createRepetitionSettings>[0]> = {},
-): RepetitionSchedule =>
-	scheduleAfter(
+	overrides: Partial<Parameters<typeof ScheduleEntity.createSettings>[0]> = {},
+): ScheduleEntity =>
+	ScheduleEntity.scheduleAfter(
 		previous,
 		questionId,
 		user,
-		createRepetitionSettings({ ...settings, ...overrides }),
+		ScheduleEntity.createSettings({ ...settings, ...overrides }),
 		completedAt,
 		startOfDay(completedAt),
 	);
@@ -51,21 +40,21 @@ describe("intervalDaysFor", () => {
 		[4, 14],
 		[5, 30],
 	])("repetition %i waits %i days", (count, expected) => {
-		expect(intervalDaysFor(count, settings)).toBe(expected);
+		expect(ScheduleEntity.intervalDaysFor(count, settings)).toBe(expected);
 	});
 
 	test("keeps the last interval once the list runs out", () => {
-		expect(intervalDaysFor(9, settings)).toBe(30);
+		expect(ScheduleEntity.intervalDaysFor(9, settings)).toBe(30);
 	});
 
 	test("never exceeds the ceiling", () => {
-		const capped = createRepetitionSettings({
+		const capped = ScheduleEntity.createSettings({
 			...settings,
 			maxIntervalDays: 7,
 		});
 
-		expect(intervalDaysFor(5, capped)).toBe(7);
-		expect(intervalDaysFor(50, capped)).toBe(7);
+		expect(ScheduleEntity.intervalDaysFor(5, capped)).toBe(7);
+		expect(ScheduleEntity.intervalDaysFor(50, capped)).toBe(7);
 	});
 });
 
@@ -81,7 +70,9 @@ describe("scheduleAfter", () => {
 		const schedule = complete(undefined, at("2026-08-15T21:00:00.000Z"));
 
 		expect(schedule.dueAt).toEqual(at("2026-08-16T00:00:00.000Z"));
-		expect(isDue(schedule, at("2026-08-16T09:00:00.000Z"))).toBe(true);
+		expect(ScheduleEntity.isDue(schedule, at("2026-08-16T09:00:00.000Z"))).toBe(
+			true,
+		);
 	});
 
 	test("each repetition waits longer than the last", () => {
@@ -111,22 +102,22 @@ describe("scheduleAfter", () => {
 	test("maxRepetitions counts the repetitions, not the first pass", () => {
 		let schedule = complete(undefined, start, { maxRepetitions: 1 });
 
-		expect(isRetired(schedule)).toBe(false);
+		expect(ScheduleEntity.isRetired(schedule)).toBe(false);
 
 		schedule = complete(schedule, start, { maxRepetitions: 1 });
 
-		expect(isRetired(schedule)).toBe(true);
+		expect(ScheduleEntity.isRetired(schedule)).toBe(true);
 	});
 
 	test("retires once the repetition limit is reached", () => {
 		let schedule = complete(undefined, start, { maxRepetitions: 3 });
 
 		for (let round = 0; round < 3; round += 1) {
-			expect(isRetired(schedule)).toBe(false);
+			expect(ScheduleEntity.isRetired(schedule)).toBe(false);
 			schedule = complete(schedule, start, { maxRepetitions: 3 });
 		}
 
-		expect(isRetired(schedule)).toBe(true);
+		expect(ScheduleEntity.isRetired(schedule)).toBe(true);
 		expect(schedule.repetitionCount).toBe(4);
 	});
 
@@ -137,17 +128,21 @@ describe("scheduleAfter", () => {
 	});
 });
 
-describe("isDue and overdueDaysOf", () => {
+describe("isDue and ScheduleEntity.overdueDaysOf", () => {
 	const schedule = complete(undefined, start);
 	const overdue = (todayIso: string): number =>
-		overdueDaysOf(schedule, startOfDay(at(todayIso)));
+		ScheduleEntity.overdueDaysOf(schedule, startOfDay(at(todayIso)));
 
 	test("is not due the day before", () => {
-		expect(isDue(schedule, at("2026-08-15T23:59:00.000Z"))).toBe(false);
+		expect(ScheduleEntity.isDue(schedule, at("2026-08-15T23:59:00.000Z"))).toBe(
+			false,
+		);
 	});
 
 	test("is due from the first minute of its day", () => {
-		expect(isDue(schedule, at("2026-08-16T00:01:00.000Z"))).toBe(true);
+		expect(ScheduleEntity.isDue(schedule, at("2026-08-16T00:01:00.000Z"))).toBe(
+			true,
+		);
 	});
 
 	test("counts calendar days, so yesterday reads as one", () => {
@@ -165,8 +160,12 @@ describe("isDue and overdueDaysOf", () => {
 			},
 		);
 
-		expect(isDue(retired, at("2030-01-01T00:00:00.000Z"))).toBe(false);
-		expect(overdueDaysOf(retired, at("2030-01-01T00:00:00.000Z"))).toBe(0);
+		expect(ScheduleEntity.isDue(retired, at("2030-01-01T00:00:00.000Z"))).toBe(
+			false,
+		);
+		expect(
+			ScheduleEntity.overdueDaysOf(retired, at("2030-01-01T00:00:00.000Z")),
+		).toBe(0);
 	});
 });
 
@@ -180,12 +179,12 @@ describe("createRepetitionSettings", () => {
 		["an absurd ceiling", { maxIntervalDays: 100_000 }],
 	])("rejects %s", (_name, overrides) => {
 		expect(() =>
-			createRepetitionSettings({ ...settings, ...overrides }),
+			ScheduleEntity.createSettings({ ...settings, ...overrides }),
 		).toThrow(RepetitionSettingsValidationError);
 	});
 
 	test("accepts the defaults", () => {
-		expect(createRepetitionSettings(settings).intervalsDays).toEqual([
+		expect(ScheduleEntity.createSettings(settings).intervalsDays).toEqual([
 			1, 3, 7, 14, 30,
 		]);
 	});
@@ -200,7 +199,7 @@ describe("a wrong answer", () => {
 
 		expect(schedule.repetitionCount).toBe(3);
 
-		const forgotten = scheduleAfter(
+		const forgotten = ScheduleEntity.scheduleAfter(
 			schedule,
 			questionId,
 			user,
@@ -215,7 +214,7 @@ describe("a wrong answer", () => {
 	});
 
 	test("counts a lapse", () => {
-		const forgotten = scheduleAfter(
+		const forgotten = ScheduleEntity.scheduleAfter(
 			complete(undefined, start),
 			questionId,
 			user,
@@ -231,17 +230,17 @@ describe("a wrong answer", () => {
 	test("cannot retire a question", () => {
 		let schedule = complete(undefined, start, { maxRepetitions: 1 });
 
-		schedule = scheduleAfter(
+		schedule = ScheduleEntity.scheduleAfter(
 			schedule,
 			questionId,
 			user,
-			createRepetitionSettings({ ...settings, maxRepetitions: 1 }),
+			ScheduleEntity.createSettings({ ...settings, maxRepetitions: 1 }),
 			start,
 			startOfDay(start),
 			RecallGrade.Again,
 		);
 
-		expect(isRetired(schedule)).toBe(false);
+		expect(ScheduleEntity.isRetired(schedule)).toBe(false);
 	});
 });
 
@@ -252,12 +251,12 @@ describe("leeches", () => {
 	});
 
 	test("flags a question forgotten as often as the threshold", () => {
-		expect(isLeech(withLapses(5), 5)).toBe(true);
-		expect(isLeech(withLapses(4), 5)).toBe(false);
+		expect(ScheduleEntity.isLeech(withLapses(5), 5)).toBe(true);
+		expect(ScheduleEntity.isLeech(withLapses(4), 5)).toBe(false);
 	});
 
 	test("describes it", () => {
-		expect(leechOf(withLapses(7), 5)?.lapses).toBe(7);
-		expect(leechOf(withLapses(1), 5)).toBeUndefined();
+		expect(ScheduleEntity.leechOf(withLapses(7), 5)?.lapses).toBe(7);
+		expect(ScheduleEntity.leechOf(withLapses(1), 5)).toBeUndefined();
 	});
 });

@@ -7,6 +7,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
+import { resolveRepetitionSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	type Answer,
 	acceptedAnswers,
@@ -40,8 +41,8 @@ import {
 	type QuestionOptionId,
 	QuestionType,
 } from "@/modules/quizzes";
+
 import { isWithinOneEdit } from "@/shared/utils/edit-distance";
-import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export class AttemptNotActiveError extends Error {

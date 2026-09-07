@@ -10,17 +10,6 @@ export interface RepetitionSettings {
 	readonly desiredRetention: number;
 }
 
-export interface RepetitionSchedule {
-	readonly questionId: QuestionId;
-	readonly telegramUserId?: number;
-	readonly repetitionCount: number;
-	readonly lapses: number;
-	readonly lastCompletedAt: Date;
-	readonly dueAt?: Date;
-	readonly stability?: number;
-	readonly difficulty?: number;
-}
-
 export interface DueSet {
 	readonly quizSetId: QuizSetId;
 	readonly title: string;

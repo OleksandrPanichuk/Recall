@@ -5,7 +5,7 @@ import {
 	MAX_INTERVALS,
 	MAX_REPETITIONS_LIMIT,
 	MIN_DESIRED_RETENTION,
-} from "@/domain/repetition/repetition";
+} from "@/modules/scheduling";
 
 const days = z.number().int().min(1).max(MAX_INTERVAL_LIMIT_DAYS);
 

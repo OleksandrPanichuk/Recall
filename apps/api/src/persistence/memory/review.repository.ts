@@ -2,9 +2,9 @@ import type {
 	ReviewRepository,
 	SettingsScope,
 } from "@/application/ports/repositories/review.repository";
-import type { RepetitionSchedule } from "@/domain/repetition/repetition";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import { type QuestionId } from "@/modules/quizzes";
+import { ScheduleEntity } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 import type { MemoryStore } from "./store";
 
 export const settingsKey = (scope: SettingsScope): string =>
@@ -13,14 +13,10 @@ export const settingsKey = (scope: SettingsScope): string =>
 export function createMemoryReviewRepository(
 	store: MemoryStore,
 ): ReviewRepository {
-	const all = (): readonly RepetitionSchedule[] => [
-		...store.schedules.values(),
-	];
+	const all = (): readonly ScheduleEntity[] => [...store.schedules.values()];
 
 	return {
-		async saveSchedules(
-			schedules: readonly RepetitionSchedule[],
-		): Promise<void> {
+		async saveSchedules(schedules: readonly ScheduleEntity[]): Promise<void> {
 			for (const schedule of schedules) {
 				store.schedules.set(String(schedule.questionId), schedule);
 			}
@@ -28,7 +24,7 @@ export function createMemoryReviewRepository(
 
 		async findSchedules(
 			questionIds: readonly QuestionId[],
-		): Promise<readonly RepetitionSchedule[]> {
+		): Promise<readonly ScheduleEntity[]> {
 			const wanted = new Set(questionIds.map(String));
 
 			return all().filter((schedule) =>
@@ -36,7 +32,7 @@ export function createMemoryReviewRepository(
 			);
 		},
 
-		async listDue(at: Date): Promise<readonly RepetitionSchedule[]> {
+		async listDue(at: Date): Promise<readonly ScheduleEntity[]> {
 			return all()
 				.filter(
 					(schedule) =>
@@ -49,9 +45,7 @@ export function createMemoryReviewRepository(
 				);
 		},
 
-		async listLeeches(
-			threshold: number,
-		): Promise<readonly RepetitionSchedule[]> {
+		async listLeeches(threshold: number): Promise<readonly ScheduleEntity[]> {
 			return all()
 				.filter((schedule) => schedule.lapses >= threshold)
 				.sort((left, right) => right.lapses - left.lapses);
@@ -59,14 +53,14 @@ export function createMemoryReviewRepository(
 
 		async saveSettings(
 			scope: SettingsScope,
-			settings: QuizSettings,
+			settings: StudySettingsEntity,
 		): Promise<void> {
 			store.settings.set(settingsKey(scope), settings);
 		},
 
 		async findSettings(
 			scope: SettingsScope,
-		): Promise<QuizSettings | undefined> {
+		): Promise<StudySettingsEntity | undefined> {
 			return store.settings.get(settingsKey(scope));
 		},
 

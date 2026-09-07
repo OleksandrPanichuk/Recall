@@ -1,13 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { toQuestionId } from "@/modules/quizzes";
-import { RecallGrade } from "./grade";
-import {
-	createRepetitionSettings,
-	defaultRepetitionSettings,
-	isRetired,
-	type RepetitionSchedule,
-	scheduleAfter,
-} from "./repetition";
+import { RecallGrade } from "./recall-grade";
+import { ScheduleEntity } from "./schedule.entity";
 
 const questionId = toQuestionId("question-1");
 const user = 42;
@@ -17,19 +11,19 @@ const startOfDay = (at: Date): Date =>
 	new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
 
 const fsrsSettings = (overrides: Record<string, unknown> = {}) =>
-	createRepetitionSettings({
-		...defaultRepetitionSettings(),
+	ScheduleEntity.createSettings({
+		...ScheduleEntity.defaultSettings(),
 		scheduler: "fsrs",
 		...overrides,
 	});
 
 const review = (
-	previous: RepetitionSchedule | undefined,
+	previous: ScheduleEntity | undefined,
 	completedAt: Date,
 	answeredCorrectly: boolean,
 	overrides: Record<string, unknown> = {},
-): RepetitionSchedule =>
-	scheduleAfter(
+): ScheduleEntity =>
+	ScheduleEntity.scheduleAfter(
 		previous,
 		questionId,
 		user,
@@ -40,11 +34,11 @@ const review = (
 	);
 
 const graded = (
-	previous: RepetitionSchedule | undefined,
+	previous: ScheduleEntity | undefined,
 	completedAt: Date,
 	grade: RecallGrade,
-): RepetitionSchedule =>
-	scheduleAfter(
+): ScheduleEntity =>
+	ScheduleEntity.scheduleAfter(
 		previous,
 		questionId,
 		user,
@@ -54,7 +48,7 @@ const graded = (
 		grade,
 	);
 
-const intervalDaysOf = (schedule: RepetitionSchedule, at: Date): number =>
+const intervalDaysOf = (schedule: ScheduleEntity, at: Date): number =>
 	Math.round(
 		((schedule.dueAt?.getTime() ?? 0) - startOfDay(at).getTime()) / DAY_MS,
 	);
@@ -144,7 +138,7 @@ describe("the fsrs scheduler", () => {
 			schedule = review(schedule, at, true, { maxRepetitions: 2 });
 		}
 
-		expect(isRetired(schedule)).toBe(false);
+		expect(ScheduleEntity.isRetired(schedule)).toBe(false);
 		expect(schedule.repetitionCount).toBeGreaterThan(2);
 	});
 
@@ -157,7 +151,7 @@ describe("the fsrs scheduler", () => {
 	});
 
 	test("a schedule the ladder wrote is picked up without memory state", () => {
-		const fromLadder: RepetitionSchedule = Object.freeze({
+		const fromLadder: ScheduleEntity = Object.freeze({
 			questionId,
 			telegramUserId: user,
 			repetitionCount: 3,
@@ -175,15 +169,15 @@ describe("the fsrs scheduler", () => {
 
 describe("choosing between the two schedulers", () => {
 	test("the ladder is what an unconfigured owner gets", () => {
-		expect(defaultRepetitionSettings().scheduler).toBe("ladder");
+		expect(ScheduleEntity.defaultSettings().scheduler).toBe("ladder");
 	});
 
 	test("the ladder writes no memory state", () => {
-		const schedule = scheduleAfter(
+		const schedule = ScheduleEntity.scheduleAfter(
 			undefined,
 			questionId,
 			user,
-			defaultRepetitionSettings(),
+			ScheduleEntity.defaultSettings(),
 			first,
 			startOfDay(first),
 			RecallGrade.Good,
@@ -195,8 +189,8 @@ describe("choosing between the two schedulers", () => {
 
 	test("a scheduler nobody implements is refused", () => {
 		expect(() =>
-			createRepetitionSettings({
-				...defaultRepetitionSettings(),
+			ScheduleEntity.createSettings({
+				...ScheduleEntity.defaultSettings(),
 				scheduler: "sm2" as "ladder",
 			}),
 		).toThrow();
@@ -262,12 +256,12 @@ describe("how the grade a learner gives changes the interval", () => {
 describe("the ladder ignores the grade on purpose", () => {
 	const first = new Date("2026-08-01T09:00:00.000Z");
 
-	const ladder = (grade: RecallGrade): RepetitionSchedule =>
-		scheduleAfter(
+	const ladder = (grade: RecallGrade): ScheduleEntity =>
+		ScheduleEntity.scheduleAfter(
 			undefined,
 			questionId,
 			user,
-			defaultRepetitionSettings(),
+			ScheduleEntity.defaultSettings(),
 			first,
 			startOfDay(first),
 			grade,

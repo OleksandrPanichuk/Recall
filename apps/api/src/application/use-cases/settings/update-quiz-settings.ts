@@ -5,12 +5,9 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { RepetitionSettings } from "@/domain/repetition/repetition";
-import {
-	createQuizSettings,
-	type QuizSettings,
-} from "@/domain/settings/quiz-settings";
 import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
+import { type RepetitionSettings } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 import {
 	ownerScope,
 	quizScope,
@@ -29,7 +26,7 @@ export interface UpdateQuizSettingsCommand {
 export type UpdateQuizSettingsDependencies = ApplicationDependencies;
 
 export class UpdateQuizSettingsUseCase
-	implements UseCase<Command<UpdateQuizSettingsCommand>, QuizSettings>
+	implements UseCase<Command<UpdateQuizSettingsCommand>, StudySettingsEntity>
 {
 	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
 
@@ -37,7 +34,9 @@ export class UpdateQuizSettingsUseCase
 		this.unitOfWork = dependencies.unitOfWork;
 	}
 
-	execute(request: Command<UpdateQuizSettingsCommand>): Promise<QuizSettings> {
+	execute(
+		request: Command<UpdateQuizSettingsCommand>,
+	): Promise<StudySettingsEntity> {
 		return this.unitOfWork.run(async ({ quizzes, reviews }) => {
 			const { quizSetId } = request;
 
@@ -55,7 +54,7 @@ export class UpdateQuizSettingsUseCase
 			}
 
 			const current = (await resolveWithSource(reviews, quizSetId)).settings;
-			const settings = createQuizSettings({
+			const settings = StudySettingsEntity.create({
 				repetition: request.repetition ?? current.repetition,
 				shuffleOptions: request.shuffleOptions ?? current.shuffleOptions,
 				shuffleQuestions: request.shuffleQuestions ?? current.shuffleQuestions,

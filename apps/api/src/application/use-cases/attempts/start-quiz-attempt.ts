@@ -8,6 +8,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
+import { resolveWithSource } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	currentQuestionId,
 	type QuizAttempt,
@@ -24,7 +25,6 @@ import {
 	QuizSetNotFoundError,
 	QuizSetStatus,
 } from "@/modules/quizzes";
-import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export class QuizSetNotPublishedError extends Error {
 	constructor(quizSetId: QuizSetId) {

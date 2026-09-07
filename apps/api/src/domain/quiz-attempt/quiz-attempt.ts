@@ -1,11 +1,11 @@
 import { brandedId } from "@/core/branded-id";
 import { type QuestionId } from "@/modules/quizzes";
+import { RecallGrade } from "@/modules/scheduling";
 import {
 	copiedDate,
 	copiedOptionalDate,
 	isValidDate,
 } from "@/shared/utils/date";
-import type { RecallGrade } from "../repetition/grade";
 import { QuizAttemptStatus } from "./quiz-attempt.constants";
 import {
 	DuplicateResponseError,

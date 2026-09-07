@@ -4,7 +4,7 @@ import {
 	type QuestionOptionId,
 	type QuizSetId,
 } from "@/modules/quizzes";
-import type { RecallGrade } from "../repetition/grade";
+import { RecallGrade } from "@/modules/scheduling";
 import type {
 	QuizAttemptMode,
 	QuizAttemptStatus,

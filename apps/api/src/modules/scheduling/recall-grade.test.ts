@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { gradeOf, isFeltGrade, RecallGrade, wasRecalled } from "./grade";
+import { gradeOf, isFeltGrade, RecallGrade, wasRecalled } from "./recall-grade";
 
 describe("turning an answer into a grade", () => {
 	test("a wrong answer is Again, whatever the learner felt", () => {

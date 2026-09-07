@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import {
-	defaultQuizSettings,
-	withRepetition,
-} from "@/domain/settings/quiz-settings";
+import { StudySettingsEntity } from "@/modules/study-settings";
 import type { AnswerQuestionUseCase } from "./answer-question";
 import {
 	type AttemptsHarness,
@@ -96,8 +93,8 @@ describe("what finishing writes into the review schedule", () => {
 	const chooseFsrs = async (): Promise<void> => {
 		await context.scope.reviews.saveSettings(
 			{ kind: "owner" },
-			withRepetition(defaultQuizSettings(), {
-				...defaultQuizSettings().repetition,
+			StudySettingsEntity.withRepetition(StudySettingsEntity.defaults(), {
+				...StudySettingsEntity.defaults().repetition,
 				scheduler: "fsrs",
 			}),
 		);

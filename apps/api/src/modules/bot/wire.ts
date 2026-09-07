@@ -28,9 +28,9 @@ import type { LeechView } from "@/application/use-cases/repetition/list-leeches"
 import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
-import type { DueSet } from "@/domain/repetition/repetition.types";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import { questionToWire, quizSummaryToWire } from "@/modules/quizzes";
+import { type DueSet } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 
 const text = (value: string | undefined): string | undefined =>
 	value === undefined ? undefined : value;
@@ -222,7 +222,9 @@ export const leechToWire = (leech: LeechView): WireLeech => ({
 	lapses: leech.lapses,
 });
 
-export const settingsToWire = (settings: QuizSettings): WireQuizSettings => ({
+export const settingsToWire = (
+	settings: StudySettingsEntity,
+): WireQuizSettings => ({
 	repetition: {
 		scheduler: settings.repetition.scheduler,
 		intervalsDays: [...settings.repetition.intervalsDays],

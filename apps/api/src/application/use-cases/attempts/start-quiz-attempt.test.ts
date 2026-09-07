@@ -4,8 +4,11 @@ import {
 	attemptCount,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
+import {
+	ownerScope,
+	quizScope,
+} from "@/application/use-cases/settings/resolve-quiz-settings";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
 import {
 	AddQuestionsUseCase,
 	ArchiveQuizSetUseCase,
@@ -14,7 +17,8 @@ import {
 	QuizSetNotFoundError,
 	toQuizSetId,
 } from "@/modules/quizzes";
-import { ownerScope, quizScope } from "../settings/resolve-quiz-settings";
+
+import { StudySettingsEntity } from "@/modules/study-settings";
 import {
 	type AttemptsHarness,
 	aQuestionInput,
@@ -169,7 +173,7 @@ describe("shuffled question order", () => {
 	const enableShuffle = (quizSetId: QuizSetId): Promise<void> =>
 		context.unitOfWork.run(({ reviews }) =>
 			reviews.saveSettings(quizScope(quizSetId), {
-				...defaultQuizSettings(),
+				...StudySettingsEntity.defaults(),
 				shuffleQuestions: true,
 			}),
 		);
@@ -241,7 +245,7 @@ describe("shuffled question order", () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
 		await context.unitOfWork.run(({ reviews }) =>
 			reviews.saveSettings(ownerScope, {
-				...defaultQuizSettings(),
+				...StudySettingsEntity.defaults(),
 				shuffleQuestions: true,
 			}),
 		);

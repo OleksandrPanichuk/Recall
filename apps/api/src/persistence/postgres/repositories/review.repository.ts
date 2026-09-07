@@ -5,16 +5,15 @@ import type {
 	SettingsScope,
 } from "@/application/ports/repositories/review.repository";
 import { reviewStates, studySettings } from "@/db/schema";
-import type { RepetitionSchedule } from "@/domain/repetition/repetition";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
-import { createQuizSettings } from "@/domain/settings/quiz-settings";
 import { type QuestionId, toQuestionId } from "@/modules/quizzes";
+import { ScheduleEntity } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 import type { Executor } from "../unit-of-work";
 
 type ReviewRow = typeof reviewStates.$inferSelect;
 type SettingsRow = typeof studySettings.$inferSelect;
 
-const toSchedule = (row: ReviewRow): RepetitionSchedule => ({
+const toSchedule = (row: ReviewRow): ScheduleEntity => ({
 	questionId: toQuestionId(row.questionId),
 	telegramUserId: row.telegramUserId ?? undefined,
 	repetitionCount: row.repetitionCount,
@@ -25,8 +24,8 @@ const toSchedule = (row: ReviewRow): RepetitionSchedule => ({
 	difficulty: row.difficulty === null ? undefined : Number(row.difficulty),
 });
 
-const toSettings = (row: SettingsRow): QuizSettings =>
-	createQuizSettings({
+const toSettings = (row: SettingsRow): StudySettingsEntity =>
+	StudySettingsEntity.create({
 		repetition: {
 			scheduler: row.scheduler === "fsrs" ? "fsrs" : "ladder",
 			intervalsDays: row.intervalsDays,
@@ -60,9 +59,7 @@ export function createReviewPostgresRepository(
 	const mine = eq(reviewStates.ownerId, owner);
 
 	return {
-		async saveSchedules(
-			schedules: readonly RepetitionSchedule[],
-		): Promise<void> {
+		async saveSchedules(schedules: readonly ScheduleEntity[]): Promise<void> {
 			for (const schedule of schedules) {
 				const row = {
 					questionId: String(schedule.questionId),
@@ -92,7 +89,7 @@ export function createReviewPostgresRepository(
 
 		async findSchedules(
 			questionIds: readonly QuestionId[],
-		): Promise<readonly RepetitionSchedule[]> {
+		): Promise<readonly ScheduleEntity[]> {
 			if (questionIds.length === 0) {
 				return [];
 			}
@@ -107,7 +104,7 @@ export function createReviewPostgresRepository(
 			return rows.map(toSchedule);
 		},
 
-		async listDue(at: Date): Promise<readonly RepetitionSchedule[]> {
+		async listDue(at: Date): Promise<readonly ScheduleEntity[]> {
 			const rows = await executor
 				.select()
 				.from(reviewStates)
@@ -117,9 +114,7 @@ export function createReviewPostgresRepository(
 			return rows.map(toSchedule);
 		},
 
-		async listLeeches(
-			threshold: number,
-		): Promise<readonly RepetitionSchedule[]> {
+		async listLeeches(threshold: number): Promise<readonly ScheduleEntity[]> {
 			const rows = await executor
 				.select()
 				.from(reviewStates)
@@ -131,7 +126,7 @@ export function createReviewPostgresRepository(
 
 		async saveSettings(
 			scope: SettingsScope,
-			settings: QuizSettings,
+			settings: StudySettingsEntity,
 		): Promise<void> {
 			const row = {
 				id: crypto.randomUUID(),
@@ -174,7 +169,7 @@ export function createReviewPostgresRepository(
 
 		async findSettings(
 			scope: SettingsScope,
-		): Promise<QuizSettings | undefined> {
+		): Promise<StudySettingsEntity | undefined> {
 			const [row] = await executor
 				.select()
 				.from(studySettings)

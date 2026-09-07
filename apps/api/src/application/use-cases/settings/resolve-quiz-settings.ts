@@ -8,18 +8,15 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { RepetitionSettings } from "@/domain/repetition/repetition";
-import {
-	defaultQuizSettings,
-	type QuizSettings,
-} from "@/domain/settings/quiz-settings";
 import { type PageId } from "@/modules/pages";
 import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
+import { type RepetitionSettings } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 
 export type QuizSettingsSource = "set" | "global" | "default";
 
 export interface ResolvedQuizSettings {
-	readonly settings: QuizSettings;
+	readonly settings: StudySettingsEntity;
 	readonly source: QuizSettingsSource;
 	readonly quizSetId?: QuizSetId;
 	readonly title?: string;
@@ -59,7 +56,7 @@ export async function resolveWithSource(
 		return { settings: global, source: "global" };
 	}
 
-	return { settings: defaultQuizSettings(), source: "default" };
+	return { settings: StudySettingsEntity.defaults(), source: "default" };
 }
 
 export interface ResolveQuizSettingsCommand {
