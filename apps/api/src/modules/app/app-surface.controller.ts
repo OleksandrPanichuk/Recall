@@ -64,8 +64,20 @@ import type { UseCases } from "@/composition/create-application";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { SessionGuard, type SessionRequest } from "@/modules/auth";
-import { toPageId } from "@/modules/pages";
-import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
+import { sharedPageToWire } from "@/modules/page-shares";
+import {
+	detachedQuizToWire,
+	pageTreeNodeToWire,
+	revisionToWire,
+	toPageId,
+} from "@/modules/pages";
+import {
+	questionRowToWire,
+	quizDetailToWire,
+	quizSummaryToWire,
+	toQuestionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import {
 	answerOptionsOf,
 	toQuestionInput,
@@ -78,21 +90,14 @@ import {
 	attemptDetailToWire,
 	browseViewToWire,
 	currentQuestionToWire,
-	detachedQuizToWire,
 	dueSetToWire,
 	finishResultToWire,
 	insightsToWire,
 	leechToWire,
-	pageTreeNodeToWire,
 	practiceResultToWire,
-	questionRowToWire,
-	quizDetailToWire,
-	quizSummaryToWire,
 	resolvedSettingsToWire,
 	resumedAttemptToWire,
-	revisionToWire,
 	settingsToWire,
-	sharedPageToWire,
 	startResultToWire,
 	statisticsToWire,
 } from "../bot/wire";

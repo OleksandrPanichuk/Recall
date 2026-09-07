@@ -4,28 +4,17 @@ import type {
 	AttemptDetail as WireAttemptDetail,
 	BrowseView as WireBrowseView,
 	CurrentQuestionView as WireCurrentQuestion,
-	DetachedQuiz as WireDetachedQuiz,
 	DueSet as WireDueSet,
 	FinishQuizAttemptResult as WireFinishResult,
 	Insights as WireInsights,
 	LeechView as WireLeech,
-	PageRevision as WirePageRevision,
-	PageTreeNode as WirePageTreeNode,
 	StartPracticeSessionResult as WirePracticeResult,
-	Question as WireQuestion,
-	QuestionRow as WireQuestionRow,
-	QuizDetail as WireQuizDetail,
 	QuizSettings as WireQuizSettings,
-	QuizSummary as WireQuizSummary,
 	ResolvedQuizSettings as WireResolvedSettings,
 	ResumedAttempt as WireResumedAttempt,
-	SharedPage as WireSharedPage,
-	SharedPageView as WireSharedPageView,
 	StartQuizAttemptResult as WireStartResult,
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
-import type { PageRevision } from "@/application/ports/repositories/page.repository";
-import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { Insights } from "@/application/use-cases/analytics/get-insights";
 import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answer-question";
 import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/finish-quiz-attempt";
@@ -41,52 +30,10 @@ import type { AttemptDetail } from "@/application/use-cases/statistics/get-attem
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import type { DueSet } from "@/domain/repetition/repetition.types";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
-import type { SharedPage, SharedPageView } from "@/modules/page-shares";
-import type { DetachedQuiz, PageTreeNode } from "@/modules/pages";
-import {
-	QuestionEntity,
-	type QuestionRow,
-	QuizSetEntity,
-} from "@/modules/quizzes";
+import { questionToWire, quizSummaryToWire } from "@/modules/quizzes";
 
 const text = (value: string | undefined): string | undefined =>
 	value === undefined ? undefined : value;
-
-export const questionToWire = (question: QuestionEntity): WireQuestion => ({
-	id: String(question.id),
-	type: question.type,
-	prompt: question.prompt,
-	options: question.options.map((option) => ({
-		id: String(option.id),
-		text: option.text,
-		isCorrect: option.isCorrect,
-		position: option.position,
-		matchKey: text(option.matchKey),
-	})),
-	difficulty: question.difficulty,
-	position: question.position,
-	explanation: text(question.explanation),
-	sourceReference: text(question.sourceReference),
-	topic: text(question.topic),
-	hint: text(question.hint),
-	vocabularyItemId: text(question.vocabularyItemId),
-});
-
-export const questionRowToWire = (row: QuestionRow): WireQuestionRow => ({
-	question: questionToWire(row.question),
-	quizSetId: String(row.quizSetId),
-	setTitle: row.setTitle,
-	setStatus: row.setStatus,
-	answerCount: row.answerCount,
-});
-
-export const quizSummaryToWire = (summary: QuizSummary): WireQuizSummary => ({
-	id: String(summary.id),
-	title: summary.title,
-	status: summary.status,
-	questionCount: summary.questionCount,
-	updatedAt: summary.updatedAt.toISOString(),
-});
 
 export const attachedQuizToWire = (
 	attached: AttachedQuiz,
@@ -97,14 +44,6 @@ export const attachedQuizToWire = (
 	title: attached.title,
 });
 
-export const detachedQuizToWire = (
-	detached: DetachedQuiz,
-): WireDetachedQuiz => ({
-	folderId: String(detached.folderId),
-	folderName: detached.folderName,
-	quizSetId: String(detached.quizSetId),
-});
-
 export const resumedAttemptToWire = (
 	resumed: ResumeQuizAttemptResult,
 ): WireResumedAttempt => ({
@@ -113,44 +52,6 @@ export const resumedAttemptToWire = (
 		resumed.currentQuestionId === undefined
 			? undefined
 			: String(resumed.currentQuestionId),
-});
-
-export const sharedPageToWire = (shared: SharedPage): WireSharedPage => ({
-	folderId: String(shared.folderId),
-	name: shared.name,
-	token: shared.token,
-	createdAt: shared.createdAt.toISOString(),
-});
-
-export const sharedPageViewToWire = (
-	view: SharedPageView,
-): WireSharedPageView => ({
-	name: view.name,
-	icon: text(view.icon),
-	summary: text(view.summary),
-	updatedAt: view.updatedAt.toISOString(),
-});
-
-export const revisionToWire = (revision: PageRevision): WirePageRevision => ({
-	id: revision.id,
-	title: revision.title,
-	summary: revision.summary,
-	authorKind: revision.authorKind,
-	createdAt: revision.createdAt.toISOString(),
-});
-
-export const quizDetailToWire = (quiz: QuizSetEntity): WireQuizDetail => ({
-	id: String(quiz.id),
-	title: quiz.title,
-	language: quiz.language,
-	status: quiz.status,
-	description: text(quiz.description),
-	source: text(quiz.source),
-	sourceChapters: text(quiz.sourceChapters),
-	tags: [...quiz.tags],
-	folderId: quiz.folderId === undefined ? undefined : String(quiz.folderId),
-	questions: quiz.questions.map(questionToWire),
-	updatedAt: quiz.updatedAt.toISOString(),
 });
 
 export const insightsToWire = (insights: Insights): WireInsights => ({
@@ -170,16 +71,6 @@ export const insightsToWire = (insights: Insights): WireInsights => ({
 	streak: insights.streak,
 	answered: insights.answered,
 	correct: insights.correct,
-});
-
-export const pageTreeNodeToWire = (node: PageTreeNode): WirePageTreeNode => ({
-	id: String(node.id),
-	name: node.name,
-	icon: text(node.icon),
-	parentId: node.parentId === undefined ? undefined : String(node.parentId),
-	depth: node.depth,
-	setCount: node.setCount,
-	unpublishedCount: node.unpublishedCount,
 });
 
 export const browseViewToWire = (view: BrowseView): WireBrowseView => ({

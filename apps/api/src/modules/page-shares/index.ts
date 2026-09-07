@@ -1,4 +1,5 @@
 export { PageShareEntity } from "./page-share.entity";
+export * from "./page-share.model";
 export * from "./page-shares.errors";
 export { PageSharesModule } from "./page-shares.module";
 export {

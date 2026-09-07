@@ -5,6 +5,7 @@ export {
 	type PageSnapshot,
 	toPageId,
 } from "./page.entity";
+export * from "./page.model";
 export { PagePosition } from "./page.ordering";
 export * from "./page.quiz-link";
 export * from "./pages.errors";
