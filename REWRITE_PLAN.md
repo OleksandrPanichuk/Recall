@@ -548,14 +548,20 @@ cases keep `ApplicationDependencies`; moved use cases take narrow ports. Both li
 
 | Phase | Work | Gate |
 | --- | --- | --- |
-| 0 | This document. Rewrite the `biome.json` overrides for the layout in §3.1; the module graph rules are added as modules land. | `bun run lint` passes with the new overrides against the current tree, with every planned violation listed in the PR. |
-| 1 | `core/`, `configs/`, `db/` (schema split per table, `client.ts`, `executor.ts`), `shared/request-context`, `shared/http`, `infrastructure/`, `adapters/`. The bridge above. The five mechanics tests from §8. | `db:generate` produces no new migration. Old code runs unchanged through the bridge. |
-| 2 | Identity: `auth`, `owners`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
-| 3 | Content: `pages`, `quizzes`, then `vocabulary`, `attachments`, `page-shares`. Presenters split out of `wire.ts`. `UploadsController` becomes two use cases. | `tests/contracts/{page,quiz}*` bound to both engines. Shared page still refuses an upload its markdown does not reference. |
+| 0 ✅ | This document. Rewrite the `biome.json` overrides for the layout in §3.1; the module graph rules are added as modules land. | `bun run lint` passes with the new overrides against the current tree, with every planned violation listed in the PR. |
+| 1 ✅ | `core/`, `configs/`, `db/` (schema split per table, `client.ts`, `executor.ts`), `shared/request-context`, `shared/http`. The bridge above. | `db:generate` produces no new migration. Old code runs unchanged through the bridge. |
+| 2 | Identity: `auth`, `owners`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. `infrastructure/mail` and `adapters/mail` split out of today's two mailer files. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
+| 3 | Content: `pages`, `quizzes`, then `vocabulary`, `attachments`, `page-shares`. Presenters split out of `wire.ts`. `UploadsController` becomes two use cases. `infrastructure/minio` and `adapters/storage` split out of today's object store. | `tests/contracts/{page,quiz}*` bound to both engines. Shared page still refuses an upload its markdown does not reference. |
 | 4 | Study: `study-settings` and `scheduling` out of the review repository, then `attempts`, `practice`, `statistics`, `insights`. | `finish` writes attempt and schedules in one transaction, pinned by the rollback suite. The four ladder/FSRS behaviour tests from `CLAUDE.md` still pass. |
 | 5 | Surfaces: one controller per module under `["bot","app"]`; `telegram-link` and `api-tokens` keep their two controllers. `adapters/mcp` → `modules/mcp`, `adapters/admin` → `modules/admin`. Delete `modules/{app,bot,content,public,integration}`. | `tests/integration/app/*` and `e2e/*` green. No route path changed. |
 | 6 | Delete `composition/`, `application/`, `persistence/`, `domain/`, `entrypoints/` (→ `main.ts`, `scripts/`), `modules/shared/`. Remove the bridge. | `grep -r "RepositoryScope\|UnitOfWork\|useCasesFor\|lazyScope" apps/api/src` is empty. |
 | 7 | Docs: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `HANDOFF.md`, `README.md` (§11). | Every path named in those files exists. |
+
+**`infrastructure/` and `adapters/` do not land in phase 1.** Each of the two remaining
+adapters implements a port a module will own — `Mailer` for `notifications`, `ObjectStore` for
+`attachments` — and today each is a single file doing both jobs. Splitting one into a
+technology client plus an adapter before its port exists means splitting it now and rejoining
+it later, so each splits in the phase that creates its module.
 
 Effort, from the independent review: 15–25 engineer-days for the whole table. Phases 2–4 are
 the bulk and can each be several pull requests.
