@@ -139,13 +139,12 @@ apps/api/src/
 │
 └─ modules/
    ├─ health/
-   ├─ auth/                         Better Auth instance, SessionGuard, @CurrentOwner(),
-   │                                AuthEvents port + Postgres repository
-   ├─ owners/                       telegram id ↔ owner, instance owner, BotTokenGuard
-   ├─ telegram-link/                login links, the Better Auth verify plugin
+   ├─ auth/                         Better Auth instance and its tables, the identity
+   │                                repository, SessionGuard, BotTokenGuard, instance owner
+   ├─ telegram-link/                login links: minting, the verify plugin, the bot route
    ├─ api-tokens/                   personal tokens: issue, list, revoke, verify
    ├─ oauth/                        MCP OAuth clients, codes, tokens; provider; consent
-   ├─ notifications/                Mailer port, reset-password letter
+   ├─ notifications/                Mailer port and its adapters — delivery only
    ├─ pages/                        tree, summary, revisions, icon, search, ordering, page↔quiz links
    ├─ page-shares/                  share, unshare, read shared page; public routes
    ├─ attachments/                  uploads, ObjectStore port, owner-scoped rows
@@ -304,12 +303,11 @@ doubles; the decorators are inert without Nest.
 
 | Module | Tables (writes) | Today's domain | Today's use cases | Today's other code |
 | --- | --- | --- | --- | --- |
-| `auth` | `user`, `session`, `account`, `verification`, `auth_events` | — | — | `modules/auth/{build-auth,build-auth.constants,session-owner,tokens}.ts`, `modules/app/session.guard.ts`, the `record()` bodies of both services |
-| `owners` | — (reads `account`) | — | — | `persistence/postgres/owner.ts`, `modules/shared/database/instance-owner.ts`, `modules/bot/bot-token.guard.ts` |
-| `telegram-link` | — (writes through Better Auth's verification store) | — | — | `modules/auth/telegram-identity.service.ts`, `telegram-link.plugin.ts`, the `loginLink` route |
+| `auth` | `user`, `session`, `account`, `verification`, `auth_events` | — | — | `modules/auth/{build-auth,build-auth.constants,reset-password.letter,session-owner,tokens}.ts`, `modules/app/session.guard.ts`, `modules/bot/bot-token.guard.ts`, `persistence/postgres/owner.ts`, `modules/shared/database/instance-owner.ts`, the `record()` bodies of both services |
+| `telegram-link` | — (writes through Better Auth's verification store) | — | — | `modules/auth/{telegram-identity.service,telegram-link.plugin}.ts`, the `loginLink` route |
 | `api-tokens` | `api_tokens` | — | — | `persistence/postgres/api-tokens.ts`, `modules/auth/api-token.service.ts`, the four token routes, `adapters/mcp/http/bearer.ts` |
 | `oauth` | `oauth_clients`, `oauth_codes`, `oauth_tokens` | — | — | `persistence/postgres/oauth.store.ts`, `infrastructure/auth/oauth-store.types.ts`, `adapters/mcp/http/oauth/*` |
-| `notifications` | — | — | — | `application/ports/mailer.ts`, `modules/auth/{mailer-for,reset-password.letter}.ts` |
+| `notifications` | — | — | — | `application/ports/mailer.ts`, `modules/auth/mailer-for.ts`, `adapters/mail/*` |
 | `pages` | `pages`, `page_revisions`, `quiz_attachments` | `domain/folder/*` | `folders/*` — 15 files: attach-quiz, browse-folder, create-folder, delete-folder, detach-quiz, ensure-folder-path, list-folder-tree, list-revisions, move-folder, rename-folder, reorder-folder, resolve-folder-path, search-pages, set-page-icon, write-summary | `page.repository.ts` (port + Postgres) minus its share methods |
 | `page-shares` | `page_shares` | — | `sharing/{share-page,read-shared-page,referenced-uploads}.ts` | `persistence/postgres/share.ts`, `modules/public/*`, `shareOf/saveShare/deleteShare` from the page port |
 | `attachments` | `attachments` | — | — (the controller becomes two use cases: `upload-image`, `read-attachment`) | `application/ports/object-store.ts`, `attachment.repository.ts`, `modules/app/uploads.*`, `persistence/objects/minio.object-store.ts` → `adapters/storage` |
@@ -337,8 +335,8 @@ Two things that look like they should be modules and are not:
 ### 5.2 Module dependency graph
 
 ```text
-auth          ← owners ← telegram-link, api-tokens, oauth
-auth          ← notifications (reset mail)         [bound in auth's module class]
+auth          ← telegram-link, api-tokens, oauth   (identity lookups, provisioning)
+auth          → notifications                      (the reset letter is auth's, delivery is not)
 pages         ← page-shares → attachments
 quizzes       → pages                              (requireFolder, moveQuizSetToFolder)
 vocabulary    → quizzes                            (replaceQuestions in one transaction)
@@ -362,12 +360,22 @@ Facts in the code that shaped this graph, so nobody re-derives them:
   one transaction. `vocabulary` never gets its own writer for `questions`.
 - `start-practice-session.ts` reads quizzes, the active attempt, attempt history and shuffle
   settings, then saves the attempt. It does not use analytics.
-- `auth_events` is written by both `TelegramIdentityService` and `ApiTokenService`. The port
-  `AuthEvents` lives in `auth`; both consumers inject it. Making `telegram-link` its owner
-  would give token management a dependency on Telegram.
-- `build-auth.ts` installs the Telegram verify plugin. `auth` must not import `telegram-link`,
-  so `AuthModule` takes the plugin list from a provider that `telegram-link` contributes
-  (`AUTH_PLUGINS` multi-provider), and the direction stays `telegram-link → auth`.
+- `auth_events` is written by both `TelegramIdentityService` and `ApiTokenService`. It is
+  `auth`'s table, reached through the identity repository; both consumers call it. Making
+  `telegram-link` its owner would give token management a dependency on Telegram.
+- **There is no `owners` module.** The plan had one for "telegram id ↔ owner, instance owner,
+  BotTokenGuard", and the code refuses it: `ensureTelegramOwner` *writes* `user` and `account`,
+  which are Better Auth's tables and therefore `auth`'s. A module that owns no table and writes
+  two of someone else's is a lookup wearing a module's clothes. The lookup and the provisioning
+  are both `auth`'s identity repository; the guards are `auth`'s because they answer who the
+  caller is; and `telegram-link` keeps the one capability that is genuinely its own, minting a
+  login link. That also makes the four credential seams in §6.1 consistent: each lives with the
+  credential it verifies.
+- `build-auth.ts` installs the Telegram verify plugin, and `auth` must not import
+  `telegram-link`. `AuthModule.forRoot({ plugins })` takes them instead, and `app.module.ts` —
+  the composition root, which may import anything — passes `telegramLink()`. A multi-provider
+  token would have needed `telegram-link` to be global for `auth` to resolve it, which is a
+  worse trade than a dynamic module.
 - `public.controller.ts` serves an upload only if the shared page's markdown references it. A
   share principal carries `{ owner, pageId }`, not just the owner, and `page-shares →
   attachments` is real.
@@ -394,7 +402,7 @@ type Principal =
   handler runs every request inside `storage.run({}, next)`. A Nest interceptor is too late:
   guards run first and need the store to exist.
 - Guards populate the store. `SessionGuard` (cookie → owner), `BotTokenGuard` (bearer + the
-  `telegramUserId` body check → the linked instance owner via `owners`), `ShareTokenGuard`
+  `telegramUserId` body check → the linked instance owner via `auth`), `ShareTokenGuard`
   (token → `{ owner, pageId }` via `page-shares`), the MCP bearer verifier (PAT, OAuth grant or
   static token → owner). MCP verifies outside Nest, so it wraps each tool execution in
   `runAs(principal, fn)` rather than binding an owner to the server instance.
@@ -403,7 +411,7 @@ type Principal =
 - Owner-scoped repositories inject `OwnerContext` and read `this.owners.current()` per call, not
   in the constructor. Use cases and repositories are therefore singletons. `useCasesFor`,
   `lazyScope`, `USE_CASE_DEPENDENCIES`, `USE_CASES_FOR` and `INSTANCE_OWNER` disappear.
-- Identity-resolution repositories (`owners`, `api-tokens` verify, `page-shares` lookup by
+- Identity-resolution repositories (`auth`'s identity lookup, `api-tokens` verify, `page-shares` lookup by
   token, `oauth`) run before an owner exists. They do not inject `OwnerContext`; they are the
   four seams that turn a credential into an owner, and they stay the only ones.
 - Multer runs after guards. Uploads stay session-only; a bot multipart route would have to
@@ -503,7 +511,7 @@ mean different things there:
 | Route | Bot (`/bot/…`, bearer) | App (`/app/…`, cookie) | Module |
 | --- | --- | --- | --- |
 | `auth/login-link` | body names `telegramUserId`; creates the owner on first login | **absent** | `telegram-link` |
-| `auth/tokens/{issue,list,revoke}` | body names `telegramUserId`, resolved via `owners` | body omits it; owner from session | `api-tokens` |
+| `auth/tokens/{issue,list,revoke}` | body names `telegramUserId`, resolved via `auth` | body omits it; owner from session | `api-tokens` |
 | every practice and authoring route | owner = the linked instance owner | owner = session | one controller under `["bot","app"]` |
 | `app/uploads`, `app/uploads/:id` | absent | session | `attachments` |
 | `public/pages/:token`, `public/uploads/:token/:id` | share token, no other credential | | `page-shares` |
@@ -550,7 +558,7 @@ cases keep `ApplicationDependencies`; moved use cases take narrow ports. Both li
 | --- | --- | --- |
 | 0 ✅ | This document. Rewrite the `biome.json` overrides for the layout in §3.1; the module graph rules are added as modules land. | `bun run lint` passes with the new overrides against the current tree, with every planned violation listed in the PR. |
 | 1 ✅ | `core/`, `configs/`, `db/` (schema split per table, `client.ts`, `executor.ts`), `shared/request-context`, `shared/http`. The bridge above. | `db:generate` produces no new migration. Old code runs unchanged through the bridge. |
-| 2 | Identity: `auth`, `owners`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. `infrastructure/mail` and `adapters/mail` split out of today's two mailer files. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
+| 2 | Identity: `auth`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. `infrastructure/mail` and `adapters/mail` split out of today's two mailer files. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
 | 3 | Content: `pages`, `quizzes`, then `vocabulary`, `attachments`, `page-shares`. Presenters split out of `wire.ts`. `UploadsController` becomes two use cases. `infrastructure/minio` and `adapters/storage` split out of today's object store. | `tests/contracts/{page,quiz}*` bound to both engines. Shared page still refuses an upload its markdown does not reference. |
 | 4 | Study: `study-settings` and `scheduling` out of the review repository, then `attempts`, `practice`, `statistics`, `insights`. | `finish` writes attempt and schedules in one transaction, pinned by the rollback suite. The four ladder/FSRS behaviour tests from `CLAUDE.md` still pass. |
 | 5 | Surfaces: one controller per module under `["bot","app"]`; `telegram-link` and `api-tokens` keep their two controllers. `adapters/mcp` → `modules/mcp`, `adapters/admin` → `modules/admin`. Delete `modules/{app,bot,content,public,integration}`. | `tests/integration/app/*` and `e2e/*` green. No route path changed. |
