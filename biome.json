@@ -55,12 +55,300 @@
 		{
 			"includes": [
 				"apps/api/src/modules/**",
+				"apps/api/src/main.ts",
 				"apps/api/src/entrypoints/api.ts"
 			],
 			"linter": {
 				"rules": {
 					"correctness": {
 						"useHookAtTopLevel": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/core/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/composition/**",
+											"@/configs/**",
+											"@/db/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/infrastructure/**",
+											"@/modules/**",
+											"@/persistence/**",
+											"@/shared/**"
+										],
+										"message": "core imports nothing from src (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/configs/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/composition/**",
+											"@/db/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/infrastructure/**",
+											"@/modules/**",
+											"@/persistence/**",
+											"@/shared/**"
+										],
+										"message": "configs may import core and nothing else (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/db/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/composition/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/infrastructure/**",
+											"@/modules/**",
+											"@/persistence/**",
+											"@/shared/**"
+										],
+										"message": "db may import core and configs only; it knows tables, not the domain (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/infrastructure/**",
+				"!apps/api/src/infrastructure/auth/**",
+				"!apps/api/src/infrastructure/config/**",
+				"!apps/api/src/infrastructure/lifecycle/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/composition/**",
+											"@/core/**",
+											"@/db/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/modules/**",
+											"@/persistence/**",
+											"@/shared/http/**",
+											"@/shared/request-context/**"
+										],
+										"message": "infrastructure is a technology client: configs and shared/utils only, so it could be copied to another project unchanged (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/adapters/**",
+				"!apps/api/src/adapters/admin/**",
+				"!apps/api/src/adapters/mail/**",
+				"!apps/api/src/adapters/mcp/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/application/**",
+											"@/composition/**",
+											"@/db/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/persistence/**"
+										],
+										"message": "an adapter implements one module port over infrastructure and never touches the database (REWRITE_PLAN.md §3.1)"
+									},
+									{
+										"group": ["@/modules/*"],
+										"message": "an adapter imports the port file it implements, never the module barrel: the barrel exports the module class, which imports the adapter (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/shared/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/application/**",
+											"@/composition/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/infrastructure/**",
+											"@/modules/**",
+											"@/persistence/**"
+										],
+										"message": "shared is below every module: core, configs and db only (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/modules/**",
+				"!apps/api/src/modules/app/**",
+				"!apps/api/src/modules/auth/**",
+				"!apps/api/src/modules/bot/**",
+				"!apps/api/src/modules/content/**",
+				"!apps/api/src/modules/integration/**",
+				"!apps/api/src/modules/public/**",
+				"!apps/api/src/modules/shared/**",
+				"!apps/api/src/modules/app.module.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["@/adapters/**", "@/infrastructure/**"],
+										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (REWRITE_PLAN.md §3.1)"
+									},
+									{
+										"group": [
+											"@/application/**",
+											"@/composition/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/persistence/**"
+										],
+										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md §5.1)"
+									},
+									{
+										"group": ["@/db/client", "@/db/migrations/**"],
+										"message": "a module reaches the database through db/executor and db/schema, never the connection itself (REWRITE_PLAN.md §3.1)"
+									},
+									{
+										"group": ["@/modules/*/**"],
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/modules/**/*.module.ts",
+				"!apps/api/src/modules/app/**",
+				"!apps/api/src/modules/auth/**",
+				"!apps/api/src/modules/bot/**",
+				"!apps/api/src/modules/content/**",
+				"!apps/api/src/modules/integration/**",
+				"!apps/api/src/modules/public/**",
+				"!apps/api/src/modules/shared/**",
+				"!apps/api/src/modules/app.module.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/application/**",
+											"@/composition/**",
+											"@/domain/**",
+											"@/entrypoints/**",
+											"@/persistence/**"
+										],
+										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md §5.1)"
+									},
+									{
+										"group": ["@/db/client", "@/db/migrations/**"],
+										"message": "a module reaches the database through db/executor and db/schema, never the connection itself (REWRITE_PLAN.md §3.1)"
+									},
+									{
+										"group": ["@/modules/*/**"],
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md §3.1)"
+									}
+								]
+							}
+						}
 					}
 				}
 			}

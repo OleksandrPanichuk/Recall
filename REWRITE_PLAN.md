@@ -191,9 +191,21 @@ Three rules that need words, not just the table:
   binding a port to an adapter** in its `providers`. That is the composition root, and it is
   the only place the binding is allowed.
 
-Today's two `noRestrictedImports` overrides (`domain/**`, `application/**`) are replaced by
-one override per row of the table above plus one per module for the module dependency graph in
-§5.2. The rule is what makes the direction real; without it the table is a wish.
+Today's two `noRestrictedImports` overrides (`domain/**`, `application/**`) are joined by one
+override per row of the table above, plus one per module for the dependency graph in §5.2 as
+each module lands. The rule is what makes the direction real; without it the table is a wish.
+The two old overrides stay until phase 6 deletes the directories they guard.
+
+Two limits worth knowing rather than discovering:
+
+- **The rule matches the import string, not the resolved file.** `../../adapters/minio` slips
+  past a `@/adapters/**` pattern. Cross-directory imports are written `@/` everywhere in this
+  codebase and organiseImports keeps them that way, so the gap is convention-held, not
+  enforced. The phase 6 grep checks both spellings.
+- **An override that matches a file replaces the rule for it rather than adding to it.** The
+  `*.module.ts` override that lets a module class bind an adapter therefore has to repeat every
+  other pattern, and it has to repeat the exclusion list of old modules too, or it re-enables
+  the rule for the very files the previous override excused.
 
 ## 4. Inside a module
 
