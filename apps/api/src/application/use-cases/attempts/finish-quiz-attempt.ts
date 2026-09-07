@@ -7,7 +7,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { resolveRepetitionSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	attemptScore,
 	completeQuizAttempt,
@@ -17,6 +16,7 @@ import {
 import type { Score } from "@/domain/quiz-attempt/score";
 import { type QuizSetId } from "@/modules/quizzes";
 import { gradeOf, ScheduleEntity } from "@/modules/scheduling";
+import { StudySettingsService } from "@/modules/study-settings";
 import {
 	type AttemptOfUserCommand,
 	NoActiveAttemptError,
@@ -67,8 +67,7 @@ export class FinishQuizAttemptUseCase
 					return completed;
 				}
 
-				const settings = await resolveRepetitionSettings(
-					reviews,
+				const settings = await new StudySettingsService(reviews).repetitionFor(
 					completed.quizSetId,
 				);
 				const dayStart = startOfDayIn(at, this.timezone);

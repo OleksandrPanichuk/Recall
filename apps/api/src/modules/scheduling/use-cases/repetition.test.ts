@@ -7,10 +7,12 @@ import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-q
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
-import { resolveRepetitionSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
-import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 import { ScheduleEntity } from "@/modules/scheduling";
+import {
+	StudySettingsService,
+	UpdateQuizSettingsUseCase,
+} from "@/modules/study-settings";
 import {
 	aQuestion,
 	aQuizSet,
@@ -32,10 +34,19 @@ beforeEach(() => {
 	context = createMemoryContext();
 	start = new StartQuizAttemptUseCase(context);
 	finish = new FinishQuizAttemptUseCase(context);
-	listDue = new ListDueRepetitionsUseCase(context);
+	listDue = new ListDueRepetitionsUseCase(
+		context.scope.reviews,
+		context.scope.quizzes,
+		context.clock,
+		{ name: () => context.timezone },
+	);
 	answer = new AnswerQuestionUseCase(context);
 	current = new GetCurrentQuestionUseCase(context);
-	updateSettings = new UpdateQuizSettingsUseCase(context);
+	updateSettings = new UpdateQuizSettingsUseCase(
+		new StudySettingsService(context.scope.reviews),
+		context.scope.quizzes,
+		context.transaction,
+	);
 });
 
 afterEach(() => {
@@ -212,8 +223,7 @@ describe("settings resolution", () => {
 	test("falls back to the built-in defaults", async () => {
 		expect(
 			(
-				await resolveRepetitionSettings(
-					context.scope.reviews,
+				await new StudySettingsService(context.scope.reviews).repetitionFor(
 					toQuizSetId("set-1"),
 				)
 			).maxIntervalDays,
@@ -227,8 +237,7 @@ describe("settings resolution", () => {
 
 		expect(
 			(
-				await resolveRepetitionSettings(
-					context.scope.reviews,
+				await new StudySettingsService(context.scope.reviews).repetitionFor(
 					toQuizSetId("set-1"),
 				)
 			).maxIntervalDays,
@@ -256,8 +265,7 @@ describe("settings resolution", () => {
 
 		expect(
 			(
-				await resolveRepetitionSettings(
-					context.scope.reviews,
+				await new StudySettingsService(context.scope.reviews).repetitionFor(
 					toQuizSetId("set-1"),
 				)
 			).maxIntervalDays,

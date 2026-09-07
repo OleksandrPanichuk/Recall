@@ -24,13 +24,14 @@ import type { StartQuizAttemptResult } from "@/application/use-cases/attempts/st
 import type { AttachedQuiz } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
 import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
-import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
-import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { questionToWire, quizSummaryToWire } from "@/modules/quizzes";
-import { type DueSet } from "@/modules/scheduling";
-import { StudySettingsEntity } from "@/modules/study-settings";
+import { type DueSet, type LeechView } from "@/modules/scheduling";
+import {
+	type ResolvedQuizSettings,
+	StudySettingsEntity,
+} from "@/modules/study-settings";
 
 const text = (value: string | undefined): string | undefined =>
 	value === undefined ? undefined : value;

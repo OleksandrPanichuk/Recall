@@ -21,10 +21,6 @@ import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
-import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
-import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
-import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { DatabaseConnection } from "@/db/connection";
@@ -63,6 +59,15 @@ import {
 	UpdateQuestionUseCase,
 	UpdateQuizSetUseCase,
 } from "@/modules/quizzes";
+import {
+	ListDueRepetitionsUseCase,
+	ListLeechesUseCase,
+} from "@/modules/scheduling";
+import {
+	ResolveQuizSettingsUseCase,
+	StudySettingsService,
+	UpdateQuizSettingsUseCase,
+} from "@/modules/study-settings";
 import {
 	AddVocabularyUseCase,
 	ListVocabularyUseCase,
@@ -155,6 +160,8 @@ export function createUseCases(
 	const quizzes = dependencies.scope.quizzes;
 	const attemptsRepo = dependencies.scope.attempts;
 	const termPairs = dependencies.scope.termPairs;
+	const reviews = dependencies.scope.reviews;
+	const settingsService = new StudySettingsService(reviews);
 	const shares = new (class extends PageSharesRepository {
 		shareOf = (id: never) => pages.shareOf(id);
 		save = (share: never) => pages.saveShare(share);
@@ -286,10 +293,19 @@ export function createUseCases(
 		finishQuizAttempt: new FinishQuizAttemptUseCase(dependencies),
 		getQuizStatistics: new GetQuizStatisticsUseCase(dependencies),
 		getAttemptDetail: new GetAttemptDetailUseCase(dependencies),
-		listDueRepetitions: new ListDueRepetitionsUseCase(dependencies),
-		listLeeches: new ListLeechesUseCase(dependencies),
-		resolveQuizSettings: new ResolveQuizSettingsUseCase(dependencies),
-		updateQuizSettings: new UpdateQuizSettingsUseCase(dependencies),
+		listDueRepetitions: new ListDueRepetitionsUseCase(reviews, quizzes, clock, {
+			name: () => dependencies.timezone,
+		}),
+		listLeeches: new ListLeechesUseCase(reviews, quizzes),
+		resolveQuizSettings: new ResolveQuizSettingsUseCase(
+			settingsService,
+			quizzes,
+		),
+		updateQuizSettings: new UpdateQuizSettingsUseCase(
+			settingsService,
+			quizzes,
+			transaction,
+		),
 	};
 }
 

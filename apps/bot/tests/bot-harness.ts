@@ -1,14 +1,41 @@
 import type { AddressInfo } from "node:net";
 import { USE_CASE_DEPENDENCIES } from "@api/application/tokens";
+import { Clock } from "@api/core/ports/clock";
+import { Timezone } from "@api/core/ports/timezone";
+import { Transaction } from "@api/core/transaction";
 import { Database, DatabaseConnection } from "@api/db/connection";
+import { AttachmentsRepository } from "@api/modules/attachments";
 import { AuthModule } from "@api/modules/auth";
 import { BotModule } from "@api/modules/bot/bot.module";
+import { PagesRepository } from "@api/modules/pages";
 import type { QuestionInput } from "@api/modules/quizzes";
-import { Difficulty, QuestionType, type QuizSetId } from "@api/modules/quizzes";
+import {
+	Difficulty,
+	QuestionType,
+	type QuizSetId,
+	QuizzesRepository,
+} from "@api/modules/quizzes";
+import { SchedulesRepository } from "@api/modules/scheduling";
+import { StudySettingsRepository } from "@api/modules/study-settings";
+import { TermPairsRepository } from "@api/modules/vocabulary";
 import { CoreModule } from "@api/shared/core.module";
+
+interface MemoryDependencies {
+	readonly scope: {
+		readonly pages: PagesRepository;
+		readonly quizzes: QuizzesRepository;
+		readonly termPairs: TermPairsRepository;
+		readonly attachments: AttachmentsRepository;
+		readonly reviews: SchedulesRepository & StudySettingsRepository;
+	};
+	readonly transaction: Transaction;
+	readonly timezone: string;
+	readonly clock: Clock;
+}
+
 import { ModuleErrorFilter } from "@api/shared/http/module-error.filter";
 import { Global, type INestApplication, Module } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
+import { Test } from "@nestjs/testing";
 import { createBotClient } from "@recall/contracts";
 import type { Logger } from "@recall/kit";
 import { silentLogger } from "@recall/kit";
@@ -76,12 +103,33 @@ async function startApi(
 	})
 	class TestApiModule {}
 
-	const app = await NestFactory.create(TestApiModule, {
-		logger: false,
-		abortOnError: false,
-	});
+	const memory = dependencies as MemoryDependencies;
+	const app = (
+		await Test.createTestingModule({ imports: [TestApiModule] })
+			.overrideProvider(PagesRepository)
+			.useValue(memory.scope.pages)
+			.overrideProvider(QuizzesRepository)
+			.useValue(memory.scope.quizzes)
+			.overrideProvider(TermPairsRepository)
+			.useValue(memory.scope.termPairs)
+			.overrideProvider(AttachmentsRepository)
+			.useValue(memory.scope.attachments)
+			.overrideProvider(SchedulesRepository)
+			.useValue(memory.scope.reviews)
+			.overrideProvider(StudySettingsRepository)
+			.useValue(memory.scope.reviews)
+			.overrideProvider(Transaction)
+			.useValue(memory.transaction)
+			.overrideProvider(Timezone)
+			.useValue({ name: () => memory.timezone })
+			.overrideProvider(Clock)
+			.useValue(memory.clock)
+			.compile()
+	).createNestApplication({ logger: false, abortOnError: false });
 
 	app.useGlobalFilters(new ModuleErrorFilter());
+
+	await app.init();
 	await app.listen(0, "127.0.0.1");
 
 	const address = app.getHttpServer().address() as AddressInfo;

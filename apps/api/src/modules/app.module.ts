@@ -7,6 +7,8 @@ import { OAuthModule } from "@/modules/oauth";
 import { PageSharesModule } from "@/modules/page-shares";
 import { PagesModule } from "@/modules/pages";
 import { QuizzesModule } from "@/modules/quizzes";
+import { SchedulingModule } from "@/modules/scheduling";
+import { StudySettingsModule } from "@/modules/study-settings";
 import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
 import { VocabularyModule } from "@/modules/vocabulary";
@@ -36,6 +38,8 @@ import { HealthController } from "./shared/health/health.controller";
 		PagesModule,
 		QuizzesModule,
 		VocabularyModule,
+		StudySettingsModule,
+		SchedulingModule,
 		ContentModule,
 		AppSurfaceModule,
 		PageSharesModule,

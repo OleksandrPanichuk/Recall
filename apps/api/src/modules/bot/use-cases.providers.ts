@@ -15,10 +15,6 @@ import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
-import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
-import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
-import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 
@@ -46,8 +42,4 @@ export const botUseCases: Provider[] = [
 	RateRecallUseCase,
 	GetQuizStatisticsUseCase,
 	GetAttemptDetailUseCase,
-	ListDueRepetitionsUseCase,
-	ListLeechesUseCase,
-	ResolveQuizSettingsUseCase,
-	UpdateQuizSettingsUseCase,
 ].map((useCase) => fromDependencies(useCase as unknown as Constructor));

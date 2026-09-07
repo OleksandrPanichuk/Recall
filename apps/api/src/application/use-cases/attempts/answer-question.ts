@@ -7,7 +7,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { resolveRepetitionSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	type Answer,
 	acceptedAnswers,
@@ -41,6 +40,7 @@ import {
 	type QuestionOptionId,
 	QuestionType,
 } from "@/modules/quizzes";
+import { StudySettingsService } from "@/modules/study-settings";
 
 import { isWithinOneEdit } from "@/shared/utils/edit-distance";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
@@ -114,8 +114,11 @@ export class AnswerQuestionUseCase
 
 			const gradable =
 				attempt.mode === QuizAttemptMode.Full &&
-				(await resolveRepetitionSettings(reviews, attempt.quizSetId))
-					.scheduler === "fsrs";
+				(
+					await new StudySettingsService(reviews).repetitionFor(
+						attempt.quizSetId,
+					)
+				).scheduler === "fsrs";
 			const recorded = attempt.responses.find(
 				(response) => response.questionId === request.questionId,
 			);

@@ -1,49 +1,44 @@
+import { Injectable } from "@nestjs/common";
 import { startOfDayIn } from "@recall/kit";
-import type { Clock } from "@/application/ports/clock";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type {
-	ApplicationDependencies,
-	Command,
-	UseCase,
-} from "@/application/use-case";
+import { Clock } from "@/core/ports/clock";
+import { Timezone } from "@/core/ports/timezone";
+import { UseCase } from "@/core/use-case";
 import {
 	type QuestionId,
 	type QuizSetId,
 	QuizSetStatus,
+	QuizzesRepository,
 } from "@/modules/quizzes";
-import { type DueSet, ScheduleEntity } from "@/modules/scheduling";
+import { type DueSet, ScheduleEntity } from "..";
+import { SchedulesRepository } from "../scheduling.repository";
 
-export type { DueSet } from "@/modules/scheduling";
-
-export type ListDueRepetitionsCommand = Readonly<Record<string, never>>;
-
-export type ListDueRepetitionsDependencies = ApplicationDependencies;
+export type ListDueRepetitionsUseCaseOptions = Readonly<Record<string, never>>;
 
 interface Bucket {
 	readonly questionIds: QuestionId[];
 	overdueDays: number;
 }
 
-export class ListDueRepetitionsUseCase
-	implements UseCase<Command<ListDueRepetitionsCommand>, readonly DueSet[]>
-{
-	private readonly scope: RepositoryScope;
-	private readonly clock: Clock;
-	private readonly timezone: string;
+type Options = ListDueRepetitionsUseCaseOptions;
+type Result = readonly DueSet[];
 
-	constructor(dependencies: ListDueRepetitionsDependencies) {
-		this.scope = dependencies.scope;
-		this.clock = dependencies.clock;
-		this.timezone = dependencies.timezone;
+@Injectable()
+export class ListDueRepetitionsUseCase extends UseCase<Options, Result> {
+	constructor(
+		private readonly schedules: SchedulesRepository,
+		private readonly quizzes: QuizzesRepository,
+		private readonly clock: Clock,
+		private readonly timezone: Timezone,
+	) {
+		super();
 	}
 
 	async execute(
-		_request: Command<ListDueRepetitionsCommand>,
+		_request: ListDueRepetitionsUseCaseOptions,
 	): Promise<readonly DueSet[]> {
-		const { quizzes, reviews } = this.scope;
 		const at = this.clock.now();
-		const todayStart = startOfDayIn(at, this.timezone);
-		const due = await reviews.listDue(at);
+		const todayStart = startOfDayIn(at, this.timezone.name());
+		const due = await this.schedules.listDue(at);
 
 		if (due.length === 0) {
 			return [];
@@ -52,10 +47,10 @@ export class ListDueRepetitionsUseCase
 		const setOfQuestion = new Map<QuestionId, QuizSetId>();
 		const titles = new Map<QuizSetId, string>();
 
-		for (const summary of await quizzes.list({
+		for (const summary of await this.quizzes.list({
 			statuses: [QuizSetStatus.Published],
 		})) {
-			const quizSet = await quizzes.findById(summary.id);
+			const quizSet = await this.quizzes.findById(summary.id);
 
 			if (quizSet === undefined) {
 				continue;

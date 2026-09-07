@@ -4,10 +4,6 @@ import {
 	attemptCount,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import {
-	ownerScope,
-	quizScope,
-} from "@/application/use-cases/settings/resolve-quiz-settings";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import {
 	AddQuestionsUseCase,
@@ -17,8 +13,11 @@ import {
 	QuizSetNotFoundError,
 	toQuizSetId,
 } from "@/modules/quizzes";
-
-import { StudySettingsEntity } from "@/modules/study-settings";
+import {
+	OWNER_SCOPE,
+	quizScope,
+	StudySettingsEntity,
+} from "@/modules/study-settings";
 import {
 	type AttemptsHarness,
 	aQuestionInput,
@@ -244,7 +243,7 @@ describe("shuffled question order", () => {
 	test("follows the global toggle when the set has no settings of its own", async () => {
 		const quizSetId = await seedPublishedSet(PROMPTS);
 		await context.unitOfWork.run(({ reviews }) =>
-			reviews.saveSettings(ownerScope, {
+			reviews.saveSettings(OWNER_SCOPE, {
 				...StudySettingsEntity.defaults(),
 				shuffleQuestions: true,
 			}),

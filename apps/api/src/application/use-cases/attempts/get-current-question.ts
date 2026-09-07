@@ -4,13 +4,13 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { resolveWithSource } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	currentQuestionId,
 	type QuizAttemptId,
 	type QuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuestionEntity, type QuizSetId } from "@/modules/quizzes";
+import { StudySettingsService } from "@/modules/study-settings";
 
 import type { AttemptOfUserCommand } from "./resume-quiz-attempt";
 
@@ -49,7 +49,9 @@ export class GetCurrentQuestionUseCase
 			return undefined;
 		}
 
-		const { settings } = await resolveWithSource(reviews, attempt.quizSetId);
+		const { settings } = await new StudySettingsService(reviews).resolve(
+			attempt.quizSetId,
+		);
 		const quizSet = await quizzes.findById(attempt.quizSetId);
 		const questionId = currentQuestionId(attempt);
 		const question =

@@ -58,10 +58,6 @@ import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
-import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
-import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
-import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
@@ -85,6 +81,14 @@ import {
 	WriteSummaryUseCase,
 } from "@/modules/pages";
 import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
+import {
+	ListDueRepetitionsUseCase,
+	ListLeechesUseCase,
+} from "@/modules/scheduling";
+import {
+	ResolveQuizSettingsUseCase,
+	UpdateQuizSettingsUseCase,
+} from "@/modules/study-settings";
 import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {

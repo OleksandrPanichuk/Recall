@@ -8,7 +8,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { resolveWithSource } from "@/application/use-cases/settings/resolve-quiz-settings";
 import {
 	currentQuestionId,
 	type QuizAttempt,
@@ -25,6 +24,7 @@ import {
 	QuizSetNotFoundError,
 	QuizSetStatus,
 } from "@/modules/quizzes";
+import { StudySettingsService } from "@/modules/study-settings";
 
 export class QuizSetNotPublishedError extends Error {
 	constructor(quizSetId: QuizSetId) {
@@ -133,7 +133,7 @@ export class StartQuizAttemptUseCase
 
 			const id = toQuizAttemptId(this.idGenerator.generate());
 			const { shuffleQuestions } = (
-				await resolveWithSource(reviews, quizSet.id)
+				await new StudySettingsService(reviews).resolve(quizSet.id)
 			).settings;
 
 			const attempt = startQuizAttempt({

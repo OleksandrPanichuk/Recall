@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { shuffled } from "@recall/kit";
-import { quizScope } from "@/application/use-cases/settings/resolve-quiz-settings";
 import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuizSetNotFoundError, toQuizSetId } from "@/modules/quizzes";
-
-import { StudySettingsEntity } from "@/modules/study-settings";
+import { quizScope, StudySettingsEntity } from "@/modules/study-settings";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
