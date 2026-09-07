@@ -4,16 +4,16 @@ import {
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import {
-	publishQuizSet,
-	type QuizSetId,
-	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
-import {
 	CreatePageUseCase,
 	FolderNotFoundError,
 	type PageId,
 	PagesService,
 } from "@/modules/pages";
+import {
+	QuizSetEntity,
+	type QuizSetId,
+	QuizSetStatus,
+} from "@/modules/quizzes";
 import {
 	aQuestion,
 	aQuizSet,
@@ -44,7 +44,7 @@ afterEach(() => {
 const storedSet = async (published = false): Promise<QuizSetId> => {
 	const draft = aQuizSet({ id: "set-1", questions: [aQuestion({ id: "q1" })] });
 	const quizSet = published
-		? publishQuizSet(draft, context.clock.now())
+		? QuizSetEntity.publish(draft, context.clock.now())
 		: draft;
 
 	await context.unitOfWork.run(({ quizzes }) => quizzes.save(quizSet));

@@ -2,9 +2,12 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import {
+	Difficulty,
+	type QuestionId,
+	QuestionType,
+	type QuizSetId,
+} from "@/modules/quizzes";
 import {
 	AddQuestionsUseCase,
 	type QuestionInput,

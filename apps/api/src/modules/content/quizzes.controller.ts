@@ -2,7 +2,7 @@ import { Controller, Get, Inject, Param, Query } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { GetQuizSetUseCase } from "@/application/use-cases/quiz-sets/get-quiz-set";
 import { ListQuizSetsUseCase } from "@/application/use-cases/quiz-sets/list-quiz-sets";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuizSetId } from "@/modules/quizzes";
 
 export interface QuizSummaryBody {
 	readonly id: string;

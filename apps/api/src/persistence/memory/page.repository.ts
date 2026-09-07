@@ -4,13 +4,13 @@ import type {
 	PageRevision,
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
-import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import {
 	excerptAround,
 	PageEntity,
 	type PageId,
 	slugOf,
 } from "@/modules/pages";
+import { type QuizSetId, QuizSetStatus } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export class DuplicateSlugError extends Error {

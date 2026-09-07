@@ -6,20 +6,17 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { createQuestion } from "@/domain/quiz-set/create-question";
-import {
-	Difficulty,
-	QuestionType,
-	toQuestionId,
-	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
-	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
 import { PageEntity, toPageId } from "@/modules/pages";
+import {
+	createQuestion,
+	Difficulty,
+	QuestionType,
+	QuizSetEntity,
+	toQuestionId,
+	toQuestionOptionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 
 export interface OwnedSide {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -114,7 +111,7 @@ export function describeOwnership(
 
 			test("a quiz one owner writes is invisible to the other", async () => {
 				const id = uuid();
-				const quiz = createQuizSet({
+				const quiz = QuizSetEntity.create({
 					id: toQuizSetId(id),
 					title: "Designing Data-Intensive Applications",
 					language: "en",
@@ -243,8 +240,8 @@ export function describeOwnership(
 				const telegramUserId = 42;
 
 				const question = aQuestion(questionId);
-				const quiz = addQuestions(
-					createQuizSet({
+				const quiz = QuizSetEntity.addQuestions(
+					QuizSetEntity.create({
 						id: toQuizSetId(quizId),
 						title: "Replication",
 						language: "en",

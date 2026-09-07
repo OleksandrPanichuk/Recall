@@ -7,13 +7,8 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import {
-	createQuizSet,
-	moveQuizSetToFolder,
-	type QuizSetId,
-	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
 import { type PageId, PagesService } from "@/modules/pages";
+import { QuizSetEntity, type QuizSetId, toQuizSetId } from "@/modules/quizzes";
 
 export interface CreateQuizSetCommand {
 	readonly title: string;
@@ -52,7 +47,7 @@ export class CreateQuizSetUseCase
 				await new PagesService(pages).require(request.folderId);
 			}
 
-			const quizSet = createQuizSet({
+			const quizSet = QuizSetEntity.create({
 				id: toQuizSetId(this.idGenerator.generate()),
 				title: request.title,
 				language: request.language,
@@ -66,7 +61,11 @@ export class CreateQuizSetUseCase
 			await quizzes.save(
 				request.folderId === undefined
 					? quizSet
-					: moveQuizSetToFolder(quizSet, request.folderId, quizSet.createdAt),
+					: QuizSetEntity.moveToPage(
+							quizSet,
+							request.folderId,
+							quizSet.createdAt,
+						),
 			);
 
 			return { quizSetId: quizSet.id };

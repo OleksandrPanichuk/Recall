@@ -2,8 +2,7 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { Difficulty, QuestionType, type QuizSetId } from "@/modules/quizzes";
 import { AddQuestionsUseCase, type QuestionInput } from "./add-questions";
 import { AddVocabularyUseCase } from "./add-vocabulary";
 import { ArchiveQuizSetUseCase } from "./archive-quiz-set";

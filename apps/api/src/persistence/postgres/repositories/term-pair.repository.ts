@@ -3,14 +3,13 @@ import type { OwnerId } from "@/application/ports/owner";
 import type { TermPairRepository } from "@/application/ports/repositories/term-pair.repository";
 import { termPairs } from "@/db/schema";
 import { isUuid } from "@/db/uuid";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	restoreVocabularyItem,
 	toVocabularyItemId,
 	type VocabularyItem,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
+import { type QuizSetId, toQuizSetId } from "@/modules/quizzes";
 import type { Executor } from "../unit-of-work";
 
 type TermPairRow = typeof termPairs.$inferSelect;

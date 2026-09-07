@@ -6,11 +6,8 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import {
-	moveQuizSetToFolder,
-	type QuizSetId,
-} from "@/domain/quiz-set/quiz-set";
 import { type PageId, PagesService } from "@/modules/pages";
+import { QuizSetEntity, type QuizSetId } from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface MoveQuizSetCommand {
@@ -44,7 +41,7 @@ export class MoveQuizSetUseCase
 			}
 
 			await quizzes.save(
-				moveQuizSetToFolder(stored, request.folderId, this.clock.now()),
+				QuizSetEntity.moveToPage(stored, request.folderId, this.clock.now()),
 			);
 		});
 	}

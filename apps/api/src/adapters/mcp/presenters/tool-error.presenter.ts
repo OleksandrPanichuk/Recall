@@ -4,13 +4,6 @@ import {
 } from "@/application/use-cases/quiz-sets/add-questions";
 import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { VocabularyItemNotFoundError } from "@/application/use-cases/quiz-sets/update-vocabulary";
-import {
-	DuplicateQuestionError,
-	EmptyQuizSetError,
-	QuestionValidationError,
-	QuizSetTransitionError,
-	QuizSetValidationError,
-} from "@/domain/quiz-set/quiz-set.errors";
 import { VocabularyItemValidationError } from "@/domain/vocabulary/vocabulary-item.errors";
 import {
 	DuplicateFolderNameError,
@@ -21,6 +14,13 @@ import {
 	FolderPathNotFoundError,
 	FolderValidationError,
 } from "@/modules/pages";
+import {
+	DuplicateQuestionError,
+	EmptyQuizSetError,
+	QuestionValidationError,
+	QuizSetTransitionError,
+	QuizSetValidationError,
+} from "@/modules/quizzes";
 
 export function describeError(error: unknown): string {
 	if (error instanceof VocabularyItemValidationError) {

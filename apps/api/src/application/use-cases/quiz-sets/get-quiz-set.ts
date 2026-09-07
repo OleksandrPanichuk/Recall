@@ -4,7 +4,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuizSet, QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { QuizSetEntity, type QuizSetId } from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface GetQuizSetCommand {
@@ -14,7 +14,7 @@ export interface GetQuizSetCommand {
 export type GetQuizSetDependencies = ApplicationDependencies;
 
 export class GetQuizSetUseCase
-	implements UseCase<Command<GetQuizSetCommand>, QuizSet>
+	implements UseCase<Command<GetQuizSetCommand>, QuizSetEntity>
 {
 	private readonly scope: RepositoryScope;
 
@@ -22,7 +22,7 @@ export class GetQuizSetUseCase
 		this.scope = dependencies.scope;
 	}
 
-	async execute(request: Command<GetQuizSetCommand>): Promise<QuizSet> {
+	async execute(request: Command<GetQuizSetCommand>): Promise<QuizSetEntity> {
 		const stored = await this.scope.quizzes.findById(request.quizSetId);
 
 		if (stored === undefined) {

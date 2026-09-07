@@ -1,10 +1,9 @@
 import type { AddressInfo } from "node:net";
 import type { QuestionInput } from "@api/application/use-cases/quiz-sets/add-questions";
 import { Database, DatabaseConnection } from "@api/db/connection";
-import { Difficulty, QuestionType } from "@api/domain/quiz-set/question";
-import type { QuizSetId } from "@api/domain/quiz-set/quiz-set";
 import { AuthModule } from "@api/modules/auth";
 import { BotModule } from "@api/modules/bot/bot.module";
+import { Difficulty, QuestionType, type QuizSetId } from "@api/modules/quizzes";
 import { USE_CASE_DEPENDENCIES } from "@api/modules/shared/database/tokens";
 import { CoreModule } from "@api/shared/core.module";
 import { ModuleErrorFilter } from "@api/shared/http/module-error.filter";

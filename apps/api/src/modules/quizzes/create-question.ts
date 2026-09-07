@@ -4,12 +4,12 @@ import {
 	collectQuestionIssues,
 	collectQuestionValueIssues,
 } from "./create-question.validation";
-import { type Question, QuestionType } from "./question";
-import { QuestionValidationError } from "./quiz-set.errors";
+import { QuestionEntity, QuestionType } from "./question.entity";
+import { QuestionValidationError } from "./quizzes.errors";
 
 const normalisePosition = (value: number): number => (value === 0 ? 0 : value);
 
-export function createQuestion(draft: QuestionDraft): Question {
+export function createQuestion(draft: QuestionDraft): QuestionEntity {
 	const unsupportedValueIssues = collectQuestionValueIssues(draft);
 
 	if (unsupportedValueIssues.length > 0) {

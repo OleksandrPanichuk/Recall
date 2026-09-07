@@ -1,7 +1,8 @@
 import { isValidDate } from "@/shared/utils/date";
-import type { Question, QuestionId } from "./question";
+import type { QuestionEntity, QuestionId } from "./question.entity";
 import { questionFingerprint } from "./question-fingerprint";
-import type { QuizSet, QuizSetDraft } from "./quiz-set.types";
+import type { QuizSetEntity } from "./quiz-set.entity";
+import type { QuizSetDraft } from "./quiz-set.entity.types";
 
 export const collectDraftIssues = (
 	draft: QuizSetDraft,
@@ -26,8 +27,8 @@ export const collectDraftIssues = (
 };
 
 export const collectDuplicateQuestionIds = (
-	quizSet: QuizSet,
-	questions: readonly Question[],
+	quizSet: QuizSetEntity,
+	questions: readonly QuestionEntity[],
 ): readonly QuestionId[] => {
 	const seen = new Set(quizSet.questions.map((question) => question.id));
 	const duplicates = new Set<QuestionId>();
@@ -44,8 +45,8 @@ export const collectDuplicateQuestionIds = (
 };
 
 export const collectDuplicateFingerprints = (
-	quizSet: QuizSet,
-	questions: readonly Question[],
+	quizSet: QuizSetEntity,
+	questions: readonly QuestionEntity[],
 ): readonly string[] => {
 	const seen = new Set(quizSet.questions.map(questionFingerprint));
 	const duplicates = new Set<string>();

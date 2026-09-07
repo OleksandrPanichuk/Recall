@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { toQuestionId, toQuestionOptionId } from "../quiz-set/question";
+import { toQuestionId, toQuestionOptionId } from "@/modules/quizzes";
 import type { QuestionResponse } from "./quiz-attempt";
 import { QuizAttemptValidationError } from "./quiz-attempt.errors";
 import { calculateScore } from "./score";

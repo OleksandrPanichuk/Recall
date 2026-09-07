@@ -53,15 +53,6 @@ export interface MatchingQuestion extends QuestionFields {
 	readonly type: typeof QuestionType.Matching;
 }
 
-export type Question =
-	| SingleChoiceQuestion
-	| MultipleChoiceQuestion
-	| TrueFalseQuestion
-	| TypedAnswerQuestion
-	| ClozeQuestion
-	| OrderingQuestion
-	| MatchingQuestion;
-
 export interface MatchingSides {
 	readonly left: readonly QuestionOption[];
 	readonly right: readonly QuestionOption[];

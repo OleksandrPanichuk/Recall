@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UseCase } from "@/core/use-case";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { QuizSetStatus } from "@/modules/quizzes";
 import type { PageEntity, PageId } from "../page.entity";
 import { PagesRepository } from "../pages.repository";
 

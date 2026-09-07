@@ -1,9 +1,9 @@
-import type {
-	QuizSet,
-	QuizSetId,
-	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
 import { type PageId } from "@/modules/pages";
+import {
+	QuizSetEntity,
+	type QuizSetId,
+	QuizSetStatus,
+} from "@/modules/quizzes";
 
 export interface QuizSummary {
 	readonly id: QuizSetId;
@@ -32,8 +32,8 @@ export class QuizVersionConflictError extends Error {
 }
 
 export interface QuizRepository {
-	save(quiz: QuizSet, expectedVersion?: number): Promise<number>;
-	findById(id: QuizSetId): Promise<QuizSet | undefined>;
+	save(quiz: QuizSetEntity, expectedVersion?: number): Promise<number>;
+	findById(id: QuizSetId): Promise<QuizSetEntity | undefined>;
 	versionOf(id: QuizSetId): Promise<number | undefined>;
 	list(filter?: QuizListFilter): Promise<readonly QuizSummary[]>;
 }

@@ -4,11 +4,14 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { Question } from "@/domain/quiz-set/question";
-import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import {
+	QuestionEntity,
+	type QuizSetId,
+	QuizSetStatus,
+} from "@/modules/quizzes";
 
 export interface QuestionRow {
-	readonly question: Question;
+	readonly question: QuestionEntity;
 	readonly quizSetId: QuizSetId;
 	readonly setTitle: string;
 	readonly setStatus: QuizSetStatus;

@@ -1,9 +1,12 @@
 import type { Logger } from "@recall/kit";
 import type { UseCases } from "@/composition/create-application";
-import type { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toPageId } from "@/modules/pages";
+import {
+	Difficulty,
+	QuestionType,
+	toQuestionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { matchesToken } from "../mcp/http/bearer";
 import { listPage, listQueryOf } from "./query";
 import {

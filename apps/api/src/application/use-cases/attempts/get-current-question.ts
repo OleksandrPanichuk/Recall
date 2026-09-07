@@ -9,8 +9,7 @@ import {
 	type QuizAttemptId,
 	type QuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import type { Question } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { QuestionEntity, type QuizSetId } from "@/modules/quizzes";
 import { resolveWithSource } from "../settings/resolve-quiz-settings";
 import type { AttemptOfUserCommand } from "./resume-quiz-attempt";
 
@@ -19,7 +18,7 @@ export interface CurrentQuestionView {
 	readonly quizSetId: QuizSetId;
 	readonly quizSetTitle: string;
 	readonly status: QuizAttemptStatus;
-	readonly question?: Question;
+	readonly question?: QuestionEntity;
 	readonly index: number;
 	readonly total: number;
 	readonly awaitingFinish: boolean;

@@ -1,8 +1,8 @@
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type {
 	VocabularyItem,
 	VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
+import { type QuizSetId } from "@/modules/quizzes";
 
 export interface TermPairRepository {
 	save(pair: VocabularyItem): Promise<void>;

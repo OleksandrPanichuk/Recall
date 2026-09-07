@@ -10,7 +10,7 @@ import {
 	sequentialId,
 } from "@tests/fixtures/memory.fixture";
 import { createMcpServer, MCP_SERVER_NAME } from "@/adapters/mcp/server";
-import { QuestionType } from "@/domain/quiz-set/question";
+import { QuestionType } from "@/modules/quizzes";
 
 let application: MemoryApplication;
 let client: Client;

@@ -1,9 +1,9 @@
 import type { TermPairRepository } from "@/application/ports/repositories/term-pair.repository";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type {
 	VocabularyItem,
 	VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
+import { type QuizSetId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export function createMemoryTermPairRepository(

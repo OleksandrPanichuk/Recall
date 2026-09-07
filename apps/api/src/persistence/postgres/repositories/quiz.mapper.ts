@@ -1,19 +1,17 @@
 import type { questionOptions, questions, quizzes } from "@/db/schema";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+import { toPageId } from "@/modules/pages";
 import {
+	createQuestion,
 	isDifficulty,
 	isQuestionType,
-	type Question,
+	isQuizSetStatus,
+	QuestionEntity,
 	type QuestionOption,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	isQuizSetStatus,
-	type QuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import { toPageId } from "@/modules/pages";
+} from "@/modules/quizzes";
 
 export type QuizRow = typeof quizzes.$inferSelect;
 export type QuestionRow = typeof questions.$inferSelect;
@@ -37,7 +35,7 @@ const optionOf = (row: OptionRow): QuestionOption => ({
 export function toQuestion(
 	row: QuestionRow,
 	optionRows: readonly OptionRow[],
-): Question {
+): QuestionEntity {
 	if (!isQuestionType(row.type)) {
 		throw new CorruptedQuizRowError(row.quizId, [
 			`question ${row.id} has unsupported type "${row.type}"`,
@@ -69,7 +67,7 @@ export function toQuiz(
 	row: QuizRow,
 	questionRows: readonly QuestionRow[],
 	optionRows: readonly OptionRow[],
-): QuizSet {
+): QuizSetEntity {
 	if (!isQuizSetStatus(row.status)) {
 		throw new CorruptedQuizRowError(row.id, [
 			`status "${row.status}" is not supported`,
@@ -107,5 +105,5 @@ export function toQuiz(
 		publishedAt: row.publishedAt ?? undefined,
 		archivedAt: row.archivedAt ?? undefined,
 		folderId: row.pageId === null ? undefined : toPageId(row.pageId),
-	}) as QuizSet;
+	}) as QuizSetEntity;
 }

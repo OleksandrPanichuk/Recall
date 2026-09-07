@@ -35,12 +35,11 @@ import {
 } from "@/domain/quiz-attempt/quiz-attempt.errors";
 import type { Score } from "@/domain/quiz-attempt/score";
 import {
-	expectsTypedAnswer,
-	type Question,
+	QuestionEntity,
 	type QuestionId,
 	type QuestionOptionId,
 	QuestionType,
-} from "@/domain/quiz-set/question";
+} from "@/modules/quizzes";
 import { isWithinOneEdit } from "@/shared/utils/edit-distance";
 import { resolveRepetitionSettings } from "../settings/resolve-quiz-settings";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
@@ -66,7 +65,7 @@ export interface AnswerQuestionResult {
 	readonly correctOptionIds: readonly QuestionOptionId[];
 	readonly nextQuestionId?: QuestionId;
 	readonly score: Score;
-	readonly question: Question;
+	readonly question: QuestionEntity;
 	readonly acceptedAnswers: readonly string[];
 	readonly typedAnswer?: string;
 	readonly nearMiss?: string;
@@ -176,7 +175,7 @@ export class AnswerQuestionUseCase
 		attempt: QuizAttempt,
 		isCorrect: boolean,
 		alreadyAnswered: boolean,
-		question: Question,
+		question: QuestionEntity,
 		grade: AnswerGrade,
 		typedAnswer: string | undefined,
 		gradable: boolean,
@@ -185,7 +184,7 @@ export class AnswerQuestionUseCase
 			isCorrect,
 			alreadyAnswered,
 			explanation: question.explanation,
-			acceptedAnswers: expectsTypedAnswer(question)
+			acceptedAnswers: QuestionEntity.expectsTypedAnswer(question)
 				? acceptedAnswers(question)
 				: [],
 			typedAnswer,
@@ -204,11 +203,11 @@ export class AnswerQuestionUseCase
 }
 
 function answerOf(
-	question: Question,
+	question: QuestionEntity,
 	selectedOptionIds: readonly QuestionOptionId[],
 	typed: string | undefined,
 ): Answer {
-	if (expectsTypedAnswer(question)) {
+	if (QuestionEntity.expectsTypedAnswer(question)) {
 		return textAnswer(typed ?? "");
 	}
 
@@ -244,7 +243,10 @@ function pairsOf(
 	return pairs;
 }
 
-function nearMissOf(question: Question, typed: string): string | undefined {
+function nearMissOf(
+	question: QuestionEntity,
+	typed: string,
+): string | undefined {
 	const candidate = normaliseForComparison(typed);
 
 	return acceptedAnswers(question).find((accepted) =>
@@ -253,7 +255,7 @@ function nearMissOf(question: Question, typed: string): string | undefined {
 }
 
 function selectedIdsOf(
-	question: Question,
+	question: QuestionEntity,
 	positions: readonly number[],
 ): readonly QuestionOptionId[] {
 	return positions.map((position) => {

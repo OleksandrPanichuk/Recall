@@ -17,13 +17,14 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import type { Question, QuestionId } from "@/domain/quiz-set/question";
+import { type PageId } from "@/modules/pages";
 import {
-	type QuizSet,
+	QuestionEntity,
+	type QuestionId,
+	QuizSetEntity,
 	type QuizSetId,
 	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
-import { type PageId } from "@/modules/pages";
+} from "@/modules/quizzes";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
@@ -154,7 +155,7 @@ export class StartPracticeSessionUseCase
 
 	private async outstandingMistakes(
 		request: Command<StartPracticeSessionCommand>,
-		quizSet: QuizSet,
+		quizSet: QuizSetEntity,
 		attempts: AttemptRepository,
 	): Promise<readonly QuestionId[]> {
 		const present = new Set<string>(
@@ -168,15 +169,17 @@ export class StartPracticeSessionUseCase
 }
 
 function questionsOfTopics(
-	quizSet: QuizSet,
+	quizSet: QuizSetEntity,
 	topics: readonly string[],
 ): readonly QuestionId[] {
 	const weak = new Set(topics);
 
 	return quizSet.questions
-		.filter((question: Question) => hasWeakTopic(question, weak))
+		.filter((question: QuestionEntity) => hasWeakTopic(question, weak))
 		.map((question) => question.id);
 }
 
-const hasWeakTopic = (question: Question, weak: ReadonlySet<string>): boolean =>
-	question.topic !== undefined && weak.has(question.topic);
+const hasWeakTopic = (
+	question: QuestionEntity,
+	weak: ReadonlySet<string>,
+): boolean => question.topic !== undefined && weak.has(question.topic);

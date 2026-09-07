@@ -5,7 +5,7 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { QuizSetStatus } from "@/modules/quizzes";
 
 export interface ListQuizSetsCommand {
 	readonly includeUnpublished?: boolean;

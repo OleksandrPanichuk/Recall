@@ -8,11 +8,7 @@ import {
 	quizzes,
 } from "@/db/schema";
 import { isUuid } from "@/db/uuid";
-import {
-	type QuizSetId,
-	type QuizSetStatus,
-	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
+import { type QuizSetId, QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 import { PageEntity, type PageId, toPageId } from "../page.entity";
 
 type PageRow = typeof pages.$inferSelect;

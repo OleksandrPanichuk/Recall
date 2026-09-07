@@ -4,7 +4,7 @@ import type {
 	QuizSummary,
 } from "@/application/ports/repositories/quiz.repository";
 import { QuizVersionConflictError } from "@/application/ports/repositories/quiz.repository";
-import type { QuizSet, QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { QuizSetEntity, type QuizSetId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
@@ -13,7 +13,7 @@ export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
 			return store.quizVersions.get(String(id));
 		},
 
-		async save(quiz: QuizSet, expectedVersion?: number): Promise<number> {
+		async save(quiz: QuizSetEntity, expectedVersion?: number): Promise<number> {
 			const id = String(quiz.id);
 			const stored = store.quizVersions.get(id);
 
@@ -54,7 +54,7 @@ export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
 			return nextVersion;
 		},
 
-		async findById(id: QuizSetId): Promise<QuizSet | undefined> {
+		async findById(id: QuizSetId): Promise<QuizSetEntity | undefined> {
 			return store.quizAggregates.get(String(id));
 		},
 

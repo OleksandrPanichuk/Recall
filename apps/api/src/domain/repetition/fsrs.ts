@@ -6,8 +6,8 @@ import {
 	Rating,
 	State,
 } from "ts-fsrs";
+import { type QuestionId } from "@/modules/quizzes";
 import { copiedDate } from "@/shared/utils/date";
-import type { QuestionId } from "../quiz-set/question";
 import { RecallGrade } from "./grade";
 import { DAY_MS } from "./repetition.constants";
 import type {

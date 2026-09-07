@@ -351,7 +351,10 @@ export class QuizEntity {
 ```
 
 The interface and the class share a name by declaration merging: the type is the data, the
-class is where its behaviour lives. **Every method is static and every one is pure** — it takes
+class is where its behaviour lives. **An entity that is a discriminated union merges with a
+`namespace` instead**, because a class cannot merge with a union — `QuestionEntity` is seven
+question shapes and its two helpers hang off a namespace of the same name. That is why
+`noRedeclare` joins the rules turned off for this app. **Every method is static and every one is pure** — it takes
 the entity and returns a new one. Nothing mutates `this`, nothing is instantiated, and the data
 stays a plain readonly object that a repository can build from a row and a test can write by
 hand. So this is a regrouping of today's `createQuizSet` / `publishQuizSet` functions, not a

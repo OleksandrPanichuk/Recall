@@ -8,14 +8,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { createQuestion } from "@/domain/quiz-set/create-question";
-import {
-	type Question,
-	type QuestionId,
-	QuestionType,
-	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import { replaceQuestions } from "@/domain/quiz-set/quiz-set";
 import {
 	cardsOf,
 	restoreVocabularyItem,
@@ -24,6 +16,14 @@ import {
 	type VocabularyItem,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
+import {
+	createQuestion,
+	QuestionEntity,
+	type QuestionId,
+	QuestionType,
+	QuizSetEntity,
+	toQuestionOptionId,
+} from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export class VocabularyItemNotFoundError extends Error {
@@ -58,7 +58,7 @@ const BOTH_WAYS = [
 ];
 
 interface Rebuild {
-	readonly replacements: readonly Question[];
+	readonly replacements: readonly QuestionEntity[];
 	readonly removedIds: readonly QuestionId[];
 }
 
@@ -68,11 +68,11 @@ const cardsByDirection = (
 	new Map(cardsOf(item, BOTH_WAYS).map((card) => [card.direction, card]));
 
 const rebuiltFrom = (
-	question: Question,
+	question: QuestionEntity,
 	card: VocabularyCard,
 	example: string | undefined,
 	mintId: () => string,
-): Question =>
+): QuestionEntity =>
 	createQuestion({
 		id: question.id,
 		type: QuestionType.TypedAnswer,
@@ -92,7 +92,7 @@ const rebuiltFrom = (
 	});
 
 function planRebuild(
-	questions: readonly Question[],
+	questions: readonly QuestionEntity[],
 	stored: VocabularyItem,
 	updated: VocabularyItem,
 	mintId: () => string,
@@ -105,7 +105,7 @@ function planRebuild(
 				[normaliseForComparison(card.prompt), direction] as const,
 		),
 	);
-	const replacements: Question[] = [];
+	const replacements: QuestionEntity[] = [];
 	const removedIds: QuestionId[] = [];
 
 	for (const question of questions) {
@@ -187,7 +187,7 @@ export class UpdateVocabularyUseCase
 
 			await termPairs.save(updated);
 			await quizzes.save(
-				replaceQuestions(quizSet, replacements, removedIds, at),
+				QuizSetEntity.replaceQuestions(quizSet, replacements, removedIds, at),
 			);
 
 			return {

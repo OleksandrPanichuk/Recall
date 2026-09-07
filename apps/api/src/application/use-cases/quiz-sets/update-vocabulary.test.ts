@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import {
-	DuplicateQuestionError,
-	QuizSetTransitionError,
-} from "@/domain/quiz-set/quiz-set.errors";
 import {
 	toVocabularyItemId,
 	VocabularyDirection,
 	type VocabularyItemId,
 	VocabularyItemValidationError,
 } from "@/domain/vocabulary/vocabulary-item";
+import {
+	DuplicateQuestionError,
+	type QuizSetId,
+	QuizSetTransitionError,
+} from "@/modules/quizzes";
 import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,

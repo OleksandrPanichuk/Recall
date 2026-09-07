@@ -6,9 +6,11 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { replaceQuestions } from "@/domain/quiz-set/quiz-set";
+import {
+	type QuestionId,
+	QuizSetEntity,
+	type QuizSetId,
+} from "@/modules/quizzes";
 import { QuestionNotFoundError } from "./update-question";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
@@ -73,7 +75,7 @@ export class DeleteQuestionUseCase
 				throw new AnsweredQuestionError(current.id, answers);
 			}
 
-			const updated = replaceQuestions(
+			const updated = QuizSetEntity.replaceQuestions(
 				quizSet,
 				[],
 				[current.id],

@@ -61,12 +61,11 @@ import type { Response } from "express";
 import type { OwnerId } from "@/application/ports/owner";
 import type { UseCases } from "@/composition/create-application";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { SessionGuard, type SessionRequest } from "@/modules/auth";
 import { toPageId } from "@/modules/pages";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import {
 	answerOptionsOf,
 	toQuestionInput,

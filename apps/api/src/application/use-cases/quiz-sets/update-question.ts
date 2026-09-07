@@ -7,15 +7,15 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { createQuestion } from "@/domain/quiz-set/create-question";
-import type { Difficulty } from "@/domain/quiz-set/question";
 import {
-	type Question,
+	createQuestion,
+	Difficulty,
+	QuestionEntity,
 	type QuestionId,
+	QuizSetEntity,
+	type QuizSetId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { replaceQuestions } from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 import type { QuestionOptionInput } from "./add-questions";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
@@ -83,7 +83,7 @@ export class UpdateQuestionUseCase
 			}
 
 			const replacement = this.rebuilt(current, request);
-			const updated = replaceQuestions(
+			const updated = QuizSetEntity.replaceQuestions(
 				quizSet,
 				[replacement],
 				[],
@@ -101,9 +101,9 @@ export class UpdateQuestionUseCase
 	}
 
 	private rebuilt(
-		current: Question,
+		current: QuestionEntity,
 		request: Command<UpdateQuestionCommand>,
-	): Question {
+	): QuestionEntity {
 		const options =
 			request.options === undefined
 				? current.options

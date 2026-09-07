@@ -7,17 +7,18 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
-	type Difficulty,
-	type Question,
+	createQuestion,
+	Difficulty,
+	QuestionEntity,
 	type QuestionId,
-	type QuestionType,
+	QuestionType,
+	QuizSetEntity,
+	type QuizSetId,
+	questionFingerprint,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
-import { addQuestions, type QuizSetId } from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export const MAX_QUESTIONS_PER_BATCH = 50;
@@ -115,7 +116,7 @@ export class AddQuestionsUseCase
 				return { addedQuestionIds: [], alreadyPresent: true };
 			}
 
-			await quizzes.save(addQuestions(stored, questions, at));
+			await quizzes.save(QuizSetEntity.addQuestions(stored, questions, at));
 
 			return {
 				addedQuestionIds: questions.map((question) => question.id),
@@ -124,7 +125,7 @@ export class AddQuestionsUseCase
 		});
 	}
 
-	private toQuestion(input: QuestionInput, position: number): Question {
+	private toQuestion(input: QuestionInput, position: number): QuestionEntity {
 		return createQuestion({
 			id: toQuestionId(this.idGenerator.generate()),
 			type: input.type,

@@ -8,13 +8,13 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSettings } from "@/domain/repetition/repetition";
 import {
 	defaultQuizSettings,
 	type QuizSettings,
 } from "@/domain/settings/quiz-settings";
 import { type PageId } from "@/modules/pages";
+import { type QuizSetId } from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 
 export type QuizSettingsSource = "set" | "global" | "default";

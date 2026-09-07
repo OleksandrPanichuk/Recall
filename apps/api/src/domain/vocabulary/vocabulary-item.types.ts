@@ -1,5 +1,5 @@
 import type { BrandedId } from "@/core/branded-id";
-import type { QuizSetId } from "../quiz-set/quiz-set";
+import { type QuizSetId } from "@/modules/quizzes";
 import type { VocabularyDirection } from "./vocabulary-item.constants";
 
 export type VocabularyItemId = BrandedId<"VocabularyItemId">;

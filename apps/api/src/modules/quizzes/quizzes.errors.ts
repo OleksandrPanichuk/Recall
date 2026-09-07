@@ -1,4 +1,4 @@
-import type { QuestionId } from "./question";
+import type { QuestionId } from "./question.entity";
 import type { QuizSetStatus } from "./quiz-set.constants";
 
 export class QuestionValidationError extends Error {

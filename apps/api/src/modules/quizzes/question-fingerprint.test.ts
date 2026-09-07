@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { createQuestion } from "./create-question";
 import {
 	Difficulty,
-	type Question,
+	QuestionEntity,
 	QuestionType,
 	toQuestionId,
 	toQuestionOptionId,
-} from "./question";
+} from "./question.entity";
 import { questionFingerprint } from "./question-fingerprint";
 
 const option = (text: string, isCorrect: boolean, position: number) => ({
@@ -116,7 +116,7 @@ describe("questionFingerprint", () => {
 });
 
 describe("order-bearing questions", () => {
-	const ordering = (texts: readonly string[]): Question =>
+	const ordering = (texts: readonly string[]): QuestionEntity =>
 		createQuestion({
 			id: toQuestionId("q-order"),
 			type: QuestionType.Ordering,
@@ -131,7 +131,7 @@ describe("order-bearing questions", () => {
 			})),
 		});
 
-	const matching = (keys: readonly string[]): Question =>
+	const matching = (keys: readonly string[]): QuestionEntity =>
 		createQuestion({
 			id: toQuestionId("q-match"),
 			type: QuestionType.Matching,
@@ -166,7 +166,7 @@ describe("order-bearing questions", () => {
 	});
 
 	test("a reordered single choice is still the same question", () => {
-		const build = (texts: readonly string[]): Question =>
+		const build = (texts: readonly string[]): QuestionEntity =>
 			createQuestion({
 				id: toQuestionId("q-single"),
 				type: QuestionType.SingleChoice,
@@ -191,7 +191,7 @@ describe("matching questions", () => {
 	const matching = (
 		pairs: readonly (readonly [string, string])[],
 		keys?: readonly string[],
-	): Question =>
+	): QuestionEntity =>
 		createQuestion({
 			id: toQuestionId("q-match"),
 			type: QuestionType.Matching,

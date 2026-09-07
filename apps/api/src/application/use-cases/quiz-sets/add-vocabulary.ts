@@ -7,8 +7,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	cardsOf,
 	createVocabularyItem,
@@ -16,6 +14,7 @@ import {
 	type VocabularyDirection,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
+import { Difficulty, QuestionType, type QuizSetId } from "@/modules/quizzes";
 import type { AddQuestionsUseCase, QuestionInput } from "./add-questions";
 
 export interface VocabularyPairInput {

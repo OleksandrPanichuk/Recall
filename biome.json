@@ -59,6 +59,7 @@
 					"complexity": { "noStaticOnlyClass": "off" },
 					"suspicious": {
 						"noConfusingVoidType": "off",
+						"noRedeclare": "off",
 						"noUnsafeDeclarationMerging": "off"
 					},
 					"style": { "useImportType": "off" }

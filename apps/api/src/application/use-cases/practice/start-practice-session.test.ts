@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { shuffled } from "@recall/kit";
 import { QuizAttemptMode } from "@/domain/quiz-attempt/quiz-attempt";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
+import { toQuizSetId } from "@/modules/quizzes";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,

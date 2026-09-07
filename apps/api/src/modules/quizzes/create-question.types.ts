@@ -1,5 +1,5 @@
 import type { Difficulty, QuestionType } from "./question.constants";
-import type { QuestionId, QuestionOption } from "./question.types";
+import type { QuestionId, QuestionOption } from "./question.entity.types";
 
 export interface QuestionDraft {
 	readonly id: QuestionId;

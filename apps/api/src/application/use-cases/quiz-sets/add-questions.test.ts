@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { QuestionType } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
 	DuplicateQuestionError,
+	QuestionType,
 	QuestionValidationError,
 	QuizSetTransitionError,
-} from "@/domain/quiz-set/quiz-set.errors";
+	toQuizSetId,
+} from "@/modules/quizzes";
 import {
 	type AddQuestionsUseCase,
 	EmptyQuestionBatchError,

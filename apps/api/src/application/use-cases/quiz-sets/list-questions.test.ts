@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { anAnswer, anAttempt } from "@tests/fixtures/quiz-attempt.fixture";
 import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { type QuizSetId } from "@/modules/quizzes";
 import { ListQuestionsUseCase } from "./list-questions";
 import {
 	anotherQuestionInput,

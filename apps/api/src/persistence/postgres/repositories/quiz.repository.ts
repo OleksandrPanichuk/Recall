@@ -17,9 +17,12 @@ import type {
 import { QuizVersionConflictError } from "@/application/ports/repositories/quiz.repository";
 import { questionOptions, questions, quizzes } from "@/db/schema";
 import { isUuid } from "@/db/uuid";
-import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
-import type { QuizSet, QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import {
+	QuizSetEntity,
+	type QuizSetId,
+	questionFingerprint,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import type { Executor } from "../unit-of-work";
 import { toQuiz } from "./quiz.mapper";
 
@@ -48,7 +51,7 @@ export function createQuizPostgresRepository(
 			return currentVersion(String(id));
 		},
 
-		async save(quiz: QuizSet, expectedVersion?: number): Promise<number> {
+		async save(quiz: QuizSetEntity, expectedVersion?: number): Promise<number> {
 			const id = String(quiz.id);
 			const stored = await currentVersion(id);
 
@@ -149,7 +152,7 @@ export function createQuizPostgresRepository(
 			return nextVersion;
 		},
 
-		async findById(id: QuizSetId): Promise<QuizSet | undefined> {
+		async findById(id: QuizSetId): Promise<QuizSetEntity | undefined> {
 			if (!isUuid(String(id))) {
 				return undefined;
 			}

@@ -6,8 +6,8 @@ import {
 	type SingleChoiceQuestion,
 	toQuestionId,
 	toQuestionOptionId,
-} from "./question";
-import { QuestionValidationError } from "./quiz-set.errors";
+} from "./question.entity";
+import { QuestionValidationError } from "./quizzes.errors";
 
 const option = (text: string, isCorrect: boolean, position: number) => ({
 	id: toQuestionOptionId(`option-${position}`),

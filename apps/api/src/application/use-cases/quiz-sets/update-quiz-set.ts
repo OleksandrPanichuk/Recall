@@ -7,10 +7,10 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import {
+	QuizSetEntity,
 	type QuizSetId,
 	type QuizSetMetadata,
-	updateQuizSetMetadata,
-} from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 
 export class QuizSetNotFoundError extends Error {
 	readonly quizSetId: QuizSetId;
@@ -48,7 +48,7 @@ export class UpdateQuizSetUseCase
 			}
 
 			await quizzes.save(
-				updateQuizSetMetadata(stored, request, this.clock.now()),
+				QuizSetEntity.updateMetadata(stored, request, this.clock.now()),
 			);
 		});
 	}

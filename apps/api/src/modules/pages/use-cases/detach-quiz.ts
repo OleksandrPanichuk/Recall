@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Transaction } from "@/core/transaction";
 import { UseCase } from "@/core/use-case";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { type QuizSetId } from "@/modules/quizzes";
 import type { PageId } from "../page.entity";
 import { PagesRepository } from "../pages.repository";
 import { PagesService } from "../pages.service";

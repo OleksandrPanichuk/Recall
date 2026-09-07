@@ -1,24 +1,24 @@
 import { normaliseForComparison } from "@recall/kit";
-import type { Question, QuestionOptionId } from "../quiz-set/question";
+import { QuestionEntity, type QuestionOptionId } from "@/modules/quizzes";
 import type { AnswerGrade, OptionPair } from "./answer.types";
 import { QuizAttemptValidationError } from "./quiz-attempt.errors";
 
 export function correctOptionIds(
-	question: Question,
+	question: QuestionEntity,
 ): readonly QuestionOptionId[] {
 	return question.options
 		.filter((option) => option.isCorrect)
 		.map((option) => option.id);
 }
 
-export function acceptedAnswers(question: Question): readonly string[] {
+export function acceptedAnswers(question: QuestionEntity): readonly string[] {
 	return question.options
 		.filter((option) => option.isCorrect)
 		.map((option) => option.text);
 }
 
 const assertKnownOptions = (
-	question: Question,
+	question: QuestionEntity,
 	optionIds: readonly QuestionOptionId[],
 ): void => {
 	const known = new Set(question.options.map((option) => option.id));
@@ -39,7 +39,7 @@ const assertNotEmpty = (optionIds: readonly QuestionOptionId[]): void => {
 };
 
 export function evaluateOptions(
-	question: Question,
+	question: QuestionEntity,
 	optionIds: readonly QuestionOptionId[],
 ): boolean {
 	assertNotEmpty(optionIds);
@@ -54,7 +54,7 @@ export function evaluateOptions(
 	);
 }
 
-export function evaluateText(question: Question, text: string): boolean {
+export function evaluateText(question: QuestionEntity, text: string): boolean {
 	const candidate = normaliseForComparison(text);
 
 	if (candidate.length === 0) {
@@ -67,7 +67,7 @@ export function evaluateText(question: Question, text: string): boolean {
 }
 
 export function evaluateOrder(
-	question: Question,
+	question: QuestionEntity,
 	optionIds: readonly QuestionOptionId[],
 ): boolean {
 	assertNotEmpty(optionIds);
@@ -84,7 +84,7 @@ export function evaluateOrder(
 }
 
 export function gradePairs(
-	question: Question,
+	question: QuestionEntity,
 	pairs: readonly OptionPair[],
 ): AnswerGrade {
 	if (pairs.length === 0) {

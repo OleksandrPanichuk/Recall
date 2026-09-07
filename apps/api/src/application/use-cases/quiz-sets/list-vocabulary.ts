@@ -4,8 +4,8 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { VocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
+import { type QuizSetId } from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface VocabularyItemView {

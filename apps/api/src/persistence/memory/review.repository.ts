@@ -2,9 +2,9 @@ import type {
 	ReviewRepository,
 	SettingsScope,
 } from "@/application/ports/repositories/review.repository";
-import type { QuestionId } from "@/domain/quiz-set/question";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import { type QuestionId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export const settingsKey = (scope: SettingsScope): string =>

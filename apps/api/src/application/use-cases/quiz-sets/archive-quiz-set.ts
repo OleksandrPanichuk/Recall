@@ -7,10 +7,10 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import {
-	archiveQuizSet,
+	QuizSetEntity,
 	type QuizSetId,
 	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface ArchiveQuizSetCommand {
@@ -42,7 +42,7 @@ export class ArchiveQuizSetUseCase
 				return;
 			}
 
-			await quizzes.save(archiveQuizSet(stored, this.clock.now()));
+			await quizzes.save(QuizSetEntity.archive(stored, this.clock.now()));
 		});
 	}
 }

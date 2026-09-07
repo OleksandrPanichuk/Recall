@@ -4,11 +4,11 @@ import type {
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuizSet, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import type { VocabularyItem } from "@/domain/vocabulary/vocabulary-item";
 import { PageEntity, type PageId } from "@/modules/pages";
+import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
 
 export interface MemoryQuiz {
 	readonly id: string;
@@ -23,7 +23,7 @@ export interface MemoryStore {
 	shares: Map<string, PageShare>;
 	files: Map<string, Attachment>;
 	quizzes: Map<string, MemoryQuiz>;
-	quizAggregates: Map<string, QuizSet>;
+	quizAggregates: Map<string, QuizSetEntity>;
 	quizVersions: Map<string, number>;
 	answeredQuestionIds: Set<string>;
 	attempts: Map<string, QuizAttempt>;

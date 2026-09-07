@@ -1,8 +1,8 @@
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { Command, UseCase } from "@/application/use-case";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { type PageId, PagesService } from "@/modules/pages";
+import { QuizSetStatus } from "@/modules/quizzes";
 
 export interface BrowseCrumb {
 	readonly id: PageId;

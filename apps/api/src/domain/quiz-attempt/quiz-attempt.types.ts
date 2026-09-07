@@ -1,6 +1,9 @@
 import type { BrandedId } from "@/core/branded-id";
-import type { QuestionId, QuestionOptionId } from "../quiz-set/question";
-import type { QuizSetId } from "../quiz-set/quiz-set";
+import {
+	type QuestionId,
+	type QuestionOptionId,
+	type QuizSetId,
+} from "@/modules/quizzes";
 import type { RecallGrade } from "../repetition/grade";
 import type {
 	QuizAttemptMode,

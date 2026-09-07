@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { Difficulty } from "@/domain/quiz-set/question";
 import {
 	MAX_VOCABULARY_TEXT,
 	MAX_VOCABULARY_VARIANTS,
 	VocabularyDirection,
 } from "@/domain/vocabulary/vocabulary-item";
+import { Difficulty } from "@/modules/quizzes";
 
 const word = z.string().trim().min(1).max(MAX_VOCABULARY_TEXT);
 

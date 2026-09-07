@@ -3,8 +3,12 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import {
+	Difficulty,
+	QuestionType,
+	type QuizSetId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { AnswerQuestionUseCase } from "../attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "../attempts/finish-quiz-attempt";
 import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";

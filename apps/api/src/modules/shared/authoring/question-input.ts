@@ -3,7 +3,7 @@ import type {
 	QuestionInput,
 	QuestionOptionInput,
 } from "@/application/use-cases/quiz-sets/add-questions";
-import { QuestionType } from "@/domain/quiz-set/question";
+import { QuestionType } from "@/modules/quizzes";
 
 const accepted = (texts: readonly string[]): readonly QuestionOptionInput[] =>
 	texts.map((text) => ({ text, isCorrect: true }));

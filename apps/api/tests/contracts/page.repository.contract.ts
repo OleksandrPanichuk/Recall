@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { type QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { PageEntity, toPageId } from "@/modules/pages";
+import { QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 
 export interface PageRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;

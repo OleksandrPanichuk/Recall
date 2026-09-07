@@ -1,5 +1,4 @@
-import type { QuestionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
 
 export interface DailyActivity {
 	readonly day: string;

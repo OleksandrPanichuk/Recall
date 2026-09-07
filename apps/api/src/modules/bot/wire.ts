@@ -42,16 +42,15 @@ import type { SharedPageView } from "@/application/use-cases/sharing/read-shared
 import type { SharedPage } from "@/application/use-cases/sharing/share-page";
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
-import type { Question } from "@/domain/quiz-set/question";
-import type { QuizSet } from "@/domain/quiz-set/quiz-set";
 import type { DueSet } from "@/domain/repetition/repetition.types";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import type { DetachedQuiz, PageTreeNode } from "@/modules/pages";
+import { QuestionEntity, QuizSetEntity } from "@/modules/quizzes";
 
 const text = (value: string | undefined): string | undefined =>
 	value === undefined ? undefined : value;
 
-export const questionToWire = (question: Question): WireQuestion => ({
+export const questionToWire = (question: QuestionEntity): WireQuestion => ({
 	id: String(question.id),
 	type: question.type,
 	prompt: question.prompt,
@@ -138,7 +137,7 @@ export const revisionToWire = (revision: PageRevision): WirePageRevision => ({
 	createdAt: revision.createdAt.toISOString(),
 });
 
-export const quizDetailToWire = (quiz: QuizSet): WireQuizDetail => ({
+export const quizDetailToWire = (quiz: QuizSetEntity): WireQuizDetail => ({
 	id: String(quiz.id),
 	title: quiz.title,
 	language: quiz.language,

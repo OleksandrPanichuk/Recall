@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuizSetId } from "@/modules/quizzes";
 import { ok } from "../presenters/tool-result.presenter";
 import { updateSetShape } from "../schemas/quiz-set.schema";
 import type { McpUseCases } from "../server.types";

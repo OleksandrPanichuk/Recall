@@ -4,18 +4,13 @@ import {
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import {
-	archiveQuizSet,
-	publishQuizSet,
-	type QuizSet,
-	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
-import {
 	CreatePageUseCase,
 	DeletePageUseCase,
 	FolderNotEmptyError,
 	type PageId,
 	PagesService,
 } from "@/modules/pages";
+import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
 import {
 	aQuestion,
 	aQuizSet,
@@ -58,14 +53,14 @@ const create = async (name: string, parentId?: PageId): Promise<PageId> =>
 const store = async (
 	id: string,
 	status: QuizSetStatus = QuizSetStatus.Published,
-): Promise<QuizSet> => {
+): Promise<QuizSetEntity> => {
 	const draft = aQuizSet({ id, questions: [aQuestion({ id: `${id}-q` })] });
 	const at = context.clock.now();
 	const quizSet =
 		status === QuizSetStatus.Published
-			? publishQuizSet(draft, at)
+			? QuizSetEntity.publish(draft, at)
 			: status === QuizSetStatus.Archived
-				? archiveQuizSet(draft, at)
+				? QuizSetEntity.archive(draft, at)
 				: draft;
 
 	await context.unitOfWork.run(({ quizzes }) => quizzes.save(quizSet));

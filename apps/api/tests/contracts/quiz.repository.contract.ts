@@ -1,20 +1,16 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+import { toPageId } from "@/modules/pages";
 import {
+	createQuestion,
 	Difficulty,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
-	type QuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import { toPageId } from "@/modules/pages";
+} from "@/modules/quizzes";
 
 export interface QuizRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -52,8 +48,8 @@ const question = (id: string, prompt: string, position: number) =>
 const quizWith = (
 	id: string,
 	prompts: readonly [string, string][],
-): QuizSet => {
-	const empty = createQuizSet({
+): QuizSetEntity => {
+	const empty = QuizSetEntity.create({
 		id: toQuizSetId(id),
 		title: "Designing Data-Intensive Applications",
 		language: "en",
@@ -61,7 +57,7 @@ const quizWith = (
 		createdAt: at,
 	});
 
-	return addQuestions(
+	return QuizSetEntity.addQuestions(
 		empty,
 		prompts.map(([questionId, prompt], index) =>
 			question(questionId, prompt, index),
@@ -112,8 +108,8 @@ export function describeQuizRepository(
 
 				await harness.unitOfWork.run(async ({ quizzes }) => {
 					await quizzes.save(
-						addQuestions(
-							createQuizSet({
+						QuizSetEntity.addQuestions(
+							QuizSetEntity.create({
 								id: toQuizSetId(quizId),
 								title: "German",
 								language: "de",
@@ -137,8 +133,8 @@ export function describeQuizRepository(
 
 				await harness.unitOfWork.run(async ({ quizzes }) => {
 					await quizzes.save(
-						addQuestions(
-							createQuizSet({
+						QuizSetEntity.addQuestions(
+							QuizSetEntity.create({
 								id: toQuizSetId(quizId),
 								title: "German",
 								language: "de",

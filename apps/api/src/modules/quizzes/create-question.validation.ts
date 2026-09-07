@@ -6,7 +6,7 @@ import {
 	isQuestionType,
 	type QuestionOption,
 	QuestionType,
-} from "./question";
+} from "./question.entity";
 
 const collectUnsupportedValueIssues = (
 	draft: QuestionDraft,

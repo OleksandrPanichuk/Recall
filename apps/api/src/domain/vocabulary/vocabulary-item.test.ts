@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { toQuizSetId } from "../quiz-set/quiz-set";
+import { toQuizSetId } from "@/modules/quizzes";
 import {
 	cardsOf,
 	createVocabularyItem,

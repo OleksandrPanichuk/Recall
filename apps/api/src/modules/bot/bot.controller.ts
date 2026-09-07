@@ -65,8 +65,6 @@ import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/upda
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { BotTokenGuard } from "@/modules/auth";
 import {
@@ -83,6 +81,7 @@ import {
 	toPageId,
 	WriteSummaryUseCase,
 } from "@/modules/pages";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {

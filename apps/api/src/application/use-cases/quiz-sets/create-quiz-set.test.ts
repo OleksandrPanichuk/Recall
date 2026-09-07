@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { QuizSetValidationError } from "@/domain/quiz-set/quiz-set.errors";
+import { QuizSetStatus, QuizSetValidationError } from "@/modules/quizzes";
 import type { CreateQuizSetUseCase } from "./create-quiz-set";
 import {
 	createQuizSetsHarness,

@@ -7,10 +7,10 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import {
-	publishQuizSet,
+	QuizSetEntity,
 	type QuizSetId,
 	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export interface PublishQuizSetCommand {
@@ -42,7 +42,7 @@ export class PublishQuizSetUseCase
 				return;
 			}
 
-			await quizzes.save(publishQuizSet(stored, this.clock.now()));
+			await quizzes.save(QuizSetEntity.publish(stored, this.clock.now()));
 		});
 	}
 }

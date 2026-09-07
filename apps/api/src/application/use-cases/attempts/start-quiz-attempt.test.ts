@@ -5,8 +5,8 @@ import {
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
+import { type QuizSetId, toQuizSetId } from "@/modules/quizzes";
 import type { AddQuestionsUseCase } from "../quiz-sets/add-questions";
 import type { ArchiveQuizSetUseCase } from "../quiz-sets/archive-quiz-set";
 import type { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";

@@ -3,9 +3,12 @@ import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-q
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
-import { QuestionType, toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import { QuestionValidationError } from "@/domain/quiz-set/quiz-set.errors";
+import {
+	QuestionType,
+	QuestionValidationError,
+	toQuestionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import {
 	anotherQuestionInput,
 	aQuestionInput,

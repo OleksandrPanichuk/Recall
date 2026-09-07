@@ -1,7 +1,7 @@
 import type { QuestionRow } from "@/application/use-cases/quiz-sets/list-questions";
 import type { VocabularyItemView } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import type { QuizSet } from "@/domain/quiz-set/quiz-set";
 import type { PageTreeNode } from "@/modules/pages";
+import { QuizSetEntity } from "@/modules/quizzes";
 import type { ListShape } from "./query";
 
 export interface SetRecord {
@@ -76,7 +76,7 @@ export interface SettingsRecord {
 
 const text = (value: string | undefined): string => value ?? "";
 
-export const setRecordOf = (quizSet: QuizSet): SetRecord => ({
+export const setRecordOf = (quizSet: QuizSetEntity): SetRecord => ({
 	id: String(quizSet.id),
 	title: quizSet.title,
 	language: quizSet.language,

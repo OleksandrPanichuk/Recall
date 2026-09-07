@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import { AnswerQuestionUseCase } from "../attempts/answer-question";
 import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
 import {
