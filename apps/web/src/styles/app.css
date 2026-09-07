@@ -127,6 +127,23 @@
 	color: var(--muted-foreground);
 }
 
+.recall-prose .katex,
+.recall-editor .milkdown .katex {
+	color: var(--foreground);
+}
+
+.recall-editor .milkdown .milkdown-latex-block > .preview-panel,
+.recall-editor .milkdown [data-type="latex"] .preview-panel {
+	background: var(--muted);
+	border-radius: var(--radius-sm);
+}
+
+.recall-prose .katex-display {
+	margin: 1em 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
 .recall-editor .milkdown {
 	--crepe-color-background: transparent;
 	--crepe-color-on-background: var(--foreground);

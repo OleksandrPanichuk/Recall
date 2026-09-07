@@ -1,5 +1,6 @@
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
+import "katex/dist/katex.min.css";
 import { useEffect, useRef } from "react";
 import { slashMenu } from "@/features/pages/constants/editor-menu";
 import { displayUrl, uploadImage } from "@/features/pages/lib/uploads";
@@ -30,7 +31,6 @@ export function NotionEditor({ markdown, onChange, onReady }: Props) {
 		const crepe = new Crepe({
 			root,
 			defaultValue: initial.current,
-			features: { [Crepe.Feature.Latex]: false },
 			featureConfigs: {
 				[Crepe.Feature.Placeholder]: {
 					text: "Write something, or press “/” for commands",
