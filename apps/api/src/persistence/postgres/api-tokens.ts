@@ -1,8 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { type OwnerId, toOwnerId } from "@/application/ports/owner";
-import { apiTokens } from "./auth-schema";
-import type { RecallDatabase } from "./client";
+import type { RecallDatabase } from "@/db/client";
+import { apiTokens } from "@/db/schema";
 
 export const TOKEN_PREFIX = "recall_pat_";
 export const DEFAULT_SCOPES = ["mcp"] as const;

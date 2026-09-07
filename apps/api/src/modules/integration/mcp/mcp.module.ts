@@ -9,6 +9,7 @@ import {
 	uuidGenerator,
 } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
+import type { PostgresConnection } from "@/db/client";
 import type { RecallAuth } from "@/modules/auth/build-auth";
 import { ownerOfSession } from "@/modules/auth/session-owner";
 import { AUTH } from "@/modules/auth/tokens";
@@ -17,7 +18,6 @@ import {
 	looksLikeApiToken,
 	touchApiToken,
 } from "@/persistence/postgres/api-tokens";
-import type { PostgresConnection } from "@/persistence/postgres/client";
 import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
 import { createPostgresOAuthStore } from "@/persistence/postgres/oauth.store";
 import {

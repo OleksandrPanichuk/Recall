@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { type OwnerId, toOwnerId } from "@/application/ports/owner";
+import type { RecallDatabase } from "@/db/client";
+import { pageShares } from "@/db/schema";
 import { type FolderId, toFolderId } from "@/domain/folder/folder";
-import type { RecallDatabase } from "./client";
-import { pageShares } from "./schema";
 
 export interface SharedPageOwner {
 	readonly owner: OwnerId;

@@ -1,7 +1,7 @@
 import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import type { RecallDatabase } from "./client";
+import type { RecallDatabase } from "@/db/client";
 import { scopeFor } from "./unit-of-work";
 
 export type OwnerResolver = () => Promise<OwnerId>;

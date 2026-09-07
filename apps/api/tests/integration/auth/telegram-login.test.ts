@@ -2,9 +2,9 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
+import { verification } from "@/db/schema";
 import { createApiApp } from "@/entrypoints/api";
 import { identifierFor } from "@/modules/auth/telegram-link.plugin";
-import { verification } from "@/persistence/postgres/auth-schema";
 import {
 	applyMigration,
 	openPostgres,

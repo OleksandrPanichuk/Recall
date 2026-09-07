@@ -58,10 +58,7 @@ import {
 } from "@/application/use-cases/sharing/share-page";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import {
-	createPostgresConnection,
-	type PostgresConnection,
-} from "@/persistence/postgres/client";
+import { createPostgresConnection, type PostgresConnection } from "@/db/client";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,

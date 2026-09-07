@@ -2,9 +2,9 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
+import * as schema from "@/db/schema";
 import { createApiApp } from "@/entrypoints/api";
 import { issueApiToken } from "@/persistence/postgres/api-tokens";
-import * as schema from "@/persistence/postgres/schema";
 import {
 	applyMigration,
 	openPostgres,

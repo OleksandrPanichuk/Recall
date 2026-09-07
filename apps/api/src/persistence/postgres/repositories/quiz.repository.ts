@@ -15,12 +15,12 @@ import type {
 	QuizSummary,
 } from "@/application/ports/repositories/quiz.repository";
 import { QuizVersionConflictError } from "@/application/ports/repositories/quiz.repository";
+import { questionOptions, questions, quizzes } from "@/db/schema";
+import { isUuid } from "@/db/uuid";
 import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
 import type { QuizSet, QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import { questionOptions, questions, quizzes } from "../schema";
 import type { Executor } from "../unit-of-work";
-import { isUuid } from "../uuid";
 import { toQuiz } from "./quiz.mapper";
 
 export function createQuizPostgresRepository(

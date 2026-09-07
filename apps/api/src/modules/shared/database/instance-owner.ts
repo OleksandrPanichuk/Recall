@@ -1,7 +1,7 @@
 import { ServiceUnavailableException } from "@nestjs/common";
 import type { OwnerId } from "@/application/ports/owner";
 import { loadApiEnvironment } from "@/configs/env.config";
-import type { RecallDatabase } from "@/persistence/postgres/client";
+import type { RecallDatabase } from "@/db/client";
 import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
 import { findTelegramOwner } from "@/persistence/postgres/owner";
 

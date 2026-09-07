@@ -1,6 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { loadApiEnvironment } from "@/configs/env.config";
-import type { PostgresConnection } from "@/persistence/postgres/client";
+import type { PostgresConnection } from "@/db/client";
 import { CONNECTION } from "../shared/database/tokens";
 import { ApiTokenService } from "./api-token.service";
 import { createAuth, type RecallAuth } from "./build-auth";

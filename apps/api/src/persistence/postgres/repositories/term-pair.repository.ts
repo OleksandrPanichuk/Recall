@@ -1,6 +1,8 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { OwnerId } from "@/application/ports/owner";
 import type { TermPairRepository } from "@/application/ports/repositories/term-pair.repository";
+import { termPairs } from "@/db/schema";
+import { isUuid } from "@/db/uuid";
 import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import {
@@ -9,9 +11,7 @@ import {
 	type VocabularyItem,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
-import { termPairs } from "../schema";
 import type { Executor } from "../unit-of-work";
-import { isUuid } from "../uuid";
 
 type TermPairRow = typeof termPairs.$inferSelect;
 

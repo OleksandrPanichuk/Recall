@@ -5,10 +5,10 @@ import type { INestApplication } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { toOwnerId } from "@/application/ports/owner";
 import { createUseCases } from "@/composition/create-application";
+import * as schema from "@/db/schema";
+import { verification } from "@/db/schema";
 import { createApiApp } from "@/entrypoints/api";
 import { identifierFor } from "@/modules/auth/telegram-link.plugin";
-import { verification } from "@/persistence/postgres/auth-schema";
-import * as schema from "@/persistence/postgres/schema";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,

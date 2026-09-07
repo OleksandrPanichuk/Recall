@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { type OwnerId, toOwnerId } from "@/application/ports/owner";
-import { account, user } from "./auth-schema";
-import type { RecallDatabase } from "./client";
+import type { RecallDatabase } from "@/db/client";
+import { account, user } from "@/db/schema";
 
 export const TELEGRAM_PROVIDER = "telegram";
 

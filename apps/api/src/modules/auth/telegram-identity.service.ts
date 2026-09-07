@@ -5,8 +5,8 @@ import {
 	ServiceUnavailableException,
 } from "@nestjs/common";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { authEvents } from "@/persistence/postgres/auth-schema";
-import type { PostgresConnection } from "@/persistence/postgres/client";
+import type { PostgresConnection } from "@/db/client";
+import { authEvents } from "@/db/schema";
 import {
 	ensureTelegramOwner,
 	findTelegramOwner,

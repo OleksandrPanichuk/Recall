@@ -5,7 +5,7 @@ import {
 	type UseCases,
 	uuidGenerator,
 } from "@/composition/create-application";
-import type { PostgresConnection } from "@/persistence/postgres/client";
+import type { PostgresConnection } from "@/db/client";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,

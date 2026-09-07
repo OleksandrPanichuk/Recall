@@ -118,7 +118,7 @@ bun run db:generate
 
 Migration filename генерує drizzle-kit і перейменовує його на кожній
 регенерації, тому ні tests, ні ETL його не хардкодять — вони читають найновіший
-`.sql` із `apps/api/drizzle-postgres/`.
+`.sql` із `apps/api/src/db/migrations/`.
 
 ### Перенесення даних із SQLite (v1)
 
@@ -236,8 +236,8 @@ Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
 
 ```text
 apps/api/           NestJS: REST, Swagger, /bot/*, /api/* (адмінка) і /mcp
-  drizzle/          міграції SQLite (залишилися тільки OAuth-таблиці)
-  drizzle-postgres/ міграції Postgres
+  drizzle/          схема v1 (SQLite) — лише щоб тест ETL зібрав v1-файл
+  src/db/migrations/ міграції Postgres
   scripts/          migrate-to-postgres.ts — ETL з v1 SQLite
 apps/bot/           Telegraf-роутер; кожен use case — виклик /bot/* по HTTP
 apps/mcp/           stdio-мостик до /mcp того ж API

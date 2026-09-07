@@ -16,6 +16,8 @@ import type {
 	AttemptStatistics,
 	TopicAccuracy,
 } from "@/application/ports/repositories/attempt.repository";
+import { attemptQuestions, attempts, questions, responses } from "@/db/schema";
+import { isUuid } from "@/db/uuid";
 import {
 	type QuizAttempt,
 	type QuizAttemptId,
@@ -34,9 +36,7 @@ import {
 } from "@/domain/quiz-set/question";
 import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RecallGrade } from "@/domain/repetition/grade";
-import { attemptQuestions, attempts, questions, responses } from "../schema";
 import type { Executor } from "../unit-of-work";
-import { isUuid } from "../uuid";
 
 type AttemptRow = typeof attempts.$inferSelect;
 

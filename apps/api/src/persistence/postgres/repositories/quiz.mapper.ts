@@ -1,3 +1,4 @@
+import type { questionOptions, questions, quizzes } from "@/db/schema";
 import { toFolderId } from "@/domain/folder/folder";
 import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
@@ -13,7 +14,6 @@ import {
 	type QuizSet,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import type { questionOptions, questions, quizzes } from "../schema";
 
 export type QuizRow = typeof quizzes.$inferSelect;
 export type QuestionRow = typeof questions.$inferSelect;
