@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import type { Mailer } from "@/application/ports/mailer";
 import type { RecallDatabase } from "@/db/client";
+import type { Mailer } from "@/modules/notifications";
 import {
 	CLIENT_IP_HEADER,
 	MIN_PASSWORD_LENGTH,

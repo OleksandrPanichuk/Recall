@@ -4,6 +4,6 @@ export interface Letter {
 	readonly text: string;
 }
 
-export interface Mailer {
-	send(letter: Letter): Promise<void>;
+export abstract class Mailer {
+	abstract send(letter: Letter): Promise<void>;
 }

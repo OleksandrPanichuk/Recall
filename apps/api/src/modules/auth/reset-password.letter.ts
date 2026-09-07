@@ -1,4 +1,4 @@
-import type { Letter } from "@/application/ports/mailer";
+import type { Letter } from "@/modules/notifications";
 import { RESET_TOKEN_TTL_SECONDS } from "./build-auth.constants";
 
 export const resetPasswordLetter = (to: string, url: string): Letter => ({

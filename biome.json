@@ -199,7 +199,6 @@
 			"includes": [
 				"apps/api/src/adapters/**",
 				"!apps/api/src/adapters/admin/**",
-				"!apps/api/src/adapters/mail/**",
 				"!apps/api/src/adapters/mcp/**"
 			],
 			"linter": {
