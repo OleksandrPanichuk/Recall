@@ -3,18 +3,8 @@ import type { GetInsightsUseCase } from "@/application/use-cases/analytics/get-i
 import type { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import type { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import type { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
-import type { ArchiveQuizSetUseCase } from "@/application/use-cases/quiz-sets/archive-quiz-set";
-import type { CreateQuizSetUseCase } from "@/application/use-cases/quiz-sets/create-quiz-set";
-import type { DeleteQuestionUseCase } from "@/application/use-cases/quiz-sets/delete-question";
-import type { GetQuizSetUseCase } from "@/application/use-cases/quiz-sets/get-quiz-set";
-import type { ListQuizSetsUseCase } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import type { ListVocabularyUseCase } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import type { MoveQuizSetUseCase } from "@/application/use-cases/quiz-sets/move-quiz-set";
-import type { PublishQuizSetUseCase } from "@/application/use-cases/quiz-sets/publish-quiz-set";
-import type { UpdateQuestionUseCase } from "@/application/use-cases/quiz-sets/update-question";
-import type { UpdateQuizSetUseCase } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import type { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import type { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
@@ -30,6 +20,18 @@ import type {
 	SetPageIconUseCase,
 	WriteSummaryUseCase,
 } from "@/modules/pages";
+import {
+	AddQuestionsUseCase,
+	ArchiveQuizSetUseCase,
+	CreateQuizSetUseCase,
+	DeleteQuestionUseCase,
+	GetQuizSetUseCase,
+	ListQuizSetsUseCase,
+	MoveQuizSetUseCase,
+	PublishQuizSetUseCase,
+	UpdateQuestionUseCase,
+	UpdateQuizSetUseCase,
+} from "@/modules/quizzes";
 
 export interface McpUseCases {
 	readonly createQuizSet: CreateQuizSetUseCase;

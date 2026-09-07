@@ -1,39 +1,6 @@
-import { type PageId } from "@/modules/pages";
-import {
-	QuizSetEntity,
-	type QuizSetId,
-	QuizSetStatus,
+export type {
+	QuizListFilter,
+	QuizSummary,
+	QuizzesRepository as QuizRepository,
 } from "@/modules/quizzes";
-
-export interface QuizSummary {
-	readonly id: QuizSetId;
-	readonly title: string;
-	readonly status: QuizSetStatus;
-	readonly questionCount: number;
-	readonly updatedAt: Date;
-}
-
-export interface QuizListFilter {
-	readonly statuses?: readonly QuizSetStatus[];
-	readonly pageId?: PageId | null;
-	readonly ids?: readonly QuizSetId[];
-}
-
-export class QuizVersionConflictError extends Error {
-	readonly quizId: QuizSetId;
-
-	constructor(quizId: QuizSetId) {
-		super(
-			`Quiz ${quizId} changed since it was read; re-read it and apply the change again`,
-		);
-		this.name = "QuizVersionConflictError";
-		this.quizId = quizId;
-	}
-}
-
-export interface QuizRepository {
-	save(quiz: QuizSetEntity, expectedVersion?: number): Promise<number>;
-	findById(id: QuizSetId): Promise<QuizSetEntity | undefined>;
-	versionOf(id: QuizSetId): Promise<number | undefined>;
-	list(filter?: QuizListFilter): Promise<readonly QuizSummary[]>;
-}
+export { QuizVersionConflictError } from "@/modules/quizzes";

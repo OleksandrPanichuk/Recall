@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+import {
+	createPagesHarness,
+	type PagesHarness,
+} from "@tests/fixtures/pages.use-cases";
 import { type PageId } from "@/modules/pages";
 import {
 	DuplicateFolderNameError,
 	FolderDepthError,
 	FolderNotFoundError,
 } from "../pages.errors";
-import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
 let create: PagesHarness["create"];

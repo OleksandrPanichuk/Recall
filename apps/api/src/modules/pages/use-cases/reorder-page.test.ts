@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import {
+	createPagesHarness,
+	type PagesHarness,
+} from "@tests/fixtures/pages.use-cases";
 import { type PageId, PagePosition } from "@/modules/pages";
 import { FolderValidationError } from "../pages.errors";
-import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 import type { ReorderPageUseCase } from "./reorder-page";
 
 let harness: PagesHarness;

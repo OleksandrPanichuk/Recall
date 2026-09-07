@@ -6,10 +6,10 @@ import {
 } from "@nestjs/common";
 import { silentLogger } from "@recall/kit";
 import { createAdminApi } from "@/adapters/admin/api";
+import { USE_CASE_DEPENDENCIES } from "@/application/tokens";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { createUseCases } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { USE_CASE_DEPENDENCIES } from "../../shared/database/tokens";
 import { fetchRoutes } from "./fetch-routes";
 
 @Module({})

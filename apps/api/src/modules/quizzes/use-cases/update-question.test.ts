@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import {
+	anotherQuestionInput,
+	aQuestionInput,
+	createQuizSetsHarness,
+	type QuizSetsHarness,
+} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import {
 	QuestionType,
@@ -10,23 +17,17 @@ import {
 	toQuizSetId,
 } from "@/modules/quizzes";
 import {
-	anotherQuestionInput,
-	aQuestionInput,
-	createQuizSetsHarness,
-	type QuizSetsHarness,
-} from "./quiz-sets.fixture";
-import {
 	QuestionNotFoundError,
+	QuizSetNotFoundError,
 	UpdateQuestionUseCase,
-} from "./update-question";
-import { QuizSetNotFoundError } from "./update-quiz-set";
+} from "..";
 
 let harness: QuizSetsHarness;
 let update: UpdateQuestionUseCase;
 
 beforeEach(() => {
 	harness = createQuizSetsHarness();
-	update = new UpdateQuestionUseCase(harness.context);
+	update = quizzesOver(harness.context).updateQuestion;
 });
 
 afterEach(() => {

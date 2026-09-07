@@ -21,19 +21,8 @@ import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { AddQuestionsUseCase } from "@/application/use-cases/quiz-sets/add-questions";
 import { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
-import { ArchiveQuizSetUseCase } from "@/application/use-cases/quiz-sets/archive-quiz-set";
-import { CreateQuizSetUseCase } from "@/application/use-cases/quiz-sets/create-quiz-set";
-import { DeleteQuestionUseCase } from "@/application/use-cases/quiz-sets/delete-question";
-import { GetQuizSetUseCase } from "@/application/use-cases/quiz-sets/get-quiz-set";
-import { ListQuestionsUseCase } from "@/application/use-cases/quiz-sets/list-questions";
-import { ListQuizSetsUseCase } from "@/application/use-cases/quiz-sets/list-quiz-sets";
 import { ListVocabularyUseCase } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import { MoveQuizSetUseCase } from "@/application/use-cases/quiz-sets/move-quiz-set";
-import { PublishQuizSetUseCase } from "@/application/use-cases/quiz-sets/publish-quiz-set";
-import { UpdateQuestionUseCase } from "@/application/use-cases/quiz-sets/update-question";
-import { UpdateQuizSetUseCase } from "@/application/use-cases/quiz-sets/update-quiz-set";
 import { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
@@ -63,6 +52,19 @@ import {
 	SetPageIconUseCase,
 	WriteSummaryUseCase,
 } from "@/modules/pages";
+import {
+	AddQuestionsUseCase,
+	ArchiveQuizSetUseCase,
+	CreateQuizSetUseCase,
+	DeleteQuestionUseCase,
+	GetQuizSetUseCase,
+	ListQuestionsUseCase,
+	ListQuizSetsUseCase,
+	MoveQuizSetUseCase,
+	PublishQuizSetUseCase,
+	UpdateQuestionUseCase,
+	UpdateQuizSetUseCase,
+} from "@/modules/quizzes";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -145,25 +147,43 @@ export interface ApplicationOptions {
 export function createUseCases(
 	dependencies: ApplicationDependencies,
 ): UseCases {
-	const addQuestions = new AddQuestionsUseCase(dependencies);
+	const { clock, idGenerator } = dependencies;
 	const pages = dependencies.scope.pages;
+	const quizzes = dependencies.scope.quizzes;
+	const attemptsRepo = dependencies.scope.attempts;
 	const pagesService = new PagesService(pages);
 	const transaction = new UnitOfWorkTransaction(dependencies.unitOfWork);
-	const { clock, idGenerator } = dependencies;
+	const addQuestions = new AddQuestionsUseCase(
+		quizzes,
+		transaction,
+		clock,
+		idGenerator,
+	);
 
 	return {
-		createQuizSet: new CreateQuizSetUseCase(dependencies),
-		updateQuizSet: new UpdateQuizSetUseCase(dependencies),
+		createQuizSet: new CreateQuizSetUseCase(
+			quizzes,
+			pagesService,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		updateQuizSet: new UpdateQuizSetUseCase(quizzes, transaction, clock),
 		addQuestions,
 		addVocabulary: new AddVocabularyUseCase({ ...dependencies, addQuestions }),
 		updateVocabulary: new UpdateVocabularyUseCase(dependencies),
 		listVocabulary: new ListVocabularyUseCase(dependencies),
-		publishQuizSet: new PublishQuizSetUseCase(dependencies),
-		archiveQuizSet: new ArchiveQuizSetUseCase(dependencies),
-		listQuizSets: new ListQuizSetsUseCase(dependencies),
-		listQuestions: new ListQuestionsUseCase(dependencies),
-		getQuizSet: new GetQuizSetUseCase(dependencies),
-		moveQuizSet: new MoveQuizSetUseCase(dependencies),
+		publishQuizSet: new PublishQuizSetUseCase(quizzes, transaction, clock),
+		archiveQuizSet: new ArchiveQuizSetUseCase(quizzes, transaction, clock),
+		listQuizSets: new ListQuizSetsUseCase(quizzes),
+		listQuestions: new ListQuestionsUseCase(quizzes, attemptsRepo),
+		getQuizSet: new GetQuizSetUseCase(quizzes),
+		moveQuizSet: new MoveQuizSetUseCase(
+			quizzes,
+			pagesService,
+			transaction,
+			clock,
+		),
 		createFolder: new CreatePageUseCase(
 			pages,
 			pagesService,
@@ -219,8 +239,18 @@ export function createUseCases(
 		detachQuiz: new DetachQuizUseCase(pages, pagesService, transaction),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
 		startPracticeSession: new StartPracticeSessionUseCase(dependencies),
-		updateQuestion: new UpdateQuestionUseCase(dependencies),
-		deleteQuestion: new DeleteQuestionUseCase(dependencies),
+		updateQuestion: new UpdateQuestionUseCase(
+			quizzes,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		deleteQuestion: new DeleteQuestionUseCase(
+			quizzes,
+			attemptsRepo,
+			transaction,
+			clock,
+		),
 		rateRecall: new RateRecallUseCase(dependencies),
 		pauseQuizAttempt: new PauseQuizAttemptUseCase(dependencies),
 		resumeQuizAttempt: new ResumeQuizAttemptUseCase(dependencies),

@@ -23,13 +23,13 @@ import {
 	type QuestionId,
 	QuizSetEntity,
 	type QuizSetId,
+	QuizSetNotFoundError,
 	QuizSetStatus,
 } from "@/modules/quizzes";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
 } from "../attempts/start-quiz-attempt";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export type PracticeMode =

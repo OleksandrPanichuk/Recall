@@ -10,8 +10,7 @@ import {
 	createQuizSettings,
 	type QuizSettings,
 } from "@/domain/settings/quiz-settings";
-import { type QuizSetId } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 import {
 	ownerScope,
 	quizScope,

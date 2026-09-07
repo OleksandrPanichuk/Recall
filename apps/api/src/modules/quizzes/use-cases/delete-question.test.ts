@@ -1,19 +1,20 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
-import { AnswerQuestionUseCase } from "../attempts/answer-question";
-import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
-import {
-	AnsweredQuestionError,
-	DeleteQuestionUseCase,
-} from "./delete-question";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
+import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "./quiz-sets.fixture";
-import { QuestionNotFoundError } from "./update-question";
-import { QuizSetNotFoundError } from "./update-quiz-set";
+} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
+import {
+	AnsweredQuestionError,
+	DeleteQuestionUseCase,
+	QuestionNotFoundError,
+	QuizSetNotFoundError,
+} from "..";
 
 const USER = 42;
 
@@ -22,7 +23,7 @@ let remove: DeleteQuestionUseCase;
 
 beforeEach(() => {
 	harness = createQuizSetsHarness();
-	remove = new DeleteQuestionUseCase(harness.context);
+	remove = quizzesOver(harness.context).deleteQuestion;
 });
 
 afterEach(() => {

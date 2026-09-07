@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { UseCase } from "@/core/use-case";
-import { QuizSetStatus } from "@/modules/quizzes";
 import type { PageEntity, PageId } from "../page.entity";
+import { PUBLISHED } from "../page.quiz-link";
 import { PagesRepository } from "../pages.repository";
 
 export interface PageTreeNode {
@@ -16,8 +16,6 @@ export interface PageTreeNode {
 
 type Options = void;
 type Result = readonly PageTreeNode[];
-
-const published = [QuizSetStatus.Published];
 
 @Injectable()
 export class ListPageTreeUseCase extends UseCase<Options, Result> {
@@ -41,7 +39,7 @@ export class ListPageTreeUseCase extends UseCase<Options, Result> {
 			depth: number,
 		): Promise<void> => {
 			for (const page of childrenByParent.get(parentId ?? "") ?? []) {
-				const setCount = await this.pages.countQuizzesIn(page.id, published);
+				const setCount = await this.pages.countQuizzesIn(page.id, PUBLISHED);
 				const total = await this.pages.countQuizzesIn(page.id);
 
 				nodes.push({

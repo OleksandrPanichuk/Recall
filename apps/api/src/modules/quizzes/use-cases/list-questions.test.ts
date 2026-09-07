@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { anAnswer, anAttempt } from "@tests/fixtures/quiz-attempt.fixture";
-import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
-import { type QuizSetId } from "@/modules/quizzes";
-import { ListQuestionsUseCase } from "./list-questions";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "./quiz-sets.fixture";
+} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
+import { type QuizSetId } from "@/modules/quizzes";
+import { ListQuestionsUseCase } from "./list-questions";
 
 let context: MemoryContext;
 let add: QuizSetsHarness["add"];
@@ -25,7 +26,7 @@ const newSet = async (title: string): Promise<QuizSetId> => {
 
 beforeEach(() => {
 	({ context, add, create, publish } = createQuizSetsHarness());
-	list = new ListQuestionsUseCase(context);
+	list = quizzesOver(context).listQuestions;
 });
 
 afterEach(() => {

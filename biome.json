@@ -296,7 +296,6 @@
 									},
 									{
 										"group": [
-											"@/application/**",
 											"@/composition/**",
 											"@/entrypoints/**",
 											"@/persistence/**"
@@ -338,7 +337,6 @@
 								"patterns": [
 									{
 										"group": [
-											"@/application/**",
 											"@/composition/**",
 											"@/entrypoints/**",
 											"@/persistence/**"

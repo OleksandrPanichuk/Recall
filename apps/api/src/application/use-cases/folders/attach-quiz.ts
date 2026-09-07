@@ -6,8 +6,7 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import { type PageId, PagesService } from "@/modules/pages";
-import { type QuizSetId } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 
 export interface AttachQuizCommand {
 	readonly folderId: PageId;

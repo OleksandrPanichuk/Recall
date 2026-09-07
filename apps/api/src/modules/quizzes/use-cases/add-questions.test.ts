@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import {
+	anotherQuestionInput,
+	aQuestionInput,
+	createQuizSetsHarness,
+	type QuizSetsHarness,
+} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+import {
 	DuplicateQuestionError,
 	QuestionType,
 	QuestionValidationError,
@@ -12,14 +18,8 @@ import {
 	EmptyQuestionBatchError,
 	MAX_QUESTIONS_PER_BATCH,
 	QuestionBatchTooLargeError,
-} from "./add-questions";
-import {
-	anotherQuestionInput,
-	aQuestionInput,
-	createQuizSetsHarness,
-	type QuizSetsHarness,
-} from "./quiz-sets.fixture";
-import { QuizSetNotFoundError } from "./update-quiz-set";
+	QuizSetNotFoundError,
+} from "..";
 
 let context: MemoryContext;
 let add: AddQuestionsUseCase;

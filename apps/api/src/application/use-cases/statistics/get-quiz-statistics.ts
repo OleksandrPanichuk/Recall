@@ -8,8 +8,11 @@ import type {
 import type { QuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { percentageOf, type Score } from "@/domain/quiz-attempt/score";
 import { type PageId } from "@/modules/pages";
-import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import {
+	type QuestionId,
+	type QuizSetId,
+	QuizSetNotFoundError,
+} from "@/modules/quizzes";
 
 export interface AttemptSummary {
 	readonly attemptId: QuizAttemptId;

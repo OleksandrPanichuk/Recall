@@ -8,8 +8,12 @@ import {
 	quizzes,
 } from "@/db/schema";
 import { isUuid } from "@/db/uuid";
-import { type QuizSetId, QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 import { PageEntity, type PageId, toPageId } from "../page.entity";
+import {
+	type LinkedQuizId,
+	type LinkedQuizStatus,
+	toLinkedQuizId,
+} from "../page.quiz-link";
 
 type PageRow = typeof pages.$inferSelect;
 
@@ -89,7 +93,7 @@ export class PostgresPagesRepository extends PagesRepository {
 
 	private async ownedPair(
 		id: PageId,
-		quizId: QuizSetId,
+		quizId: LinkedQuizId,
 	): Promise<{ pageId: string; quizId: string } | undefined> {
 		if (!isUuid(String(id)) || !isUuid(String(quizId))) {
 			return undefined;
@@ -219,7 +223,7 @@ export class PostgresPagesRepository extends PagesRepository {
 
 	async countQuizzesIn(
 		id: PageId,
-		statuses?: readonly QuizSetStatus[],
+		statuses?: readonly LinkedQuizStatus[],
 	): Promise<number> {
 		if (!isUuid(String(id))) {
 			return 0;
@@ -254,7 +258,7 @@ export class PostgresPagesRepository extends PagesRepository {
 		return Number(row?.total ?? 0);
 	}
 
-	async attachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {
+	async attachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void> {
 		const owned = await this.ownedPair(id, quizId);
 
 		if (owned === undefined) {
@@ -267,7 +271,7 @@ export class PostgresPagesRepository extends PagesRepository {
 			.onConflictDoNothing();
 	}
 
-	async detachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {
+	async detachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void> {
 		const owned = await this.ownedPair(id, quizId);
 
 		if (owned === undefined) {
@@ -284,7 +288,7 @@ export class PostgresPagesRepository extends PagesRepository {
 			);
 	}
 
-	async listAttachedQuizIds(id: PageId): Promise<readonly QuizSetId[]> {
+	async listAttachedQuizIds(id: PageId): Promise<readonly LinkedQuizId[]> {
 		if (!isUuid(String(id))) {
 			return [];
 		}
@@ -303,7 +307,7 @@ export class PostgresPagesRepository extends PagesRepository {
 			)
 			.orderBy(asc(quizAttachments.position), asc(quizAttachments.quizId));
 
-		return rows.map((row) => toQuizSetId(row.quizId));
+		return rows.map((row) => toLinkedQuizId(row.quizId));
 	}
 
 	async recordRevision(revision: PageRevision): Promise<void> {

@@ -1,9 +1,9 @@
 import type { QuestionDraft } from "@recall/contracts";
-import type {
-	QuestionInput,
-	QuestionOptionInput,
-} from "@/application/use-cases/quiz-sets/add-questions";
-import { QuestionType } from "@/modules/quizzes";
+import {
+	type QuestionInput,
+	type QuestionOptionInput,
+	QuestionType,
+} from "@/modules/quizzes";
 
 const accepted = (texts: readonly string[]): readonly QuestionOptionInput[] =>
 	texts.map((text) => ({ text, isCorrect: true }));

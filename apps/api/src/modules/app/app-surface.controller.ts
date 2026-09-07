@@ -59,6 +59,7 @@ import {
 } from "@recall/contracts";
 import type { Response } from "express";
 import type { OwnerId } from "@/application/ports/owner";
+import { USE_CASES_FOR } from "@/application/tokens";
 import type { UseCases } from "@/composition/create-application";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
@@ -95,7 +96,6 @@ import {
 	startResultToWire,
 	statisticsToWire,
 } from "../bot/wire";
-import { USE_CASES_FOR } from "../shared/database/tokens";
 import type { UseCasesFor } from "../shared/database/use-cases-for";
 
 @ApiExcludeController()

@@ -3,6 +3,7 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	CreatePageUseCase,
 	FolderNotFoundError,
@@ -18,7 +19,6 @@ import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
-import { CreateQuizSetUseCase } from "./create-quiz-set";
 import { MoveQuizSetUseCase } from "./move-quiz-set";
 
 let context: MemoryContext;
@@ -34,7 +34,7 @@ beforeEach(() => {
 		context.clock,
 		context.idGenerator,
 	);
-	moveQuizSet = new MoveQuizSetUseCase(context);
+	moveQuizSet = quizzesOver(context).moveQuizSet;
 });
 
 afterEach(() => {
@@ -96,7 +96,7 @@ describe("MoveQuizSetUseCase", () => {
 	});
 
 	test("rejects a set created into an unknown folder", async () => {
-		const createQuizSet = new CreateQuizSetUseCase(context);
+		const createQuizSet = quizzesOver(context).createQuizSet;
 
 		await expect(
 			createQuizSet.execute({

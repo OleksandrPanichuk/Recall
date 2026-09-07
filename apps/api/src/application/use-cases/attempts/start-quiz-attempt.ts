@@ -21,9 +21,9 @@ import {
 import {
 	type QuestionId,
 	type QuizSetId,
+	QuizSetNotFoundError,
 	QuizSetStatus,
 } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export class QuizSetNotPublishedError extends Error {

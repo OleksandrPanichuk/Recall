@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-
+import {
+	createPagesHarness,
+	type PagesHarness,
+} from "@tests/fixtures/pages.use-cases";
 import { FolderDepthError, FolderValidationError } from "../pages.errors";
 import type { EnsurePagePathUseCase } from "./ensure-page-path";
-import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
 let ensurePagePath: EnsurePagePathUseCase;

@@ -9,11 +9,11 @@ import {
 	PostgresTransaction,
 } from "@/db/executor";
 import { PostgresPagesRepository } from "@/modules/pages";
+import { PostgresQuizzesRepository } from "@/modules/quizzes";
 import { FixedOwnerContext } from "@/shared/request-context";
 import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
 import { createAttachmentPostgresRepository } from "./repositories/attachment.repository";
 import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
-import { createQuizPostgresRepository } from "./repositories/quiz.repository";
 import { createReviewPostgresRepository } from "./repositories/review.repository";
 import { createTermPairPostgresRepository } from "./repositories/term-pair.repository";
 
@@ -30,7 +30,10 @@ export const scopeFor = (
 			new DatabaseHandle(db),
 			new FixedOwnerContext(owner),
 		),
-		quizzes: createQuizPostgresRepository(executor, owner),
+		quizzes: new PostgresQuizzesRepository(
+			new DatabaseHandle(db),
+			new FixedOwnerContext(owner),
+		),
 		attempts: createAttemptPostgresRepository(executor, owner),
 		reviews: createReviewPostgresRepository(executor, owner),
 		termPairs: createTermPairPostgresRepository(executor, owner),

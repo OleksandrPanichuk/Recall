@@ -3,6 +3,7 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	CreatePageUseCase,
 	DeletePageUseCase,
@@ -10,12 +11,15 @@ import {
 	type PageId,
 	PagesService,
 } from "@/modules/pages";
-import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
+import {
+	MoveQuizSetUseCase,
+	QuizSetEntity,
+	QuizSetStatus,
+} from "@/modules/quizzes";
 import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
-import { MoveQuizSetUseCase } from "../quiz-sets/move-quiz-set";
 import { BrowseFolderUseCase } from "./browse-folder";
 
 let context: MemoryContext;
@@ -40,7 +44,7 @@ beforeEach(() => {
 		context.transaction,
 	);
 	browseFolder = new BrowseFolderUseCase(context);
-	moveQuizSet = new MoveQuizSetUseCase(context);
+	moveQuizSet = quizzesOver(context).moveQuizSet;
 });
 
 afterEach(() => {

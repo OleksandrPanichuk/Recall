@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+import {
+	createPagesHarness,
+	type PagesHarness,
+} from "@tests/fixtures/pages.use-cases";
 import { FolderPathNotFoundError } from "../pages.errors";
-import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 import type { ResolvePagePathUseCase } from "./resolve-page-path";
 
 let context: MemoryContext;

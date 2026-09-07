@@ -1,5 +1,11 @@
 import { Global, Module, type OnApplicationShutdown } from "@nestjs/common";
 import type { ObjectStore } from "@/application/ports/object-store";
+import {
+	INSTANCE_OWNER,
+	OBJECT_STORE,
+	USE_CASE_DEPENDENCIES,
+	USE_CASES_FOR,
+} from "@/application/tokens";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { systemClock, uuidGenerator } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
@@ -11,12 +17,6 @@ import {
 	lazyUnitOfWork,
 	type OwnerResolver,
 } from "@/persistence/postgres/lazy-scope";
-import {
-	INSTANCE_OWNER,
-	OBJECT_STORE,
-	USE_CASE_DEPENDENCIES,
-	USE_CASES_FOR,
-} from "./tokens";
 import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 
 @Global()

@@ -1,10 +1,10 @@
 import type { AddressInfo } from "node:net";
-import type { QuestionInput } from "@api/application/use-cases/quiz-sets/add-questions";
+import { USE_CASE_DEPENDENCIES } from "@api/application/tokens";
 import { Database, DatabaseConnection } from "@api/db/connection";
 import { AuthModule } from "@api/modules/auth";
 import { BotModule } from "@api/modules/bot/bot.module";
+import type { QuestionInput } from "@api/modules/quizzes";
 import { Difficulty, QuestionType, type QuizSetId } from "@api/modules/quizzes";
-import { USE_CASE_DEPENDENCIES } from "@api/modules/shared/database/tokens";
 import { CoreModule } from "@api/shared/core.module";
 import { ModuleErrorFilter } from "@api/shared/http/module-error.filter";
 import { Global, type INestApplication, Module } from "@nestjs/common";

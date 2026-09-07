@@ -1,12 +1,9 @@
 import { Module } from "@nestjs/common";
-import { GetQuizSetUseCase } from "@/application/use-cases/quiz-sets/get-quiz-set";
-import { ListQuizSetsUseCase } from "@/application/use-cases/quiz-sets/list-quiz-sets";
+import { QuizzesModule } from "@/modules/quizzes";
 import { QuizzesController } from "./quizzes.controller";
-import { contentUseCases } from "./use-cases.providers";
 
 @Module({
+	imports: [QuizzesModule],
 	controllers: [QuizzesController],
-	providers: [...contentUseCases],
-	exports: [ListQuizSetsUseCase, GetQuizSetUseCase],
 })
 export class ContentModule {}

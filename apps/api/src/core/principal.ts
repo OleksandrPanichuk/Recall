@@ -5,6 +5,11 @@ export interface SessionPrincipal {
 	readonly owner: OwnerId;
 }
 
+export interface InstancePrincipal {
+	readonly kind: "instance";
+	readonly owner: OwnerId;
+}
+
 export interface BotPrincipal {
 	readonly kind: "bot";
 	readonly owner: OwnerId;
@@ -29,6 +34,7 @@ export interface SharePrincipal {
 }
 
 export type Principal =
+	| InstancePrincipal
 	| SessionPrincipal
 	| BotPrincipal
 	| ApiTokenPrincipal

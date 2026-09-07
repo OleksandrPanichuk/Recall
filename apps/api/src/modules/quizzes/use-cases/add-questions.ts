@@ -1,12 +1,8 @@
-import type { Clock } from "@/application/ports/clock";
-import type { IdGenerator } from "@/application/ports/id-generator";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import type {
-	ApplicationDependencies,
-	Command,
-	UseCase,
-} from "@/application/use-case";
+import { Injectable } from "@nestjs/common";
+import { Clock } from "@/core/ports/clock";
+import { IdGenerator } from "@/core/ports/id-generator";
+import { Transaction } from "@/core/transaction";
+import { UseCase } from "@/core/use-case";
 import {
 	createQuestion,
 	Difficulty,
@@ -18,24 +14,15 @@ import {
 	questionFingerprint,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "./update-quiz-set";
+} from "..";
+import { MAX_QUESTIONS_PER_BATCH } from "../quiz-set.constants";
+import {
+	EmptyQuestionBatchError,
+	QuestionBatchTooLargeError,
+	QuizSetNotFoundError,
+} from "../quizzes.errors";
 
-export const MAX_QUESTIONS_PER_BATCH = 50;
-
-export class EmptyQuestionBatchError extends Error {
-	constructor() {
-		super("A question batch must contain at least one question");
-		this.name = "EmptyQuestionBatchError";
-	}
-}
-
-export class QuestionBatchTooLargeError extends Error {
-	constructor(size: number, limit: number) {
-		super(`A question batch of ${size} exceeds the limit of ${limit}`);
-		this.name = "QuestionBatchTooLargeError";
-	}
-}
+import { QuizzesRepository } from "../quizzes.repository";
 
 export interface QuestionOptionInput {
 	readonly text: string;
@@ -55,7 +42,7 @@ export interface QuestionInput {
 	readonly vocabularyItemId?: string;
 }
 
-export interface AddQuestionsCommand {
+export interface AddQuestionsUseCaseOptions {
 	readonly quizSetId: QuizSetId;
 	readonly questions: readonly QuestionInput[];
 }
@@ -65,45 +52,44 @@ export interface AddQuestionsResult {
 	readonly alreadyPresent: boolean;
 }
 
-export type AddQuestionsDependencies = ApplicationDependencies;
+type Options = AddQuestionsUseCaseOptions;
+type Result = AddQuestionsResult;
 
-export class AddQuestionsUseCase
-	implements UseCase<Command<AddQuestionsCommand>, AddQuestionsResult>
-{
-	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
-	private readonly clock: Clock;
-	private readonly idGenerator: IdGenerator;
-
-	constructor(dependencies: AddQuestionsDependencies) {
-		this.unitOfWork = dependencies.unitOfWork;
-		this.clock = dependencies.clock;
-		this.idGenerator = dependencies.idGenerator;
+@Injectable()
+export class AddQuestionsUseCase extends UseCase<Options, Result> {
+	constructor(
+		private readonly quizzes: QuizzesRepository,
+		private readonly transaction: Transaction,
+		private readonly clock: Clock,
+		private readonly ids: IdGenerator,
+	) {
+		super();
 	}
 
 	async execute(
-		request: Command<AddQuestionsCommand>,
+		options: AddQuestionsUseCaseOptions,
 	): Promise<AddQuestionsResult> {
-		if (request.questions.length === 0) {
+		if (options.questions.length === 0) {
 			throw new EmptyQuestionBatchError();
 		}
 
-		if (request.questions.length > MAX_QUESTIONS_PER_BATCH) {
+		if (options.questions.length > MAX_QUESTIONS_PER_BATCH) {
 			throw new QuestionBatchTooLargeError(
-				request.questions.length,
+				options.questions.length,
 				MAX_QUESTIONS_PER_BATCH,
 			);
 		}
 
 		const at = this.clock.now();
 
-		return this.unitOfWork.run(async ({ quizzes }) => {
-			const stored = await quizzes.findById(request.quizSetId);
+		return this.transaction.run(async () => {
+			const stored = await this.quizzes.findById(options.quizSetId);
 
 			if (stored === undefined) {
-				throw new QuizSetNotFoundError(request.quizSetId);
+				throw new QuizSetNotFoundError(options.quizSetId);
 			}
 
-			const questions = request.questions.map((input, index) =>
+			const questions = options.questions.map((input, index) =>
 				this.toQuestion(input, stored.questions.length + index),
 			);
 			const present = new Set(stored.questions.map(questionFingerprint));
@@ -116,7 +102,9 @@ export class AddQuestionsUseCase
 				return { addedQuestionIds: [], alreadyPresent: true };
 			}
 
-			await quizzes.save(QuizSetEntity.addQuestions(stored, questions, at));
+			await this.quizzes.save(
+				QuizSetEntity.addQuestions(stored, questions, at),
+			);
 
 			return {
 				addedQuestionIds: questions.map((question) => question.id),
@@ -127,13 +115,13 @@ export class AddQuestionsUseCase
 
 	private toQuestion(input: QuestionInput, position: number): QuestionEntity {
 		return createQuestion({
-			id: toQuestionId(this.idGenerator.generate()),
+			id: toQuestionId(this.ids.generate()),
 			type: input.type,
 			prompt: input.prompt,
 			difficulty: input.difficulty,
 			position,
 			options: input.options.map((option, index) => ({
-				id: toQuestionOptionId(this.idGenerator.generate()),
+				id: toQuestionOptionId(this.ids.generate()),
 				text: option.text,
 				isCorrect: option.isCorrect,
 				position: index,

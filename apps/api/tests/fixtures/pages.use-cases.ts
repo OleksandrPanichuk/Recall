@@ -1,17 +1,16 @@
 import {
-	createMemoryContext,
-	type MemoryContext,
-} from "@tests/fixtures/memory.fixture";
-import type { PageId } from "../page.entity";
-import { PagesService } from "../pages.service";
-import { CreatePageUseCase } from "./create-page";
-import { DeletePageUseCase } from "./delete-page";
-import { EnsurePagePathUseCase } from "./ensure-page-path";
-import { ListPageTreeUseCase } from "./list-page-tree";
-import { MovePageUseCase } from "./move-page";
-import { RenamePageUseCase } from "./rename-page";
-import { ReorderPageUseCase } from "./reorder-page";
-import { ResolvePagePathUseCase } from "./resolve-page-path";
+	CreatePageUseCase,
+	DeletePageUseCase,
+	EnsurePagePathUseCase,
+	ListPageTreeUseCase,
+	MovePageUseCase,
+	type PageId,
+	PagesService,
+	RenamePageUseCase,
+	ReorderPageUseCase,
+	ResolvePagePathUseCase,
+} from "@/modules/pages";
+import { createMemoryContext, type MemoryContext } from "./memory.fixture";
 
 export interface PagesHarness {
 	readonly context: MemoryContext;

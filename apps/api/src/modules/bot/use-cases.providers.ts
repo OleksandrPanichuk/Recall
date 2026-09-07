@@ -1,4 +1,5 @@
 import type { Provider } from "@nestjs/common";
+import { USE_CASE_DEPENDENCIES } from "@/application/tokens";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
 import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
@@ -20,7 +21,6 @@ import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/res
 import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import { USE_CASE_DEPENDENCIES } from "../shared/database/tokens";
 
 type Constructor = new (dependencies: ApplicationDependencies) => unknown;
 

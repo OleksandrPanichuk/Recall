@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
+import {
+	createPagesHarness,
+	type PagesHarness,
+} from "@tests/fixtures/pages.use-cases";
 import { aQuestion, aQuizSet } from "@tests/fixtures/quiz-set.fixture";
 import type { ListPageTreeUseCase } from "./list-page-tree";
-import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
 let listPageTree: ListPageTreeUseCase;

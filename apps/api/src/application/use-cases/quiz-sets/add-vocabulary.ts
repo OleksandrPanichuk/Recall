@@ -14,8 +14,13 @@ import {
 	type VocabularyDirection,
 	type VocabularyItemId,
 } from "@/domain/vocabulary/vocabulary-item";
-import { Difficulty, QuestionType, type QuizSetId } from "@/modules/quizzes";
-import type { AddQuestionsUseCase, QuestionInput } from "./add-questions";
+import {
+	AddQuestionsUseCase,
+	Difficulty,
+	type QuestionInput,
+	QuestionType,
+	type QuizSetId,
+} from "@/modules/quizzes";
 
 export interface VocabularyPairInput {
 	readonly term: readonly string[];

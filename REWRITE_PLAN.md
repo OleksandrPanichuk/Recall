@@ -206,7 +206,7 @@ override per row of the table above, plus one per module for the dependency grap
 each module lands. The rule is what makes the direction real; without it the table is a wish.
 The two old overrides stay until phase 6 deletes the directories they guard.
 
-Three relaxations hold for the duration. Neither `domain/**` nor `application/**` still
+Four relaxations hold for the duration. Neither `domain/**` nor `application/**` still
 forbids `@/modules/**`, and `modules/**` no longer forbids `@/domain/**`, because migrating a shared kernel one capability at a time means the
 un-migrated half has to name the types the migrated half now owns: the moment `Folder` becomes
 `PageEntity` in `modules/pages`, `RepositoryScope` and every use case still living in
@@ -214,8 +214,12 @@ un-migrated half has to name the types the migrated half now owns: the moment `F
 structural interface for the duration, or to move all seven repositories and 47 use cases in
 one commit. The third goes the other way: a moved port still names types whose entity has not
 moved — `PagesRepository` takes a `QuizSetId` — and `domain/` is pure types with no
-dependencies, so a module reaching it can neither create a cycle nor skip a layer. All three
-directories are deleted in phase 6 and the rules go with them.
+dependencies, so a module reaching it can neither create a cycle nor skip a layer. The fourth
+is the same shape and costs more: `modules/**` may import `@/application/**`, because a moved
+use case often needs a port whose own module has not moved — `DeleteQuestionUseCase` reads the
+attempt repository, which arrives in phase 4. Without it every module would have to wait for
+every module it touches, which is the big-bang this plan exists to avoid. All four directories
+are deleted in phase 6 and the rules go with them; the phase 6 gate greps for the imports.
 
 Two limits worth knowing rather than discovering:
 

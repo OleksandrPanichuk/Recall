@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-
+import {
+	createPagesHarness,
+	type PagesHarness,
+} from "@tests/fixtures/pages.use-cases";
 import {
 	DuplicateFolderNameError,
 	FolderCycleError,
 	FolderDepthError,
 } from "../pages.errors";
 import type { MovePageUseCase } from "./move-page";
-import { createPagesHarness, type PagesHarness } from "./pages.fixture";
 
 let context: MemoryContext;
 let movePage: MovePageUseCase;

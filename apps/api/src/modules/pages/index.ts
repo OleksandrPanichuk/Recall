@@ -6,6 +6,7 @@ export {
 	toPageId,
 } from "./page.entity";
 export { PagePosition } from "./page.ordering";
+export * from "./page.quiz-link";
 export * from "./pages.errors";
 export { PagesModule } from "./pages.module";
 export {

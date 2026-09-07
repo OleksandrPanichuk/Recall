@@ -14,8 +14,7 @@ import {
 	type QuizSettings,
 } from "@/domain/settings/quiz-settings";
 import { type PageId } from "@/modules/pages";
-import { type QuizSetId } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 
 export type QuizSettingsSource = "set" | "global" | "default";
 

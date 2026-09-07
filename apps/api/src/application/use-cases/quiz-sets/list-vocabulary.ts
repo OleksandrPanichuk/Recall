@@ -5,8 +5,7 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import type { VocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
-import { type QuizSetId } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "./update-quiz-set";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 
 export interface VocabularyItemView {
 	readonly itemId: VocabularyItemId;

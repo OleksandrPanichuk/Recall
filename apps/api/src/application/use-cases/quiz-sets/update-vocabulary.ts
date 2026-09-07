@@ -22,9 +22,9 @@ import {
 	type QuestionId,
 	QuestionType,
 	QuizSetEntity,
+	QuizSetNotFoundError,
 	toQuestionOptionId,
 } from "@/modules/quizzes";
-import { QuizSetNotFoundError } from "./update-quiz-set";
 
 export class VocabularyItemNotFoundError extends Error {
 	readonly itemId: VocabularyItemId;

@@ -7,13 +7,28 @@ import { scopeFor } from "./unit-of-work";
 
 export type OwnerResolver = () => Promise<OwnerId>;
 
+const NOT_A_REPOSITORY_METHOD = new Set([
+	"then",
+	"catch",
+	"finally",
+	"toJSON",
+	"onModuleInit",
+	"onApplicationBootstrap",
+	"onModuleDestroy",
+	"beforeApplicationShutdown",
+	"onApplicationShutdown",
+]);
+
 const lazyRepository = <TRepository extends object>(
 	resolve: () => Promise<TRepository>,
 ): TRepository =>
 	new Proxy({} as TRepository, {
-		get:
-			(_target, key) =>
-			async (...args: unknown[]) => {
+		get: (_target, key) => {
+			if (typeof key !== "string" || NOT_A_REPOSITORY_METHOD.has(key)) {
+				return undefined;
+			}
+
+			return async (...args: unknown[]) => {
 				const repository = (await resolve()) as Record<string, unknown>;
 				const method = repository[key as string];
 
@@ -25,7 +40,8 @@ const lazyRepository = <TRepository extends object>(
 					repository,
 					args,
 				);
-			},
+			};
+		},
 	});
 
 export const lazyScope = (

@@ -9,13 +9,12 @@ import {
 import { ApiExcludeController } from "@nestjs/swagger";
 import type { Response } from "express";
 import type { ObjectStore } from "@/application/ports/object-store";
+import { OBJECT_STORE, USE_CASES_FOR } from "@/application/tokens";
 import { referencedUploads } from "@/application/use-cases/sharing/referenced-uploads";
 import { DatabaseConnection } from "@/db/connection";
-import { OBJECT_STORE } from "@/modules/shared/database/tokens";
 import { ownerForShare } from "@/persistence/postgres/share";
 import { scopeFor } from "@/persistence/postgres/unit-of-work";
 import { sharedPageViewToWire } from "../bot/wire";
-import { USE_CASES_FOR } from "../shared/database/tokens";
 import type { UseCasesFor } from "../shared/database/use-cases-for";
 
 @ApiExcludeController()

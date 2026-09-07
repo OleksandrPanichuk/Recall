@@ -1,5 +1,5 @@
-import { type QuizSetId, QuizSetStatus } from "@/modules/quizzes";
 import type { PageEntity, PageId } from "./page.entity";
+import type { LinkedQuizId, LinkedQuizStatus } from "./page.quiz-link";
 
 export type RevisionAuthor = "user" | "mcp";
 
@@ -34,12 +34,12 @@ export abstract class PagesRepository {
 	abstract listAll(): Promise<readonly PageEntity[]>;
 	abstract countQuizzesIn(
 		id: PageId,
-		statuses?: readonly QuizSetStatus[],
+		statuses?: readonly LinkedQuizStatus[],
 	): Promise<number>;
 	abstract countChildPages(id: PageId): Promise<number>;
-	abstract attachQuiz(id: PageId, quizId: QuizSetId): Promise<void>;
-	abstract detachQuiz(id: PageId, quizId: QuizSetId): Promise<void>;
-	abstract listAttachedQuizIds(id: PageId): Promise<readonly QuizSetId[]>;
+	abstract attachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void>;
+	abstract detachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void>;
+	abstract listAttachedQuizIds(id: PageId): Promise<readonly LinkedQuizId[]>;
 	abstract recordRevision(revision: PageRevision): Promise<void>;
 	abstract listRevisions(
 		id: PageId,

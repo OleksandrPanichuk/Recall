@@ -4,6 +4,7 @@ import { ApiTokensModule } from "@/modules/api-tokens";
 import { AuthModule } from "@/modules/auth";
 import { OAuthModule } from "@/modules/oauth";
 import { PagesModule } from "@/modules/pages";
+import { QuizzesModule } from "@/modules/quizzes";
 import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
 import { CoreModule } from "@/shared/core.module";
@@ -30,6 +31,7 @@ import { HealthController } from "./shared/health/health.controller";
 		ApiTokensModule,
 		OAuthModule,
 		PagesModule,
+		QuizzesModule,
 		ContentModule,
 		AppSurfaceModule,
 		PublicModule,

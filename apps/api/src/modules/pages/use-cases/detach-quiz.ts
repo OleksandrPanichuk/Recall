@@ -1,20 +1,20 @@
 import { Injectable } from "@nestjs/common";
 import { Transaction } from "@/core/transaction";
 import { UseCase } from "@/core/use-case";
-import { type QuizSetId } from "@/modules/quizzes";
 import type { PageId } from "../page.entity";
+import type { LinkedQuizId } from "../page.quiz-link";
 import { PagesRepository } from "../pages.repository";
 import { PagesService } from "../pages.service";
 
 export interface DetachQuizUseCaseOptions {
 	readonly folderId: PageId;
-	readonly quizSetId: QuizSetId;
+	readonly quizSetId: LinkedQuizId;
 }
 
 export interface DetachedQuiz {
 	readonly folderId: PageId;
 	readonly folderName: string;
-	readonly quizSetId: QuizSetId;
+	readonly quizSetId: LinkedQuizId;
 }
 
 type Options = DetachQuizUseCaseOptions;
