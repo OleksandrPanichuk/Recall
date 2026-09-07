@@ -5,6 +5,7 @@ import {
 	BotEnvironmentError,
 	loadBotEnvironment,
 } from "./config";
+import { keepPolling } from "./lifecycle/keep-polling";
 import { onLaunchFailure } from "./lifecycle/launch-failure";
 import { createBot } from "./telegram/bot";
 import { startDailyReminder } from "./telegram/reminders";
@@ -96,7 +97,12 @@ function main(): void {
 	});
 
 	if (environment.webhook === undefined) {
-		bot.launch({ dropPendingUpdates: true }).catch(fail);
+		void keepPolling({
+			launch: (options) => bot.launch(options),
+			logger,
+			shutdown,
+			onFatal: fail,
+		});
 
 		return;
 	}
