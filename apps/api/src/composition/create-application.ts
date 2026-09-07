@@ -21,9 +21,6 @@ import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
-import { ListVocabularyUseCase } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
 import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
@@ -65,6 +62,11 @@ import {
 	UpdateQuestionUseCase,
 	UpdateQuizSetUseCase,
 } from "@/modules/quizzes";
+import {
+	AddVocabularyUseCase,
+	ListVocabularyUseCase,
+	UpdateVocabularyUseCase,
+} from "@/modules/vocabulary";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -151,6 +153,7 @@ export function createUseCases(
 	const pages = dependencies.scope.pages;
 	const quizzes = dependencies.scope.quizzes;
 	const attemptsRepo = dependencies.scope.attempts;
+	const termPairs = dependencies.scope.termPairs;
 	const pagesService = new PagesService(pages);
 	const transaction = new UnitOfWorkTransaction(dependencies.unitOfWork);
 	const addQuestions = new AddQuestionsUseCase(
@@ -170,9 +173,21 @@ export function createUseCases(
 		),
 		updateQuizSet: new UpdateQuizSetUseCase(quizzes, transaction, clock),
 		addQuestions,
-		addVocabulary: new AddVocabularyUseCase({ ...dependencies, addQuestions }),
-		updateVocabulary: new UpdateVocabularyUseCase(dependencies),
-		listVocabulary: new ListVocabularyUseCase(dependencies),
+		addVocabulary: new AddVocabularyUseCase(
+			addQuestions,
+			termPairs,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		updateVocabulary: new UpdateVocabularyUseCase(
+			termPairs,
+			quizzes,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		listVocabulary: new ListVocabularyUseCase(termPairs, quizzes),
 		publishQuizSet: new PublishQuizSetUseCase(quizzes, transaction, clock),
 		archiveQuizSet: new ArchiveQuizSetUseCase(quizzes, transaction, clock),
 		listQuizSets: new ListQuizSetsUseCase(quizzes),

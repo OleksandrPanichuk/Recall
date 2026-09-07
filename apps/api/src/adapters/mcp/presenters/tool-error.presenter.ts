@@ -1,5 +1,3 @@
-import { VocabularyItemNotFoundError } from "@/application/use-cases/quiz-sets/update-vocabulary";
-import { VocabularyItemValidationError } from "@/domain/vocabulary/vocabulary-item.errors";
 import {
 	DuplicateFolderNameError,
 	FolderCycleError,
@@ -19,6 +17,10 @@ import {
 	QuizSetTransitionError,
 	QuizSetValidationError,
 } from "@/modules/quizzes";
+import {
+	VocabularyItemNotFoundError,
+	VocabularyItemValidationError,
+} from "@/modules/vocabulary";
 
 export function describeError(error: unknown): string {
 	if (error instanceof VocabularyItemValidationError) {

@@ -10,12 +10,12 @@ import {
 } from "@/db/executor";
 import { PostgresPagesRepository } from "@/modules/pages";
 import { PostgresQuizzesRepository } from "@/modules/quizzes";
+import { PostgresTermPairsRepository } from "@/modules/vocabulary";
 import { FixedOwnerContext } from "@/shared/request-context";
 import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
 import { createAttachmentPostgresRepository } from "./repositories/attachment.repository";
 import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
 import { createReviewPostgresRepository } from "./repositories/review.repository";
-import { createTermPairPostgresRepository } from "./repositories/term-pair.repository";
 
 export type { Executor } from "@/db/executor";
 
@@ -36,7 +36,10 @@ export const scopeFor = (
 		),
 		attempts: createAttemptPostgresRepository(executor, owner),
 		reviews: createReviewPostgresRepository(executor, owner),
-		termPairs: createTermPairPostgresRepository(executor, owner),
+		termPairs: new PostgresTermPairsRepository(
+			new DatabaseHandle(db),
+			new FixedOwnerContext(owner),
+		),
 		analytics: createAnalyticsPostgresRepository(executor, owner),
 		attachments: createAttachmentPostgresRepository(executor, owner),
 	};

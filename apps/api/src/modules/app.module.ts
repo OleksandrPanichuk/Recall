@@ -7,6 +7,7 @@ import { PagesModule } from "@/modules/pages";
 import { QuizzesModule } from "@/modules/quizzes";
 import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
+import { VocabularyModule } from "@/modules/vocabulary";
 import { CoreModule } from "@/shared/core.module";
 import { AppSurfaceModule } from "./app/app-surface.module";
 import { BotModule } from "./bot/bot.module";
@@ -32,6 +33,7 @@ import { HealthController } from "./shared/health/health.controller";
 		OAuthModule,
 		PagesModule,
 		QuizzesModule,
+		VocabularyModule,
 		ContentModule,
 		AppSurfaceModule,
 		PublicModule,

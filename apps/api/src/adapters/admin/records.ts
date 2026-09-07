@@ -1,6 +1,6 @@
-import type { VocabularyItemView } from "@/application/use-cases/quiz-sets/list-vocabulary";
 import type { PageTreeNode } from "@/modules/pages";
 import { type QuestionRow, QuizSetEntity } from "@/modules/quizzes";
+import { type VocabularyItemView } from "@/modules/vocabulary";
 import type { ListShape } from "./query";
 
 export interface SetRecord {

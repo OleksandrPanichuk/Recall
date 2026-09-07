@@ -6,9 +6,9 @@ import type {
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
-import type { VocabularyItem } from "@/domain/vocabulary/vocabulary-item";
 import { PageEntity, type PageId } from "@/modules/pages";
 import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
+import { TermPairEntity } from "@/modules/vocabulary";
 
 export interface MemoryQuiz {
 	readonly id: string;
@@ -29,7 +29,7 @@ export interface MemoryStore {
 	attempts: Map<string, QuizAttempt>;
 	schedules: Map<string, RepetitionSchedule>;
 	settings: Map<string, QuizSettings>;
-	termPairs: Map<string, VocabularyItem>;
+	termPairs: Map<string, TermPairEntity>;
 }
 
 export const emptyStore = (): MemoryStore => ({

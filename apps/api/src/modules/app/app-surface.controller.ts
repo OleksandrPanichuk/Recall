@@ -62,7 +62,6 @@ import type { OwnerId } from "@/application/ports/owner";
 import { USE_CASES_FOR } from "@/application/tokens";
 import type { UseCases } from "@/composition/create-application";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
-import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { SessionGuard, type SessionRequest } from "@/modules/auth";
 import { toPageId } from "@/modules/pages";
@@ -71,6 +70,7 @@ import {
 	answerOptionsOf,
 	toQuestionInput,
 } from "@/modules/shared/authoring/question-input";
+import { toVocabularyItemId } from "@/modules/vocabulary";
 import { parseBody } from "../bot/parse-body";
 import {
 	answerResultToWire,

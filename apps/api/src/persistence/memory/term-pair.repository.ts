@@ -1,24 +1,21 @@
 import type { TermPairRepository } from "@/application/ports/repositories/term-pair.repository";
-import type {
-	VocabularyItem,
-	VocabularyItemId,
-} from "@/domain/vocabulary/vocabulary-item";
 import { type QuizSetId } from "@/modules/quizzes";
+import { TermPairEntity, type VocabularyItemId } from "@/modules/vocabulary";
 import type { MemoryStore } from "./store";
 
 export function createMemoryTermPairRepository(
 	store: MemoryStore,
 ): TermPairRepository {
 	return {
-		async save(pair: VocabularyItem): Promise<void> {
+		async save(pair: TermPairEntity): Promise<void> {
 			store.termPairs.set(String(pair.id), pair);
 		},
 
-		async findById(id: VocabularyItemId): Promise<VocabularyItem | undefined> {
+		async findById(id: VocabularyItemId): Promise<TermPairEntity | undefined> {
 			return store.termPairs.get(String(id));
 		},
 
-		async listForQuiz(quizId: QuizSetId): Promise<readonly VocabularyItem[]> {
+		async listForQuiz(quizId: QuizSetId): Promise<readonly TermPairEntity[]> {
 			return [...store.termPairs.values()]
 				.filter((pair) => String(pair.quizSetId) === String(quizId))
 				.sort(

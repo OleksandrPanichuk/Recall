@@ -1,21 +1,9 @@
+import { Injectable } from "@nestjs/common";
 import { normaliseForComparison } from "@recall/kit";
-import type { Clock } from "@/application/ports/clock";
-import type { IdGenerator } from "@/application/ports/id-generator";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import type {
-	ApplicationDependencies,
-	Command,
-	UseCase,
-} from "@/application/use-case";
-import {
-	cardsOf,
-	restoreVocabularyItem,
-	type VocabularyCard,
-	VocabularyDirection,
-	type VocabularyItem,
-	type VocabularyItemId,
-} from "@/domain/vocabulary/vocabulary-item";
+import { Clock } from "@/core/ports/clock";
+import { IdGenerator } from "@/core/ports/id-generator";
+import { Transaction } from "@/core/transaction";
+import { UseCase } from "@/core/use-case";
 import {
 	createQuestion,
 	QuestionEntity,
@@ -23,8 +11,16 @@ import {
 	QuestionType,
 	QuizSetEntity,
 	QuizSetNotFoundError,
+	QuizzesRepository,
 	toQuestionOptionId,
 } from "@/modules/quizzes";
+import {
+	TermPairEntity,
+	type VocabularyCard,
+	VocabularyDirection,
+	type VocabularyItemId,
+} from "..";
+import { TermPairsRepository } from "../vocabulary.repository";
 
 export class VocabularyItemNotFoundError extends Error {
 	readonly itemId: VocabularyItemId;
@@ -36,7 +32,7 @@ export class VocabularyItemNotFoundError extends Error {
 	}
 }
 
-export interface UpdateVocabularyCommand {
+export interface UpdateVocabularyUseCaseOptions {
 	readonly itemId: VocabularyItemId;
 	readonly term?: readonly string[];
 	readonly translation?: readonly string[];
@@ -50,8 +46,6 @@ export interface UpdateVocabularyResult {
 	readonly removedQuestionCount: number;
 }
 
-export type UpdateVocabularyDependencies = ApplicationDependencies;
-
 const BOTH_WAYS = [
 	VocabularyDirection.TermToTranslation,
 	VocabularyDirection.TranslationToTerm,
@@ -63,9 +57,11 @@ interface Rebuild {
 }
 
 const cardsByDirection = (
-	item: VocabularyItem,
+	item: TermPairEntity,
 ): Map<VocabularyDirection, VocabularyCard> =>
-	new Map(cardsOf(item, BOTH_WAYS).map((card) => [card.direction, card]));
+	new Map(
+		TermPairEntity.cards(item, BOTH_WAYS).map((card) => [card.direction, card]),
+	);
 
 const rebuiltFrom = (
 	question: QuestionEntity,
@@ -93,8 +89,8 @@ const rebuiltFrom = (
 
 function planRebuild(
 	questions: readonly QuestionEntity[],
-	stored: VocabularyItem,
-	updated: VocabularyItem,
+	stored: TermPairEntity,
+	updated: TermPairEntity,
 	mintId: () => string,
 ): Rebuild {
 	const before = cardsByDirection(stored);
@@ -132,44 +128,46 @@ function planRebuild(
 	return { replacements, removedIds };
 }
 
-export class UpdateVocabularyUseCase
-	implements UseCase<Command<UpdateVocabularyCommand>, UpdateVocabularyResult>
-{
-	private readonly unitOfWork: UnitOfWork<RepositoryScope>;
-	private readonly clock: Clock;
-	private readonly idGenerator: IdGenerator;
+type Options = UpdateVocabularyUseCaseOptions;
+type Result = UpdateVocabularyResult;
 
-	constructor(dependencies: UpdateVocabularyDependencies) {
-		this.unitOfWork = dependencies.unitOfWork;
-		this.clock = dependencies.clock;
-		this.idGenerator = dependencies.idGenerator;
+@Injectable()
+export class UpdateVocabularyUseCase extends UseCase<Options, Result> {
+	constructor(
+		private readonly termPairs: TermPairsRepository,
+		private readonly quizzes: QuizzesRepository,
+		private readonly transaction: Transaction,
+		private readonly clock: Clock,
+		private readonly ids: IdGenerator,
+	) {
+		super();
 	}
 
 	async execute(
-		request: Command<UpdateVocabularyCommand>,
+		options: UpdateVocabularyUseCaseOptions,
 	): Promise<UpdateVocabularyResult> {
 		const at = this.clock.now();
 
-		return this.unitOfWork.run(async ({ quizzes, termPairs }) => {
-			const stored = await termPairs.findById(request.itemId);
+		return this.transaction.run(async () => {
+			const stored = await this.termPairs.findById(options.itemId);
 
 			if (stored === undefined) {
-				throw new VocabularyItemNotFoundError(request.itemId);
+				throw new VocabularyItemNotFoundError(options.itemId);
 			}
 
-			const quizSet = await quizzes.findById(stored.quizSetId);
+			const quizSet = await this.quizzes.findById(stored.quizSetId);
 
 			if (quizSet === undefined) {
 				throw new QuizSetNotFoundError(stored.quizSetId);
 			}
 
-			const updated = restoreVocabularyItem({
+			const updated = TermPairEntity.restore({
 				id: stored.id,
 				quizSetId: stored.quizSetId,
-				terms: request.term ?? stored.terms,
-				translations: request.translation ?? stored.translations,
-				transcription: request.transcription ?? stored.transcription,
-				example: request.example ?? stored.example,
+				terms: options.term ?? stored.terms,
+				translations: options.translation ?? stored.translations,
+				transcription: options.transcription ?? stored.transcription,
+				example: options.example ?? stored.example,
 				topic: stored.topic,
 				createdAt: stored.createdAt,
 				updatedAt: at,
@@ -182,11 +180,11 @@ export class UpdateVocabularyUseCase
 				owned,
 				stored,
 				updated,
-				() => this.idGenerator.generate(),
+				() => this.ids.generate(),
 			);
 
-			await termPairs.save(updated);
-			await quizzes.save(
+			await this.termPairs.save(updated);
+			await this.quizzes.save(
 				QuizSetEntity.replaceQuestions(quizSet, replacements, removedIds, at),
 			);
 

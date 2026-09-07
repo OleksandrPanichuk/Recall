@@ -14,9 +14,11 @@ import {
 	type QuizSetId,
 	UpdateQuizSetUseCase,
 } from "@/modules/quizzes";
-import { AddVocabularyUseCase } from "./add-vocabulary";
-import { ListVocabularyUseCase } from "./list-vocabulary";
-import { UpdateVocabularyUseCase } from "./update-vocabulary";
+import {
+	AddVocabularyUseCase,
+	ListVocabularyUseCase,
+	UpdateVocabularyUseCase,
+} from "@/modules/vocabulary";
 
 export const aQuestionInput = (
 	overrides: Partial<QuestionInput> = {},
@@ -73,9 +75,24 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 		add,
 		publish,
 		archive,
-		addVocabulary: new AddVocabularyUseCase({ ...context, addQuestions: add }),
-		updateVocabulary: new UpdateVocabularyUseCase(context),
-		listVocabulary: new ListVocabularyUseCase(context),
+		addVocabulary: new AddVocabularyUseCase(
+			add,
+			context.scope.termPairs,
+			context.transaction,
+			context.clock,
+			context.idGenerator,
+		),
+		updateVocabulary: new UpdateVocabularyUseCase(
+			context.scope.termPairs,
+			context.scope.quizzes,
+			context.transaction,
+			context.clock,
+			context.idGenerator,
+		),
+		listVocabulary: new ListVocabularyUseCase(
+			context.scope.termPairs,
+			context.scope.quizzes,
+		),
 
 		newDraft,
 

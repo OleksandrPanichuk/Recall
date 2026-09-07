@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { VocabularyDirection } from "@/domain/vocabulary/vocabulary-item";
 import { Difficulty, toQuizSetId } from "@/modules/quizzes";
+import { VocabularyDirection } from "@/modules/vocabulary";
 import { ok } from "../presenters/tool-result.presenter";
 import { addVocabularyShape } from "../schemas/vocabulary.schema";
 import type { McpUseCases } from "../server.types";

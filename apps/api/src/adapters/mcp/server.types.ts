@@ -3,9 +3,6 @@ import type { GetInsightsUseCase } from "@/application/use-cases/analytics/get-i
 import type { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
 import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import type { AddVocabularyUseCase } from "@/application/use-cases/quiz-sets/add-vocabulary";
-import type { ListVocabularyUseCase } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import type { UpdateVocabularyUseCase } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import type { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
 import type { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import type {
@@ -32,6 +29,11 @@ import {
 	UpdateQuestionUseCase,
 	UpdateQuizSetUseCase,
 } from "@/modules/quizzes";
+import {
+	AddVocabularyUseCase,
+	ListVocabularyUseCase,
+	UpdateVocabularyUseCase,
+} from "@/modules/vocabulary";
 
 export interface McpUseCases {
 	readonly createQuizSet: CreateQuizSetUseCase;

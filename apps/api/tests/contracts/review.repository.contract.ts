@@ -7,10 +7,6 @@ import {
 	withRepetition,
 } from "@/domain/settings/quiz-settings";
 import {
-	createVocabularyItem,
-	toVocabularyItemId,
-} from "@/domain/vocabulary/vocabulary-item";
-import {
 	createQuestion,
 	Difficulty,
 	QuestionType,
@@ -19,6 +15,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { TermPairEntity, toVocabularyItemId } from "@/modules/vocabulary";
 
 export interface ReviewRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -286,7 +283,7 @@ export function describeReviewRepository(
 
 				await harness.unitOfWork.run(async ({ termPairs }) => {
 					await termPairs.save(
-						createVocabularyItem({
+						TermPairEntity.create({
 							id: toVocabularyItemId(pairId),
 							quizSetId: toQuizSetId(quizId),
 							terms: ["shard"],

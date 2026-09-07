@@ -1,20 +1,8 @@
 import type { BrandedId } from "@/core/branded-id";
 import { type QuizSetId } from "@/modules/quizzes";
-import type { VocabularyDirection } from "./vocabulary-item.constants";
+import type { VocabularyDirection } from "./term-pair.constants";
 
 export type VocabularyItemId = BrandedId<"VocabularyItemId">;
-
-export interface VocabularyItem {
-	readonly id: VocabularyItemId;
-	readonly quizSetId: QuizSetId;
-	readonly terms: readonly string[];
-	readonly translations: readonly string[];
-	readonly transcription?: string;
-	readonly example?: string;
-	readonly topic?: string;
-	readonly createdAt: Date;
-	readonly updatedAt: Date;
-}
 
 export interface VocabularyItemDraft {
 	readonly id: VocabularyItemId;

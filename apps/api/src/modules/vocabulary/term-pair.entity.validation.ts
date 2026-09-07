@@ -2,7 +2,7 @@ import { isValidDate } from "@/shared/utils/date";
 import {
 	MAX_VOCABULARY_TEXT,
 	MAX_VOCABULARY_VARIANTS,
-} from "./vocabulary-item.constants";
+} from "./term-pair.constants";
 
 const collectSideIssues = (
 	values: readonly string[],

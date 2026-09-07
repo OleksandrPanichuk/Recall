@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import {
-	toVocabularyItemId,
-	VocabularyDirection,
-	type VocabularyItemId,
-	VocabularyItemValidationError,
-} from "@/domain/vocabulary/vocabulary-item";
+	createQuizSetsHarness,
+	type QuizSetsHarness,
+} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
 import {
 	DuplicateQuestionError,
 	type QuizSetId,
 	QuizSetTransitionError,
 } from "@/modules/quizzes";
 import {
-	createQuizSetsHarness,
-	type QuizSetsHarness,
-} from "./quiz-sets.fixture";
+	toVocabularyItemId,
+	VocabularyDirection,
+	type VocabularyItemId,
+	VocabularyItemValidationError,
+} from "@/modules/vocabulary";
 import {
 	type UpdateVocabularyUseCase,
 	VocabularyItemNotFoundError,
