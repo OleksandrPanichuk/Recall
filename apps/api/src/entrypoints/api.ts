@@ -10,11 +10,11 @@ import {
 	MCP_SURFACE,
 	type McpSurface,
 } from "@/modules/integration/mcp/mcp.module";
-import { DomainExceptionFilter } from "@/modules/shared/errors/domain-exception.filter";
 import {
 	mountSwagger,
 	SWAGGER_PATH,
 } from "@/modules/shared/swagger/build-document";
+import { ModuleErrorFilter } from "@/shared/http/module-error.filter";
 import { requestContextMiddleware } from "@/shared/request-context";
 
 export async function createApiApp() {
@@ -53,7 +53,7 @@ export async function createApiApp() {
 	instance.use(json());
 	instance.use(urlencoded({ extended: false }));
 
-	app.useGlobalFilters(new DomainExceptionFilter());
+	app.useGlobalFilters(new ModuleErrorFilter());
 	app.enableShutdownHooks();
 	mountSwagger(app);
 

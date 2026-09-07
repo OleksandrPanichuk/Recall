@@ -8,7 +8,7 @@ import {
 	CONNECTION,
 	USE_CASE_DEPENDENCIES,
 } from "@api/modules/shared/database/tokens";
-import { DomainExceptionFilter } from "@api/modules/shared/errors/domain-exception.filter";
+import { ModuleErrorFilter } from "@api/shared/http/module-error.filter";
 import { Global, type INestApplication, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { createBotClient } from "@recall/contracts";
@@ -75,7 +75,7 @@ async function startApi(
 		abortOnError: false,
 	});
 
-	app.useGlobalFilters(new DomainExceptionFilter());
+	app.useGlobalFilters(new ModuleErrorFilter());
 	await app.listen(0, "127.0.0.1");
 
 	const address = app.getHttpServer().address() as AddressInfo;
