@@ -15,6 +15,7 @@ import {
 	mountSwagger,
 	SWAGGER_PATH,
 } from "@/modules/shared/swagger/build-document";
+import { requestContextMiddleware } from "@/shared/request-context";
 
 export async function createApiApp() {
 	const app = await NestFactory.create(AppModule, {
@@ -33,14 +34,17 @@ export async function createApiApp() {
 		app.enableCors({ origin: browserOrigins, credentials: true });
 	}
 
+	const instance = app.getHttpAdapter().getInstance() as Express;
+
+	instance.use(requestContextMiddleware);
+
 	const mcp = app.get<McpSurface>(MCP_SURFACE);
 
 	if (mcp.app !== undefined) {
-		app.getHttpAdapter().getInstance().use(mcp.app);
+		instance.use(mcp.app);
 	}
 
 	const auth = app.get<RecallAuth | undefined>(AUTH);
-	const instance = app.getHttpAdapter().getInstance() as Express;
 
 	if (auth !== undefined) {
 		instance.all(`${AUTH_BASE_PATH}/*splat`, toNodeHandler(auth));
