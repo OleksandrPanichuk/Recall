@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { anAnswer, anAttempt } from "@tests/fixtures/quiz-attempt.fixture";
-import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+} from "@tests/fixtures/quiz-sets.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import { AttemptEntity } from "@/modules/attempts";
 import { type QuizSetId } from "@/modules/quizzes";
 import { ListQuestionsUseCase } from "./list-questions";

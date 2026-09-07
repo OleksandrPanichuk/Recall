@@ -1,9 +1,9 @@
 import type { Logger } from "@recall/kit";
-import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
-import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import type { AbandonQuizAttemptUseCase } from "@/modules/attempts";
 import type { GetInsightsUseCase } from "@/modules/insights";
 import type {
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,
 	EnsurePagePathUseCase,

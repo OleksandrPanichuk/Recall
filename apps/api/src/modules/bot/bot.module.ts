@@ -9,7 +9,6 @@ import { StatisticsModule } from "@/modules/statistics";
 import { StudySettingsModule } from "@/modules/study-settings";
 import { TelegramLinkModule } from "@/modules/telegram-link";
 import { BotController } from "./bot.controller";
-import { botUseCases } from "./use-cases.providers";
 
 @Module({
 	imports: [
@@ -24,6 +23,5 @@ import { botUseCases } from "./use-cases.providers";
 		TelegramLinkModule,
 	],
 	controllers: [BotController],
-	providers: [...botUseCases],
 })
 export class BotModule {}

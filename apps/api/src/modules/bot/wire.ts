@@ -15,8 +15,6 @@ import type {
 	StartQuizAttemptResult as WireStartResult,
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
-import type { AttachedQuiz } from "@/application/use-cases/folders/attach-quiz";
-import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
 import type {
 	AnswerQuestionResult,
 	CurrentQuestionView,
@@ -25,6 +23,7 @@ import type {
 	StartQuizAttemptResult,
 } from "@/modules/attempts";
 import type { Insights } from "@/modules/insights";
+import type { AttachedQuiz, BrowseView } from "@/modules/pages";
 import type { StartPracticeSessionResult } from "@/modules/practice";
 import { questionToWire, quizSummaryToWire } from "@/modules/quizzes";
 import { type DueSet, type LeechView } from "@/modules/scheduling";

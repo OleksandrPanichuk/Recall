@@ -3,7 +3,7 @@ import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import {
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+} from "@tests/fixtures/quiz-sets.fixture";
 import {
 	EmptyQuizSetError,
 	QuizSetStatus,

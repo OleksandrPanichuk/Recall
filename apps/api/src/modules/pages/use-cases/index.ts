@@ -1,3 +1,5 @@
+export * from "./attach-quiz";
+export * from "./browse-folder";
 export {
 	type CreatedPage,
 	CreatePageUseCase,

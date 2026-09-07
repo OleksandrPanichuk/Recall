@@ -1,5 +1,10 @@
 import type { PageEntity, PageId } from "./page.entity";
-import type { LinkedQuizId, LinkedQuizStatus } from "./page.quiz-link";
+import type {
+	LinkedQuizFilter,
+	LinkedQuizId,
+	LinkedQuizStatus,
+	LinkedQuizSummary,
+} from "./page.quiz-link";
 
 export type RevisionAuthor = "user" | "mcp";
 
@@ -40,6 +45,12 @@ export abstract class PagesRepository {
 	abstract attachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void>;
 	abstract detachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void>;
 	abstract listAttachedQuizIds(id: PageId): Promise<readonly LinkedQuizId[]>;
+	abstract findLinkedQuiz(
+		id: LinkedQuizId,
+	): Promise<LinkedQuizSummary | undefined>;
+	abstract listPublishedQuizzes(
+		filter: LinkedQuizFilter,
+	): Promise<readonly LinkedQuizSummary[]>;
 	abstract recordRevision(revision: PageRevision): Promise<void>;
 	abstract listRevisions(
 		id: PageId,

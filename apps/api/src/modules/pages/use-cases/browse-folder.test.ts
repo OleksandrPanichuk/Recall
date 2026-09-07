@@ -43,7 +43,10 @@ beforeEach(() => {
 		new PagesService(context.scope.pages),
 		context.transaction,
 	);
-	browseFolder = new BrowseFolderUseCase(context);
+	browseFolder = new BrowseFolderUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+	);
 	moveQuizSet = quizzesOver(context).moveQuizSet;
 });
 

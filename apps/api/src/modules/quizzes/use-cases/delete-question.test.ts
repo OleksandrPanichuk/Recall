@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
-import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+} from "@tests/fixtures/quiz-sets.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import {
 	AnsweredQuestionError,

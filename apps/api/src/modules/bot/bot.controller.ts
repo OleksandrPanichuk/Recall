@@ -44,8 +44,6 @@ import {
 	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
-import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
-import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { ApiTokensService } from "@/modules/api-tokens";
 import {
 	AbandonQuizAttemptUseCase,
@@ -61,6 +59,8 @@ import {
 import { BotTokenGuard } from "@/modules/auth";
 import { GetInsightsUseCase } from "@/modules/insights";
 import {
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	CreatePageUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,

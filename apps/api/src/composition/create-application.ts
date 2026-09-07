@@ -7,8 +7,6 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import { UnitOfWorkTransaction } from "@/application/unit-of-work.transaction";
 import type { ApplicationDependencies } from "@/application/use-case";
-import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
-import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
 import { DatabaseConnection } from "@/db/connection";
 import {
 	AbandonQuizAttemptUseCase,
@@ -28,6 +26,8 @@ import {
 	UnsharePageUseCase,
 } from "@/modules/page-shares";
 import {
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	CreatePageUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,
@@ -246,7 +246,7 @@ export function createUseCases(
 		),
 		resolveFolderPath: new ResolvePagePathUseCase(pages),
 		listFolderTree: new ListPageTreeUseCase(pages),
-		browseFolder: new BrowseFolderUseCase(dependencies),
+		browseFolder: new BrowseFolderUseCase(pages, pagesService),
 		writeSummary: new WriteSummaryUseCase(
 			pages,
 			pagesService,
@@ -276,7 +276,7 @@ export function createUseCases(
 		),
 		unsharePage: new UnsharePageUseCase(shares, pagesService, transaction),
 		readSharedPage: new ReadSharedPageUseCase(shares, pages),
-		attachQuiz: new AttachQuizUseCase(dependencies),
+		attachQuiz: new AttachQuizUseCase(pages, pagesService, transaction),
 		detachQuiz: new DetachQuizUseCase(pages, pagesService, transaction),
 		startQuizAttempt: new StartQuizAttemptUseCase(
 			attemptsRepo,
