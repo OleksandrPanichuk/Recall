@@ -7,6 +7,12 @@ export abstract class Database {
 	abstract readonly db: RecallDatabase;
 }
 
+export class DatabaseHandle extends Database {
+	constructor(readonly db: RecallDatabase) {
+		super();
+	}
+}
+
 export class DatabaseConnection extends Database {
 	readonly client: postgres.Sql;
 	readonly db: RecallDatabase;

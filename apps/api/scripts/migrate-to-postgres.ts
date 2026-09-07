@@ -1,7 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import type { RecallDatabase } from "@/db/client";
-import { Database } from "@/db/connection";
+import { DatabaseHandle } from "@/db/connection";
 import { PostgresTransaction } from "@/db/executor";
 import * as schema from "@/db/schema";
 import {
@@ -14,12 +13,6 @@ import {
 	migrateSqliteToPostgres,
 	verifyMigration,
 } from "@/persistence/postgres/etl";
-
-class ScriptDatabase extends Database {
-	constructor(readonly db: RecallDatabase) {
-		super();
-	}
-}
 
 const sqlitePath = process.argv[2];
 const url = process.argv[3] ?? process.env.DATABASE_URL;
@@ -54,7 +47,7 @@ try {
 	}
 
 	const db = drizzle({ client, schema });
-	const database = new ScriptDatabase(db);
+	const database = new DatabaseHandle(db);
 	const auth = new AuthService(
 		new PostgresAuthRepository(database),
 		new UsersService(new PostgresUsersRepository(database)),

@@ -5,11 +5,12 @@ import type {
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
 import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { PageEntity, type PageId } from "@/modules/pages";
 import {
 	excerptAround,
+	PageEntity,
+	type PageId,
 	slugOf,
-} from "../postgres/repositories/page.repository";
+} from "@/modules/pages";
 import type { MemoryStore } from "./store";
 
 export class DuplicateSlugError extends Error {

@@ -2,7 +2,7 @@ import { afterAll, beforeAll } from "bun:test";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { OwnerId } from "@/application/ports/owner";
 import type { RecallDatabase } from "@/db/client";
-import { Database } from "@/db/connection";
+import { Database, DatabaseHandle } from "@/db/connection";
 import * as schema from "@/db/schema";
 import { PostgresOAuthRepository } from "@/modules/oauth";
 import { describeOAuthStore } from "../../contracts/oauth-store.contract";
@@ -16,13 +16,7 @@ import {
 
 const available = await postgresAvailable();
 
-class FakeDatabase extends Database {
-	constructor(readonly db: RecallDatabase) {
-		super();
-	}
-}
-
-const databaseOf = (db: RecallDatabase): Database => new FakeDatabase(db);
+const databaseOf = (db: RecallDatabase): Database => new DatabaseHandle(db);
 const START = new Date("2026-08-01T10:00:00.000Z");
 
 let harness: PostgresHarness;

@@ -294,7 +294,6 @@
 										"group": [
 											"@/application/**",
 											"@/composition/**",
-											"@/domain/**",
 											"@/entrypoints/**",
 											"@/persistence/**"
 										],
@@ -337,7 +336,6 @@
 										"group": [
 											"@/application/**",
 											"@/composition/**",
-											"@/domain/**",
 											"@/entrypoints/**",
 											"@/persistence/**"
 										],

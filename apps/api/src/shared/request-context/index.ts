@@ -1,4 +1,5 @@
 export { AlsOwnerContext } from "./als-owner-context";
+export { FixedOwnerContext } from "./fixed-owner-context";
 export {
 	currentPrincipal,
 	hasRequestContext,
