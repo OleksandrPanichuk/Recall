@@ -56,13 +56,17 @@
 			"includes": ["apps/api/**"],
 			"linter": {
 				"rules": {
-					"complexity": { "noStaticOnlyClass": "off" },
+					"complexity": {
+						"noStaticOnlyClass": "off"
+					},
 					"suspicious": {
 						"noConfusingVoidType": "off",
 						"noRedeclare": "off",
 						"noUnsafeDeclarationMerging": "off"
 					},
-					"style": { "useImportType": "off" }
+					"style": {
+						"useImportType": "off"
+					}
 				}
 			}
 		},
@@ -103,7 +107,7 @@
 											"@/persistence/**",
 											"@/shared/**"
 										],
-										"message": "core imports nothing from src (REWRITE_PLAN.md §3.1)"
+										"message": "core imports nothing from src (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -134,7 +138,7 @@
 											"@/persistence/**",
 											"@/shared/**"
 										],
-										"message": "configs may import core and nothing else (REWRITE_PLAN.md §3.1)"
+										"message": "configs may import core and nothing else (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -164,7 +168,7 @@
 											"@/persistence/**",
 											"@/shared/**"
 										],
-										"message": "db may import core and configs only; it knows tables, not the domain (REWRITE_PLAN.md §3.1)"
+										"message": "db may import core and configs only; it knows tables, not the domain (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -199,7 +203,7 @@
 											"@/shared/http/**",
 											"@/shared/request-context/**"
 										],
-										"message": "infrastructure is a technology client: configs and shared/utils only, so it could be copied to another project unchanged (REWRITE_PLAN.md §3.1)"
+										"message": "infrastructure is a technology client: configs and shared/utils only, so it could be copied to another project unchanged (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -230,11 +234,11 @@
 											"@/entrypoints/**",
 											"@/persistence/**"
 										],
-										"message": "an adapter implements one module port over infrastructure and never touches the database (REWRITE_PLAN.md §3.1)"
+										"message": "an adapter implements one module port over infrastructure and never touches the database (REWRITE_PLAN.md \u00a73.1)"
 									},
 									{
 										"group": ["@/modules/*"],
-										"message": "an adapter imports the port file it implements, never the module barrel: the barrel exports the module class, which imports the adapter (REWRITE_PLAN.md §3.1)"
+										"message": "an adapter imports the port file it implements, never the module barrel: the barrel exports the module class, which imports the adapter (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -263,7 +267,7 @@
 											"@/modules/**",
 											"@/persistence/**"
 										],
-										"message": "shared is below every module: core, configs and db only (REWRITE_PLAN.md §3.1)"
+										"message": "shared is below every module: core, configs and db only (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -275,13 +279,10 @@
 		{
 			"includes": [
 				"apps/api/src/modules/**",
-				"!apps/api/src/modules/app/**",
-				"!apps/api/src/modules/bot/**",
-				"!apps/api/src/modules/content/**",
-				"!apps/api/src/modules/integration/**",
-				"!apps/api/src/modules/public/**",
 				"!apps/api/src/modules/shared/**",
-				"!apps/api/src/modules/app.module.ts"
+				"!apps/api/src/modules/app.module.ts",
+				"!apps/api/src/modules/admin/**",
+				"!apps/api/src/modules/mcp/**"
 			],
 			"linter": {
 				"rules": {
@@ -292,7 +293,7 @@
 								"patterns": [
 									{
 										"group": ["@/adapters/**", "@/infrastructure/**"],
-										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (REWRITE_PLAN.md §3.1)"
+										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (REWRITE_PLAN.md \u00a73.1)"
 									},
 									{
 										"group": [
@@ -300,15 +301,15 @@
 											"@/entrypoints/**",
 											"@/persistence/**"
 										],
-										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md §5.1)"
+										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md \u00a75.1)"
 									},
 									{
 										"group": ["@/db/migrations/**"],
-										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md §3.1)"
+										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
 									},
 									{
 										"group": ["@/modules/*/**"],
-										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md §3.1)"
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -320,13 +321,10 @@
 		{
 			"includes": [
 				"apps/api/src/modules/**/*.module.ts",
-				"!apps/api/src/modules/app/**",
-				"!apps/api/src/modules/bot/**",
-				"!apps/api/src/modules/content/**",
-				"!apps/api/src/modules/integration/**",
-				"!apps/api/src/modules/public/**",
 				"!apps/api/src/modules/shared/**",
-				"!apps/api/src/modules/app.module.ts"
+				"!apps/api/src/modules/app.module.ts",
+				"!apps/api/src/modules/admin/**",
+				"!apps/api/src/modules/mcp/**"
 			],
 			"linter": {
 				"rules": {
@@ -341,15 +339,15 @@
 											"@/entrypoints/**",
 											"@/persistence/**"
 										],
-										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md §5.1)"
+										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md \u00a75.1)"
 									},
 									{
 										"group": ["@/db/migrations/**"],
-										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md §3.1)"
+										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
 									},
 									{
 										"group": ["@/modules/*/**"],
-										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md §3.1)"
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}

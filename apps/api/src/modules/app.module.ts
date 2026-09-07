@@ -1,10 +1,12 @@
 import { Module } from "@nestjs/common";
 import { loadApiEnvironment } from "@/configs/env.config";
+import { AdminModule } from "@/modules/admin/admin.module";
 import { ApiTokensModule } from "@/modules/api-tokens";
 import { AttachmentsModule } from "@/modules/attachments";
 import { AttemptsModule } from "@/modules/attempts";
 import { AuthModule } from "@/modules/auth";
 import { InsightsModule } from "@/modules/insights";
+import { McpModule } from "@/modules/mcp/mcp.module";
 import { OAuthModule } from "@/modules/oauth";
 import { PageSharesModule } from "@/modules/page-shares";
 import { PagesModule } from "@/modules/pages";
@@ -17,8 +19,6 @@ import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
 import { VocabularyModule } from "@/modules/vocabulary";
 import { CoreModule } from "@/shared/core.module";
-import { AdminModule } from "./integration/admin/admin.module";
-import { McpModule } from "./integration/mcp/mcp.module";
 import { DatabaseModule } from "./shared/database/database.module";
 import { HealthController } from "./shared/health/health.controller";
 

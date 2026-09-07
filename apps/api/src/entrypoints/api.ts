@@ -4,10 +4,7 @@ import { type Express, json, urlencoded } from "express";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { AppModule } from "@/modules/app.module";
 import { AUTH_BASE_PATH, AuthEngine } from "@/modules/auth";
-import {
-	MCP_SURFACE,
-	type McpSurface,
-} from "@/modules/integration/mcp/mcp.module";
+import { MCP_SURFACE, type McpSurface } from "@/modules/mcp/mcp.module";
 import {
 	mountSwagger,
 	SWAGGER_PATH,
