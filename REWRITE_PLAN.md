@@ -574,11 +574,16 @@ export abstract class ModuleError extends Error {
   `import type` when the file names it only as a parameter type, which erases the metadata and
   breaks DI at runtime with the imports still looking correct. Reproduced, and it is worse than
   the note says — the rewritten import made `bun test` report zero tests and exit 0, so broken
-  DI looked like a passing suite. **`useImportType` is off for `apps/api/src/modules/**` and
-  `apps/api/tests/**`**, the two trees where injectables are written, and
-  `tests/unit/decorator-metadata.test.ts` boots a module whose consumer names its dependency
-  only as a parameter type. It passes `abortOnError: false`, so a regression fails loudly
-  instead of exiting the process.
+  DI looked like a passing suite. **The fix is simply to turn the rule off**, for all of
+  `apps/api/**`. Two narrow globs were tried first and were a mistake: a test fixture landed
+  outside them and broke exactly as described, so the scope is the app, not the trees where
+  injectables happen to live today. `tests/unit/decorator-metadata.test.ts` boots a module
+  whose consumer names its dependency only as a parameter type, and passes
+  `abortOnError: false` so a regression fails loudly instead of exiting the process.
+- **`noStaticOnlyClass` is off for `apps/api/**` too**, and for the same kind of reason: §4.4
+  makes an entity a class of statics over a merged interface, which is precisely the shape that
+  rule exists to discourage. Where the conventions and a default lint rule disagree, the
+  conventions win and the rule goes, scoped to this app so the other workspaces keep it.
 - Use cases, services and repositories are all `@Injectable()` providers listed in their
   module. A module `exports` only what another module legitimately needs; the import graph is
   declared in `*.module.ts` rather than implied by whatever got imported.
