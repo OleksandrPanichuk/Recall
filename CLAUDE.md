@@ -614,6 +614,28 @@ site fires exactly when a launch has already failed.
 `TELEGRAM_API_ROOT` points the bot at another Bot API server. It exists so a test can drive a
 real signal against a stub, which is the only way that bug was ever going to be caught.
 
+**A dropped long poll is not a launch failure, and telegraf cannot tell the difference on Bun.**
+`polling.js` retries only when `err.name === 'FetchError'` — node-fetch's name. Bun raises every
+network failure as a plain `TypeError` carrying a **`code`** (`ECONNRESET` for a socket closed
+mid-response, `ConnectionRefused`, `ENOTFOUND`, …), so a poll that dies falls through to `throw
+err`, `launch()` rejects, and the bot exited 1 on a laptop waking from sleep — which then took
+the whole `bun run up` stack down with it, api and web included. `keepPolling` supervises the
+launch instead: `isTransientNetworkError` classifies on `code`, never on the message, and a
+transient rejection is relaunched with exponential backoff to 30s. A launch that stayed up for a
+minute resets the count; ten consecutive failures still exit 1, so a wrong `TELEGRAM_API_ROOT`
+does not retry forever. **Only the first launch may pass `dropPendingUpdates`** — dropping on a
+reconnect throws away the updates that arrived during the outage.
+
+The backoff timer must stay **ref'd but interruptible**, and the two are easy to confuse.
+`setTimeout(...).unref()` looks like the way to keep a SIGTERM mid-backoff from waiting the delay
+out, but nothing else holds the bot's event loop open while it waits, so the process just *exits*
+during the backoff and never reconnects — the reconnect test drops to `polls: 0`. `keepPolling`
+registers a `reconnect-backoff` shutdown task that clears the timer instead.
+
+Classify on `code`, and get the codes from Bun rather than from memory: `transient.test.ts` takes
+its errors from a real socket it really closes, because a hand-built error object proves nothing
+about what the runtime raises — which is the same mistake that hid the SIGTERM bug above.
+
 **Never assert that a shuffle came out different.** `shuffled(items, seed)` is a seeded
 Fisher-Yates, so it is deterministic — but an attempt seeds it with its own id, which is a
 fresh uuid every run, and identity is a legitimate outcome (1 in 5040 for seven questions).
