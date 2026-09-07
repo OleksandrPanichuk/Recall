@@ -37,12 +37,11 @@ import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
 import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
 import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
 import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
-import type { SharedPageView } from "@/application/use-cases/sharing/read-shared-page";
-import type { SharedPage } from "@/application/use-cases/sharing/share-page";
 import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
 import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
 import type { DueSet } from "@/domain/repetition/repetition.types";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import type { SharedPage, SharedPageView } from "@/modules/page-shares";
 import type { DetachedQuiz, PageTreeNode } from "@/modules/pages";
 import {
 	QuestionEntity,

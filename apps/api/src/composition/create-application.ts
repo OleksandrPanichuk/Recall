@@ -25,14 +25,15 @@ import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/li
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
 import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
 import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
-import { ReadSharedPageUseCase } from "@/application/use-cases/sharing/read-shared-page";
-import {
-	SharePageUseCase,
-	UnsharePageUseCase,
-} from "@/application/use-cases/sharing/share-page";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
 import { DatabaseConnection } from "@/db/connection";
+import {
+	PageSharesRepository,
+	ReadSharedPageUseCase,
+	SharePageUseCase,
+	UnsharePageUseCase,
+} from "@/modules/page-shares";
 import {
 	CreatePageUseCase,
 	DeletePageUseCase,
@@ -154,6 +155,11 @@ export function createUseCases(
 	const quizzes = dependencies.scope.quizzes;
 	const attemptsRepo = dependencies.scope.attempts;
 	const termPairs = dependencies.scope.termPairs;
+	const shares = new (class extends PageSharesRepository {
+		shareOf = (id: never) => pages.shareOf(id);
+		save = (share: never) => pages.saveShare(share);
+		delete = (id: never) => pages.deleteShare(id);
+	})();
 	const pagesService = new PagesService(pages);
 	const transaction = new UnitOfWorkTransaction(dependencies.unitOfWork);
 	const addQuestions = new AddQuestionsUseCase(
@@ -247,9 +253,15 @@ export function createUseCases(
 		),
 		getInsights: new GetInsightsUseCase(dependencies),
 		abandonQuizAttempt: new AbandonQuizAttemptUseCase(dependencies),
-		sharePage: new SharePageUseCase(dependencies),
-		unsharePage: new UnsharePageUseCase(dependencies),
-		readSharedPage: new ReadSharedPageUseCase(dependencies),
+		sharePage: new SharePageUseCase(
+			shares,
+			pagesService,
+			transaction,
+			clock,
+			idGenerator,
+		),
+		unsharePage: new UnsharePageUseCase(shares, pagesService, transaction),
+		readSharedPage: new ReadSharedPageUseCase(shares, pages),
 		attachQuiz: new AttachQuizUseCase(dependencies),
 		detachQuiz: new DetachQuizUseCase(pages, pagesService, transaction),
 		startQuizAttempt: new StartQuizAttemptUseCase(dependencies),
