@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net";
 import type { QuestionInput } from "@api/application/use-cases/quiz-sets/add-questions";
-import { DatabaseConnection } from "@api/db/connection";
+import { Database, DatabaseConnection } from "@api/db/connection";
 import { Difficulty, QuestionType } from "@api/domain/quiz-set/question";
 import type { QuizSetId } from "@api/domain/quiz-set/quiz-set";
 import { AuthModule } from "@api/modules/auth";
@@ -61,8 +61,9 @@ async function startApi(
 		providers: [
 			{ provide: USE_CASE_DEPENDENCIES, useValue: dependencies },
 			{ provide: DatabaseConnection, useValue: unreachableConnection },
+			{ provide: Database, useValue: unreachableConnection },
 		],
-		exports: [USE_CASE_DEPENDENCIES, DatabaseConnection],
+		exports: [USE_CASE_DEPENDENCIES, Database, DatabaseConnection],
 	})
 	class MemoryDependenciesModule {}
 

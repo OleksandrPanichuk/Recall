@@ -13,10 +13,10 @@ import type {
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import type { Response } from "express";
 import {
-	type OAuthStore,
-	type StoredAuthorizationCode,
+	type OAuthAuthorizationCode,
+	type OAuthRepository,
 	TokenKind,
-} from "@/infrastructure/auth/oauth-store.types";
+} from "@/modules/oauth";
 
 export const CONSENT_PATH = "/consent";
 export const STATIC_CLIENT_ID = "static-token";
@@ -56,7 +56,7 @@ export interface TokenPrincipal {
 }
 
 export interface OAuthProviderDependencies {
-	readonly store: OAuthStore;
+	readonly store: OAuthRepository;
 	readonly staticToken?: string;
 	readonly instanceOwner?: () => Promise<string>;
 	readonly personalToken?: (
@@ -122,7 +122,7 @@ export function createOAuthProvider(
 	const codeOf = async (
 		code: string,
 		client: OAuthClientInformationFull,
-	): Promise<StoredAuthorizationCode> => {
+	): Promise<OAuthAuthorizationCode> => {
 		const stored = await store.findCode(code);
 
 		if (stored === undefined || stored.clientId !== client.client_id) {

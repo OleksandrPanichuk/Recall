@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { OwnerId } from "@/core/owner";
-import { DatabaseConnection } from "@/db/connection";
+import { Database } from "@/db/connection";
 import { DatabaseExecutor } from "@/db/executor";
 import { apiTokens } from "@/db/schema";
 import type { ApiTokenEntity } from "../api-token.entity";
@@ -12,12 +12,12 @@ import {
 
 @Injectable()
 export class PostgresApiTokensRepository extends ApiTokensRepository {
-	constructor(private readonly connection: DatabaseConnection) {
+	constructor(private readonly database: Database) {
 		super();
 	}
 
 	private get executor() {
-		return DatabaseExecutor.for(this.connection.db);
+		return DatabaseExecutor.for(this.database.db);
 	}
 
 	async insert(data: CreateApiTokenData): Promise<void> {

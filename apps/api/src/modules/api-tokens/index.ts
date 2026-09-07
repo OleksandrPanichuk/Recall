@@ -11,3 +11,4 @@ export {
 	type CreateApiTokenData,
 } from "./api-tokens.repository";
 export { ApiTokensService } from "./api-tokens.service";
+export { PostgresApiTokensRepository } from "./repositories/api-tokens.postgres.repository";

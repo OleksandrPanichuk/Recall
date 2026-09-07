@@ -4,7 +4,8 @@ import type { INestApplication } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@/db/schema";
 import { createApiApp } from "@/entrypoints/api";
-import { issueApiToken } from "@/persistence/postgres/api-tokens";
+import { ApiTokensService } from "@/modules/api-tokens";
+import { issuerOver } from "../../fixtures/api-tokens";
 import {
 	applyMigration,
 	openPostgres,
@@ -80,9 +81,10 @@ beforeAll(async () => {
 	const mine = await seedTelegramOwner(harness, OWNER_TELEGRAM_ID);
 	const theirs = await seedOwner(harness, "somebody else");
 
-	mineToken = (await issueApiToken(db, { owner: mine, name: "mine" })).token;
-	theirsToken = (await issueApiToken(db, { owner: theirs, name: "theirs" }))
-		.token;
+	const tokens: ApiTokensService = issuerOver(db);
+
+	mineToken = (await tokens.issue(mine, { name: "mine" })).token;
+	theirsToken = (await tokens.issue(theirs, { name: "theirs" })).token;
 
 	override("DATABASE_URL", harness.url);
 	override("BOT_API_TOKEN", BOT_TOKEN);

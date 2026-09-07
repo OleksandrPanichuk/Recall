@@ -3,7 +3,7 @@ import type { ObjectStore } from "@/application/ports/object-store";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { systemClock, uuidGenerator } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { DatabaseConnection } from "@/db/connection";
+import { Database, DatabaseConnection } from "@/db/connection";
 import { AuthService } from "@/modules/auth";
 import { createMinioObjectStore } from "@/persistence/objects/minio.object-store";
 import {
@@ -54,6 +54,7 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 			useFactory: (): DatabaseConnection =>
 				new DatabaseConnection({ url: loadApiEnvironment().databaseUrl }),
 		},
+		{ provide: Database, useExisting: DatabaseConnection },
 		{
 			provide: USE_CASE_DEPENDENCIES,
 			inject: [DatabaseConnection, INSTANCE_OWNER],
@@ -70,6 +71,7 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 		},
 	],
 	exports: [
+		Database,
 		DatabaseConnection,
 		INSTANCE_OWNER,
 		OBJECT_STORE,

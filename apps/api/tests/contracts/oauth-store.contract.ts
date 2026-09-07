@@ -1,11 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import {
-	type OAuthStore,
-	TokenKind,
-} from "@/infrastructure/auth/oauth-store.types";
+import { type OAuthRepository, TokenKind } from "@/modules/oauth";
 
 export interface OAuthStoreHarness {
-	readonly store: OAuthStore;
+	readonly store: OAuthRepository;
 	readonly owner: string;
 	reset(): Promise<void>;
 	at(): Date;

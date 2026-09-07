@@ -1,10 +1,25 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import type { RecallDatabase } from "@/db/client";
+import { Database } from "@/db/connection";
+import { PostgresTransaction } from "@/db/executor";
+import * as schema from "@/db/schema";
+import {
+	AuthEngine,
+	AuthService,
+	PostgresAuthRepository,
+} from "@/modules/auth";
+import { PostgresUsersRepository, UsersService } from "@/modules/users";
 import {
 	migrateSqliteToPostgres,
 	verifyMigration,
 } from "@/persistence/postgres/etl";
-import { ensureTelegramOwner } from "@/persistence/postgres/owner";
+
+class ScriptDatabase extends Database {
+	constructor(readonly db: RecallDatabase) {
+		super();
+	}
+}
 
 const sqlitePath = process.argv[2];
 const url = process.argv[3] ?? process.env.DATABASE_URL;
@@ -27,18 +42,26 @@ if (!Number.isSafeInteger(telegramUserId) || telegramUserId <= 0) {
 const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
 
 try {
-	const [schema] = await client<{ present: boolean }[]>`
+	const [installed] = await client<{ present: boolean }[]>`
 		select to_regclass('public.quizzes') is not null as present
 	`;
 
-	if (schema?.present !== true) {
+	if (installed?.present !== true) {
 		console.error(
 			"this database has no schema yet — run `bun run db:migrate` against it first",
 		);
 		process.exit(1);
 	}
 
-	const owner = await ensureTelegramOwner(drizzle({ client }), telegramUserId);
+	const db = drizzle({ client, schema });
+	const database = new ScriptDatabase(db);
+	const auth = new AuthService(
+		new PostgresAuthRepository(database),
+		new UsersService(new PostgresUsersRepository(database)),
+		new AuthEngine(undefined),
+		new PostgresTransaction(() => db),
+	);
+	const owner = await auth.ensureOwnerForTelegram(telegramUserId);
 
 	const report = await migrateSqliteToPostgres({ sqlitePath, client, owner });
 

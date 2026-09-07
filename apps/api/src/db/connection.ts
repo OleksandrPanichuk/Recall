@@ -3,11 +3,16 @@ import postgres from "postgres";
 import type { PostgresOptions, RecallDatabase } from "./client";
 import * as schema from "./schema";
 
-export class DatabaseConnection {
+export abstract class Database {
+	abstract readonly db: RecallDatabase;
+}
+
+export class DatabaseConnection extends Database {
 	readonly client: postgres.Sql;
 	readonly db: RecallDatabase;
 
 	constructor(options: PostgresOptions) {
+		super();
 		this.client = postgres(options.url, {
 			max: options.maxConnections ?? 10,
 			prepare: false,

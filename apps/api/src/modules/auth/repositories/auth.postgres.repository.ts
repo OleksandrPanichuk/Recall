@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import { type OwnerId, toOwnerId } from "@/core/owner";
-import { DatabaseConnection } from "@/db/connection";
+import { Database } from "@/db/connection";
 import { DatabaseExecutor } from "@/db/executor";
 import { account, authEvents } from "@/db/schema";
 import {
@@ -12,12 +12,12 @@ import {
 
 @Injectable()
 export class PostgresAuthRepository extends AuthRepository {
-	constructor(private readonly connection: DatabaseConnection) {
+	constructor(private readonly database: Database) {
 		super();
 	}
 
 	private get executor() {
-		return DatabaseExecutor.for(this.connection.db);
+		return DatabaseExecutor.for(this.database.db);
 	}
 
 	async findOwnerByAccount(

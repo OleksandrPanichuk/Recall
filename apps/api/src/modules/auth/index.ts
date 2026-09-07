@@ -12,3 +12,4 @@ export {
 } from "./auth.repository";
 export { AuthService } from "./auth.service";
 export { SessionGuard, type SessionRequest } from "./auth.session.guard";
+export { PostgresAuthRepository } from "./repositories/auth.postgres.repository";

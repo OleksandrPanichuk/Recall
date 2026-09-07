@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { type OwnerId, toOwnerId } from "@/core/owner";
-import { DatabaseConnection } from "@/db/connection";
+import { Database } from "@/db/connection";
 import { DatabaseExecutor } from "@/db/executor";
 import { user } from "@/db/schema";
 import { UserEntity } from "../user.entity";
@@ -9,12 +9,12 @@ import { type CreateUserData, UsersRepository } from "../users.repository";
 
 @Injectable()
 export class PostgresUsersRepository extends UsersRepository {
-	constructor(private readonly connection: DatabaseConnection) {
+	constructor(private readonly database: Database) {
 		super();
 	}
 
 	private get executor() {
-		return DatabaseExecutor.for(this.connection.db);
+		return DatabaseExecutor.for(this.database.db);
 	}
 
 	async insert(data: CreateUserData): Promise<OwnerId> {

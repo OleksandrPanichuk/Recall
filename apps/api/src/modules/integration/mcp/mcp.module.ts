@@ -10,13 +10,9 @@ import {
 } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { DatabaseConnection } from "@/db/connection";
+import { ApiTokensModule, ApiTokensService } from "@/modules/api-tokens";
 import { AuthService } from "@/modules/auth";
-import {
-	findApiTokenPrincipal,
-	looksLikeApiToken,
-	touchApiToken,
-} from "@/persistence/postgres/api-tokens";
-import { createPostgresOAuthStore } from "@/persistence/postgres/oauth.store";
+import { OAuthModule, OAuthRepository } from "@/modules/oauth";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -29,13 +25,21 @@ export interface McpSurface {
 }
 
 @Module({
+	imports: [ApiTokensModule, OAuthModule],
 	providers: [
 		{
 			provide: MCP_SURFACE,
-			inject: [DatabaseConnection, AuthService],
+			inject: [
+				DatabaseConnection,
+				AuthService,
+				OAuthRepository,
+				ApiTokensService,
+			],
 			useFactory: (
 				connection: DatabaseConnection,
 				auth: AuthService,
+				oauth: OAuthRepository,
+				apiTokens: ApiTokensService,
 			): McpSurface => {
 				const environment = loadApiEnvironment();
 
@@ -60,37 +64,10 @@ export interface McpSurface {
 								? auth.ownerOfSession(request)
 								: Promise.resolve(undefined),
 						oauth: createOAuthProvider({
-							store: createPostgresOAuthStore(connection.db, () => new Date()),
+							store: oauth,
 							staticToken: environment.mcpToken,
 							instanceOwner: () => auth.instanceOwner(),
-							personalToken: async (token) => {
-								if (!looksLikeApiToken(token)) {
-									return undefined;
-								}
-
-								const principal = await findApiTokenPrincipal(
-									connection.db,
-									token,
-									new Date(),
-								);
-
-								if (principal === undefined) {
-									return undefined;
-								}
-
-								await touchApiToken(
-									connection.db,
-									principal.tokenId,
-									new Date(),
-								);
-
-								return {
-									owner: principal.owner,
-									scopes: principal.scopes,
-									expiresAt: principal.expiresAt,
-									tokenId: principal.tokenId,
-								};
-							},
+							personalToken: (token) => apiTokens.principalFor(token),
 							now: () => new Date(),
 						}),
 						allowedHosts: environment.mcpAllowedHosts,
