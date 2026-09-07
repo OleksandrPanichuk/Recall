@@ -143,8 +143,9 @@ apps/api/src/
 │
 └─ modules/
    ├─ health/
-   ├─ auth/                         Better Auth instance and its tables, the identity
-   │                                repository, SessionGuard, BotTokenGuard, instance owner
+   ├─ users/                        the user row: UserEntity, UsersRepository, UsersService
+   ├─ auth/                         Better Auth, its account/session/verification/auth_events
+   │                                tables, SessionGuard, BotTokenGuard, the instance owner
    ├─ telegram-link/                login links: minting, the verify plugin, the bot route
    ├─ api-tokens/                   personal tokens: issue, list, revoke, verify
    ├─ oauth/                        MCP OAuth clients, codes, tokens; provider; consent
@@ -177,7 +178,7 @@ db             → core, configs
 infrastructure → configs, shared/utils
 adapters       → infrastructure, configs, core, and the one module port file it implements
 shared         → core, configs, db
-modules/<m>    → core, configs, shared, db/schema, db/executor, other modules' barrels
+modules/<m>    → core, configs, shared, db (except migrations), other modules' barrels
 main.ts, app.module.ts → anything
 ```
 
@@ -186,6 +187,12 @@ Three rules that need words, not just the table:
 - **A module imports another module only through its barrel** (`@/modules/quizzes`). An adapter
   imports the port file directly (`@/modules/attachments/attachments.port`), never the barrel,
   because the barrel exports the module class which imports the adapter — a cycle.
+- **A module reaches the database through `db/`, and the only thing there it may not touch is
+  `db/migrations/`**, which is drizzle-kit's. An earlier draft of this rule also banned
+  `db/client`, meaning "go through the executor, not the connection". That was inverted: a
+  repository legitimately injects `DatabaseConnection` to resolve its executor, and
+  `RecallDatabase` is a type Better Auth's drizzle adapter needs, so the rule banned the type
+  and allowed the class.
 - **A repository may read another module's table, never write it.** `pages` counts rows in
   `quizzes` and joins `quiz_attachments` to `quizzes`; `attempts` joins `questions` for topic
   accuracy; `insights` joins nearly everything. Those are queries, not ownership. A write to a
@@ -393,7 +400,8 @@ export class CreateQuizUseCase extends UseCase<Options, Result> {
 
 | Module | Tables (writes) | Today's domain | Today's use cases | Today's other code |
 | --- | --- | --- | --- | --- |
-| `auth` | `user`, `session`, `account`, `verification`, `auth_events` | — | — | `modules/auth/{build-auth,build-auth.constants,reset-password.letter,session-owner,tokens}.ts`, `modules/app/session.guard.ts`, `modules/bot/bot-token.guard.ts`, `persistence/postgres/owner.ts`, `modules/shared/database/instance-owner.ts`, the `record()` bodies of both services |
+| `users` | `user` | — | — | `persistence/postgres/owner.ts` (the user half) |
+| `auth` | `session`, `account`, `verification`, `auth_events` | — | — | `modules/auth/{build-auth,build-auth.constants,reset-password.letter,session-owner,tokens}.ts`, `modules/app/session.guard.ts`, `modules/bot/bot-token.guard.ts`, `persistence/postgres/owner.ts`, `modules/shared/database/instance-owner.ts`, the `record()` bodies of both services |
 | `telegram-link` | — (writes through Better Auth's verification store) | — | — | `modules/auth/{telegram-identity.service,telegram-link.plugin}.ts`, the `loginLink` route |
 | `api-tokens` | `api_tokens` | — | — | `persistence/postgres/api-tokens.ts`, `modules/auth/api-token.service.ts`, the four token routes, `adapters/mcp/http/bearer.ts` |
 | `oauth` | `oauth_clients`, `oauth_codes`, `oauth_tokens` | — | — | `persistence/postgres/oauth.store.ts`, `infrastructure/auth/oauth-store.types.ts`, `adapters/mcp/http/oauth/*` |
@@ -425,7 +433,8 @@ Two things that look like they should be modules and are not:
 ### 5.2 Module dependency graph
 
 ```text
-auth          ← telegram-link, api-tokens, oauth   (identity lookups, provisioning)
+users         ← auth ← telegram-link, api-tokens, oauth
+auth          → users                              (provisioning a user is users' write)
 auth          → notifications                      (the reset letter is auth's, delivery is not)
 pages         ← page-shares → attachments
 quizzes       → pages                              (requireFolder, moveQuizSetToFolder)
@@ -692,6 +701,10 @@ the bulk and can each be several pull requests.
 
 ### Settled
 
+- **`users` owns the `user` row, `auth` owns the credentials.** Signing in, linking an
+  account and auditing are auth; the person record is its own noun with its own table, so
+  provisioning a telegram-linked account is `auth` calling `UsersService.create` inside its own
+  transaction rather than writing someone else's table.
 - **Capability modules, one per capability.** Named for what they own, never for who calls
   them. Two capabilities in one module is the smell this rewrite removes.
 - **Postgres repositories live in their module; every other port implementation is an

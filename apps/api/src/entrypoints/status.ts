@@ -1,6 +1,6 @@
 import { describeDatabaseUrl } from "@/configs/database-url";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { createPostgresConnection } from "@/db/client";
+import { DatabaseConnection } from "@/db/connection";
 import { formatStatus, readStatus } from "@/infrastructure/lifecycle/status";
 
 async function main(): Promise<void> {
@@ -14,7 +14,7 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	const connection = createPostgresConnection({ url: environment.databaseUrl });
+	const connection = new DatabaseConnection({ url: environment.databaseUrl });
 
 	try {
 		console.log(

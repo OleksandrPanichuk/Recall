@@ -4,15 +4,20 @@ import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
 
-export const TELEGRAM_PROVIDER = "telegram";
 export const LOGIN_IDENTIFIER_PREFIX = "telegram-login:";
 export const DEFAULT_LINK_TTL_SECONDS = 300;
 
-export const identifierFor = (token: string): string =>
-	`${LOGIN_IDENTIFIER_PREFIX}${createHash("sha256").update(token, "utf8").digest("hex")}`;
+export class LoginToken {
+	static mint(): string {
+		return randomBytes(32).toString("base64url");
+	}
 
-export const mintLoginToken = (): string =>
-	randomBytes(32).toString("base64url");
+	static identifierFor(token: string): string {
+		const hash = createHash("sha256").update(token, "utf8").digest("hex");
+
+		return `${LOGIN_IDENTIFIER_PREFIX}${hash}`;
+	}
+}
 
 export interface TelegramLinkOptions {
 	readonly successUrl: string;
@@ -38,7 +43,7 @@ export const telegramLink = (options: TelegramLinkOptions) => {
 					};
 					const stored =
 						await ctx.context.internalAdapter.consumeVerificationValue(
-							identifierFor(ctx.query.token),
+							LoginToken.identifierFor(ctx.query.token),
 						);
 
 					if (stored === null || stored === undefined) {

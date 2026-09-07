@@ -10,8 +10,8 @@ import { ApiExcludeController } from "@nestjs/swagger";
 import type { Response } from "express";
 import type { ObjectStore } from "@/application/ports/object-store";
 import { referencedUploads } from "@/application/use-cases/sharing/referenced-uploads";
-import type { PostgresConnection } from "@/db/client";
-import { CONNECTION, OBJECT_STORE } from "@/modules/shared/database/tokens";
+import { DatabaseConnection } from "@/db/connection";
+import { OBJECT_STORE } from "@/modules/shared/database/tokens";
 import { ownerForShare } from "@/persistence/postgres/share";
 import { scopeFor } from "@/persistence/postgres/unit-of-work";
 import { sharedPageViewToWire } from "../bot/wire";
@@ -23,7 +23,7 @@ import type { UseCasesFor } from "../shared/database/use-cases-for";
 export class PublicController {
 	constructor(
 		@Inject(USE_CASES_FOR) private readonly useCasesFor: UseCasesFor,
-		@Inject(CONNECTION) private readonly connection: PostgresConnection,
+		private readonly connection: DatabaseConnection,
 		@Inject(OBJECT_STORE) private readonly objects: ObjectStore,
 	) {}
 

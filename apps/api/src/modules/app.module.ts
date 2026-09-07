@@ -1,6 +1,11 @@
 import { Module } from "@nestjs/common";
+import { loadApiEnvironment } from "@/configs/env.config";
+import { ApiTokensModule } from "@/modules/api-tokens";
+import { AuthModule } from "@/modules/auth";
+import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
+import { UsersModule } from "@/modules/users";
+import { CoreModule } from "@/shared/core.module";
 import { AppSurfaceModule } from "./app/app-surface.module";
-import { AuthModule } from "./auth/auth.module";
 import { BotModule } from "./bot/bot.module";
 import { ContentModule } from "./content/content.module";
 import { AdminModule } from "./integration/admin/admin.module";
@@ -11,8 +16,16 @@ import { HealthController } from "./shared/health/health.controller";
 
 @Module({
 	imports: [
+		CoreModule,
 		DatabaseModule,
-		AuthModule,
+		UsersModule,
+		AuthModule.forRoot({
+			plugins: () => [
+				telegramLink({ successUrl: loadApiEnvironment().authSuccessUrl }),
+			],
+		}),
+		TelegramLinkModule,
+		ApiTokensModule,
 		ContentModule,
 		AppSurfaceModule,
 		PublicModule,

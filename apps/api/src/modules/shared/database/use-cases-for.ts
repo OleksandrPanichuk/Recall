@@ -5,7 +5,7 @@ import {
 	type UseCases,
 	uuidGenerator,
 } from "@/composition/create-application";
-import type { PostgresConnection } from "@/db/client";
+import { DatabaseConnection } from "@/db/connection";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -14,7 +14,7 @@ import {
 export type UseCasesFor = (owner: OwnerId) => UseCases;
 
 export const useCasesFor =
-	(connection: PostgresConnection): UseCasesFor =>
+	(connection: DatabaseConnection): UseCasesFor =>
 	(owner) =>
 		createUseCases({
 			unitOfWork: createPostgresUnitOfWork(connection.db, owner),

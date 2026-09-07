@@ -1,13 +1,7 @@
-import { matchesSecret } from "@recall/kit";
+import { BearerToken } from "@/shared/http/bearer.token";
 
-const BEARER = /^Bearer[ \t]+(\S+)[ \t]*$/i;
+export const bearerTokenOf = (header: string | null): string | undefined =>
+	BearerToken.of(header);
 
-export function bearerTokenOf(header: string | null): string | undefined {
-	if (header === null) {
-		return undefined;
-	}
-
-	return BEARER.exec(header.trim())?.[1];
-}
-
-export const matchesToken = matchesSecret;
+export const matchesToken = (offered: string, expected: string): boolean =>
+	BearerToken.matches(offered, expected);

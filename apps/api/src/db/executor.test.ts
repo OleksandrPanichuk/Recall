@@ -30,7 +30,7 @@ describe("the postgres executor", () => {
 	test("hands out the transaction scope inside one", async () => {
 		const { db } = fakeDatabase();
 
-		await new PostgresTransaction(db).run(async () => {
+		await new PostgresTransaction(() => db).run(async () => {
 			expect(DatabaseExecutor.for(db)).toBe(scope as never);
 			expect(DatabaseExecutor.isOpen()).toBe(true);
 		});
@@ -38,7 +38,7 @@ describe("the postgres executor", () => {
 
 	test("a nested run joins the open transaction rather than opening a second", async () => {
 		const { db, opened } = fakeDatabase();
-		const transaction = new PostgresTransaction(db);
+		const transaction = new PostgresTransaction(() => db);
 
 		await transaction.run(async () => {
 			await transaction.run(async () => {
@@ -52,7 +52,7 @@ describe("the postgres executor", () => {
 	test("the scope is gone once the operation resolves", async () => {
 		const { db } = fakeDatabase();
 
-		await new PostgresTransaction(db).run(async () => undefined);
+		await new PostgresTransaction(() => db).run(async () => undefined);
 
 		expect(DatabaseExecutor.for(db)).toBe(db);
 		expect(DatabaseExecutor.isOpen()).toBe(false);
@@ -62,7 +62,7 @@ describe("the postgres executor", () => {
 		const { db } = fakeDatabase();
 
 		expect(
-			new PostgresTransaction(db).run(async () => {
+			new PostgresTransaction(() => db).run(async () => {
 				throw new Error("rolled back");
 			}),
 		).rejects.toThrow("rolled back");
@@ -70,7 +70,7 @@ describe("the postgres executor", () => {
 
 	test("two operations in flight do not see each other's scope", async () => {
 		const { db } = fakeDatabase();
-		const transaction = new PostgresTransaction(db);
+		const transaction = new PostgresTransaction(() => db);
 		const seen: unknown[] = [];
 
 		await Promise.all([

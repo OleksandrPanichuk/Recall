@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { verification } from "@/db/schema";
 import { createApiApp } from "@/entrypoints/api";
-import { identifierFor } from "@/modules/auth/telegram-link.plugin";
+import { LoginToken } from "@/modules/telegram-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -203,7 +203,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 
 		await harness.db.insert(verification).values({
 			id: randomUUID(),
-			identifier: identifierFor(token),
+			identifier: LoginToken.identifierFor(token),
 			value: randomUUID(),
 			expiresAt: new Date(Date.now() - 60_000),
 		});

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/entrypoints/api";
-import { CLIENT_IP_HEADER } from "@/modules/auth/build-auth.constants";
+import { CLIENT_IP_HEADER } from "@/modules/auth";
 import {
 	applyMigration,
 	openPostgres,

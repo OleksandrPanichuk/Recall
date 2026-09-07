@@ -21,7 +21,7 @@ export class DatabaseExecutor {
 }
 
 export class PostgresTransaction extends Transaction {
-	constructor(private readonly db: RecallDatabase) {
+	constructor(private readonly database: () => RecallDatabase) {
 		super();
 	}
 
@@ -30,6 +30,8 @@ export class PostgresTransaction extends Transaction {
 			return operation();
 		}
 
-		return this.db.transaction((scope) => storage.run(scope, operation));
+		return this.database().transaction((scope) =>
+			storage.run(scope, operation),
+		);
 	}
 }

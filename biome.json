@@ -57,6 +57,7 @@
 			"linter": {
 				"rules": {
 					"complexity": { "noStaticOnlyClass": "off" },
+					"suspicious": { "noUnsafeDeclarationMerging": "off" },
 					"style": { "useImportType": "off" }
 				}
 			}
@@ -272,7 +273,6 @@
 			"includes": [
 				"apps/api/src/modules/**",
 				"!apps/api/src/modules/app/**",
-				"!apps/api/src/modules/auth/**",
 				"!apps/api/src/modules/bot/**",
 				"!apps/api/src/modules/content/**",
 				"!apps/api/src/modules/integration/**",
@@ -302,8 +302,8 @@
 										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md §5.1)"
 									},
 									{
-										"group": ["@/db/client", "@/db/migrations/**"],
-										"message": "a module reaches the database through db/executor and db/schema, never the connection itself (REWRITE_PLAN.md §3.1)"
+										"group": ["@/db/migrations/**"],
+										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md §3.1)"
 									},
 									{
 										"group": ["@/modules/*/**"],
@@ -320,7 +320,6 @@
 			"includes": [
 				"apps/api/src/modules/**/*.module.ts",
 				"!apps/api/src/modules/app/**",
-				"!apps/api/src/modules/auth/**",
 				"!apps/api/src/modules/bot/**",
 				"!apps/api/src/modules/content/**",
 				"!apps/api/src/modules/integration/**",
@@ -346,8 +345,8 @@
 										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md §5.1)"
 									},
 									{
-										"group": ["@/db/client", "@/db/migrations/**"],
-										"message": "a module reaches the database through db/executor and db/schema, never the connection itself (REWRITE_PLAN.md §3.1)"
+										"group": ["@/db/migrations/**"],
+										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md §3.1)"
 									},
 									{
 										"group": ["@/modules/*/**"],

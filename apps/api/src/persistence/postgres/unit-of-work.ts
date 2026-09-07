@@ -34,7 +34,7 @@ export function createPostgresUnitOfWork(
 	db: RecallDatabase,
 	owner: OwnerId,
 ): UnitOfWork<RepositoryScope> {
-	const transaction = new PostgresTransaction(db);
+	const transaction = new PostgresTransaction(() => db);
 
 	return {
 		run: (operation) =>

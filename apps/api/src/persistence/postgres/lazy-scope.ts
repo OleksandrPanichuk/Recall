@@ -52,7 +52,7 @@ export const lazyUnitOfWork = (
 ): UnitOfWork<RepositoryScope> => ({
 	run: async (operation) => {
 		const resolved = await owner();
-		const transaction = new PostgresTransaction(db);
+		const transaction = new PostgresTransaction(() => db);
 
 		return transaction.run(() =>
 			operation(scopeFor(DatabaseExecutor.for(db), resolved)),

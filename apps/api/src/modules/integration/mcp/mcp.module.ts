@@ -9,22 +9,18 @@ import {
 	uuidGenerator,
 } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
-import type { PostgresConnection } from "@/db/client";
-import type { RecallAuth } from "@/modules/auth/build-auth";
-import { ownerOfSession } from "@/modules/auth/session-owner";
-import { AUTH } from "@/modules/auth/tokens";
+import { DatabaseConnection } from "@/db/connection";
+import { AuthService } from "@/modules/auth";
 import {
 	findApiTokenPrincipal,
 	looksLikeApiToken,
 	touchApiToken,
 } from "@/persistence/postgres/api-tokens";
-import type { OwnerResolver } from "@/persistence/postgres/lazy-scope";
 import { createPostgresOAuthStore } from "@/persistence/postgres/oauth.store";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
 } from "@/persistence/postgres/unit-of-work";
-import { CONNECTION, INSTANCE_OWNER } from "../../shared/database/tokens";
 
 export const MCP_SURFACE = Symbol("MCP_SURFACE");
 
@@ -36,11 +32,10 @@ export interface McpSurface {
 	providers: [
 		{
 			provide: MCP_SURFACE,
-			inject: [CONNECTION, INSTANCE_OWNER, AUTH],
+			inject: [DatabaseConnection, AuthService],
 			useFactory: (
-				connection: PostgresConnection,
-				instanceOwner: OwnerResolver,
-				auth: RecallAuth | undefined,
+				connection: DatabaseConnection,
+				auth: AuthService,
 			): McpSurface => {
 				const environment = loadApiEnvironment();
 
@@ -59,15 +54,15 @@ export interface McpSurface {
 								timezone: process.env.APP_TIMEZONE ?? "UTC",
 							}),
 						logger: silentLogger,
-						instanceOwner,
+						instanceOwner: () => auth.instanceOwner(),
 						sessionOwner: (request) =>
-							auth === undefined
-								? Promise.resolve(undefined)
-								: ownerOfSession(auth, request),
+							auth.enabled
+								? auth.ownerOfSession(request)
+								: Promise.resolve(undefined),
 						oauth: createOAuthProvider({
 							store: createPostgresOAuthStore(connection.db, () => new Date()),
 							staticToken: environment.mcpToken,
-							instanceOwner,
+							instanceOwner: () => auth.instanceOwner(),
 							personalToken: async (token) => {
 								if (!looksLikeApiToken(token)) {
 									return undefined;
