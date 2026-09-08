@@ -10,9 +10,9 @@ import type { AttachmentsRepository } from "@/modules/attachments";
 import type { AttemptsRepository } from "@/modules/attempts";
 import type { AnalyticsRepository } from "@/modules/insights";
 import type { PagesRepository } from "@/modules/pages";
-import type { QuizRepository } from "./quiz.repository";
-import type { ReviewRepository } from "./review.repository";
-import type { TermPairRepository } from "./term-pair.repository";
+import type { QuizRepository } from "./quiz-repository.alias";
+import type { ReviewRepository } from "./review-repository.alias";
+import type { TermPairRepository } from "./term-pair-repository.alias";
 
 export interface RepositoryScope {
 	readonly pages: PagesRepository;

@@ -1,7 +1,7 @@
 import type { Clock } from "@/core/ports/clock";
 import type { IdGenerator } from "@/core/ports/id-generator";
-import type { RepositoryScope } from "./ports/repositories/page.repository";
-import type { UnitOfWork } from "./ports/unit-of-work";
+import type { RepositoryScope } from "./repository-scope";
+import type { UnitOfWork } from "./unit-of-work";
 
 export { type Command, UseCase } from "@/core/use-case";
 

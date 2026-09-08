@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { PageTreeNode } from "@/modules/pages";
+import type { QuizSummary } from "@/modules/quizzes";
 import { QuizSetEntity } from "@/modules/quizzes";
 import { describeError } from "./tool-error.presenter";
 

@@ -3,7 +3,7 @@ import type {
 	PageRepository,
 	PageRevision,
 	PageShare,
-} from "@/application/ports/repositories/page.repository";
+} from "@tests/fixtures/repository-scope";
 import {
 	excerptAround,
 	type LinkedQuizFilter,

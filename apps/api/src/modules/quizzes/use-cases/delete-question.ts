@@ -1,8 +1,7 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Clock } from "@/core/ports/clock";
 import { Transaction } from "@/core/transaction";
 import { UseCase } from "@/core/use-case";
-import type { AttemptsRepository } from "@/modules/attempts";
 import { type QuestionId, QuizSetEntity, type QuizSetId } from "..";
 import {
 	AnsweredQuestionError,
@@ -10,7 +9,6 @@ import {
 	QuizSetNotFoundError,
 } from "../quizzes.errors";
 import { QuizzesRepository } from "../quizzes.repository";
-import { ATTEMPTS } from "../quizzes.tokens";
 
 export interface DeleteQuestionUseCaseOptions {
 	readonly quizSetId: QuizSetId;
@@ -29,7 +27,6 @@ type Result = DeleteQuestionResult;
 export class DeleteQuestionUseCase extends UseCase<Options, Result> {
 	constructor(
 		private readonly quizzes: QuizzesRepository,
-		@Inject(ATTEMPTS) private readonly attempts: AttemptsRepository,
 		private readonly transaction: Transaction,
 		private readonly clock: Clock,
 	) {
@@ -54,7 +51,7 @@ export class DeleteQuestionUseCase extends UseCase<Options, Result> {
 				throw new QuestionNotFoundError(options.quizSetId, options.questionId);
 			}
 
-			const answers = await this.attempts.answerCount(current.id);
+			const answers = await this.quizzes.answerCount(current.id);
 
 			if (answers > 0) {
 				throw new AnsweredQuestionError(current.id, answers);

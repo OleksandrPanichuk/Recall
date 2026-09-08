@@ -2,17 +2,17 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { toOwnerId } from "@/application/ports/owner";
-import { createUseCases } from "@/composition/create-application";
-import * as schema from "@/db/schema";
-import { verification } from "@/db/schema";
-import { createApiApp } from "@/entrypoints/api";
-import { LoginToken } from "@/modules/telegram-link";
+import { createUseCases } from "@tests/fixtures/application.use-cases";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
-} from "@/persistence/postgres/unit-of-work";
+} from "@tests/fixtures/postgres-scope";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { createApiApp } from "@/api.factory";
+import { toOwnerId } from "@/core/owner";
+import * as schema from "@/db/schema";
+import { verification } from "@/db/schema";
+import { LoginToken } from "@/modules/telegram-link";
 import {
 	applyMigration,
 	openPostgres,

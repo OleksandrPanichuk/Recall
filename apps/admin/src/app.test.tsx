@@ -33,9 +33,7 @@ const child = available
 	? Bun.spawn(
 			[
 				process.execPath,
-				Bun.fileURLToPath(
-					new URL("../../api/src/entrypoints/serve.ts", import.meta.url),
-				),
+				Bun.fileURLToPath(new URL("../../api/src/main.ts", import.meta.url)),
 			],
 			{
 				env: {

@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { createApiApp } from "@/api.factory";
 import * as schema from "@/db/schema";
-import { createApiApp } from "@/entrypoints/api";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { issuerOver } from "../../fixtures/api-tokens";
 import {

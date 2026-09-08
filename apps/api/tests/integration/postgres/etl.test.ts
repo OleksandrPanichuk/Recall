@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import type { OwnerId } from "@/application/ports/owner";
+import type { OwnerId } from "@/core/owner";
 import {
 	migrateSqliteToPostgres,
 	uuidFor,
 	verifyMigration,
-} from "@/persistence/postgres/etl";
+} from "../../../scripts/etl";
 import { seedLegacyDatabase } from "../../fixtures/legacy-sqlite";
 import {
 	applyMigration,

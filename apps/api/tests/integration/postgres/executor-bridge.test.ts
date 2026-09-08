@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { createPostgresUnitOfWork } from "@tests/fixtures/postgres-scope";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { OwnerId } from "@/core/owner";
@@ -7,7 +8,6 @@ import { DatabaseExecutor } from "@/db/executor";
 import * as schema from "@/db/schema";
 import { pages } from "@/db/schema";
 import { PageEntity } from "@/modules/pages";
-import { createPostgresUnitOfWork } from "@/persistence/postgres/unit-of-work";
 import {
 	applyMigration,
 	openPostgres,

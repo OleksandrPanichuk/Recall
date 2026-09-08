@@ -1,10 +1,12 @@
 import { Module } from "@nestjs/common";
 import { loadApiEnvironment } from "@/configs/env.config";
+import { DatabaseModule } from "@/db/database.module";
 import { AdminModule } from "@/modules/admin/admin.module";
 import { ApiTokensModule } from "@/modules/api-tokens";
 import { AttachmentsModule } from "@/modules/attachments";
 import { AttemptsModule } from "@/modules/attempts";
 import { AuthModule } from "@/modules/auth";
+import { HealthModule } from "@/modules/health";
 import { InsightsModule } from "@/modules/insights";
 import { McpModule } from "@/modules/mcp/mcp.module";
 import { OAuthModule } from "@/modules/oauth";
@@ -19,8 +21,6 @@ import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
 import { UsersModule } from "@/modules/users";
 import { VocabularyModule } from "@/modules/vocabulary";
 import { CoreModule } from "@/shared/core.module";
-import { DatabaseModule } from "./shared/database/database.module";
-import { HealthController } from "./shared/health/health.controller";
 
 @Module({
 	imports: [
@@ -48,7 +48,7 @@ import { HealthController } from "./shared/health/health.controller";
 		PageSharesModule,
 		AdminModule,
 		McpModule,
+		HealthModule,
 	],
-	controllers: [HealthController],
 })
 export class AppModule {}

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
 import {
 	createQuestion,
 	Difficulty,

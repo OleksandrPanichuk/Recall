@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
-import { createApiApp } from "@/entrypoints/api";
+import { createApiApp } from "@/api.factory";
 import {
 	applyMigration,
 	openPostgres,

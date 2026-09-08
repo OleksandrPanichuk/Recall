@@ -1,6 +1,6 @@
-import type { OwnerId } from "@/application/ports/owner";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
+import type { OwnerId } from "@/core/owner";
 import type { RecallDatabase } from "@/db/client";
 import { DatabaseHandle } from "@/db/connection";
 import { PostgresTransaction } from "@/db/executor";

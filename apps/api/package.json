@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"module": "src/entrypoints/telegram.ts",
+	"module": "src/main.ts",
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
 		"db:generate:pg": "drizzle-kit generate --config drizzle.postgres.config.ts",

@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
+import type { QuizSummary } from "@/modules/quizzes";
 import type { McpUseCases } from "../mcp.server.types";
 import { ok } from "../presenters/tool-result.presenter";
 import { readSummaryShape } from "../schemas/folder.schema";

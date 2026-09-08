@@ -1,6 +1,6 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { type OwnerId, toOwnerId } from "@/application/ports/owner";
+import { type OwnerId, toOwnerId } from "@/core/owner";
 
 export const DEFAULT_POSTGRES_URL =
 	"postgres://recall:recall@127.0.0.1:55432/recall";

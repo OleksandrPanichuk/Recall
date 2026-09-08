@@ -1,8 +1,8 @@
-import { toOwnerId } from "@/application/ports/owner";
 import {
 	createMemoryPersistence,
 	createMemoryStores,
-} from "@/persistence/memory/unit-of-work";
+} from "@tests/fixtures/memory/unit-of-work";
+import { toOwnerId } from "@/core/owner";
 import { describeOwnership } from "../contracts/ownership.contract";
 
 const MINE = toOwnerId("owner-mine");

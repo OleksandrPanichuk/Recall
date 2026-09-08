@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
+import { createApiApp } from "@/api.factory";
 import { verification } from "@/db/schema";
-import { createApiApp } from "@/entrypoints/api";
 import { LoginToken } from "@/modules/telegram-link";
 import {
 	applyMigration,

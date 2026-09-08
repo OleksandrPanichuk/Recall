@@ -1,5 +1,4 @@
 import type { AddressInfo } from "node:net";
-import { USE_CASE_DEPENDENCIES } from "@api/application/tokens";
 import { Clock } from "@api/core/ports/clock";
 import { Timezone } from "@api/core/ports/timezone";
 import { Transaction } from "@api/core/transaction";
@@ -96,11 +95,10 @@ async function startApi(
 	@Global()
 	@Module({
 		providers: [
-			{ provide: USE_CASE_DEPENDENCIES, useValue: dependencies },
 			{ provide: DatabaseConnection, useValue: unreachableConnection },
 			{ provide: Database, useValue: unreachableConnection },
 		],
-		exports: [USE_CASE_DEPENDENCIES, Database, DatabaseConnection],
+		exports: [Database, DatabaseConnection],
 	})
 	class MemoryDependenciesModule {}
 

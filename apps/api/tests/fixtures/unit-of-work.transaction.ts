@@ -1,6 +1,6 @@
 import { Transaction } from "@/core/transaction";
-import type { RepositoryScope } from "./ports/repositories/page.repository";
-import type { UnitOfWork } from "./ports/unit-of-work";
+import type { RepositoryScope } from "./repository-scope";
+import type { UnitOfWork } from "./unit-of-work";
 
 export class UnitOfWorkTransaction extends Transaction {
 	constructor(private readonly unitOfWork: UnitOfWork<RepositoryScope>) {

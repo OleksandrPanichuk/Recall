@@ -71,11 +71,7 @@
 			}
 		},
 		{
-			"includes": [
-				"apps/api/src/modules/**",
-				"apps/api/src/main.ts",
-				"apps/api/src/entrypoints/api.ts"
-			],
+			"includes": ["apps/api/src/modules/**", "apps/api/src/main.ts"],
 			"linter": {
 				"rules": {
 					"correctness": {
@@ -96,15 +92,10 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/application/**",
-											"@/composition/**",
 											"@/configs/**",
 											"@/db/**",
-											"@/domain/**",
-											"@/entrypoints/**",
 											"@/infrastructure/**",
 											"@/modules/**",
-											"@/persistence/**",
 											"@/shared/**"
 										],
 										"message": "core imports nothing from src (REWRITE_PLAN.md \u00a73.1)"
@@ -128,14 +119,9 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/application/**",
-											"@/composition/**",
 											"@/db/**",
-											"@/domain/**",
-											"@/entrypoints/**",
 											"@/infrastructure/**",
 											"@/modules/**",
-											"@/persistence/**",
 											"@/shared/**"
 										],
 										"message": "configs may import core and nothing else (REWRITE_PLAN.md \u00a73.1)"
@@ -159,13 +145,8 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/application/**",
-											"@/composition/**",
-											"@/domain/**",
-											"@/entrypoints/**",
 											"@/infrastructure/**",
 											"@/modules/**",
-											"@/persistence/**",
 											"@/shared/**"
 										],
 										"message": "db may import core and configs only; it knows tables, not the domain (REWRITE_PLAN.md \u00a73.1)"
@@ -192,14 +173,9 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/application/**",
-											"@/composition/**",
 											"@/core/**",
 											"@/db/**",
-											"@/domain/**",
-											"@/entrypoints/**",
 											"@/modules/**",
-											"@/persistence/**",
 											"@/shared/http/**",
 											"@/shared/request-context/**"
 										],
@@ -213,11 +189,7 @@
 			}
 		},
 		{
-			"includes": [
-				"apps/api/src/adapters/**",
-				"!apps/api/src/adapters/admin/**",
-				"!apps/api/src/adapters/mcp/**"
-			],
+			"includes": ["apps/api/src/adapters/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -226,14 +198,7 @@
 							"options": {
 								"patterns": [
 									{
-										"group": [
-											"@/application/**",
-											"@/composition/**",
-											"@/db/**",
-											"@/domain/**",
-											"@/entrypoints/**",
-											"@/persistence/**"
-										],
+										"group": ["@/db/**"],
 										"message": "an adapter implements one module port over infrastructure and never touches the database (REWRITE_PLAN.md \u00a73.1)"
 									},
 									{
@@ -259,13 +224,8 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/application/**",
-											"@/composition/**",
-											"@/domain/**",
-											"@/entrypoints/**",
 											"@/infrastructure/**",
-											"@/modules/**",
-											"@/persistence/**"
+											"@/modules/**"
 										],
 										"message": "shared is below every module: core, configs and db only (REWRITE_PLAN.md \u00a73.1)"
 									}
@@ -279,10 +239,7 @@
 		{
 			"includes": [
 				"apps/api/src/modules/**",
-				"!apps/api/src/modules/shared/**",
-				"!apps/api/src/modules/app.module.ts",
-				"!apps/api/src/modules/admin/**",
-				"!apps/api/src/modules/mcp/**"
+				"!apps/api/src/modules/app.module.ts"
 			],
 			"linter": {
 				"rules": {
@@ -294,14 +251,6 @@
 									{
 										"group": ["@/adapters/**", "@/infrastructure/**"],
 										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (REWRITE_PLAN.md \u00a73.1)"
-									},
-									{
-										"group": [
-											"@/composition/**",
-											"@/entrypoints/**",
-											"@/persistence/**"
-										],
-										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md \u00a75.1)"
 									},
 									{
 										"group": ["@/db/migrations/**"],
@@ -321,10 +270,7 @@
 		{
 			"includes": [
 				"apps/api/src/modules/**/*.module.ts",
-				"!apps/api/src/modules/shared/**",
-				"!apps/api/src/modules/app.module.ts",
-				"!apps/api/src/modules/admin/**",
-				"!apps/api/src/modules/mcp/**"
+				"!apps/api/src/modules/app.module.ts"
 			],
 			"linter": {
 				"rules": {
@@ -333,14 +279,6 @@
 							"level": "error",
 							"options": {
 								"patterns": [
-									{
-										"group": [
-											"@/composition/**",
-											"@/entrypoints/**",
-											"@/persistence/**"
-										],
-										"message": "that directory is v1-shaped and is being removed; the capability lives in a module now (REWRITE_PLAN.md \u00a75.1)"
-									},
 									{
 										"group": ["@/db/migrations/**"],
 										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
@@ -357,7 +295,7 @@
 			}
 		},
 		{
-			"includes": ["apps/api/src/domain/**"],
+			"includes": ["apps/api/src/**", "!**/*.test.ts", "!**/*.fixture.ts"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -366,38 +304,8 @@
 							"options": {
 								"patterns": [
 									{
-										"group": [
-											"@/adapters/**",
-											"@/application/**",
-											"@/infrastructure/**",
-											"@/composition/**",
-											"@/persistence/**"
-										],
-										"message": "domain must not import outward (ARCHITECTURE.md dependency rule 1)"
-									}
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": ["apps/api/src/application/**", "!**/*.test.ts"],
-			"linter": {
-				"rules": {
-					"style": {
-						"noRestrictedImports": {
-							"level": "error",
-							"options": {
-								"patterns": [
-									{
-										"group": [
-											"@/adapters/**",
-											"@/composition/**",
-											"@/persistence/**"
-										],
-										"message": "application must not import adapters or the composition root (ARCHITECTURE.md dependency rule 2)"
+										"group": ["@tests/**"],
+										"message": "production code may not reach into the test tree; move the helper into src or duplicate it (REWRITE_PLAN.md \u00a78)"
 									}
 								]
 							}

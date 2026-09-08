@@ -1,10 +1,11 @@
-import type {
-	QuizListFilter,
-	QuizRepository,
-	QuizSummary,
-} from "@/application/ports/repositories/quiz.repository";
-import { QuizVersionConflictError } from "@/application/ports/repositories/quiz.repository";
-import { QuizSetEntity, type QuizSetId } from "@/modules/quizzes";
+import type { QuizRepository } from "@tests/fixtures/quiz-repository.alias";
+import type { QuizListFilter, QuizSummary } from "@/modules/quizzes";
+import {
+	type QuestionId,
+	QuizSetEntity,
+	type QuizSetId,
+	QuizVersionConflictError,
+} from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
@@ -89,6 +90,18 @@ export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
 					questionCount: quiz.questions.length,
 					updatedAt: quiz.updatedAt,
 				}));
+		},
+
+		async answerCount(questionId: QuestionId): Promise<number> {
+			let total = 0;
+
+			for (const attempt of store.attempts.values()) {
+				total += attempt.responses.filter(
+					(answer) => String(answer.questionId) === String(questionId),
+				).length;
+			}
+
+			return total;
 		},
 	};
 }
