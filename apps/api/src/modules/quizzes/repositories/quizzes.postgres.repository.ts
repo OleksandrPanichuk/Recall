@@ -12,8 +12,15 @@ import {
 import { OwnerContext } from "@/core/owner-context";
 import { Database } from "@/db/connection";
 import { DatabaseExecutor } from "@/db/executor";
-import { questionOptions, questions, quizzes } from "@/db/schema";
+import {
+	attempts,
+	questionOptions,
+	questions,
+	quizzes,
+	responses,
+} from "@/db/schema";
 import { isUuid } from "@/db/uuid";
+import type { QuestionId } from "../question.entity";
 import { questionFingerprint } from "../question-fingerprint";
 import { QuizSetEntity, type QuizSetId, toQuizSetId } from "../quiz-set.entity";
 import { QuizVersionConflictError } from "../quizzes.errors";
@@ -249,5 +256,24 @@ export class PostgresQuizzesRepository extends QuizzesRepository {
 			questionCount: Number(row.questionCount),
 			updatedAt: row.updatedAt,
 		}));
+	}
+
+	async answerCount(questionId: QuestionId): Promise<number> {
+		if (!isUuid(String(questionId))) {
+			return 0;
+		}
+
+		const [row] = await this.executor
+			.select({ total: count() })
+			.from(responses)
+			.innerJoin(attempts, eq(attempts.id, responses.attemptId))
+			.where(
+				and(
+					eq(attempts.ownerId, this.owner),
+					eq(responses.questionId, String(questionId)),
+				),
+			);
+
+		return Number(row?.total ?? 0);
 	}
 }

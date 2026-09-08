@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { OwnerId } from "@/application/ports/owner";
+import type { OwnerId } from "@/core/owner";
 import {
 	applyMigration,
 	openPostgres,

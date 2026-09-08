@@ -1,12 +1,16 @@
 import type { Logger } from "@recall/kit";
 import { silentLogger } from "@recall/kit";
-import type { Clock } from "@/application/ports/clock";
-import type { IdGenerator } from "@/application/ports/id-generator";
-import type { OwnerId } from "@/application/ports/owner";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { UnitOfWorkTransaction } from "@/application/unit-of-work.transaction";
-import type { ApplicationDependencies } from "@/application/use-case";
+import type { ApplicationDependencies } from "@tests/fixtures/application-dependencies";
+import {
+	createPostgresUnitOfWork,
+	readOnlyScope,
+} from "@tests/fixtures/postgres-scope";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
+import { UnitOfWorkTransaction } from "@tests/fixtures/unit-of-work.transaction";
+import type { OwnerId } from "@/core/owner";
+import type { Clock } from "@/core/ports/clock";
+import type { IdGenerator } from "@/core/ports/id-generator";
 import { DatabaseConnection } from "@/db/connection";
 import {
 	AbandonQuizAttemptUseCase,
@@ -75,10 +79,6 @@ import {
 	ListVocabularyUseCase,
 	UpdateVocabularyUseCase,
 } from "@/modules/vocabulary";
-import {
-	createPostgresUnitOfWork,
-	readOnlyScope,
-} from "@/persistence/postgres/unit-of-work";
 
 export const systemClock: Clock = { now: () => new Date() };
 
@@ -208,7 +208,7 @@ export function createUseCases(
 		publishQuizSet: new PublishQuizSetUseCase(quizzes, transaction, clock),
 		archiveQuizSet: new ArchiveQuizSetUseCase(quizzes, transaction, clock),
 		listQuizSets: new ListQuizSetsUseCase(quizzes),
-		listQuestions: new ListQuestionsUseCase(quizzes, attemptsRepo),
+		listQuestions: new ListQuestionsUseCase(quizzes),
 		getQuizSet: new GetQuizSetUseCase(quizzes),
 		moveQuizSet: new MoveQuizSetUseCase(
 			quizzes,
@@ -301,12 +301,7 @@ export function createUseCases(
 			clock,
 			idGenerator,
 		),
-		deleteQuestion: new DeleteQuestionUseCase(
-			quizzes,
-			attemptsRepo,
-			transaction,
-			clock,
-		),
+		deleteQuestion: new DeleteQuestionUseCase(quizzes, transaction, clock),
 		rateRecall: new RateRecallUseCase(attemptsRepo, transaction, clock),
 		pauseQuizAttempt: new PauseQuizAttemptUseCase(
 			attemptsRepo,

@@ -1,10 +1,10 @@
-import type { Clock } from "@/application/ports/clock";
-import type { IdGenerator } from "@/application/ports/id-generator";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import { emptyStore, type MemoryStore } from "@tests/fixtures/memory/store";
+import { createMemoryPersistence } from "@tests/fixtures/memory/unit-of-work";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
+import type { Clock } from "@/core/ports/clock";
+import type { IdGenerator } from "@/core/ports/id-generator";
 import type { Transaction } from "@/core/transaction";
-import { emptyStore, type MemoryStore } from "@/persistence/memory/store";
-import { createMemoryPersistence } from "@/persistence/memory/unit-of-work";
 
 export const DEFAULT_START_AT = new Date("2026-08-01T10:00:00.000Z");
 export const DEFAULT_TIMEZONE = "Europe/Kyiv";

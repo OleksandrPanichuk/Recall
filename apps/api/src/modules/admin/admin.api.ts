@@ -1,5 +1,4 @@
 import type { Logger } from "@recall/kit";
-import type { UseCases } from "@/composition/create-application";
 import { toPageId } from "@/modules/pages";
 import {
 	Difficulty,
@@ -22,9 +21,10 @@ import {
 } from "./admin.records";
 import { clearSession, issueSession, readSession } from "./admin.session";
 import { createSignInThrottle } from "./admin.throttle";
+import type { AdminUseCases } from "./admin.use-cases";
 
 export interface AdminApiDependencies {
-	readonly application: UseCases;
+	readonly application: AdminUseCases;
 	readonly logger: Logger;
 	readonly passphrase: string;
 	now(): Date;

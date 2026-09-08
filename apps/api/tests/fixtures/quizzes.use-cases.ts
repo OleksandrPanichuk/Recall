@@ -48,14 +48,9 @@ export function quizzesOver(context: MemoryContext): QuizzesUseCases {
 			clock,
 			idGenerator,
 		),
-		deleteQuestion: new DeleteQuestionUseCase(
-			quizzes,
-			scope.attempts,
-			transaction,
-			clock,
-		),
+		deleteQuestion: new DeleteQuestionUseCase(quizzes, transaction, clock),
 		getQuizSet: new GetQuizSetUseCase(quizzes),
-		listQuestions: new ListQuestionsUseCase(quizzes, scope.attempts),
+		listQuestions: new ListQuestionsUseCase(quizzes),
 		listQuizSets: new ListQuizSetsUseCase(quizzes),
 		moveQuizSet: new MoveQuizSetUseCase(
 			quizzes,

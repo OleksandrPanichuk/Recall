@@ -1,4 +1,5 @@
 import type { PageId } from "@/modules/pages";
+import type { QuestionId } from "./question.entity";
 import type { QuizSetStatus } from "./quiz-set.constants";
 import type { QuizSetEntity, QuizSetId } from "./quiz-set.entity";
 
@@ -21,4 +22,5 @@ export abstract class QuizzesRepository {
 	abstract findById(id: QuizSetId): Promise<QuizSetEntity | undefined>;
 	abstract versionOf(id: QuizSetId): Promise<number | undefined>;
 	abstract list(filter?: QuizListFilter): Promise<readonly QuizSummary[]>;
+	abstract answerCount(questionId: QuestionId): Promise<number>;
 }

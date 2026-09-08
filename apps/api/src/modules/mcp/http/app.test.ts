@@ -43,7 +43,7 @@ beforeEach(async () => {
 		now: () => new Date(),
 	});
 	const app = createMcpHttpApp({
-		applicationFor: () => application,
+		useCases: application,
 		logger: createRecordingLogger(),
 		oauth,
 		allowedHosts: [],

@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { createMutableClock } from "@tests/fixtures/memory.fixture";
-import type { OwnerId } from "@/application/ports/owner";
 import {
 	type Application,
 	createApplication,
-} from "@/composition/create-application";
+} from "@tests/fixtures/application.use-cases";
+import { createMutableClock } from "@tests/fixtures/memory.fixture";
+import type { OwnerId } from "@/core/owner";
 import { readStatus } from "@/infrastructure/lifecycle/status";
 import { QuizAttemptStatus } from "@/modules/attempts";
 import { Difficulty, QuestionType, type QuizSetId } from "@/modules/quizzes";

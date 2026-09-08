@@ -1,12 +1,12 @@
 import { afterAll, beforeAll } from "bun:test";
-import { drizzle } from "drizzle-orm/postgres-js";
-import type { OwnerId } from "@/application/ports/owner";
-import type { RecallDatabase } from "@/db/client";
-import * as schema from "@/db/schema";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
-} from "@/persistence/postgres/unit-of-work";
+} from "@tests/fixtures/postgres-scope";
+import { drizzle } from "drizzle-orm/postgres-js";
+import type { OwnerId } from "@/core/owner";
+import type { RecallDatabase } from "@/db/client";
+import * as schema from "@/db/schema";
 import { describeReviewRepository } from "../../contracts/review.repository.contract";
 import {
 	applyMigration,

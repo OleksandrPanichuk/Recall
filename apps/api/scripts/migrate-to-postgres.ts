@@ -9,10 +9,7 @@ import {
 	PostgresAuthRepository,
 } from "@/modules/auth";
 import { PostgresUsersRepository, UsersService } from "@/modules/users";
-import {
-	migrateSqliteToPostgres,
-	verifyMigration,
-} from "@/persistence/postgres/etl";
+import { migrateSqliteToPostgres, verifyMigration } from "../scripts/etl";
 
 const sqlitePath = process.argv[2];
 const url = process.argv[3] ?? process.env.DATABASE_URL;

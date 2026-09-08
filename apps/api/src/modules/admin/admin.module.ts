@@ -1,22 +1,39 @@
 import {
-	Inject,
 	type MiddlewareConsumer,
 	Module,
 	type NestModule,
 } from "@nestjs/common";
 import { silentLogger } from "@recall/kit";
-import { USE_CASE_DEPENDENCIES } from "@/application/tokens";
-import type { ApplicationDependencies } from "@/application/use-case";
-import { createUseCases } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { createAdminApi } from "@/modules/admin/admin.api";
+import { AuthService } from "@/modules/auth";
+import { InsightsModule } from "@/modules/insights";
+import { PagesModule } from "@/modules/pages";
+import { QuizzesModule } from "@/modules/quizzes";
+import { SchedulingModule } from "@/modules/scheduling";
+import { StatisticsModule } from "@/modules/statistics";
+import { StudySettingsModule } from "@/modules/study-settings";
+import { VocabularyModule } from "@/modules/vocabulary";
+import { runAs } from "@/shared/request-context";
+import { createAdminApi } from "./admin.api";
 import { fetchRoutes } from "./admin.fetch-routes";
+import { AdminUseCases } from "./admin.use-cases";
 
-@Module({})
+@Module({
+	imports: [
+		InsightsModule,
+		PagesModule,
+		QuizzesModule,
+		SchedulingModule,
+		StatisticsModule,
+		StudySettingsModule,
+		VocabularyModule,
+	],
+	providers: [AdminUseCases],
+})
 export class AdminModule implements NestModule {
 	constructor(
-		@Inject(USE_CASE_DEPENDENCIES)
-		private readonly dependencies: ApplicationDependencies,
+		private readonly useCases: AdminUseCases,
+		private readonly auth: AuthService,
 	) {}
 
 	configure(consumer: MiddlewareConsumer): void {
@@ -27,12 +44,15 @@ export class AdminModule implements NestModule {
 		}
 
 		const routes = createAdminApi({
-			application: createUseCases(this.dependencies),
+			application: this.useCases,
 			logger: silentLogger,
 			passphrase: environment.adminPassphrase,
 			now: () => new Date(),
 		});
+		const handle = fetchRoutes(routes, async (run) =>
+			runAs({ kind: "instance", owner: await this.auth.instanceOwner() }, run),
+		);
 
-		consumer.apply(fetchRoutes(routes)).forRoutes("{*path}");
+		consumer.apply(handle).forRoutes("{*path}");
 	}
 }

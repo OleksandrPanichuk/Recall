@@ -1,7 +1,4 @@
-import type {
-	PageRevision,
-	PageShare,
-} from "@/application/ports/repositories/page.repository";
+import type { PageRevision, PageShare } from "@tests/fixtures/repository-scope";
 import type { AttachmentEntity } from "@/modules/attachments";
 import type { AttemptEntity } from "@/modules/attempts";
 import { PageEntity, type PageId } from "@/modules/pages";

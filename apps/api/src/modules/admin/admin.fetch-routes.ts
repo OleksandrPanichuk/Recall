@@ -32,7 +32,16 @@ const bodyOf = (request: ExpressRequest): string | undefined => {
 	return request.body === undefined ? undefined : JSON.stringify(request.body);
 };
 
-export function fetchRoutes(routes: FetchRouteTable) {
+export type FetchRouteScope = (
+	run: () => Promise<Response>,
+) => Promise<Response>;
+
+const directly: FetchRouteScope = (run) => run();
+
+export function fetchRoutes(
+	routes: FetchRouteTable,
+	within: FetchRouteScope = directly,
+) {
 	const compiled = compile(routes);
 
 	return async (
@@ -79,7 +88,7 @@ export function fetchRoutes(routes: FetchRouteTable) {
 				),
 			});
 
-			const result = await handler(incoming);
+			const result = await within(async () => handler(incoming));
 
 			for (const cookie of result.headers.getSetCookie()) {
 				response.append("set-cookie", cookie);

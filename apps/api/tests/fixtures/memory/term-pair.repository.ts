@@ -1,4 +1,4 @@
-import type { TermPairRepository } from "@/application/ports/repositories/term-pair.repository";
+import type { TermPairRepository } from "@tests/fixtures/term-pair-repository.alias";
 import { type QuizSetId } from "@/modules/quizzes";
 import { TermPairEntity, type VocabularyItemId } from "@/modules/vocabulary";
 import type { MemoryStore } from "./store";

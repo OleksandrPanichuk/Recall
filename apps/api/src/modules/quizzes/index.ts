@@ -14,7 +14,6 @@ export * from "./quiz-set.fields";
 export * from "./quizzes.errors";
 export { QuizzesModule } from "./quizzes.module";
 export * from "./quizzes.repository";
-export * from "./quizzes.tokens";
 export { toQuiz } from "./repositories/quiz.mapper";
 export { PostgresQuizzesRepository } from "./repositories/quizzes.postgres.repository";
 export * from "./use-cases";

@@ -5,11 +5,8 @@ import { loadApiEnvironment } from "@/configs/env.config";
 import { AppModule } from "@/modules/app.module";
 import { AUTH_BASE_PATH, AuthEngine } from "@/modules/auth";
 import { MCP_SURFACE, type McpSurface } from "@/modules/mcp/mcp.module";
-import {
-	mountSwagger,
-	SWAGGER_PATH,
-} from "@/modules/shared/swagger/build-document";
 import { ModuleErrorFilter } from "@/shared/http/module-error.filter";
+import { mountSwagger, SWAGGER_PATH } from "@/shared/http/swagger.document";
 import { requestContextMiddleware } from "@/shared/request-context";
 
 export async function createApiApp() {

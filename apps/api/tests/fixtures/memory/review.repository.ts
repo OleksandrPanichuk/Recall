@@ -1,7 +1,7 @@
 import type {
 	ReviewRepository,
 	SettingsScope,
-} from "@/application/ports/repositories/review.repository";
+} from "@tests/fixtures/review-repository.alias";
 import { type QuestionId } from "@/modules/quizzes";
 import { ScheduleEntity } from "@/modules/scheduling";
 import { StudySettingsEntity } from "@/modules/study-settings";
