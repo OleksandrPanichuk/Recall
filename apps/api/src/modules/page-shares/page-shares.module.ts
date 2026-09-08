@@ -1,8 +1,9 @@
 import { Module } from "@nestjs/common";
 import { AttachmentsModule } from "@/modules/attachments";
 import { PagesModule } from "@/modules/pages";
-import { PageSharesController } from "./page-shares.controller";
+import { PageSharesPublicController } from "./page-shares.public.controller";
 import { PageSharesRepository, ShareTokens } from "./page-shares.repository";
+import { PageSharesSurfaceController } from "./page-shares.surface.controller";
 import {
 	PostgresPageSharesRepository,
 	PostgresShareTokens,
@@ -17,7 +18,7 @@ const useCases = [ReadSharedPageUseCase, SharePageUseCase, UnsharePageUseCase];
 
 @Module({
 	imports: [PagesModule, AttachmentsModule],
-	controllers: [PageSharesController],
+	controllers: [PageSharesPublicController, PageSharesSurfaceController],
 	providers: [
 		{ provide: PageSharesRepository, useClass: PostgresPageSharesRepository },
 		{ provide: ShareTokens, useClass: PostgresShareTokens },

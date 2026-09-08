@@ -9,7 +9,7 @@ import {
 	createSequentialIdGenerator,
 	sequentialId,
 } from "@tests/fixtures/memory.fixture";
-import { createMcpServer, MCP_SERVER_NAME } from "@/adapters/mcp/server";
+import { createMcpServer, MCP_SERVER_NAME } from "@/modules/mcp/mcp.server";
 import { QuestionType } from "@/modules/quizzes";
 
 let application: MemoryApplication;

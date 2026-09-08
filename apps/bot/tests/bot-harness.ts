@@ -4,21 +4,28 @@ import { Clock } from "@api/core/ports/clock";
 import { Timezone } from "@api/core/ports/timezone";
 import { Transaction } from "@api/core/transaction";
 import { Database, DatabaseConnection } from "@api/db/connection";
+import { ApiTokensModule } from "@api/modules/api-tokens";
 import { AttachmentsRepository } from "@api/modules/attachments";
-import { AttemptsRepository } from "@api/modules/attempts";
+import { AttemptsModule, AttemptsRepository } from "@api/modules/attempts";
 import { AuthModule } from "@api/modules/auth";
-import { BotModule } from "@api/modules/bot/bot.module";
-import { AnalyticsRepository } from "@api/modules/insights";
-import { PagesRepository } from "@api/modules/pages";
+import { AnalyticsRepository, InsightsModule } from "@api/modules/insights";
+import { PagesModule, PagesRepository } from "@api/modules/pages";
+import { PracticeModule } from "@api/modules/practice";
 import type { QuestionInput } from "@api/modules/quizzes";
 import {
 	Difficulty,
 	QuestionType,
 	type QuizSetId,
+	QuizzesModule,
 	QuizzesRepository,
 } from "@api/modules/quizzes";
-import { SchedulesRepository } from "@api/modules/scheduling";
-import { StudySettingsRepository } from "@api/modules/study-settings";
+import { SchedulesRepository, SchedulingModule } from "@api/modules/scheduling";
+import { StatisticsModule } from "@api/modules/statistics";
+import {
+	StudySettingsModule,
+	StudySettingsRepository,
+} from "@api/modules/study-settings";
+import { TelegramLinkModule } from "@api/modules/telegram-link";
 import { TermPairsRepository } from "@api/modules/vocabulary";
 import { CoreModule } from "@api/shared/core.module";
 
@@ -102,7 +109,16 @@ async function startApi(
 			MemoryDependenciesModule,
 			CoreModule,
 			AuthModule.forRoot({ plugins: () => [] }),
-			BotModule,
+			ApiTokensModule,
+			AttemptsModule,
+			InsightsModule,
+			PagesModule,
+			PracticeModule,
+			QuizzesModule,
+			SchedulingModule,
+			StatisticsModule,
+			StudySettingsModule,
+			TelegramLinkModule,
 		],
 	})
 	class TestApiModule {}

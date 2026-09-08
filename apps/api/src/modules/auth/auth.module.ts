@@ -12,6 +12,7 @@ import { InstanceOwnerGuard } from "./auth.instance.guard";
 import { AuthRepository } from "./auth.repository";
 import { AuthService } from "./auth.service";
 import { SessionGuard } from "./auth.session.guard";
+import { SurfaceGuard } from "./auth.surface.guard";
 import { PostgresAuthRepository } from "./repositories/auth.postgres.repository";
 
 export interface AuthModuleOptions {
@@ -58,6 +59,7 @@ export class AuthModule {
 				SessionGuard,
 				BotTokenGuard,
 				InstanceOwnerGuard,
+				SurfaceGuard,
 			],
 			exports: [
 				AuthService,
@@ -66,6 +68,7 @@ export class AuthModule {
 				SessionGuard,
 				BotTokenGuard,
 				InstanceOwnerGuard,
+				SurfaceGuard,
 			],
 		};
 	}

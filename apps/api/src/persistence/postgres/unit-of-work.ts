@@ -3,11 +3,7 @@ import type { RepositoryScope } from "@/application/ports/repositories/page.repo
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { RecallDatabase } from "@/db/client";
 import { DatabaseHandle } from "@/db/connection";
-import {
-	DatabaseExecutor,
-	type Executor,
-	PostgresTransaction,
-} from "@/db/executor";
+import { PostgresTransaction } from "@/db/executor";
 import { PostgresAttachmentsRepository } from "@/modules/attachments";
 import { PostgresAttemptsRepository } from "@/modules/attempts";
 import { PostgresAnalyticsRepository } from "@/modules/insights";
@@ -48,7 +44,6 @@ export const scopeFor = (
 	db: RecallDatabase,
 	owner: OwnerId,
 ): RepositoryScope => {
-	const executor: Executor = DatabaseExecutor.for(db);
 	const handle = new DatabaseHandle(db);
 	const context = new FixedOwnerContext(owner);
 	const schedules = new PostgresSchedulesRepository(handle, context);

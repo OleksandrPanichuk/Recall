@@ -2,7 +2,9 @@ import { Module } from "@nestjs/common";
 import { USE_CASE_DEPENDENCIES } from "@/application/tokens";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { PagesModule } from "@/modules/pages";
+import { QuizzesPublicController } from "./quizzes.public.controller";
 import { QuizzesRepository } from "./quizzes.repository";
+import { QuizzesSurfaceController } from "./quizzes.surface.controller";
 import { ATTEMPTS, TERM_PAIRS } from "./quizzes.tokens";
 import { PostgresQuizzesRepository } from "./repositories/quizzes.postgres.repository";
 import {
@@ -34,6 +36,7 @@ const useCases = [
 ];
 
 @Module({
+	controllers: [QuizzesPublicController, QuizzesSurfaceController],
 	imports: [PagesModule],
 	providers: [
 		{ provide: QuizzesRepository, useClass: PostgresQuizzesRepository },

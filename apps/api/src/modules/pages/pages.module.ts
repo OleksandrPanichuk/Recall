@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { PagesController } from "./pages.controller";
 import { PagesRepository } from "./pages.repository";
 import { PagesService } from "./pages.service";
 import { PostgresPagesRepository } from "./repositories/pages.postgres.repository";
@@ -39,6 +40,7 @@ const useCases = [
 ];
 
 @Module({
+	controllers: [PagesController],
 	providers: [
 		{ provide: PagesRepository, useClass: PostgresPagesRepository },
 		PagesService,

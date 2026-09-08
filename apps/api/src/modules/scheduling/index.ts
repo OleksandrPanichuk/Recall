@@ -3,6 +3,7 @@ export * from "./recall-grade";
 export { PostgresSchedulesRepository } from "./repositories/schedules.postgres.repository";
 export * from "./schedule.entity";
 export * from "./schedule.entity.types";
+export * from "./schedule.model";
 export * from "./scheduling.constants";
 export * from "./scheduling.errors";
 export { SchedulingModule } from "./scheduling.module";
