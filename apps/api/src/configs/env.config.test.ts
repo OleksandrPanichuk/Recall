@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { hostList } from "./api-env";
+import { hostList } from "./env.config";
 
 describe("the hosts mcp will answer for", () => {
 	test("a single host is one entry", () => {

@@ -100,7 +100,14 @@ export const migrationsDirectory = (from: string): string => from;
 export async function applyMigration(harness: PostgresHarness): Promise<void> {
 	const { readdirSync, readFileSync } = await import("node:fs");
 	const { join } = await import("node:path");
-	const directory = join(import.meta.dir, "..", "..", "drizzle-postgres");
+	const directory = join(
+		import.meta.dir,
+		"..",
+		"..",
+		"src",
+		"db",
+		"migrations",
+	);
 	const names = readdirSync(directory)
 		.filter((entry) => entry.endsWith(".sql"))
 		.sort();

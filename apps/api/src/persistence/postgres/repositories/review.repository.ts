@@ -4,11 +4,11 @@ import type {
 	ReviewRepository,
 	SettingsScope,
 } from "@/application/ports/repositories/review.repository";
+import { reviewStates, studySettings } from "@/db/schema";
 import { type QuestionId, toQuestionId } from "@/domain/quiz-set/question";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import { createQuizSettings } from "@/domain/settings/quiz-settings";
-import { reviewStates, studySettings } from "../schema";
 import type { Executor } from "../unit-of-work";
 
 type ReviewRow = typeof reviewStates.$inferSelect;

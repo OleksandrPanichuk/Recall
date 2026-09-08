@@ -4,13 +4,13 @@ import {
 	Injectable,
 	ServiceUnavailableException,
 } from "@nestjs/common";
-import { authEvents } from "@/persistence/postgres/auth-schema";
-import type { PostgresConnection } from "@/persistence/postgres/client";
+import { loadApiEnvironment } from "@/configs/env.config";
+import type { PostgresConnection } from "@/db/client";
+import { authEvents } from "@/db/schema";
 import {
 	ensureTelegramOwner,
 	findTelegramOwner,
 } from "@/persistence/postgres/owner";
-import { loadApiEnvironment } from "../shared/config/api-env";
 import { CONNECTION } from "../shared/database/tokens";
 import { AUTH_BASE_PATH, type RecallAuth } from "./build-auth";
 import {

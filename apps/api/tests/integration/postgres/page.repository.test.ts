@@ -1,8 +1,8 @@
 import { afterAll, beforeAll } from "bun:test";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { OwnerId } from "@/application/ports/owner";
-import type { RecallDatabase } from "@/persistence/postgres/client";
-import * as schema from "@/persistence/postgres/schema";
+import type { RecallDatabase } from "@/db/client";
+import * as schema from "@/db/schema";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,

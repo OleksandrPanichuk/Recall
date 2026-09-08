@@ -5,6 +5,8 @@ import {
 	ServiceUnavailableException,
 } from "@nestjs/common";
 import type { OwnerId } from "@/application/ports/owner";
+import type { PostgresConnection } from "@/db/client";
+import { authEvents } from "@/db/schema";
 import {
 	type ApiTokenSummary,
 	type IssuedApiToken,
@@ -12,8 +14,6 @@ import {
 	listApiTokens,
 	revokeApiToken,
 } from "@/persistence/postgres/api-tokens";
-import { authEvents } from "@/persistence/postgres/auth-schema";
-import type { PostgresConnection } from "@/persistence/postgres/client";
 import { findTelegramOwner } from "@/persistence/postgres/owner";
 import { CONNECTION } from "../shared/database/tokens";
 

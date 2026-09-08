@@ -1,4 +1,4 @@
-import type { BrandedId } from "../branded-id";
+import type { BrandedId } from "@/core/branded-id";
 import type { FolderId } from "../folder/folder";
 import type { Question } from "./question";
 import type { QuizSetStatus } from "./quiz-set.constants";

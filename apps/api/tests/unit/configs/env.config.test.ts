@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	ApiEnvironmentError,
-	loadApiEnvironment,
-} from "@/modules/shared/config/api-env";
+import { ApiEnvironmentError, loadApiEnvironment } from "@/configs/env.config";
 
 const MINIMAL = { DATABASE_URL: "postgres://recall@127.0.0.1:5432/recall" };
 const TOKEN = "t".repeat(32);

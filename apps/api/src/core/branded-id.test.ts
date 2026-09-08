@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { brandedId } from "./branded-id";
-import type { QuestionId, QuestionOptionId } from "./quiz-set/question";
-import { InvalidIdentifierError } from "./quiz-set/quiz-set.errors";
+import { type BrandedId, brandedId } from "./branded-id";
+import { InvalidIdentifierError } from "./errors";
 
-function assertBrandsAreDistinct(id: QuestionId): QuestionOptionId {
-	// @ts-expect-error a QuestionId must never be assignable to a QuestionOptionId.
+type LeftId = BrandedId<"LeftId">;
+type RightId = BrandedId<"RightId">;
+
+function assertBrandsAreDistinct(id: LeftId): RightId {
+	// @ts-expect-error two brands over the same string must not be interchangeable.
 	return id;
 }
 

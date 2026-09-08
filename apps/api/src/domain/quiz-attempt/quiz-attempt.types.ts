@@ -1,4 +1,4 @@
-import type { BrandedId } from "../branded-id";
+import type { BrandedId } from "@/core/branded-id";
 import type { QuestionId, QuestionOptionId } from "../quiz-set/question";
 import type { QuizSetId } from "../quiz-set/quiz-set";
 import type { RecallGrade } from "../repetition/grade";

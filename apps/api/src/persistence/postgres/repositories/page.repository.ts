@@ -8,6 +8,14 @@ import type {
 	RevisionAuthor,
 } from "@/application/ports/repositories/page.repository";
 import {
+	pageRevisions,
+	pageShares,
+	pages,
+	quizAttachments,
+	quizzes,
+} from "@/db/schema";
+import { isUuid } from "@/db/uuid";
+import {
 	type Folder,
 	type FolderId,
 	MAX_FOLDER_DEPTH,
@@ -19,15 +27,7 @@ import {
 	type QuizSetStatus,
 	toQuizSetId,
 } from "@/domain/quiz-set/quiz-set";
-import {
-	pageRevisions,
-	pageShares,
-	pages,
-	quizAttachments,
-	quizzes,
-} from "../schema";
 import type { Executor } from "../unit-of-work";
-import { isUuid } from "../uuid";
 
 type PageRow = typeof pages.$inferSelect;
 

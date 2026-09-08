@@ -1,9 +1,9 @@
 import { afterAll, beforeAll } from "bun:test";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { OwnerId } from "@/application/ports/owner";
-import type { RecallDatabase } from "@/persistence/postgres/client";
+import type { RecallDatabase } from "@/db/client";
+import * as schema from "@/db/schema";
 import { createPostgresOAuthStore } from "@/persistence/postgres/oauth.store";
-import * as schema from "@/persistence/postgres/schema";
 import { describeOAuthStore } from "../../contracts/oauth-store.contract";
 import {
 	applyMigration,

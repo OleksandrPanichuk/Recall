@@ -1,14 +1,9 @@
 import { count, eq, inArray } from "drizzle-orm";
+import { describeDatabaseUrl } from "@/configs/database-url";
+import type { RecallDatabase } from "@/db/client";
+import { attempts, questions, quizzes, responses } from "@/db/schema";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
 import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { describeDatabaseUrl } from "@/infrastructure/config/database-url";
-import type { RecallDatabase } from "@/persistence/postgres/client";
-import {
-	attempts,
-	questions,
-	quizzes,
-	responses,
-} from "@/persistence/postgres/schema";
 
 export interface StatusReport {
 	readonly databaseUrl: string;

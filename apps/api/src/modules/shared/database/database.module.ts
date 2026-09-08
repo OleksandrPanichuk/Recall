@@ -7,17 +7,14 @@ import {
 import type { ObjectStore } from "@/application/ports/object-store";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { systemClock, uuidGenerator } from "@/composition/create-application";
+import { loadApiEnvironment } from "@/configs/env.config";
+import { createPostgresConnection, type PostgresConnection } from "@/db/client";
 import { createMinioObjectStore } from "@/persistence/objects/minio.object-store";
-import {
-	createPostgresConnection,
-	type PostgresConnection,
-} from "@/persistence/postgres/client";
 import {
 	lazyScope,
 	lazyUnitOfWork,
 	type OwnerResolver,
 } from "@/persistence/postgres/lazy-scope";
-import { loadApiEnvironment } from "../config/api-env";
 import { instanceOwnerResolver } from "./instance-owner";
 import {
 	CONNECTION,

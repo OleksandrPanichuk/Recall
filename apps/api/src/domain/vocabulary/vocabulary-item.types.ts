@@ -1,4 +1,4 @@
-import type { BrandedId } from "../branded-id";
+import type { BrandedId } from "@/core/branded-id";
 import type { QuizSetId } from "../quiz-set/quiz-set";
 import type { VocabularyDirection } from "./vocabulary-item.constants";
 

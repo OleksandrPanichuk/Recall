@@ -1,4 +1,4 @@
-import type { BrandedId } from "../branded-id";
+import type { BrandedId } from "@/core/branded-id";
 import type { Difficulty, QuestionType } from "./question.constants";
 
 export type QuestionId = BrandedId<"QuestionId">;

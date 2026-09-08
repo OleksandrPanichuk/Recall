@@ -1,3 +1,1 @@
-export interface IdGenerator {
-	generate(): string;
-}
+export type { IdGenerator } from "@/core/ports/id-generator";

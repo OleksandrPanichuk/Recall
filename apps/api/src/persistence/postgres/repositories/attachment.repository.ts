@@ -4,9 +4,9 @@ import type {
 	Attachment,
 	AttachmentRepository,
 } from "@/application/ports/repositories/attachment.repository";
-import { attachments } from "../schema";
+import { attachments } from "@/db/schema";
+import { isUuid } from "@/db/uuid";
 import type { Executor } from "../unit-of-work";
-import { isUuid } from "../uuid";
 
 export function createAttachmentPostgresRepository(
 	executor: Executor,

@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, eq, isNull, or, sql } from "drizzle-orm";
+import type { RecallDatabase } from "@/db/client";
+import { oauthClients, oauthCodes, oauthTokens } from "@/db/schema";
 import type {
 	OAuthStore,
 	StoredAuthorizationCode,
@@ -7,8 +9,6 @@ import type {
 	StoredToken,
 	TokenKind,
 } from "@/infrastructure/auth/oauth-store.types";
-import { oauthClients, oauthCodes, oauthTokens } from "./auth-schema";
-import type { RecallDatabase } from "./client";
 
 const hashOf = (value: string): string =>
 	createHash("sha256").update(value, "utf8").digest("hex");
