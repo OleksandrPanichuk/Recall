@@ -1,23 +1,25 @@
-# Personal Learning Quiz Bot — architecture (v1)
+# Personal Learning Quiz Bot — architecture (v1, historical)
 
-> ## Superseded for v2 — read this first
+> ## History — this describes code that no longer exists
 >
-> This document describes **v1**: the single-package Bun application under `src/`. It stays
-> binding for that code, which still works and still has 1375 passing tests. Do not
-> "modernise" `src/` against v2 decisions.
+> This document describes **v1**: the single-package Bun application that lived under `src/`,
+> with `domain/`, `application/`, `adapters/`, `composition/` and `entrypoints/` as horizontal
+> layers. None of those directories exist any more. The api is capability modules under
+> `apps/api/src/modules`, and **`REWRITE_PLAN.md` is binding for every question this document
+> used to answer**: dependency direction, pattern selection, folder ownership, file naming.
 >
-> **For anything under `apps/` or `packages/`, `REWRITE_PLAN.md` is binding instead.** Where
-> the two disagree on the `rewrite` branch, `REWRITE_PLAN.md` wins.
+> Read this only to understand why something used to be the way it was. Never cite it to
+> decide where a new file goes, and never "restore" a rule from it.
 >
-> The v2 decisions that overrule specific sections below:
+> The decisions that replaced the ones below:
 >
-> | This document says | v2 says | Where |
+> | This document says | The api says now | Where |
 > | --- | --- | --- |
-> | Ports are synchronous; `Transaction.run()` must not cross an `await` | ports return `Promise`; the callback stays synchronous until Postgres, then widens per context | `REWRITE_PLAN.md` §2 |
-> | SQLite behind repository ports | Postgres (Supabase), drizzle, one schema in `apps/api/src/persistence` | §2, §6 |
-> | Two input adapters, Telegram and MCP | five surfaces; only `apps/api` owns the database, everything else is an HTTP client | §1 |
-> | The `src/` target folder structure below | monorepo: `apps/{api,web,bot,mcp,admin}` + `packages/{contracts,tooling}` | §1, §8 |
-> | Manual DI in `src/composition/create-application.ts` | NestJS factory providers, partitioned per module | §8 |
+> | Ports are synchronous; `Transaction.run()` must not cross an `await` | ports return `Promise`; the transaction boundary is an AsyncLocalStorage executor | `REWRITE_PLAN.md` §6.2 |
+> | SQLite behind repository ports | Postgres, drizzle, one schema under `apps/api/src/db/schema` | §3 |
+> | Horizontal layers `domain → application → adapters` | capability modules, one per capability, with the graph in §5.2 | §3, §5 |
+> | Two input adapters, Telegram and MCP | five surfaces; only `apps/api` owns the database, everything else is an HTTP client | §7 |
+> | Manual DI in `src/composition/create-application.ts` | NestJS constructor injection, partitioned per module | §6.4 |
 > | Observer / domain events "reserved for later" | in-process events, **after commit only**, best-effort | §8 |
 > | Single user, `ALLOWED_TELEGRAM_USER_ID` | multi-user; `UserId` from Better Auth; ownership on every content row | §3, §5 |
 > | `QuizSet`, `folders`, `VocabularyItem` | `Quiz`, `pages` (one Notion-style tree), `term_pairs` | §6, §7 |

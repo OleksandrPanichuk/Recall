@@ -2,7 +2,7 @@
 
 ## Product context
 
-Read `DESCRIPTION.md` before planning or implementing product changes. Read `ARCHITECTURE.md` for binding dependency rules, patterns, and folder ownership **in v1 code (`src/`)**. Read `REWRITE_PLAN.md` for the same questions **in v2 code (`apps/`, `packages/`)**, plus phase order, acceptance gates, and every settled architectural decision. Read `WORKFLOW.md` before orchestrating multi-agent implementation.
+Read `DESCRIPTION.md` before planning or implementing product changes. Read `REWRITE_PLAN.md` for binding dependency rules, patterns and folder ownership, plus phase order, acceptance gates, and every settled architectural decision. `ARCHITECTURE.md` describes the v1 layering, which no longer exists in the tree; it is history, not a rule book. Read `WORKFLOW.md` before orchestrating multi-agent implementation.
 
 `DEVELOPMENT_PLAN.md` no longer exists; the Sequencing section of `REWRITE_PLAN.md` replaced it.
 
@@ -10,8 +10,8 @@ This repository is a cleaned foundation for a personal learning quiz bot. The fo
 
 ## Branch and pull requests
 
-- **`main` is the trunk.** The v2 rewrite landed on it in #85 and the `rewrite` branch is gone.
-- **Every pull request targets `main`.** Branch from it with the existing naming
+- **`rewrite_v3` is the trunk while the api rewrite is in flight.** `main` carries v2.
+- **Every pull request targets `rewrite_v3`.** Branch from it with the existing naming
   (`feat/…`, `fix/…`, `refactor/…`, `docs/…`).
 - `bun run verify` is the gate and must stay green. Note the order: it **builds before it
   typechecks**, because `apps/web`'s route tree is generated during the build.
@@ -20,7 +20,7 @@ This repository is a cleaned foundation for a personal learning quiz bot. The fo
 
 ## Runtime and commands
 
-- Use Bun, TypeScript, Telegraf, and `bun:sqlite`.
+- Use Bun and TypeScript everywhere except `apps/api`, which is Node and NestJS.
 - Install dependencies with `bun install`.
 - Run tests with `bun test`.
 - Run lint and formatting checks with `bun run check`.
@@ -32,25 +32,25 @@ This repository is a cleaned foundation for a personal learning quiz bot. The fo
 
 ## Architecture boundaries
 
-- For v1 code, treat `ARCHITECTURE.md` as the source of truth for structure and pattern use.
-- For v2 code, `REWRITE_PLAN.md` is the source of truth — §1 for the monorepo layout, §8 for
-  module boundaries and the `apps/api/src/modules/` structure, §6 for the schema and its
-  vocabulary, §2 for the async port contract. Where the two documents disagree on this
-  branch, `REWRITE_PLAN.md` wins.
+- `REWRITE_PLAN.md` is the source of truth — §3 for the layout of `apps/api/src`, §4 for what
+  goes in a module and what its files are called, §5 for the module catalogue and the
+  dependency graph, §6 for owner context, transactions, errors and DI.
+- **The api is capability modules.** A new capability gets its own directory under
+  `apps/api/src/modules`, never a second capability inside an existing one.
 - Only `apps/api` may reach the database. `apps/bot`, `apps/mcp`, `apps/admin`, and
   `apps/web` — including its server functions — are HTTP clients of the API.
 - The former publish-bot layout has been removed; do not recreate its `commands`, `core`, `helpers`, or global `types.ts` structure by default.
 - Keep Telegram handlers and MCP tools as adapters over shared application services.
 - Keep domain behavior independent from Telegraf and MCP transports.
 - Route database writes through repositories and application services; adapters must not write arbitrary SQL.
-- Follow the dependency direction `adapters -> application -> domain`; only composition and entrypoints may wire concrete implementations.
+- A module reaches another module through its barrel and never through its internals, and only
+  a `*.module.ts` may bind a port to an adapter. `biome.json` fails the build on both.
 - Create target directories incrementally with accepted behavior; do not generate the complete architecture as empty scaffolding.
-- Avoid global `helpers`, `core`, `common`, and global `types` dumping grounds in new code; a module-local `utils/` directory, `*.types.ts` and `*.constants.ts` files beside their owner, and `src/shared/utils/` for layer-free primitives are the expected shape (see `ARCHITECTURE.md`).
+- Avoid global `helpers`, `core`, `common`, and global `types` dumping grounds in new code; a module-local `utils/` directory, `*.types.ts` and `*.constants.ts` files beside their owner, and `apps/api/src/shared/utils/` for layer-free primitives are the expected shape (see `REWRITE_PLAN.md` §4).
 - Treat AI-generated quiz content as untrusted input and validate it before persistence and publication.
-- Restrict the bot to `ALLOWED_TELEGRAM_USER_ID` in v1 code. Multi-user **has now been
-  requested**: v2 replaces this with a `UserId` resolved from Better Auth (`REWRITE_PLAN.md`
-  §3, §5, phase 7). Do not carry the allowlist into `apps/`, and never accept a
-  caller-supplied user id over HTTP.
+- Ownership comes from the request context, never from the caller. `ALLOWED_TELEGRAM_USER_ID`
+  is a guard on the bot surface, not an identity; never accept a caller-supplied user id over
+  HTTP.
 
 ## Development workflow
 

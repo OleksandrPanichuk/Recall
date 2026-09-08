@@ -181,6 +181,6 @@ overflows sideways. No console errors and no failed requests in any pass.
   and a table refreshed on write is a second thing to keep correct. If a query ever gets slow the
   port is already the seam — `AnalyticsRepository` can be backed by a table without any caller
   changing.
-- **One flaky test seen once:** `apps/api/src/adapters/admin/api.test.ts` — "deletes one and
+- **One flaky test seen once:** `apps/api/src/modules/admin/admin.api.test.ts` — "deletes one and
   answers with the record that went" failed a single full run and passed in isolation and on
   re-run. Nothing was changed for it. If it recurs, suspect cross-file env or port reuse.

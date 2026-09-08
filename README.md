@@ -88,7 +88,7 @@ cp .env.example .env
 | `DATABASE_URL` | Postgres connection string для quiz data |
 | `APP_TIMEZONE` | IANA time zone для дат у звітах |
 
-Ці чотири змінні обов'язкові. `apps/api/src/modules/shared/config/api-env.ts` валідує їх на
+Ці чотири змінні обов'язкові. `apps/api/src/configs/env.config.ts` валідує їх на
 старті через zod і, якщо конфігурація некоректна, виводить список усіх проблем
 одразу та завершує процес із кодом `1`. У повідомленні про помилку є лише назви
 змінних і причини — секретні значення не логуються, тому токен не потрапляє в
@@ -109,7 +109,7 @@ bun run db:migrate  # drizzle-kit migrate проти DATABASE_URL
 `DATABASE_URL` відповідає, і застосовує pending migrations — інакше не
 запускає нічого.
 
-Schema описана в `apps/api/src/persistence/postgres/schema.ts`. Після її зміни
+Schema описана в `apps/api/src/db/schema/`. Після її зміни
 потрібно згенерувати нову migration:
 
 ```bash
@@ -141,7 +141,7 @@ read-only escape hatch — не видаляйте його.
 ### SQLite, що залишився
 
 `bun:sqlite` лишився в одному місці: ETL читає ним v1-бекап
-(`apps/api/src/persistence/postgres/etl.ts`). Migrations у `apps/api/drizzle/` —
+(`apps/api/scripts/etl.ts`). Migrations у `apps/api/drizzle/` —
 це схема v1; вони потрібні лише для того, щоб тест ETL міг зібрати v1-файл.
 Нових SQLite-таблиць не додаємо: усе живе в Postgres.
 
