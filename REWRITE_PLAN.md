@@ -206,6 +206,21 @@ override per row of the table above, plus one per module for the dependency grap
 each module lands. The rule is what makes the direction real; without it the table is a wish.
 The two old overrides stay until phase 6 deletes the directories they guard.
 
+Four relaxations hold for the duration. Neither `domain/**` nor `application/**` still
+forbids `@/modules/**`, and `modules/**` no longer forbids `@/domain/**`, because migrating a shared kernel one capability at a time means the
+un-migrated half has to name the types the migrated half now owns: the moment `Folder` becomes
+`PageEntity` in `modules/pages`, `RepositoryScope` and every use case still living in
+`application/` must import it from there. The alternatives were to duplicate each port as a
+structural interface for the duration, or to move all seven repositories and 47 use cases in
+one commit. The third goes the other way: a moved port still names types whose entity has not
+moved — `PagesRepository` takes a `QuizSetId` — and `domain/` is pure types with no
+dependencies, so a module reaching it can neither create a cycle nor skip a layer. The fourth
+is the same shape and costs more: `modules/**` may import `@/application/**`, because a moved
+use case often needs a port whose own module has not moved — `DeleteQuestionUseCase` reads the
+attempt repository, which arrives in phase 4. Without it every module would have to wait for
+every module it touches, which is the big-bang this plan exists to avoid. All four directories
+are deleted in phase 6 and the rules go with them; the phase 6 gate greps for the imports.
+
 Two limits worth knowing rather than discovering:
 
 - **The rule matches the import string, not the resolved file.** `../../adapters/minio` slips
@@ -340,7 +355,10 @@ export class QuizEntity {
 ```
 
 The interface and the class share a name by declaration merging: the type is the data, the
-class is where its behaviour lives. **Every method is static and every one is pure** — it takes
+class is where its behaviour lives. **An entity that is a discriminated union merges with a
+`namespace` instead**, because a class cannot merge with a union — `QuestionEntity` is seven
+question shapes and its two helpers hang off a namespace of the same name. That is why
+`noRedeclare` joins the rules turned off for this app. **Every method is static and every one is pure** — it takes
 the entity and returns a new one. Nothing mutates `this`, nothing is instantiated, and the data
 stays a plain readonly object that a repository can build from a row and a test can write by
 hand. So this is a regrouping of today's `createQuizSet` / `publishQuizSet` functions, not a
@@ -589,10 +607,15 @@ export abstract class ModuleError extends Error {
   injectables happen to live today. `tests/unit/decorator-metadata.test.ts` boots a module
   whose consumer names its dependency only as a parameter type, and passes
   `abortOnError: false` so a regression fails loudly instead of exiting the process.
-- **`noStaticOnlyClass` is off for `apps/api/**` too**, and for the same kind of reason: §4.4
+- **`noStaticOnlyClass`, `noUnsafeDeclarationMerging` and `noConfusingVoidType` are off for
+  `apps/api/**` too**, each for the same kind of reason. §4.4
   makes an entity a class of statics over a merged interface, which is precisely the shape that
-  rule exists to discourage. Where the conventions and a default lint rule disagree, the
-  conventions win and the rule goes, scoped to this app so the other workspaces keep it.
+  rule exists to discourage, and §4.5 writes `type Options = void` for a use case that takes
+  no input, which the third rule reads as a confusing void. Where the conventions and a default
+  lint rule disagree, the conventions win and the rule goes, scoped to this app so the other
+  workspaces keep it. Each of the three is a style rule about a shape this codebase chose
+  deliberately, not a correctness rule; an entity class gets a private constructor so its merge
+  is provably safe rather than merely permitted.
 - Use cases, services and repositories are all `@Injectable()` providers listed in their
   module. A module `exports` only what another module legitimately needs; the import graph is
   declared in `*.module.ts` rather than implied by whatever got imported.
@@ -682,7 +705,7 @@ cases keep `ApplicationDependencies`; moved use cases take narrow ports. Both li
 | 0 ✅ | This document. Rewrite the `biome.json` overrides for the layout in §3.1; the module graph rules are added as modules land. | `bun run lint` passes with the new overrides against the current tree, with every planned violation listed in the PR. |
 | 1 ✅ | `core/`, `configs/`, `db/` (schema split per table, `client.ts`, `executor.ts`), `shared/request-context`, `shared/http`. The bridge above. | `db:generate` produces no new migration. Old code runs unchanged through the bridge. |
 | 2 ✅ | Identity: `users`, `auth`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. `infrastructure/mail` and `adapters/mail` split out of today's two mailer files. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
-| 3 | Content: `pages`, `quizzes`, then `vocabulary`, `attachments`, `page-shares`. Presenters split out of `wire.ts`. `UploadsController` becomes two use cases. `infrastructure/minio` and `adapters/storage` split out of today's object store. | `tests/contracts/{page,quiz}*` bound to both engines. Shared page still refuses an upload its markdown does not reference. |
+| 3 ✅ | Content: `pages`, `quizzes`, then `vocabulary`, `attachments`, `page-shares`. Presenters split out of `wire.ts`. `UploadsController` becomes two use cases. `infrastructure/minio` and `adapters/storage` split out of today's object store. | `tests/contracts/{page,quiz}*` bound to both engines. Shared page still refuses an upload its markdown does not reference. |
 | 4 | Study: `study-settings` and `scheduling` out of the review repository, then `attempts`, `practice`, `statistics`, `insights`. | `finish` writes attempt and schedules in one transaction, pinned by the rollback suite. The four ladder/FSRS behaviour tests from `CLAUDE.md` still pass. |
 | 5 | Surfaces: one controller per module under `["bot","app"]`; `telegram-link` and `api-tokens` keep their two controllers. `adapters/mcp` → `modules/mcp`, `adapters/admin` → `modules/admin`. Delete `modules/{app,bot,content,public,integration}`. | `tests/integration/app/*` and `e2e/*` green. No route path changed. |
 | 6 | Delete `composition/`, `application/`, `persistence/`, `domain/`, `entrypoints/` (→ `main.ts`, `scripts/`), `modules/shared/`. Remove the bridge. | `grep -r "RepositoryScope\|UnitOfWork\|useCasesFor\|lazyScope" apps/api/src` is empty. |

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { QuestionType } from "@api/domain/quiz-set/question";
-import type { QuizSetId } from "@api/domain/quiz-set/quiz-set";
+import { QuestionType, type QuizSetId } from "@api/modules/quizzes";
 import { DETAIL_PAGE_SIZE } from "../src/telegram/presenters/attempt-detail.presenter";
 import {
 	ALLOWED_USER,

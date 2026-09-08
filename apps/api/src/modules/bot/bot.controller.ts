@@ -57,17 +57,6 @@ import {
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
 import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
 import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { CreateFolderUseCase } from "@/application/use-cases/folders/create-folder";
-import { DeleteFolderUseCase } from "@/application/use-cases/folders/delete-folder";
-import { DetachQuizUseCase } from "@/application/use-cases/folders/detach-quiz";
-import { ListFolderTreeUseCase } from "@/application/use-cases/folders/list-folder-tree";
-import { ListRevisionsUseCase } from "@/application/use-cases/folders/list-revisions";
-import { MoveFolderUseCase } from "@/application/use-cases/folders/move-folder";
-import { RenameFolderUseCase } from "@/application/use-cases/folders/rename-folder";
-import { ReorderFolderUseCase } from "@/application/use-cases/folders/reorder-folder";
-import { SearchPagesUseCase } from "@/application/use-cases/folders/search-pages";
-import { SetPageIconUseCase } from "@/application/use-cases/folders/set-page-icon";
-import { WriteSummaryUseCase } from "@/application/use-cases/folders/write-summary";
 import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
 import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
 import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
@@ -75,12 +64,27 @@ import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/res
 import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { BotTokenGuard } from "@/modules/auth";
+import {
+	CreatePageUseCase,
+	DeletePageUseCase,
+	DetachQuizUseCase,
+	detachedQuizToWire,
+	ListPageRevisionsUseCase,
+	ListPageTreeUseCase,
+	MovePageUseCase,
+	pageTreeNodeToWire,
+	RenamePageUseCase,
+	ReorderPageUseCase,
+	revisionToWire,
+	SearchPagesUseCase,
+	SetPageIconUseCase,
+	toPageId,
+	WriteSummaryUseCase,
+} from "@/modules/pages";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {
@@ -89,16 +93,13 @@ import {
 	attemptDetailToWire,
 	browseViewToWire,
 	currentQuestionToWire,
-	detachedQuizToWire,
 	dueSetToWire,
 	finishResultToWire,
 	insightsToWire,
 	leechToWire,
-	pageTreeNodeToWire,
 	practiceResultToWire,
 	resolvedSettingsToWire,
 	resumedAttemptToWire,
-	revisionToWire,
 	settingsToWire,
 	startResultToWire,
 	statisticsToWire,
@@ -129,22 +130,22 @@ export class BotController {
 		private readonly pauseQuizAttempt: PauseQuizAttemptUseCase,
 		@Inject(ResumeQuizAttemptUseCase)
 		private readonly resumeQuizAttempt: ResumeQuizAttemptUseCase,
-		@Inject(CreateFolderUseCase)
-		private readonly createFolder: CreateFolderUseCase,
-		@Inject(RenameFolderUseCase)
-		private readonly renameFolder: RenameFolderUseCase,
+		@Inject(CreatePageUseCase)
+		private readonly createFolder: CreatePageUseCase,
+		@Inject(RenamePageUseCase)
+		private readonly renameFolder: RenamePageUseCase,
 		@Inject(SetPageIconUseCase)
 		private readonly setIcon: SetPageIconUseCase,
-		@Inject(DeleteFolderUseCase)
-		private readonly deleteFolder: DeleteFolderUseCase,
-		@Inject(ListFolderTreeUseCase)
-		private readonly listFolderTree: ListFolderTreeUseCase,
-		@Inject(MoveFolderUseCase)
-		private readonly moveFolder: MoveFolderUseCase,
-		@Inject(ListRevisionsUseCase)
-		private readonly revisions: ListRevisionsUseCase,
-		@Inject(ReorderFolderUseCase)
-		private readonly reorderFolder: ReorderFolderUseCase,
+		@Inject(DeletePageUseCase)
+		private readonly deleteFolder: DeletePageUseCase,
+		@Inject(ListPageTreeUseCase)
+		private readonly listFolderTree: ListPageTreeUseCase,
+		@Inject(MovePageUseCase)
+		private readonly moveFolder: MovePageUseCase,
+		@Inject(ListPageRevisionsUseCase)
+		private readonly revisions: ListPageRevisionsUseCase,
+		@Inject(ReorderPageUseCase)
+		private readonly reorderFolder: ReorderPageUseCase,
 		@Inject(AttachQuizUseCase)
 		private readonly attachQuizSet: AttachQuizUseCase,
 		@Inject(DetachQuizUseCase)
@@ -246,7 +247,7 @@ export class BotController {
 				folderId:
 					command.folderId === undefined
 						? undefined
-						: toFolderId(command.folderId),
+						: toPageId(command.folderId),
 			}),
 		);
 	}
@@ -256,7 +257,7 @@ export class BotController {
 	async summary(@Body() body: unknown) {
 		const command = parseBody(writeSummaryCommandSchema, body);
 		const written = await this.writeSummary.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			summary: command.summary,
 			append: command.append,
 		});
@@ -284,9 +285,7 @@ export class BotController {
 		const created = await this.createFolder.execute({
 			name: command.name,
 			parentId:
-				command.parentId === undefined
-					? undefined
-					: toFolderId(command.parentId),
+				command.parentId === undefined ? undefined : toPageId(command.parentId),
 		});
 
 		return { folderId: String(created.folderId) };
@@ -298,7 +297,7 @@ export class BotController {
 		const command = parseBody(renamePageCommandSchema, body);
 
 		await this.renameFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			name: command.name,
 		});
 	}
@@ -309,7 +308,7 @@ export class BotController {
 		const command = parseBody(setPageIconCommandSchema, body);
 
 		await this.setIcon.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			icon: command.icon,
 		});
 	}
@@ -320,7 +319,7 @@ export class BotController {
 		const command = parseBody(deletePageCommandSchema, body);
 
 		await this.deleteFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 		});
 	}
 
@@ -330,13 +329,11 @@ export class BotController {
 		const command = parseBody(reorderPageCommandSchema, body);
 
 		await this.reorderFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			afterId:
-				command.afterId === undefined ? undefined : toFolderId(command.afterId),
+				command.afterId === undefined ? undefined : toPageId(command.afterId),
 			beforeId:
-				command.beforeId === undefined
-					? undefined
-					: toFolderId(command.beforeId),
+				command.beforeId === undefined ? undefined : toPageId(command.beforeId),
 		});
 	}
 
@@ -346,7 +343,7 @@ export class BotController {
 		const command = parseBody(attachQuizCommandSchema, body);
 
 		const attached = await this.attachQuizSet.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			quizSetId: toQuizSetId(command.quizSetId),
 		});
 
@@ -359,7 +356,7 @@ export class BotController {
 		const command = parseBody(detachQuizCommandSchema, body);
 
 		const detached = await this.detachQuizSet.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			quizSetId: toQuizSetId(command.quizSetId),
 		});
 
@@ -372,11 +369,9 @@ export class BotController {
 		const command = parseBody(movePageCommandSchema, body);
 
 		await this.moveFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			parentId:
-				command.parentId === undefined
-					? undefined
-					: toFolderId(command.parentId),
+				command.parentId === undefined ? undefined : toPageId(command.parentId),
 		});
 	}
 
@@ -387,7 +382,7 @@ export class BotController {
 
 		return (
 			await this.revisions.execute({
-				folderId: toFolderId(command.folderId),
+				folderId: toPageId(command.folderId),
 				limit: command.limit,
 			})
 		).map(revisionToWire);
@@ -396,7 +391,7 @@ export class BotController {
 	@Post(BOT_ROUTES.pageTree)
 	@HttpCode(HttpStatus.OK)
 	async pageTree() {
-		const nodes = await this.listFolderTree.execute({});
+		const nodes = await this.listFolderTree.execute();
 
 		return nodes.map(pageTreeNodeToWire);
 	}

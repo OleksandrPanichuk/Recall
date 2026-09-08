@@ -1,26 +1,26 @@
-import { FolderNotFoundError } from "@/application/use-cases/folders/create-folder";
-import { FolderNotEmptyError } from "@/application/use-cases/folders/delete-folder";
-import { FolderPathNotFoundError } from "@/application/use-cases/folders/resolve-folder-path";
-import {
-	EmptyQuestionBatchError,
-	QuestionBatchTooLargeError,
-} from "@/application/use-cases/quiz-sets/add-questions";
-import { QuizSetNotFoundError } from "@/application/use-cases/quiz-sets/update-quiz-set";
-import { VocabularyItemNotFoundError } from "@/application/use-cases/quiz-sets/update-vocabulary";
 import {
 	DuplicateFolderNameError,
 	FolderCycleError,
 	FolderDepthError,
+	FolderNotEmptyError,
+	FolderNotFoundError,
+	FolderPathNotFoundError,
 	FolderValidationError,
-} from "@/domain/folder/folder.errors";
+} from "@/modules/pages";
 import {
 	DuplicateQuestionError,
+	EmptyQuestionBatchError,
 	EmptyQuizSetError,
+	QuestionBatchTooLargeError,
 	QuestionValidationError,
+	QuizSetNotFoundError,
 	QuizSetTransitionError,
 	QuizSetValidationError,
-} from "@/domain/quiz-set/quiz-set.errors";
-import { VocabularyItemValidationError } from "@/domain/vocabulary/vocabulary-item.errors";
+} from "@/modules/quizzes";
+import {
+	VocabularyItemNotFoundError,
+	VocabularyItemValidationError,
+} from "@/modules/vocabulary";
 
 export function describeError(error: unknown): string {
 	if (error instanceof VocabularyItemValidationError) {

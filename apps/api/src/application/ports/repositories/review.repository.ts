@@ -1,7 +1,6 @@
-import type { QuestionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
 
 export type SettingsScope =
 	| { readonly kind: "owner" }

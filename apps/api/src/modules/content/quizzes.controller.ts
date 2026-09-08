@@ -1,8 +1,18 @@
-import { Controller, Get, Inject, Param, Query } from "@nestjs/common";
+import {
+	Controller,
+	Get,
+	Inject,
+	Param,
+	Query,
+	UseGuards,
+} from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { GetQuizSetUseCase } from "@/application/use-cases/quiz-sets/get-quiz-set";
-import { ListQuizSetsUseCase } from "@/application/use-cases/quiz-sets/list-quiz-sets";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { InstanceOwnerGuard } from "@/modules/auth";
+import {
+	GetQuizSetUseCase,
+	ListQuizSetsUseCase,
+	toQuizSetId,
+} from "@/modules/quizzes";
 
 export interface QuizSummaryBody {
 	readonly id: string;
@@ -21,6 +31,7 @@ export interface QuizDetailBody {
 }
 
 @ApiTags("quizzes")
+@UseGuards(InstanceOwnerGuard)
 @Controller("quizzes")
 export class QuizzesController {
 	constructor(

@@ -8,6 +8,7 @@ import { UsersModule } from "@/modules/users";
 import { BotTokenGuard } from "./auth.bot.guard";
 import { AuthEngine } from "./auth.engine";
 import { AuthFactory } from "./auth.factory";
+import { InstanceOwnerGuard } from "./auth.instance.guard";
 import { AuthRepository } from "./auth.repository";
 import { AuthService } from "./auth.service";
 import { SessionGuard } from "./auth.session.guard";
@@ -56,6 +57,7 @@ export class AuthModule {
 				AuthService,
 				SessionGuard,
 				BotTokenGuard,
+				InstanceOwnerGuard,
 			],
 			exports: [
 				AuthService,
@@ -63,6 +65,7 @@ export class AuthModule {
 				AuthRepository,
 				SessionGuard,
 				BotTokenGuard,
+				InstanceOwnerGuard,
 			],
 		};
 	}

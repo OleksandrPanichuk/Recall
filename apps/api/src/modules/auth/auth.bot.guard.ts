@@ -3,14 +3,18 @@ import { Injectable } from "@nestjs/common";
 import type { Request } from "express";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { BearerToken } from "@/shared/http/bearer.token";
+import { setPrincipal } from "@/shared/request-context";
 import {
 	BotTokenNotConfiguredError,
 	ForeignTelegramAccountError,
 	WrongBotTokenError,
 } from "./auth.errors";
+import { AuthService } from "./auth.service";
 
 @Injectable()
 export class BotTokenGuard implements CanActivate {
+	constructor(private readonly auth: AuthService) {}
+
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const environment = loadApiEnvironment();
 		const expected = environment.botToken;
@@ -31,6 +35,12 @@ export class BotTokenGuard implements CanActivate {
 
 		if (named !== undefined && named !== environment.allowedTelegramUserId) {
 			throw new ForeignTelegramAccountError();
+		}
+
+		const owner = await this.auth.instanceOwner().catch(() => undefined);
+
+		if (owner !== undefined) {
+			setPrincipal({ kind: "instance", owner });
 		}
 
 		return true;

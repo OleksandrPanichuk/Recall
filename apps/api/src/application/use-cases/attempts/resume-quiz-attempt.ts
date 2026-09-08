@@ -13,7 +13,7 @@ import {
 	QuizAttemptStatus,
 	resumeQuizAttempt,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuestionId } from "@/domain/quiz-set/question";
+import { type QuestionId } from "@/modules/quizzes";
 
 export class NoActiveAttemptError extends Error {
 	constructor() {

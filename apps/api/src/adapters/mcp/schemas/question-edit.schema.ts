@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Difficulty } from "@/domain/quiz-set/question";
+import { Difficulty } from "@/modules/quizzes";
 import {
 	MAX_OPTIONS_PER_QUESTION,
 	questionOptionSchema,

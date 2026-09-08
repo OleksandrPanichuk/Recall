@@ -5,12 +5,14 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
 import type { QuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { percentageOf, type Score } from "@/domain/quiz-attempt/score";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { type PageId } from "@/modules/pages";
+import {
+	type QuestionId,
+	type QuizSetId,
+	QuizSetNotFoundError,
+} from "@/modules/quizzes";
 
 export interface AttemptSummary {
 	readonly attemptId: QuizAttemptId;
@@ -27,7 +29,7 @@ export interface Improvement {
 export interface QuizStatistics {
 	readonly quizSetId: QuizSetId;
 	readonly title: string;
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 	readonly attempts: readonly AttemptSummary[];
 	readonly setAccuracy: Score;
 	readonly topics: readonly TopicAccuracy[];

@@ -3,7 +3,7 @@ import { describeDatabaseUrl } from "@/configs/database-url";
 import type { RecallDatabase } from "@/db/client";
 import { attempts, questions, quizzes, responses } from "@/db/schema";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
+import { QuizSetStatus } from "@/modules/quizzes";
 
 export interface StatusReport {
 	readonly databaseUrl: string;

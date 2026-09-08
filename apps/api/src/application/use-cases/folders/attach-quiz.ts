@@ -5,18 +5,16 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
-import { requireFolder } from "./create-folder";
+import { type PageId, PagesService } from "@/modules/pages";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 
 export interface AttachQuizCommand {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly quizSetId: QuizSetId;
 }
 
 export interface AttachedQuiz {
-	readonly folderId: FolderId;
+	readonly folderId: PageId;
 	readonly folderName: string;
 	readonly quizSetId: QuizSetId;
 	readonly title: string;
@@ -35,7 +33,7 @@ export class AttachQuizUseCase
 
 	execute(request: Command<AttachQuizCommand>): Promise<AttachedQuiz> {
 		return this.unitOfWork.run(async ({ pages, quizzes }) => {
-			const page = await requireFolder(pages, request.folderId);
+			const page = await new PagesService(pages).require(request.folderId);
 			const quiz = await quizzes.findById(request.quizSetId);
 
 			if (quiz === undefined) {

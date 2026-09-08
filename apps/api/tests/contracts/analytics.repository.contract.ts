@@ -7,19 +7,16 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+import { scheduleAfter } from "@/domain/repetition/repetition";
 import {
+	createQuestion,
 	Difficulty,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import { scheduleAfter } from "@/domain/repetition/repetition";
+} from "@/modules/quizzes";
 
 export interface AnalyticsRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -117,8 +114,8 @@ export function describeAnalyticsRepository(
 
 				await harness.unitOfWork.run(({ quizzes }) =>
 					quizzes.save(
-						addQuestions(
-							createQuizSet({
+						QuizSetEntity.addQuestions(
+							QuizSetEntity.create({
 								id: toQuizSetId(quizId),
 								title: "Replication",
 								language: "en",

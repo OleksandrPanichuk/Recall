@@ -1,22 +1,19 @@
 import { Global, Module, type OnApplicationShutdown } from "@nestjs/common";
-import type { ObjectStore } from "@/application/ports/object-store";
+import {
+	INSTANCE_OWNER,
+	USE_CASE_DEPENDENCIES,
+	USE_CASES_FOR,
+} from "@/application/tokens";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { systemClock, uuidGenerator } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { Database, DatabaseConnection } from "@/db/connection";
 import { AuthService } from "@/modules/auth";
-import { createMinioObjectStore } from "@/persistence/objects/minio.object-store";
 import {
 	lazyScope,
 	lazyUnitOfWork,
 	type OwnerResolver,
 } from "@/persistence/postgres/lazy-scope";
-import {
-	INSTANCE_OWNER,
-	OBJECT_STORE,
-	USE_CASE_DEPENDENCIES,
-	USE_CASES_FOR,
-} from "./tokens";
 import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 
 @Global()
@@ -35,19 +32,6 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 				(auth: AuthService): OwnerResolver =>
 				() =>
 					auth.instanceOwner(),
-		},
-		{
-			provide: OBJECT_STORE,
-			useFactory: (): ObjectStore => {
-				const environment = loadApiEnvironment();
-
-				return createMinioObjectStore({
-					endpoint: environment.objectStoreEndpoint,
-					accessKey: environment.objectStoreAccessKey,
-					secretKey: environment.objectStoreSecretKey,
-					bucket: environment.objectStoreBucket,
-				});
-			},
 		},
 		{
 			provide: DatabaseConnection,
@@ -74,7 +58,6 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 		Database,
 		DatabaseConnection,
 		INSTANCE_OWNER,
-		OBJECT_STORE,
 		USE_CASE_DEPENDENCIES,
 		USE_CASES_FOR,
 	],

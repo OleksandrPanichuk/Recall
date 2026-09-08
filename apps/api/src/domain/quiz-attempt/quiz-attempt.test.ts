@@ -4,8 +4,8 @@ import {
 	type QuestionOptionId,
 	toQuestionId,
 	toQuestionOptionId,
-} from "../quiz-set/question";
-import { toQuizSetId } from "../quiz-set/quiz-set";
+	toQuizSetId,
+} from "@/modules/quizzes";
 import {
 	attemptScore,
 	completeQuizAttempt,

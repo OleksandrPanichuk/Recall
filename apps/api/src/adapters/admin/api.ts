@@ -1,9 +1,12 @@
 import type { Logger } from "@recall/kit";
 import type { UseCases } from "@/composition/create-application";
-import { toFolderId } from "@/domain/folder/folder";
-import type { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toPageId } from "@/modules/pages";
+import {
+	Difficulty,
+	QuestionType,
+	toQuestionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { matchesToken } from "../mcp/http/bearer";
 import { listPage, listQueryOf } from "./query";
 import {
@@ -179,7 +182,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 		).map(questionRecordOf);
 
 	const folderRecords = async () =>
-		(await application.listFolderTree.execute({})).map(folderRecordOf);
+		(await application.listFolderTree.execute()).map(folderRecordOf);
 
 	const vocabularyRecords = async (quizSetId?: string) => {
 		const ids =
@@ -238,7 +241,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 	const throttle = createSignInThrottle();
 
 	const folderIdOf = (value: unknown) =>
-		trimmed(value) === undefined ? undefined : toFolderId(String(value));
+		trimmed(value) === undefined ? undefined : toPageId(String(value));
 
 	return {
 		"/api/session": {
@@ -476,7 +479,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 			}),
 			PUT: guarded(async (request) => {
 				const id = paramOf(request, "id");
-				const folderId = toFolderId(id);
+				const folderId = toPageId(id);
 				const body = await bodyOf<Record<string, unknown>>(request);
 				const current = (await folderRecords()).find(
 					(entry) => entry.id === id,
@@ -503,7 +506,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 				const id = paramOf(request, "id");
 				const record = (await folderRecords()).find((entry) => entry.id === id);
 
-				await application.deleteFolder.execute({ folderId: toFolderId(id) });
+				await application.deleteFolder.execute({ folderId: toPageId(id) });
 
 				return json(record ?? { id });
 			}),

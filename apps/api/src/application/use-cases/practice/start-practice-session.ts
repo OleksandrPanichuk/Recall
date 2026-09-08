@@ -9,7 +9,6 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
 import { weakTopicsOf } from "@/domain/practice/weak-topics";
 import {
 	currentQuestionId,
@@ -18,17 +17,19 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import type { Question, QuestionId } from "@/domain/quiz-set/question";
+import { type PageId } from "@/modules/pages";
 import {
-	type QuizSet,
+	QuestionEntity,
+	type QuestionId,
+	QuizSetEntity,
 	type QuizSetId,
+	QuizSetNotFoundError,
 	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 import {
 	AttemptAlreadyInProgressError,
 	QuizSetNotPublishedError,
 } from "../attempts/start-quiz-attempt";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export type PracticeMode =
@@ -38,9 +39,9 @@ export type PracticeMode =
 export class NothingToPracticeError extends Error {
 	readonly quizSetId: QuizSetId;
 	readonly mode: PracticeMode;
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 
-	constructor(quizSetId: QuizSetId, mode: PracticeMode, folderId?: FolderId) {
+	constructor(quizSetId: QuizSetId, mode: PracticeMode, folderId?: PageId) {
 		super(`Quiz set ${quizSetId} has nothing to practise in ${mode} mode`);
 		this.name = "NothingToPracticeError";
 		this.quizSetId = quizSetId;
@@ -154,7 +155,7 @@ export class StartPracticeSessionUseCase
 
 	private async outstandingMistakes(
 		request: Command<StartPracticeSessionCommand>,
-		quizSet: QuizSet,
+		quizSet: QuizSetEntity,
 		attempts: AttemptRepository,
 	): Promise<readonly QuestionId[]> {
 		const present = new Set<string>(
@@ -168,15 +169,17 @@ export class StartPracticeSessionUseCase
 }
 
 function questionsOfTopics(
-	quizSet: QuizSet,
+	quizSet: QuizSetEntity,
 	topics: readonly string[],
 ): readonly QuestionId[] {
 	const weak = new Set(topics);
 
 	return quizSet.questions
-		.filter((question: Question) => hasWeakTopic(question, weak))
+		.filter((question: QuestionEntity) => hasWeakTopic(question, weak))
 		.map((question) => question.id);
 }
 
-const hasWeakTopic = (question: Question, weak: ReadonlySet<string>): boolean =>
-	question.topic !== undefined && weak.has(question.topic);
+const hasWeakTopic = (
+	question: QuestionEntity,
+	weak: ReadonlySet<string>,
+): boolean => question.topic !== undefined && weak.has(question.topic);

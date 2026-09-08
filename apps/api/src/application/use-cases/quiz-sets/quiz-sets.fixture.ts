@@ -2,16 +2,23 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
-import { AddQuestionsUseCase, type QuestionInput } from "./add-questions";
-import { AddVocabularyUseCase } from "./add-vocabulary";
-import { ArchiveQuizSetUseCase } from "./archive-quiz-set";
-import { CreateQuizSetUseCase } from "./create-quiz-set";
-import { ListVocabularyUseCase } from "./list-vocabulary";
-import { PublishQuizSetUseCase } from "./publish-quiz-set";
-import { UpdateQuizSetUseCase } from "./update-quiz-set";
-import { UpdateVocabularyUseCase } from "./update-vocabulary";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import {
+	AddQuestionsUseCase,
+	ArchiveQuizSetUseCase,
+	CreateQuizSetUseCase,
+	Difficulty,
+	PublishQuizSetUseCase,
+	type QuestionInput,
+	QuestionType,
+	type QuizSetId,
+	UpdateQuizSetUseCase,
+} from "@/modules/quizzes";
+import {
+	AddVocabularyUseCase,
+	ListVocabularyUseCase,
+	UpdateVocabularyUseCase,
+} from "@/modules/vocabulary";
 
 export const aQuestionInput = (
 	overrides: Partial<QuestionInput> = {},
@@ -46,11 +53,11 @@ export interface QuizSetsHarness {
 
 export function createQuizSetsHarness(): QuizSetsHarness {
 	const context = createMemoryContext();
-	const create = new CreateQuizSetUseCase(context);
-	const add = new AddQuestionsUseCase(context);
-	const publish = new PublishQuizSetUseCase(context);
-
-	const archive = new ArchiveQuizSetUseCase(context);
+	const quizzes = quizzesOver(context);
+	const create = quizzes.createQuizSet;
+	const add = quizzes.addQuestions;
+	const publish = quizzes.publishQuizSet;
+	const archive = quizzes.archiveQuizSet;
 
 	const newDraft = async (): Promise<QuizSetId> => {
 		const { quizSetId } = await create.execute({
@@ -64,13 +71,28 @@ export function createQuizSetsHarness(): QuizSetsHarness {
 	return {
 		context,
 		create,
-		update: new UpdateQuizSetUseCase(context),
+		update: quizzes.updateQuizSet,
 		add,
 		publish,
 		archive,
-		addVocabulary: new AddVocabularyUseCase({ ...context, addQuestions: add }),
-		updateVocabulary: new UpdateVocabularyUseCase(context),
-		listVocabulary: new ListVocabularyUseCase(context),
+		addVocabulary: new AddVocabularyUseCase(
+			add,
+			context.scope.termPairs,
+			context.transaction,
+			context.clock,
+			context.idGenerator,
+		),
+		updateVocabulary: new UpdateVocabularyUseCase(
+			context.scope.termPairs,
+			context.scope.quizzes,
+			context.transaction,
+			context.clock,
+			context.idGenerator,
+		),
+		listVocabulary: new ListVocabularyUseCase(
+			context.scope.termPairs,
+			context.scope.quizzes,
+		),
 
 		newDraft,
 

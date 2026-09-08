@@ -29,13 +29,14 @@ import {
 	isQuizAttemptMode,
 	isQuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt.constants";
+import type { RecallGrade } from "@/domain/repetition/grade";
 import {
 	type QuestionId,
+	type QuizSetId,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import type { RecallGrade } from "@/domain/repetition/grade";
+	toQuizSetId,
+} from "@/modules/quizzes";
 import type { Executor } from "../unit-of-work";
 
 type AttemptRow = typeof attempts.$inferSelect;

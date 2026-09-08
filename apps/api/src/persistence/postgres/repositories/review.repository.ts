@@ -5,10 +5,10 @@ import type {
 	SettingsScope,
 } from "@/application/ports/repositories/review.repository";
 import { reviewStates, studySettings } from "@/db/schema";
-import { type QuestionId, toQuestionId } from "@/domain/quiz-set/question";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import { createQuizSettings } from "@/domain/settings/quiz-settings";
+import { type QuestionId, toQuestionId } from "@/modules/quizzes";
 import type { Executor } from "../unit-of-work";
 
 type ReviewRow = typeof reviewStates.$inferSelect;

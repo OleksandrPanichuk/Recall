@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { anOption, aQuestion } from "@tests/fixtures/quiz-set.fixture";
-import { QuestionType, toQuestionOptionId } from "../quiz-set/question";
+import { QuestionType, toQuestionOptionId } from "@/modules/quizzes";
 import {
 	correctOptionIds,
 	evaluateAnswer,

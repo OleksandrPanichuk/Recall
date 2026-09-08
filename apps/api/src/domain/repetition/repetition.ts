@@ -1,5 +1,5 @@
+import { type QuestionId } from "@/modules/quizzes";
 import { copiedDate, isValidDate } from "@/shared/utils/date";
-import type { QuestionId } from "../quiz-set/question";
 import { fsrsScheduleAfter } from "./fsrs";
 import { RecallGrade, wasRecalled } from "./grade";
 import {

@@ -1,8 +1,7 @@
 import { Database } from "bun:sqlite";
 import type postgres from "postgres";
 import type { OwnerId } from "@/application/ports/owner";
-import type { Question } from "@/domain/quiz-set/question";
-import { questionFingerprint } from "@/domain/quiz-set/question-fingerprint";
+import { QuestionEntity, questionFingerprint } from "@/modules/quizzes";
 
 export interface EtlReport {
 	readonly inserted: Readonly<Record<string, number>>;
@@ -767,7 +766,7 @@ export async function recomputeFingerprints(
 				position: option.position,
 				matchKey: option.match_key ?? undefined,
 			})),
-		} as unknown as Question);
+		} as unknown as QuestionEntity);
 
 		await client`
 			update questions set fingerprint = ${fingerprint}::text

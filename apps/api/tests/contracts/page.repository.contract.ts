@@ -1,13 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import {
-	createFolder,
-	renameFolder,
-	toFolderId,
-	writeSummary,
-} from "@/domain/folder/folder";
-import { type QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { PageEntity, toPageId } from "@/modules/pages";
+import { QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 
 export interface PageRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -20,10 +15,10 @@ const at = new Date("2026-08-01T10:00:00.000Z");
 const later = new Date("2026-08-02T10:00:00.000Z");
 
 const page = (id: string, name: string, parentId?: string, position?: number) =>
-	createFolder({
-		id: toFolderId(id),
+	PageEntity.create({
+		id: toPageId(id),
 		name,
-		parentId: parentId === undefined ? undefined : toFolderId(parentId),
+		parentId: parentId === undefined ? undefined : toPageId(parentId),
 		position,
 		createdAt: at,
 	});
@@ -52,14 +47,14 @@ export function describePageRepository(
 					await pages.save(page(id, "Programming"));
 				});
 
-				const stored = await harness.scope.pages.findById(toFolderId(id));
+				const stored = await harness.scope.pages.findById(toPageId(id));
 
 				expect(stored?.name).toBe("Programming");
 				expect(stored?.parentId).toBeUndefined();
 			});
 
 			test("treats an id that is not a uuid as missing, not as an error", async () => {
-				const missing = toFolderId("does-not-exist");
+				const missing = toPageId("does-not-exist");
 
 				expect(await harness.scope.pages.findById(missing)).toBeUndefined();
 				expect(await harness.scope.pages.listChildren(missing)).toEqual([]);
@@ -77,9 +72,7 @@ export function describePageRepository(
 					await pages.save(page(uuid(), "Alpha", root, 2));
 				});
 
-				const children = await harness.scope.pages.listChildren(
-					toFolderId(root),
-				);
+				const children = await harness.scope.pages.listChildren(toPageId(root));
 
 				expect(children.map((child) => child.name)).toEqual(["Zebra", "Alpha"]);
 			});
@@ -92,9 +85,7 @@ export function describePageRepository(
 					await pages.save(page(uuid(), "Wedged", root, 1.0009765625));
 				});
 
-				const [child] = await harness.scope.pages.listChildren(
-					toFolderId(root),
-				);
+				const [child] = await harness.scope.pages.listChildren(toPageId(root));
 
 				expect(child?.position).toBeCloseTo(1.0009765625, 9);
 			});
@@ -108,9 +99,7 @@ export function describePageRepository(
 					await pages.save(page(uuid(), "Alpha", root));
 				});
 
-				const children = await harness.scope.pages.listChildren(
-					toFolderId(root),
-				);
+				const children = await harness.scope.pages.listChildren(toPageId(root));
 
 				expect(children.map((child) => child.name)).toEqual(["Alpha", "Zebra"]);
 			});
@@ -127,7 +116,7 @@ export function describePageRepository(
 				});
 
 				const ancestors = await harness.scope.pages.listAncestors(
-					toFolderId(leaf),
+					toPageId(leaf),
 				);
 
 				expect(ancestors.map((entry) => entry.name)).toEqual([
@@ -144,13 +133,13 @@ export function describePageRepository(
 				});
 
 				await harness.unitOfWork.run(async ({ pages }) => {
-					const stored = await pages.findById(toFolderId(id));
+					const stored = await pages.findById(toPageId(id));
 
 					if (stored === undefined) {
 						throw new Error("the page vanished");
 					}
 
-					await pages.save(renameFolder(stored, "Programming", at));
+					await pages.save(PageEntity.renamed(stored, "Programming", at));
 				});
 
 				const all = await harness.scope.pages.listAll();
@@ -168,9 +157,9 @@ export function describePageRepository(
 					await pages.save(page(uuid(), "Two", root));
 				});
 
-				expect(
-					await harness.scope.pages.countChildPages(toFolderId(root)),
-				).toBe(2);
+				expect(await harness.scope.pages.countChildPages(toPageId(root))).toBe(
+					2,
+				);
 			});
 
 			test("counts quizzes filed under a page, by status", async () => {
@@ -183,13 +172,9 @@ export function describePageRepository(
 				await harness.seedQuiz(id, "published");
 				await harness.seedQuiz(id, "draft");
 
-				expect(await harness.scope.pages.countQuizzesIn(toFolderId(id))).toBe(
-					2,
-				);
+				expect(await harness.scope.pages.countQuizzesIn(toPageId(id))).toBe(2);
 				expect(
-					await harness.scope.pages.countQuizzesIn(toFolderId(id), [
-						"published",
-					]),
+					await harness.scope.pages.countQuizzesIn(toPageId(id), ["published"]),
 				).toBe(1);
 			});
 
@@ -244,7 +229,7 @@ export function describePageRepository(
 				});
 
 				await harness.unitOfWork.run(async ({ pages }) => {
-					await pages.delete(toFolderId(id));
+					await pages.delete(toPageId(id));
 				});
 
 				expect(await harness.scope.pages.listAll()).toEqual([]);
@@ -254,8 +239,8 @@ export function describePageRepository(
 
 				await harness.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({
-							id: toFolderId(id),
+						PageEntity.create({
+							id: toPageId(id),
 							name: "Chapter 2",
 							summary: "# Data models\n\nRelational vs document.",
 							icon: "📘",
@@ -264,7 +249,7 @@ export function describePageRepository(
 					),
 				);
 
-				const stored = await harness.scope.pages.findById(toFolderId(id));
+				const stored = await harness.scope.pages.findById(toPageId(id));
 
 				expect(stored?.summary).toBe(
 					"# Data models\n\nRelational vs document.",
@@ -284,17 +269,17 @@ export function describePageRepository(
 				const quizId = await harness.seedQuiz(books, "published");
 
 				await harness.unitOfWork.run(({ pages }) =>
-					pages.attachQuiz(toFolderId(notes), toQuizSetId(quizId)),
+					pages.attachQuiz(toPageId(notes), toQuizSetId(quizId)),
 				);
 
 				expect(
-					(
-						await harness.scope.pages.listAttachedQuizIds(toFolderId(notes))
-					).map(String),
+					(await harness.scope.pages.listAttachedQuizIds(toPageId(notes))).map(
+						String,
+					),
 				).toEqual([quizId]);
-				expect(
-					await harness.scope.pages.countQuizzesIn(toFolderId(notes)),
-				).toBe(0);
+				expect(await harness.scope.pages.countQuizzesIn(toPageId(notes))).toBe(
+					0,
+				);
 			});
 
 			test("attaching twice leaves one attachment, and detaching removes it", async () => {
@@ -307,20 +292,20 @@ export function describePageRepository(
 				const quizId = await harness.seedQuiz(notes, "published");
 
 				await harness.unitOfWork.run(async ({ pages }) => {
-					await pages.attachQuiz(toFolderId(notes), toQuizSetId(quizId));
-					await pages.attachQuiz(toFolderId(notes), toQuizSetId(quizId));
+					await pages.attachQuiz(toPageId(notes), toQuizSetId(quizId));
+					await pages.attachQuiz(toPageId(notes), toQuizSetId(quizId));
 				});
 
 				expect(
-					await harness.scope.pages.listAttachedQuizIds(toFolderId(notes)),
+					await harness.scope.pages.listAttachedQuizIds(toPageId(notes)),
 				).toHaveLength(1);
 
 				await harness.unitOfWork.run(({ pages }) =>
-					pages.detachQuiz(toFolderId(notes), toQuizSetId(quizId)),
+					pages.detachQuiz(toPageId(notes), toQuizSetId(quizId)),
 				);
 
 				expect(
-					await harness.scope.pages.listAttachedQuizIds(toFolderId(notes)),
+					await harness.scope.pages.listAttachedQuizIds(toPageId(notes)),
 				).toEqual([]);
 			});
 
@@ -334,7 +319,7 @@ export function describePageRepository(
 				await harness.unitOfWork.run(async ({ pages }) => {
 					await pages.recordRevision({
 						id: uuid(),
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						title: "Chapter 2",
 						summary: "first",
 						authorKind: "mcp",
@@ -342,7 +327,7 @@ export function describePageRepository(
 					});
 					await pages.recordRevision({
 						id: uuid(),
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						title: "Chapter 2",
 						summary: "second",
 						authorKind: "user",
@@ -350,9 +335,7 @@ export function describePageRepository(
 					});
 				});
 
-				const revisions = await harness.scope.pages.listRevisions(
-					toFolderId(id),
-				);
+				const revisions = await harness.scope.pages.listRevisions(toPageId(id));
 
 				expect(revisions.map((revision) => revision.summary)).toEqual([
 					"second",
@@ -360,7 +343,7 @@ export function describePageRepository(
 				]);
 				expect(revisions[0]?.authorKind).toBe("user");
 				expect(
-					await harness.scope.pages.listRevisions(toFolderId(id), 1),
+					await harness.scope.pages.listRevisions(toPageId(id), 1),
 				).toHaveLength(1);
 			});
 
@@ -370,8 +353,8 @@ export function describePageRepository(
 
 				await harness.unitOfWork.run(async ({ pages }) => {
 					await pages.save(
-						createFolder({
-							id: toFolderId(withSummary),
+						PageEntity.create({
+							id: toPageId(withSummary),
 							name: "Chapter 5",
 							summary: "Replication keeps a copy on several machines.",
 							createdAt: at,
@@ -400,9 +383,7 @@ export function describePageRepository(
 					pages.save(page(id, "Durability")),
 				);
 
-				expect(
-					await harness.scope.pages.shareOf(toFolderId(id)),
-				).toBeUndefined();
+				expect(await harness.scope.pages.shareOf(toPageId(id))).toBeUndefined();
 			});
 
 			test("keeps a share and hands the token back", async () => {
@@ -411,13 +392,13 @@ export function describePageRepository(
 				await harness.unitOfWork.run(async ({ pages }) => {
 					await pages.save(page(id, "Durability"));
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "a-token-nobody-else-holds",
 						createdAt: at,
 					});
 				});
 
-				const share = await harness.scope.pages.shareOf(toFolderId(id));
+				const share = await harness.scope.pages.shareOf(toPageId(id));
 
 				expect(share?.token).toBe("a-token-nobody-else-holds");
 				expect(share?.createdAt.getTime()).toBe(at.getTime());
@@ -429,18 +410,18 @@ export function describePageRepository(
 				await harness.unitOfWork.run(async ({ pages }) => {
 					await pages.save(page(id, "Durability"));
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "first",
 						createdAt: at,
 					});
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "second",
 						createdAt: later,
 					});
 				});
 
-				expect((await harness.scope.pages.shareOf(toFolderId(id)))?.token).toBe(
+				expect((await harness.scope.pages.shareOf(toPageId(id)))?.token).toBe(
 					"second",
 				);
 			});
@@ -451,16 +432,14 @@ export function describePageRepository(
 				await harness.unitOfWork.run(async ({ pages }) => {
 					await pages.save(page(id, "Durability"));
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "open",
 						createdAt: at,
 					});
-					await pages.deleteShare(toFolderId(id));
+					await pages.deleteShare(toPageId(id));
 				});
 
-				expect(
-					await harness.scope.pages.shareOf(toFolderId(id)),
-				).toBeUndefined();
+				expect(await harness.scope.pages.shareOf(toPageId(id))).toBeUndefined();
 			});
 
 			test("a page nobody owns cannot be shared", async () => {
@@ -468,15 +447,13 @@ export function describePageRepository(
 
 				await harness.unitOfWork.run(({ pages }) =>
 					pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "stolen",
 						createdAt: at,
 					}),
 				);
 
-				expect(
-					await harness.scope.pages.shareOf(toFolderId(id)),
-				).toBeUndefined();
+				expect(await harness.scope.pages.shareOf(toPageId(id))).toBeUndefined();
 			});
 
 			test("deleting the page takes its share with it", async () => {
@@ -485,22 +462,20 @@ export function describePageRepository(
 				await harness.unitOfWork.run(async ({ pages }) => {
 					await pages.save(page(id, "Durability"));
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "gone-with-it",
 						createdAt: at,
 					});
-					await pages.delete(toFolderId(id));
+					await pages.delete(toPageId(id));
 				});
 
-				expect(
-					await harness.scope.pages.shareOf(toFolderId(id)),
-				).toBeUndefined();
+				expect(await harness.scope.pages.shareOf(toPageId(id))).toBeUndefined();
 			});
 
 			test("rewrites the summary and can clear it", async () => {
 				const id = uuid();
-				const page = createFolder({
-					id: toFolderId(id),
+				const page = PageEntity.create({
+					id: toPageId(id),
 					name: "Chapter 2",
 					summary: "first draft",
 					createdAt: at,
@@ -508,19 +483,19 @@ export function describePageRepository(
 
 				await harness.unitOfWork.run(({ pages }) => pages.save(page));
 				await harness.unitOfWork.run(({ pages }) =>
-					pages.save(writeSummary(page, "second draft", later)),
+					pages.save(PageEntity.withSummary(page, "second draft", later)),
 				);
 
 				expect(
-					(await harness.scope.pages.findById(toFolderId(id)))?.summary,
+					(await harness.scope.pages.findById(toPageId(id)))?.summary,
 				).toBe("second draft");
 
 				await harness.unitOfWork.run(({ pages }) =>
-					pages.save(writeSummary(page, undefined, later)),
+					pages.save(PageEntity.withSummary(page, undefined, later)),
 				);
 
 				expect(
-					(await harness.scope.pages.findById(toFolderId(id)))?.summary,
+					(await harness.scope.pages.findById(toPageId(id)))?.summary,
 				).toBeUndefined();
 			});
 		},

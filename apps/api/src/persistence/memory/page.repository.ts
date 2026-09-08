@@ -5,15 +5,12 @@ import type {
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
 import {
-	type Folder,
-	type FolderId,
-	MAX_FOLDER_DEPTH,
-} from "@/domain/folder/folder";
-import type { QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import {
 	excerptAround,
+	PageEntity,
+	type PageId,
 	slugOf,
-} from "../postgres/repositories/page.repository";
+} from "@/modules/pages";
+import { type QuizSetId, QuizSetStatus } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export class DuplicateSlugError extends Error {
@@ -25,19 +22,19 @@ export class DuplicateSlugError extends Error {
 	}
 }
 
-const byName = (left: Folder, right: Folder): number =>
+const byName = (left: PageEntity, right: PageEntity): number =>
 	left.name === right.name
 		? String(left.id).localeCompare(String(right.id))
 		: left.name.localeCompare(right.name);
 
-const byPosition = (left: Folder, right: Folder): number =>
+const byPosition = (left: PageEntity, right: PageEntity): number =>
 	left.position === right.position
 		? byName(left, right)
 		: left.position - right.position;
 
 export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 	return {
-		async save(page: Folder): Promise<void> {
+		async save(page: PageEntity): Promise<void> {
 			const slug = slugOf(page.name);
 			const clash = [...store.pages.values()].find(
 				(candidate) =>
@@ -56,13 +53,13 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 			store.pages.set(String(page.id), page);
 		},
 
-		async findById(id: FolderId): Promise<Folder | undefined> {
+		async findById(id: PageId): Promise<PageEntity | undefined> {
 			return store.pages.get(String(id));
 		},
 
 		async listChildren(
-			parentId: FolderId | undefined,
-		): Promise<readonly Folder[]> {
+			parentId: PageId | undefined,
+		): Promise<readonly PageEntity[]> {
 			return [...store.pages.values()]
 				.filter(
 					(page) => String(page.parentId ?? "") === String(parentId ?? ""),
@@ -70,13 +67,13 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 				.sort(byPosition);
 		},
 
-		async listAncestors(id: FolderId): Promise<readonly Folder[]> {
-			const chain: Folder[] = [];
+		async listAncestors(id: PageId): Promise<readonly PageEntity[]> {
+			const chain: PageEntity[] = [];
 			let current = store.pages.get(String(id))?.parentId;
 
 			for (
 				let step = 0;
-				step < MAX_FOLDER_DEPTH && current !== undefined;
+				step < PageEntity.MAX_DEPTH && current !== undefined;
 				step += 1
 			) {
 				const parent = store.pages.get(String(current));
@@ -92,12 +89,12 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 			return chain;
 		},
 
-		async listAll(): Promise<readonly Folder[]> {
+		async listAll(): Promise<readonly PageEntity[]> {
 			return [...store.pages.values()].sort(byPosition);
 		},
 
 		async countQuizzesIn(
-			id: FolderId,
+			id: PageId,
 			statuses?: readonly QuizSetStatus[],
 		): Promise<number> {
 			return [...store.quizzes.values()].filter(
@@ -107,24 +104,24 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 			).length;
 		},
 
-		async countChildPages(id: FolderId): Promise<number> {
+		async countChildPages(id: PageId): Promise<number> {
 			return [...store.pages.values()].filter(
 				(page) => String(page.parentId ?? "") === String(id),
 			).length;
 		},
 
-		async attachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+		async attachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {
 			const attached = store.attachments.get(String(id)) ?? new Set<string>();
 
 			attached.add(String(quizId));
 			store.attachments.set(String(id), attached);
 		},
 
-		async detachQuiz(id: FolderId, quizId: QuizSetId): Promise<void> {
+		async detachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {
 			store.attachments.get(String(id))?.delete(String(quizId));
 		},
 
-		async listAttachedQuizIds(id: FolderId): Promise<readonly QuizSetId[]> {
+		async listAttachedQuizIds(id: PageId): Promise<readonly QuizSetId[]> {
 			return [...(store.attachments.get(String(id)) ?? [])]
 				.sort()
 				.map((quizId) => quizId as QuizSetId);
@@ -135,7 +132,7 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 		},
 
 		async listRevisions(
-			id: FolderId,
+			id: PageId,
 			limit = 20,
 		): Promise<readonly PageRevision[]> {
 			return store.revisions
@@ -168,7 +165,7 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 				}));
 		},
 
-		async shareOf(id: FolderId): Promise<PageShare | undefined> {
+		async shareOf(id: PageId): Promise<PageShare | undefined> {
 			return store.shares.get(String(id));
 		},
 
@@ -180,11 +177,11 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 			store.shares.set(String(share.pageId), share);
 		},
 
-		async deleteShare(id: FolderId): Promise<void> {
+		async deleteShare(id: PageId): Promise<void> {
 			store.shares.delete(String(id));
 		},
 
-		async delete(id: FolderId): Promise<void> {
+		async delete(id: PageId): Promise<void> {
 			store.revisions = store.revisions.filter(
 				(revision) => String(revision.pageId) !== String(id),
 			);

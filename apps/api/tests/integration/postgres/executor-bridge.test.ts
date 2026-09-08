@@ -6,7 +6,7 @@ import type { RecallDatabase } from "@/db/client";
 import { DatabaseExecutor } from "@/db/executor";
 import * as schema from "@/db/schema";
 import { pages } from "@/db/schema";
-import { createFolder } from "@/domain/folder/folder";
+import { PageEntity } from "@/modules/pages";
 import { createPostgresUnitOfWork } from "@/persistence/postgres/unit-of-work";
 import {
 	applyMigration,
@@ -48,7 +48,7 @@ const titleOf = async (id: string): Promise<string | undefined> => {
 };
 
 const aPage = (name: string) =>
-	createFolder({
+	PageEntity.create({
 		id: crypto.randomUUID() as never,
 		name,
 		createdAt: new Date("2026-01-01T00:00:00.000Z"),

@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
+import { toVocabularyItemId } from "@/modules/vocabulary";
 import { ok } from "../presenters/tool-result.presenter";
 import { updateVocabularyShape } from "../schemas/vocabulary.schema";
 import type { McpUseCases } from "../server.types";

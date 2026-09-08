@@ -7,8 +7,7 @@ import type {
 	DueForecastDay,
 	QuestionStat,
 } from "@/application/ports/repositories/analytics.repository";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import type { Executor } from "../unit-of-work";
 
 const toNumber = (value: unknown): number => Number(value ?? 0);

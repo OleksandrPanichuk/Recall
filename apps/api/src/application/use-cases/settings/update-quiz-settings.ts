@@ -5,13 +5,12 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSettings } from "@/domain/repetition/repetition";
 import {
 	createQuizSettings,
 	type QuizSettings,
 } from "@/domain/settings/quiz-settings";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 import {
 	ownerScope,
 	quizScope,

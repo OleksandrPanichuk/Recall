@@ -4,7 +4,7 @@ import { FinishQuizAttemptUseCase } from "@api/application/use-cases/attempts/fi
 import { GetCurrentQuestionUseCase } from "@api/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@api/application/use-cases/attempts/start-quiz-attempt";
 import { ListDueRepetitionsUseCase } from "@api/application/use-cases/repetition/list-due-repetitions";
-import { QuizSetStatus, toQuizSetId } from "@api/domain/quiz-set/quiz-set";
+import { QuizSetStatus, toQuizSetId } from "@api/modules/quizzes";
 import {
 	createMemoryContext,
 	createMutableClock,

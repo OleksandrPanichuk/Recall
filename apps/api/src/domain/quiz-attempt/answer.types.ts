@@ -1,4 +1,4 @@
-import type { QuestionOptionId } from "../quiz-set/question";
+import { type QuestionOptionId } from "@/modules/quizzes";
 
 export type OptionPair = readonly [QuestionOptionId, QuestionOptionId];
 

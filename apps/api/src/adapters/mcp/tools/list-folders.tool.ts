@@ -19,7 +19,7 @@ export function registerListFoldersTool(
 		},
 		async () =>
 			runTool("quiz_list_folders", {}, async () => {
-				const nodes = await useCases.listFolderTree.execute({});
+				const nodes = await useCases.listFolderTree.execute();
 
 				return ok(describeFolderTree(nodes), {
 					folders: nodes.map((node) => ({

@@ -9,8 +9,11 @@ import {
 	type QuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
 import type { Score } from "@/domain/quiz-attempt/score";
-import type { Question, QuestionOptionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import {
+	QuestionEntity,
+	type QuestionOptionId,
+	type QuizSetId,
+} from "@/modules/quizzes";
 
 export class AttemptNotFoundError extends Error {
 	readonly attemptId: QuizAttemptId;
@@ -23,7 +26,7 @@ export class AttemptNotFoundError extends Error {
 }
 
 export interface AnsweredQuestion {
-	readonly question: Question;
+	readonly question: QuestionEntity;
 	readonly answered: boolean;
 	readonly isCorrect: boolean;
 	readonly skipped: boolean;

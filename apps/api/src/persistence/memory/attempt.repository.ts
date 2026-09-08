@@ -8,8 +8,7 @@ import {
 	type QuizAttemptId,
 	QuizAttemptStatus,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
+import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export function createMemoryAttemptRepository(

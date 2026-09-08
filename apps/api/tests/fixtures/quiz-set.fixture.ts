@@ -1,18 +1,14 @@
-import { createQuestion } from "@/domain/quiz-set/create-question";
 import {
+	createQuestion,
 	Difficulty,
-	type Question,
+	QuestionEntity,
 	type QuestionOption,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
-	type QuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 
 interface OptionOverrides {
 	readonly id?: string;
@@ -48,7 +44,7 @@ interface QuestionOverrides {
 	readonly hint?: string;
 }
 
-export function aQuestion(overrides: QuestionOverrides = {}): Question {
+export function aQuestion(overrides: QuestionOverrides = {}): QuestionEntity {
 	const id = overrides.id ?? "question-1";
 
 	return createQuestion({
@@ -87,13 +83,13 @@ interface QuizSetOverrides {
 	readonly source?: string;
 	readonly sourceChapters?: string;
 	readonly tags?: readonly string[];
-	readonly questions?: readonly Question[];
+	readonly questions?: readonly QuestionEntity[];
 }
 
-export function aQuizSet(overrides: QuizSetOverrides = {}): QuizSet {
+export function aQuizSet(overrides: QuizSetOverrides = {}): QuizSetEntity {
 	const id = overrides.id ?? "set-1";
 	const createdAt = overrides.createdAt ?? new Date("2026-08-01T00:00:00.000Z");
-	const draft = createQuizSet({
+	const draft = QuizSetEntity.create({
 		id: toQuizSetId(id),
 		title: overrides.title ?? `Quiz set ${id}`,
 		language: overrides.language ?? "uk",
@@ -107,5 +103,5 @@ export function aQuizSet(overrides: QuizSetOverrides = {}): QuizSet {
 
 	return questions.length === 0
 		? draft
-		: addQuestions(draft, questions, createdAt);
+		: QuizSetEntity.addQuestions(draft, questions, createdAt);
 }

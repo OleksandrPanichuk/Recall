@@ -3,18 +3,21 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import {
+	AddQuestionsUseCase,
+	CreateQuizSetUseCase,
+	Difficulty,
+	PublishQuizSetUseCase,
+	type QuestionInput,
+	QuestionType,
+	type QuizSetId,
+	QuizSetNotFoundError,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { AnswerQuestionUseCase } from "../attempts/answer-question";
 import { FinishQuizAttemptUseCase } from "../attempts/finish-quiz-attempt";
 import { StartQuizAttemptUseCase } from "../attempts/start-quiz-attempt";
-import {
-	AddQuestionsUseCase,
-	type QuestionInput,
-} from "../quiz-sets/add-questions";
-import { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
-import { PublishQuizSetUseCase } from "../quiz-sets/publish-quiz-set";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
 import { GetQuizStatisticsUseCase } from "./get-quiz-statistics";
 
 const USER = 42;
@@ -30,9 +33,9 @@ let statistics: GetQuizStatisticsUseCase;
 
 beforeEach(() => {
 	context = createMemoryContext();
-	create = new CreateQuizSetUseCase(context);
-	add = new AddQuestionsUseCase(context);
-	publish = new PublishQuizSetUseCase(context);
+	create = quizzesOver(context).createQuizSet;
+	add = quizzesOver(context).addQuestions;
+	publish = quizzesOver(context).publishQuizSet;
 	start = new StartQuizAttemptUseCase(context);
 	answer = new AnswerQuestionUseCase(context);
 	finish = new FinishQuizAttemptUseCase(context);

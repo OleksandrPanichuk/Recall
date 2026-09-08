@@ -1,14 +1,14 @@
-import type { Attachment } from "@/application/ports/repositories/attachment.repository";
 import type {
 	PageRevision,
 	PageShare,
 } from "@/application/ports/repositories/page.repository";
-import type { Folder, FolderId } from "@/domain/folder/folder";
 import type { QuizAttempt } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuizSet, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSchedule } from "@/domain/repetition/repetition";
 import type { QuizSettings } from "@/domain/settings/quiz-settings";
-import type { VocabularyItem } from "@/domain/vocabulary/vocabulary-item";
+import type { AttachmentEntity } from "@/modules/attachments";
+import { PageEntity, type PageId } from "@/modules/pages";
+import { QuizSetEntity, QuizSetStatus } from "@/modules/quizzes";
+import { TermPairEntity } from "@/modules/vocabulary";
 
 export interface MemoryQuiz {
 	readonly id: string;
@@ -17,19 +17,19 @@ export interface MemoryQuiz {
 }
 
 export interface MemoryStore {
-	pages: Map<string, Folder>;
+	pages: Map<string, PageEntity>;
 	attachments: Map<string, Set<string>>;
 	revisions: PageRevision[];
 	shares: Map<string, PageShare>;
-	files: Map<string, Attachment>;
+	files: Map<string, AttachmentEntity>;
 	quizzes: Map<string, MemoryQuiz>;
-	quizAggregates: Map<string, QuizSet>;
+	quizAggregates: Map<string, QuizSetEntity>;
 	quizVersions: Map<string, number>;
 	answeredQuestionIds: Set<string>;
 	attempts: Map<string, QuizAttempt>;
 	schedules: Map<string, RepetitionSchedule>;
 	settings: Map<string, QuizSettings>;
-	termPairs: Map<string, VocabularyItem>;
+	termPairs: Map<string, TermPairEntity>;
 }
 
 export const emptyStore = (): MemoryStore => ({
@@ -87,5 +87,5 @@ export const restoreInto = (
 	store.termPairs = new Map(snapshot.termPairs);
 };
 
-export const pageIdsOf = (store: MemoryStore): readonly FolderId[] =>
-	[...store.pages.keys()].map((id) => id as FolderId);
+export const pageIdsOf = (store: MemoryStore): readonly PageId[] =>
+	[...store.pages.keys()].map((id) => id as PageId);

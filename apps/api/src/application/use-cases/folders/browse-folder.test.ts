@@ -3,55 +3,68 @@ import {
 	createMemoryContext,
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
-import type { FolderId } from "@/domain/folder/folder";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
-	archiveQuizSet,
-	publishQuizSet,
-	type QuizSet,
+	CreatePageUseCase,
+	DeletePageUseCase,
+	FolderNotEmptyError,
+	type PageId,
+	PagesService,
+} from "@/modules/pages";
+import {
+	MoveQuizSetUseCase,
+	QuizSetEntity,
 	QuizSetStatus,
-} from "@/domain/quiz-set/quiz-set";
+} from "@/modules/quizzes";
 import {
 	aQuestion,
 	aQuizSet,
 } from "../../../../tests/fixtures/quiz-set.fixture";
-import { MoveQuizSetUseCase } from "../quiz-sets/move-quiz-set";
 import { BrowseFolderUseCase } from "./browse-folder";
-import { CreateFolderUseCase } from "./create-folder";
-import { DeleteFolderUseCase, FolderNotEmptyError } from "./delete-folder";
 
 let context: MemoryContext;
 let browseFolder: BrowseFolderUseCase;
-let createFolder: CreateFolderUseCase;
-let deleteFolder: DeleteFolderUseCase;
+let createFolder: CreatePageUseCase;
+let deleteFolder: DeletePageUseCase;
 let moveQuizSet: MoveQuizSetUseCase;
 
 beforeEach(() => {
 	context = createMemoryContext();
 
-	createFolder = new CreateFolderUseCase(context);
-	deleteFolder = new DeleteFolderUseCase(context);
+	createFolder = new CreatePageUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+		context.transaction,
+		context.clock,
+		context.idGenerator,
+	);
+	deleteFolder = new DeletePageUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+		context.transaction,
+	);
 	browseFolder = new BrowseFolderUseCase(context);
-	moveQuizSet = new MoveQuizSetUseCase(context);
+	moveQuizSet = quizzesOver(context).moveQuizSet;
 });
 
 afterEach(() => {
 	context.close();
 });
 
-const create = async (name: string, parentId?: FolderId): Promise<FolderId> =>
+const create = async (name: string, parentId?: PageId): Promise<PageId> =>
 	(await createFolder.execute({ name, parentId })).folderId;
 
 const store = async (
 	id: string,
 	status: QuizSetStatus = QuizSetStatus.Published,
-): Promise<QuizSet> => {
+): Promise<QuizSetEntity> => {
 	const draft = aQuizSet({ id, questions: [aQuestion({ id: `${id}-q` })] });
 	const at = context.clock.now();
 	const quizSet =
 		status === QuizSetStatus.Published
-			? publishQuizSet(draft, at)
+			? QuizSetEntity.publish(draft, at)
 			: status === QuizSetStatus.Archived
-				? archiveQuizSet(draft, at)
+				? QuizSetEntity.archive(draft, at)
 				: draft;
 
 	await context.unitOfWork.run(({ quizzes }) => quizzes.save(quizSet));
@@ -59,7 +72,7 @@ const store = async (
 	return quizSet;
 };
 
-const fileInto = async (id: string, folderId: FolderId): Promise<void> => {
+const fileInto = async (id: string, folderId: PageId): Promise<void> => {
 	const quizSet = await store(id);
 
 	await moveQuizSet.execute({ quizSetId: quizSet.id, folderId });
@@ -227,12 +240,12 @@ describe("BrowseFolderUseCase inside a folder", () => {
 
 	test("rejects an unknown folder", () => {
 		expect(
-			browseFolder.execute({ folderId: "missing" as FolderId }),
+			browseFolder.execute({ folderId: "missing" as PageId }),
 		).rejects.toBeInstanceOf(Error);
 	});
 });
 
-describe("DeleteFolderUseCase with sets", () => {
+describe("DeletePageUseCase with sets", () => {
 	test("refuses a folder that still holds a set", async () => {
 		const english = await create("English");
 		await fileInto("set-english", english);

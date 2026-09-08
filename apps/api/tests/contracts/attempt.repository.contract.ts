@@ -9,21 +9,17 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+import { RecallGrade } from "@/domain/repetition/grade";
 import {
+	createQuestion,
 	Difficulty,
 	type QuestionId,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
-	type QuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import { RecallGrade } from "@/domain/repetition/grade";
+} from "@/modules/quizzes";
 
 export interface AttemptRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -79,7 +75,7 @@ export function describeAttemptRepository(
 			let quizId: string;
 			let firstQuestion: string;
 			let secondQuestion: string;
-			let quiz: QuizSet;
+			let quiz: QuizSetEntity;
 
 			beforeEach(async () => {
 				harness = open();
@@ -89,8 +85,8 @@ export function describeAttemptRepository(
 				firstQuestion = uuid();
 				secondQuestion = uuid();
 
-				quiz = addQuestions(
-					createQuizSet({
+				quiz = QuizSetEntity.addQuestions(
+					QuizSetEntity.create({
 						id: toQuizSetId(quizId),
 						title: "Replication",
 						language: "en",

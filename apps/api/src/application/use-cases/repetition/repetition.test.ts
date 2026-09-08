@@ -7,8 +7,8 @@ import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-q
 import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
 import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
 import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
-import { QuizSetStatus, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultRepetitionSettings } from "@/domain/repetition/repetition";
+import { QuizSetStatus, toQuizSetId } from "@/modules/quizzes";
 import {
 	aQuestion,
 	aQuizSet,

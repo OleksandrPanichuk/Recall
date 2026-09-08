@@ -1,18 +1,18 @@
 import type {
-	Attachment,
-	AttachmentRepository,
-} from "@/application/ports/repositories/attachment.repository";
+	AttachmentEntity,
+	AttachmentsRepository,
+} from "@/modules/attachments";
 import type { MemoryStore } from "./store";
 
 export function createMemoryAttachmentRepository(
 	store: MemoryStore,
-): AttachmentRepository {
+): AttachmentsRepository {
 	return {
-		async save(attachment: Attachment): Promise<void> {
+		async save(attachment: AttachmentEntity): Promise<void> {
 			store.files.set(attachment.id, attachment);
 		},
 
-		async findById(id: string): Promise<Attachment | undefined> {
+		async findById(id: string): Promise<AttachmentEntity | undefined> {
 			return store.files.get(id);
 		},
 	};

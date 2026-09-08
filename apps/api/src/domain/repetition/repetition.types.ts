@@ -1,5 +1,4 @@
-import type { QuestionId } from "../quiz-set/question";
-import type { QuizSetId } from "../quiz-set/quiz-set";
+import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
 
 export type SchedulerKind = "ladder" | "fsrs";
 

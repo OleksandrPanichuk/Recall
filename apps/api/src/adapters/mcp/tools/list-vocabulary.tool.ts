@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { VocabularyItemView } from "@/application/use-cases/quiz-sets/list-vocabulary";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuizSetId } from "@/modules/quizzes";
+import { type VocabularyItemView } from "@/modules/vocabulary";
 import { ok } from "../presenters/tool-result.presenter";
 import { listVocabularyShape } from "../schemas/vocabulary.schema";
 import type { McpUseCases } from "../server.types";

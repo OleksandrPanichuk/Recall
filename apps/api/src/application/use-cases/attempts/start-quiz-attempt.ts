@@ -18,9 +18,12 @@ import {
 	startQuizAttempt,
 	toQuizAttemptId,
 } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import { type QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import {
+	type QuestionId,
+	type QuizSetId,
+	QuizSetNotFoundError,
+	QuizSetStatus,
+} from "@/modules/quizzes";
 import { resolveWithSource } from "../settings/resolve-quiz-settings";
 
 export class QuizSetNotPublishedError extends Error {

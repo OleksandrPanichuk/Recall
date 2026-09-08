@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_QUESTIONS_PER_BATCH } from "@/application/use-cases/quiz-sets/add-questions";
+import { MAX_QUESTIONS_PER_BATCH } from "@/modules/quizzes";
 import { folderPathInput } from "./folder.schema";
 import { questionSchema } from "./question.schema";
 

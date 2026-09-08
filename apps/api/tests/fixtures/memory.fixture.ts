@@ -2,6 +2,7 @@ import type { Clock } from "@/application/ports/clock";
 import type { IdGenerator } from "@/application/ports/id-generator";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type { Transaction } from "@/core/transaction";
 import { emptyStore, type MemoryStore } from "@/persistence/memory/store";
 import { createMemoryPersistence } from "@/persistence/memory/unit-of-work";
 
@@ -35,6 +36,7 @@ export interface MemoryContext {
 	readonly store: MemoryStore;
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	readonly scope: RepositoryScope;
+	readonly transaction: Transaction;
 	readonly clock: MutableClock;
 	readonly idGenerator: IdGenerator;
 	readonly timezone: string;
@@ -57,6 +59,7 @@ export function createMemoryContext(
 		store,
 		unitOfWork: persistence.unitOfWork,
 		scope: persistence.scope,
+		transaction: persistence.transaction,
 		clock: createMutableClock(options.startAt),
 		idGenerator: options.idGenerator ?? createUuidGenerator(),
 		timezone: options.timezone ?? DEFAULT_TIMEZONE,

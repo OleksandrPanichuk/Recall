@@ -4,9 +4,8 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { DEFAULT_LEECH_THRESHOLD } from "@/domain/repetition/repetition";
+import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
 
 export interface LeechView {
 	readonly questionId: QuestionId;

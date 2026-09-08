@@ -6,9 +6,8 @@ import {
 	createApplication,
 } from "@/composition/create-application";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { Difficulty, QuestionType } from "@/domain/quiz-set/question";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import { readStatus } from "@/infrastructure/lifecycle/status";
+import { Difficulty, QuestionType, type QuizSetId } from "@/modules/quizzes";
 import {
 	applyMigration,
 	openPostgres,

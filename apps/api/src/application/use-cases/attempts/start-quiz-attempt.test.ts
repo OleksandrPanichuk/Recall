@@ -5,12 +5,15 @@ import {
 	type MemoryContext,
 } from "@tests/fixtures/memory.fixture";
 import { QuizAttemptStatus } from "@/domain/quiz-attempt/quiz-attempt";
-import { type QuizSetId, toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
-import type { AddQuestionsUseCase } from "../quiz-sets/add-questions";
-import type { ArchiveQuizSetUseCase } from "../quiz-sets/archive-quiz-set";
-import type { CreateQuizSetUseCase } from "../quiz-sets/create-quiz-set";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import {
+	AddQuestionsUseCase,
+	ArchiveQuizSetUseCase,
+	CreateQuizSetUseCase,
+	type QuizSetId,
+	QuizSetNotFoundError,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { ownerScope, quizScope } from "../settings/resolve-quiz-settings";
 import {
 	type AttemptsHarness,

@@ -1,4 +1,4 @@
-import { type Question, QuestionType } from "../quiz-set/question";
+import { QuestionEntity, QuestionType } from "@/modules/quizzes";
 import {
 	evaluateOptions,
 	evaluateOrder,
@@ -25,7 +25,7 @@ const whole = (correct: boolean): AnswerGrade => ({
 export const isFullyCorrect = (grade: AnswerGrade): boolean =>
 	grade.possible > 0 && grade.earned === grade.possible;
 
-const expectedKind = (question: Question): Answer["kind"] => {
+const expectedKind = (question: QuestionEntity): Answer["kind"] => {
 	switch (question.type) {
 		case QuestionType.TypedAnswer:
 		case QuestionType.Cloze:
@@ -39,7 +39,10 @@ const expectedKind = (question: Question): Answer["kind"] => {
 	}
 };
 
-export function gradeAnswer(question: Question, answer: Answer): AnswerGrade {
+export function gradeAnswer(
+	question: QuestionEntity,
+	answer: Answer,
+): AnswerGrade {
 	if (answer.kind !== expectedKind(question)) {
 		throw new QuizAttemptValidationError([
 			`${question.type} expects a ${expectedKind(question)} answer`,
@@ -58,6 +61,9 @@ export function gradeAnswer(question: Question, answer: Answer): AnswerGrade {
 	}
 }
 
-export function evaluateAnswer(question: Question, answer: Answer): boolean {
+export function evaluateAnswer(
+	question: QuestionEntity,
+	answer: Answer,
+): boolean {
 	return isFullyCorrect(gradeAnswer(question, answer));
 }

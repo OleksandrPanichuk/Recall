@@ -1,27 +1,21 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { createQuestion } from "@/domain/quiz-set/create-question";
-import {
-	Difficulty,
-	QuestionType,
-	toQuestionId,
-	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
-	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
 import {
 	defaultQuizSettings,
 	withExamMode,
 	withRepetition,
 } from "@/domain/settings/quiz-settings";
 import {
-	createVocabularyItem,
-	toVocabularyItemId,
-} from "@/domain/vocabulary/vocabulary-item";
+	createQuestion,
+	Difficulty,
+	QuestionType,
+	QuizSetEntity,
+	toQuestionId,
+	toQuestionOptionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
+import { TermPairEntity, toVocabularyItemId } from "@/modules/vocabulary";
 
 export interface ReviewRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -81,8 +75,8 @@ export function describeReviewRepository(
 
 				await harness.unitOfWork.run(async ({ quizzes }) => {
 					await quizzes.save(
-						addQuestions(
-							createQuizSet({
+						QuizSetEntity.addQuestions(
+							QuizSetEntity.create({
 								id: toQuizSetId(quizId),
 								title: "Replication",
 								language: "en",
@@ -289,7 +283,7 @@ export function describeReviewRepository(
 
 				await harness.unitOfWork.run(async ({ termPairs }) => {
 					await termPairs.save(
-						createVocabularyItem({
+						TermPairEntity.create({
 							id: toVocabularyItemId(pairId),
 							quizSetId: toQuizSetId(quizId),
 							terms: ["shard"],

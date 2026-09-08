@@ -1,12 +1,11 @@
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { QuizSummary } from "@/application/ports/repositories/quiz.repository";
 import type { Command, UseCase } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
-import { QuizSetStatus } from "@/domain/quiz-set/quiz-set";
-import { requireFolder } from "./create-folder";
+import { type PageId, PagesService } from "@/modules/pages";
+import { QuizSetStatus } from "@/modules/quizzes";
 
 export interface BrowseCrumb {
-	readonly id: FolderId;
+	readonly id: PageId;
 	readonly name: string;
 }
 
@@ -15,9 +14,9 @@ export interface BrowseChild extends BrowseCrumb {
 }
 
 export interface BrowseView {
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 	readonly name?: string;
-	readonly parentId?: FolderId;
+	readonly parentId?: PageId;
 	readonly summary?: string;
 	readonly icon?: string;
 	readonly breadcrumb: readonly BrowseCrumb[];
@@ -28,7 +27,7 @@ export interface BrowseView {
 }
 
 export interface BrowseFolderCommand {
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 }
 
 export interface BrowseFolderDependencies {
@@ -51,7 +50,7 @@ export class BrowseFolderUseCase
 		const current =
 			request.folderId === undefined
 				? undefined
-				: await requireFolder(pages, request.folderId);
+				: await new PagesService(pages).require(request.folderId);
 
 		const children: BrowseChild[] = [];
 

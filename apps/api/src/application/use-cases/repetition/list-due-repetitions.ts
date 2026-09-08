@@ -6,9 +6,12 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { QuestionId } from "@/domain/quiz-set/question";
-import { type QuizSetId, QuizSetStatus } from "@/domain/quiz-set/quiz-set";
 import { type DueSet, overdueDaysOf } from "@/domain/repetition/repetition";
+import {
+	type QuestionId,
+	type QuizSetId,
+	QuizSetStatus,
+} from "@/modules/quizzes";
 
 export type { DueSet } from "@/domain/repetition/repetition";
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { toQuestionId } from "../quiz-set/question";
+import { toQuestionId } from "@/modules/quizzes";
 import { RecallGrade } from "./grade";
 import {
 	createRepetitionSettings,

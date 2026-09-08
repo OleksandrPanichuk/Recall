@@ -7,8 +7,8 @@ import type {
 	UseCase,
 } from "@/application/use-case";
 import { rateResponse } from "@/domain/quiz-attempt/quiz-attempt";
-import type { QuestionId } from "@/domain/quiz-set/question";
 import type { RecallGrade } from "@/domain/repetition/grade";
+import { type QuestionId } from "@/modules/quizzes";
 import { NoActiveAttemptError } from "./resume-quiz-attempt";
 
 export interface RateRecallCommand {

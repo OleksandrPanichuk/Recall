@@ -59,18 +59,30 @@ import {
 } from "@recall/contracts";
 import type { Response } from "express";
 import type { OwnerId } from "@/application/ports/owner";
+import { USE_CASES_FOR } from "@/application/tokens";
 import type { UseCases } from "@/composition/create-application";
-import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
-import { toQuestionId } from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
 import { ApiTokensService } from "@/modules/api-tokens";
 import { SessionGuard, type SessionRequest } from "@/modules/auth";
+import { sharedPageToWire } from "@/modules/page-shares";
+import {
+	detachedQuizToWire,
+	pageTreeNodeToWire,
+	revisionToWire,
+	toPageId,
+} from "@/modules/pages";
+import {
+	questionRowToWire,
+	quizDetailToWire,
+	quizSummaryToWire,
+	toQuestionId,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import {
 	answerOptionsOf,
 	toQuestionInput,
 } from "@/modules/shared/authoring/question-input";
+import { toVocabularyItemId } from "@/modules/vocabulary";
 import { parseBody } from "../bot/parse-body";
 import {
 	answerResultToWire,
@@ -78,25 +90,17 @@ import {
 	attemptDetailToWire,
 	browseViewToWire,
 	currentQuestionToWire,
-	detachedQuizToWire,
 	dueSetToWire,
 	finishResultToWire,
 	insightsToWire,
 	leechToWire,
-	pageTreeNodeToWire,
 	practiceResultToWire,
-	questionRowToWire,
-	quizDetailToWire,
-	quizSummaryToWire,
 	resolvedSettingsToWire,
 	resumedAttemptToWire,
-	revisionToWire,
 	settingsToWire,
-	sharedPageToWire,
 	startResultToWire,
 	statisticsToWire,
 } from "../bot/wire";
-import { USE_CASES_FOR } from "../shared/database/tokens";
 import type { UseCasesFor } from "../shared/database/use-cases-for";
 
 @ApiExcludeController()
@@ -166,9 +170,7 @@ export class AppSurfaceController {
 		const { quizSetId } = await this.of(request).createQuizSet.execute({
 			...command,
 			folderId:
-				command.folderId === undefined
-					? undefined
-					: toFolderId(command.folderId),
+				command.folderId === undefined ? undefined : toPageId(command.folderId),
 		});
 
 		return { quizSetId: String(quizSetId) };
@@ -193,9 +195,7 @@ export class AppSurfaceController {
 		await this.of(request).moveQuizSet.execute({
 			quizSetId: toQuizSetId(command.quizSetId),
 			folderId:
-				command.folderId === undefined
-					? undefined
-					: toFolderId(command.folderId),
+				command.folderId === undefined ? undefined : toPageId(command.folderId),
 		});
 	}
 
@@ -364,7 +364,7 @@ export class AppSurfaceController {
 				folderId:
 					command.folderId === undefined
 						? undefined
-						: toFolderId(command.folderId),
+						: toPageId(command.folderId),
 			}),
 		);
 	}
@@ -374,7 +374,7 @@ export class AppSurfaceController {
 	async summary(@Req() request: SessionRequest, @Body() body: unknown) {
 		const command = parseBody(writeSummaryCommandSchema, body);
 		const written = await this.of(request).writeSummary.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			summary: command.summary,
 			append: command.append,
 		});
@@ -402,9 +402,7 @@ export class AppSurfaceController {
 		const created = await this.of(request).createFolder.execute({
 			name: command.name,
 			parentId:
-				command.parentId === undefined
-					? undefined
-					: toFolderId(command.parentId),
+				command.parentId === undefined ? undefined : toPageId(command.parentId),
 		});
 
 		return { folderId: String(created.folderId) };
@@ -416,7 +414,7 @@ export class AppSurfaceController {
 		const command = parseBody(renamePageCommandSchema, body);
 
 		await this.of(request).renameFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			name: command.name,
 		});
 	}
@@ -427,7 +425,7 @@ export class AppSurfaceController {
 		const command = parseBody(setPageIconCommandSchema, body);
 
 		await this.of(request).setPageIcon.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			icon: command.icon,
 		});
 	}
@@ -438,7 +436,7 @@ export class AppSurfaceController {
 		const command = parseBody(deletePageCommandSchema, body);
 
 		await this.of(request).deleteFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 		});
 	}
 
@@ -449,7 +447,7 @@ export class AppSurfaceController {
 
 		return sharedPageToWire(
 			await this.of(request).sharePage.execute({
-				folderId: toFolderId(command.folderId),
+				folderId: toPageId(command.folderId),
 				rotate: command.rotate,
 			}),
 		);
@@ -461,7 +459,7 @@ export class AppSurfaceController {
 		const command = parseBody(unsharePageCommandSchema, body);
 
 		await this.of(request).unsharePage.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 		});
 	}
 
@@ -472,7 +470,7 @@ export class AppSurfaceController {
 
 		return attachedQuizToWire(
 			await this.of(request).attachQuiz.execute({
-				folderId: toFolderId(command.folderId),
+				folderId: toPageId(command.folderId),
 				quizSetId: toQuizSetId(command.quizSetId),
 			}),
 		);
@@ -485,7 +483,7 @@ export class AppSurfaceController {
 
 		return detachedQuizToWire(
 			await this.of(request).detachQuiz.execute({
-				folderId: toFolderId(command.folderId),
+				folderId: toPageId(command.folderId),
 				quizSetId: toQuizSetId(command.quizSetId),
 			}),
 		);
@@ -497,11 +495,9 @@ export class AppSurfaceController {
 		const command = parseBody(movePageCommandSchema, body);
 
 		await this.of(request).moveFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			parentId:
-				command.parentId === undefined
-					? undefined
-					: toFolderId(command.parentId),
+				command.parentId === undefined ? undefined : toPageId(command.parentId),
 		});
 	}
 
@@ -511,13 +507,11 @@ export class AppSurfaceController {
 		const command = parseBody(reorderPageCommandSchema, body);
 
 		await this.of(request).reorderFolder.execute({
-			folderId: toFolderId(command.folderId),
+			folderId: toPageId(command.folderId),
 			afterId:
-				command.afterId === undefined ? undefined : toFolderId(command.afterId),
+				command.afterId === undefined ? undefined : toPageId(command.afterId),
 			beforeId:
-				command.beforeId === undefined
-					? undefined
-					: toFolderId(command.beforeId),
+				command.beforeId === undefined ? undefined : toPageId(command.beforeId),
 		});
 	}
 
@@ -528,7 +522,7 @@ export class AppSurfaceController {
 
 		return (
 			await this.of(request).listRevisions.execute({
-				folderId: toFolderId(command.folderId),
+				folderId: toPageId(command.folderId),
 				limit: command.limit,
 			})
 		).map(revisionToWire);
@@ -537,7 +531,7 @@ export class AppSurfaceController {
 	@Post(BOT_ROUTES.pageTree)
 	@HttpCode(HttpStatus.OK)
 	async pageTree(@Req() request: SessionRequest) {
-		const nodes = await this.of(request).listFolderTree.execute({});
+		const nodes = await this.of(request).listFolderTree.execute();
 
 		return nodes.map(pageTreeNodeToWire);
 	}

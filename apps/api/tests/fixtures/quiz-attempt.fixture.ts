@@ -9,8 +9,8 @@ import {
 	type QuestionOptionId,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+	toQuizSetId,
+} from "@/modules/quizzes";
 
 interface AttemptOverrides {
 	readonly id?: string;

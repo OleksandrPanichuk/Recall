@@ -8,14 +8,13 @@ import type {
 	Command,
 	UseCase,
 } from "@/application/use-case";
-import type { FolderId } from "@/domain/folder/folder";
-import type { QuizSetId } from "@/domain/quiz-set/quiz-set";
 import type { RepetitionSettings } from "@/domain/repetition/repetition";
 import {
 	defaultQuizSettings,
 	type QuizSettings,
 } from "@/domain/settings/quiz-settings";
-import { QuizSetNotFoundError } from "../quiz-sets/update-quiz-set";
+import { type PageId } from "@/modules/pages";
+import { type QuizSetId, QuizSetNotFoundError } from "@/modules/quizzes";
 
 export type QuizSettingsSource = "set" | "global" | "default";
 
@@ -24,7 +23,7 @@ export interface ResolvedQuizSettings {
 	readonly source: QuizSettingsSource;
 	readonly quizSetId?: QuizSetId;
 	readonly title?: string;
-	readonly folderId?: FolderId;
+	readonly folderId?: PageId;
 }
 
 export const quizScope = (quizId: QuizSetId): SettingsScope => ({

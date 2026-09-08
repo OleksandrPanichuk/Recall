@@ -5,7 +5,7 @@ import type {
 	DueForecastDay,
 	QuestionStat,
 } from "@/application/ports/repositories/analytics.repository";
-import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
+import { toQuizSetId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 const dayIn = (at: Date, timezone: string): string =>

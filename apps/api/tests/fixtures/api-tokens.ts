@@ -1,5 +1,5 @@
 import type { RecallDatabase } from "@/db/client";
-import { Database } from "@/db/connection";
+import { Database, DatabaseHandle } from "@/db/connection";
 import { PostgresTransaction } from "@/db/executor";
 import {
 	ApiTokensService,
@@ -12,14 +12,8 @@ import {
 } from "@/modules/auth";
 import { PostgresUsersRepository, UsersService } from "@/modules/users";
 
-class DirectDatabase extends Database {
-	constructor(readonly db: RecallDatabase) {
-		super();
-	}
-}
-
 export const databaseOver = (db: RecallDatabase): Database =>
-	new DirectDatabase(db);
+	new DatabaseHandle(db);
 
 export function authOver(db: RecallDatabase): AuthService {
 	const database = databaseOver(db);

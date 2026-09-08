@@ -1,6 +1,7 @@
 import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import { Transaction } from "@/core/transaction";
 import { createMemoryAnalyticsRepository } from "./analytics.repository";
 import { createMemoryAttachmentRepository } from "./attachment.repository";
 import { createMemoryAttemptRepository } from "./attempt.repository";
@@ -10,10 +11,39 @@ import { createMemoryReviewRepository } from "./review.repository";
 import { emptyStore, type MemoryStore, restoreInto, snapshotOf } from "./store";
 import { createMemoryTermPairRepository } from "./term-pair.repository";
 
+export class MemoryTransaction extends Transaction {
+	private depth = 0;
+
+	constructor(private readonly store: MemoryStore) {
+		super();
+	}
+
+	async run<TResult>(operation: () => Promise<TResult>): Promise<TResult> {
+		if (this.depth > 0) {
+			return operation();
+		}
+
+		const snapshot = snapshotOf(this.store);
+
+		this.depth += 1;
+
+		try {
+			return await operation();
+		} catch (error) {
+			restoreInto(this.store, snapshot);
+
+			throw error;
+		} finally {
+			this.depth -= 1;
+		}
+	}
+}
+
 export interface MemoryPersistence {
 	readonly store: MemoryStore;
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	readonly scope: RepositoryScope;
+	readonly transaction: Transaction;
 }
 
 export interface MemoryStores {
@@ -56,6 +86,7 @@ export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
 	return {
 		store,
 		scope,
+		transaction: new MemoryTransaction(store),
 		unitOfWork: {
 			run: async (operation) => {
 				const snapshot = snapshotOf(store);
