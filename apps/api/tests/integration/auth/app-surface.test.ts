@@ -8,7 +8,7 @@ import { createUseCases } from "@/composition/create-application";
 import * as schema from "@/db/schema";
 import { verification } from "@/db/schema";
 import { createApiApp } from "@/entrypoints/api";
-import { identifierFor } from "@/modules/auth/telegram-link.plugin";
+import { LoginToken } from "@/modules/telegram-link";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -51,7 +51,7 @@ const signIn = async (owner: string): Promise<string> => {
 
 	await db.insert(verification).values({
 		id: randomUUID(),
-		identifier: identifierFor(token),
+		identifier: LoginToken.identifierFor(token),
 		value: owner,
 		expiresAt: new Date(Date.now() + 60_000),
 	});

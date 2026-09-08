@@ -1,13 +1,12 @@
 import type { AddressInfo } from "node:net";
 import type { QuestionInput } from "@api/application/use-cases/quiz-sets/add-questions";
+import { Database, DatabaseConnection } from "@api/db/connection";
 import { Difficulty, QuestionType } from "@api/domain/quiz-set/question";
 import type { QuizSetId } from "@api/domain/quiz-set/quiz-set";
-import { AuthModule } from "@api/modules/auth/auth.module";
+import { AuthModule } from "@api/modules/auth";
 import { BotModule } from "@api/modules/bot/bot.module";
-import {
-	CONNECTION,
-	USE_CASE_DEPENDENCIES,
-} from "@api/modules/shared/database/tokens";
+import { USE_CASE_DEPENDENCIES } from "@api/modules/shared/database/tokens";
+import { CoreModule } from "@api/shared/core.module";
 import { ModuleErrorFilter } from "@api/shared/http/module-error.filter";
 import { Global, type INestApplication, Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -61,13 +60,21 @@ async function startApi(
 	@Module({
 		providers: [
 			{ provide: USE_CASE_DEPENDENCIES, useValue: dependencies },
-			{ provide: CONNECTION, useValue: unreachableConnection },
+			{ provide: DatabaseConnection, useValue: unreachableConnection },
+			{ provide: Database, useValue: unreachableConnection },
 		],
-		exports: [USE_CASE_DEPENDENCIES, CONNECTION],
+		exports: [USE_CASE_DEPENDENCIES, Database, DatabaseConnection],
 	})
 	class MemoryDependenciesModule {}
 
-	@Module({ imports: [MemoryDependenciesModule, AuthModule, BotModule] })
+	@Module({
+		imports: [
+			MemoryDependenciesModule,
+			CoreModule,
+			AuthModule.forRoot({ plugins: () => [] }),
+			BotModule,
+		],
+	})
 	class TestApiModule {}
 
 	const app = await NestFactory.create(TestApiModule, {

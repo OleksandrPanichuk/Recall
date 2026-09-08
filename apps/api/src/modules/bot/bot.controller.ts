@@ -79,9 +79,9 @@ import { toFolderId } from "@/domain/folder/folder";
 import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
-import { ApiTokenService } from "../auth/api-token.service";
-import { TelegramIdentityService } from "../auth/telegram-identity.service";
-import { BotTokenGuard } from "./bot-token.guard";
+import { ApiTokensService } from "@/modules/api-tokens";
+import { BotTokenGuard } from "@/modules/auth";
+import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {
 	answerResultToWire,
@@ -109,10 +109,10 @@ import {
 @Controller("bot")
 export class BotController {
 	constructor(
-		@Inject(TelegramIdentityService)
-		private readonly identity: TelegramIdentityService,
-		@Inject(ApiTokenService)
-		private readonly tokens: ApiTokenService,
+		@Inject(IssueLoginLinkUseCase)
+		private readonly issueLoginLink: IssueLoginLinkUseCase,
+		@Inject(ApiTokensService)
+		private readonly tokens: ApiTokensService,
 		@Inject(BrowseFolderUseCase)
 		private readonly browseFolder: BrowseFolderUseCase,
 		@Inject(WriteSummaryUseCase)
@@ -177,10 +177,10 @@ export class BotController {
 	@HttpCode(HttpStatus.OK)
 	async loginLink(@Body() body: unknown) {
 		const command = parseBody(loginLinkCommandSchema, body);
-		const link = await this.identity.issueLoginLink(
-			command.telegramUserId,
-			command.displayName,
-		);
+		const link = await this.issueLoginLink.execute({
+			telegramUserId: command.telegramUserId,
+			displayName: command.displayName,
+		});
 
 		return { url: link.url, expiresAt: link.expiresAt.toISOString() };
 	}

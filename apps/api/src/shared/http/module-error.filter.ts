@@ -16,34 +16,34 @@ interface Refusal {
 	readonly details?: Readonly<Record<string, string>>;
 }
 
-export function refusalFor(exception: unknown): Refusal | undefined {
-	if (exception instanceof ModuleError) {
-		return {
-			status: exception.status,
-			name: exception.name,
-			message: exception.message,
-			details: exception.details(),
-		};
-	}
-
-	if (!(exception instanceof Error)) {
-		return undefined;
-	}
-
-	const status = statusOf(exception);
-
-	return status === undefined
-		? undefined
-		: {
-				status,
-				name: exception.name,
-				message: exception.message,
-				details: detailsOf(exception),
-			};
-}
-
 @Catch()
 export class ModuleErrorFilter implements ExceptionFilter {
+	static refusalFor(exception: unknown): Refusal | undefined {
+		if (exception instanceof ModuleError) {
+			return {
+				status: exception.status,
+				name: exception.name,
+				message: exception.message,
+				details: exception.details(),
+			};
+		}
+
+		if (!(exception instanceof Error)) {
+			return undefined;
+		}
+
+		const status = statusOf(exception);
+
+		return status === undefined
+			? undefined
+			: {
+					status,
+					name: exception.name,
+					message: exception.message,
+					details: detailsOf(exception),
+				};
+	}
+
 	catch(exception: unknown, host: ArgumentsHost): void {
 		const response = host.switchToHttp().getResponse<Response>();
 
@@ -53,7 +53,7 @@ export class ModuleErrorFilter implements ExceptionFilter {
 			return;
 		}
 
-		const refusal = refusalFor(exception);
+		const refusal = ModuleErrorFilter.refusalFor(exception);
 
 		if (refusal !== undefined) {
 			response.status(refusal.status).json({

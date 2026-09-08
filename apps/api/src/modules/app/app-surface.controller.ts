@@ -65,7 +65,8 @@ import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { toQuestionId } from "@/domain/quiz-set/question";
 import { toQuizSetId } from "@/domain/quiz-set/quiz-set";
 import { toVocabularyItemId } from "@/domain/vocabulary/vocabulary-item";
-import { ApiTokenService } from "@/modules/auth/api-token.service";
+import { ApiTokensService } from "@/modules/api-tokens";
+import { SessionGuard, type SessionRequest } from "@/modules/auth";
 import {
 	answerOptionsOf,
 	toQuestionInput,
@@ -97,7 +98,6 @@ import {
 } from "../bot/wire";
 import { USE_CASES_FOR } from "../shared/database/tokens";
 import type { UseCasesFor } from "../shared/database/use-cases-for";
-import { SessionGuard, type SessionRequest } from "./session.guard";
 
 @ApiExcludeController()
 @UseGuards(SessionGuard)
@@ -105,7 +105,7 @@ import { SessionGuard, type SessionRequest } from "./session.guard";
 export class AppSurfaceController {
 	constructor(
 		@Inject(USE_CASES_FOR) private readonly useCasesFor: UseCasesFor,
-		@Inject(ApiTokenService) private readonly tokens: ApiTokenService,
+		@Inject(ApiTokensService) private readonly tokens: ApiTokensService,
 	) {}
 
 	private of(request: SessionRequest): UseCases {

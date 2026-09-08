@@ -58,7 +58,7 @@ import {
 } from "@/application/use-cases/sharing/share-page";
 import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
 import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import { createPostgresConnection, type PostgresConnection } from "@/db/client";
+import { DatabaseConnection } from "@/db/connection";
 import {
 	createPostgresUnitOfWork,
 	readOnlyScope,
@@ -122,7 +122,7 @@ export interface UseCases {
 }
 
 export interface Application extends UseCases {
-	readonly connection: PostgresConnection;
+	readonly connection: DatabaseConnection;
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
 	readonly scope: RepositoryScope;
 	close(): Promise<void>;
@@ -197,7 +197,7 @@ export function createUseCases(
 
 export function createApplication(options: ApplicationOptions): Application {
 	const logger = options.logger ?? silentLogger;
-	const connection = createPostgresConnection({
+	const connection = new DatabaseConnection({
 		url: options.databaseUrl,
 		maxConnections: options.maxConnections,
 	});

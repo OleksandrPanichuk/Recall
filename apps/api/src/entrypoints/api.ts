@@ -1,11 +1,9 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { toNodeHandler } from "better-auth/node";
 import { type Express, json, urlencoded } from "express";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { AppModule } from "@/modules/app.module";
-import { AUTH_BASE_PATH, type RecallAuth } from "@/modules/auth/build-auth";
-import { AUTH } from "@/modules/auth/tokens";
+import { AUTH_BASE_PATH, AuthEngine } from "@/modules/auth";
 import {
 	MCP_SURFACE,
 	type McpSurface,
@@ -44,10 +42,10 @@ export async function createApiApp() {
 		instance.use(mcp.app);
 	}
 
-	const auth = app.get<RecallAuth | undefined>(AUTH);
+	const handler = app.get(AuthEngine).handler();
 
-	if (auth !== undefined) {
-		instance.all(`${AUTH_BASE_PATH}/*splat`, toNodeHandler(auth));
+	if (handler !== undefined) {
+		instance.all(`${AUTH_BASE_PATH}/*splat`, handler);
 	}
 
 	instance.use(json());

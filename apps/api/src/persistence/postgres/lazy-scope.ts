@@ -2,7 +2,7 @@ import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { RecallDatabase } from "@/db/client";
-import { executorFor, PostgresTransaction } from "@/db/executor";
+import { DatabaseExecutor, PostgresTransaction } from "@/db/executor";
 import { scopeFor } from "./unit-of-work";
 
 export type OwnerResolver = () => Promise<OwnerId>;
@@ -52,10 +52,10 @@ export const lazyUnitOfWork = (
 ): UnitOfWork<RepositoryScope> => ({
 	run: async (operation) => {
 		const resolved = await owner();
-		const transaction = new PostgresTransaction(db);
+		const transaction = new PostgresTransaction(() => db);
 
 		return transaction.run(() =>
-			operation(scopeFor(executorFor(db), resolved)),
+			operation(scopeFor(DatabaseExecutor.for(db), resolved)),
 		);
 	},
 });

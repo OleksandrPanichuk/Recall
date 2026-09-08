@@ -1,23 +1,17 @@
-import {
-	Global,
-	Inject,
-	Module,
-	type OnApplicationShutdown,
-} from "@nestjs/common";
+import { Global, Module, type OnApplicationShutdown } from "@nestjs/common";
 import type { ObjectStore } from "@/application/ports/object-store";
 import type { ApplicationDependencies } from "@/application/use-case";
 import { systemClock, uuidGenerator } from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { createPostgresConnection, type PostgresConnection } from "@/db/client";
+import { Database, DatabaseConnection } from "@/db/connection";
+import { AuthService } from "@/modules/auth";
 import { createMinioObjectStore } from "@/persistence/objects/minio.object-store";
 import {
 	lazyScope,
 	lazyUnitOfWork,
 	type OwnerResolver,
 } from "@/persistence/postgres/lazy-scope";
-import { instanceOwnerResolver } from "./instance-owner";
 import {
-	CONNECTION,
 	INSTANCE_OWNER,
 	OBJECT_STORE,
 	USE_CASE_DEPENDENCIES,
@@ -30,15 +24,17 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 	providers: [
 		{
 			provide: USE_CASES_FOR,
-			inject: [CONNECTION],
-			useFactory: (connection: PostgresConnection): UseCasesFor =>
+			inject: [DatabaseConnection],
+			useFactory: (connection: DatabaseConnection): UseCasesFor =>
 				useCasesFor(connection),
 		},
 		{
 			provide: INSTANCE_OWNER,
-			inject: [CONNECTION],
-			useFactory: (connection: PostgresConnection): OwnerResolver =>
-				instanceOwnerResolver(connection.db),
+			inject: [AuthService],
+			useFactory:
+				(auth: AuthService): OwnerResolver =>
+				() =>
+					auth.instanceOwner(),
 		},
 		{
 			provide: OBJECT_STORE,
@@ -54,15 +50,16 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 			},
 		},
 		{
-			provide: CONNECTION,
-			useFactory: (): PostgresConnection =>
-				createPostgresConnection({ url: loadApiEnvironment().databaseUrl }),
+			provide: DatabaseConnection,
+			useFactory: (): DatabaseConnection =>
+				new DatabaseConnection({ url: loadApiEnvironment().databaseUrl }),
 		},
+		{ provide: Database, useExisting: DatabaseConnection },
 		{
 			provide: USE_CASE_DEPENDENCIES,
-			inject: [CONNECTION, INSTANCE_OWNER],
+			inject: [DatabaseConnection, INSTANCE_OWNER],
 			useFactory: (
-				connection: PostgresConnection,
+				connection: DatabaseConnection,
 				owner: OwnerResolver,
 			): ApplicationDependencies => ({
 				unitOfWork: lazyUnitOfWork(connection.db, owner),
@@ -74,7 +71,8 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 		},
 	],
 	exports: [
-		CONNECTION,
+		Database,
+		DatabaseConnection,
 		INSTANCE_OWNER,
 		OBJECT_STORE,
 		USE_CASE_DEPENDENCIES,
@@ -82,9 +80,7 @@ import { type UseCasesFor, useCasesFor } from "./use-cases-for";
 	],
 })
 export class DatabaseModule implements OnApplicationShutdown {
-	constructor(
-		@Inject(CONNECTION) private readonly connection: PostgresConnection,
-	) {}
+	constructor(private readonly connection: DatabaseConnection) {}
 
 	async onApplicationShutdown(): Promise<void> {
 		await this.connection.close();

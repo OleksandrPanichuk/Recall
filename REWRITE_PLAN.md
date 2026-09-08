@@ -73,8 +73,12 @@ today; the tests move, they do not go away.
   A session may mint its own personal token and nothing else about identity.
 - **A failed session read is an outage, not a sign-out.** Unchanged, it lives in `apps/web`.
 - **Better Auth mounts on the raw Express instance before the body parser.**
-- **The functional domain stays functional.** `createQuizSet`, `moveQuizSetToFolder`,
-  branded ids, `restoreFolder`. Files move; nothing is rewritten into classes.
+- **The domain stays pure.** Every entity behaviour is a function of its input that returns a
+  new value; nothing mutates, nothing is instantiated, and the data stays a plain readonly
+  object a test can write by hand. §4.4 regroups those functions as statics on an entity class
+  so they have a home and a name — `createQuizSet` becomes `QuizEntity.create` — which is a
+  rename and a move, not a rewrite into stateful objects. The existing domain tests come with
+  them.
 - **Contract suites run against an in-memory double and Postgres.** The in-memory unit of work
   snapshots one shared store and restores it on failure, which is what proves atomic rollback
   across attempts + schedules and vocabulary + quizzes. That property is kept centrally.
@@ -139,13 +143,13 @@ apps/api/src/
 │
 └─ modules/
    ├─ health/
-   ├─ auth/                         Better Auth instance, SessionGuard, @CurrentOwner(),
-   │                                AuthEvents port + Postgres repository
-   ├─ owners/                       telegram id ↔ owner, instance owner, BotTokenGuard
-   ├─ telegram-link/                login links, the Better Auth verify plugin
+   ├─ users/                        the user row: UserEntity, UsersRepository, UsersService
+   ├─ auth/                         Better Auth, its account/session/verification/auth_events
+   │                                tables, SessionGuard, BotTokenGuard, the instance owner
+   ├─ telegram-link/                login links: minting, the verify plugin, the bot route
    ├─ api-tokens/                   personal tokens: issue, list, revoke, verify
    ├─ oauth/                        MCP OAuth clients, codes, tokens; provider; consent
-   ├─ notifications/                Mailer port, reset-password letter
+   ├─ notifications/                Mailer port and its adapters — delivery only
    ├─ pages/                        tree, summary, revisions, icon, search, ordering, page↔quiz links
    ├─ page-shares/                  share, unshare, read shared page; public routes
    ├─ attachments/                  uploads, ObjectStore port, owner-scoped rows
@@ -174,7 +178,7 @@ db             → core, configs
 infrastructure → configs, shared/utils
 adapters       → infrastructure, configs, core, and the one module port file it implements
 shared         → core, configs, db
-modules/<m>    → core, configs, shared, db/schema, db/executor, other modules' barrels
+modules/<m>    → core, configs, shared, db (except migrations), other modules' barrels
 main.ts, app.module.ts → anything
 ```
 
@@ -183,6 +187,12 @@ Three rules that need words, not just the table:
 - **A module imports another module only through its barrel** (`@/modules/quizzes`). An adapter
   imports the port file directly (`@/modules/attachments/attachments.port`), never the barrel,
   because the barrel exports the module class which imports the adapter — a cycle.
+- **A module reaches the database through `db/`, and the only thing there it may not touch is
+  `db/migrations/`**, which is drizzle-kit's. An earlier draft of this rule also banned
+  `db/client`, meaning "go through the executor, not the connection". That was inverted: a
+  repository legitimately injects `DatabaseConnection` to resolve its executor, and
+  `RecallDatabase` is a type Better Auth's drizzle adapter needs, so the rule banned the type
+  and allowed the class.
 - **A repository may read another module's table, never write it.** `pages` counts rows in
   `quizzes` and joins `quiz_attachments` to `quizzes`; `attempts` joins `questions` for topic
   accuracy; `insights` joins nearly everything. Those are queries, not ownership. A write to a
@@ -212,91 +222,177 @@ Two limits worth knowing rather than discovering:
 ```text
 modules/quizzes/
 ├─ index.ts                         the only entrance for other modules
-├─ quizzes.module.ts                @Module: port → Postgres repository, use cases, controllers
-├─ quizzes.controller.ts            parse body → one use case → model
-├─ quizzes.port.ts                  abstract class QuizzesRepository; *Data types beside it
+├─ quizzes.module.ts                @Module: port → repository, services, use cases, controllers
+├─ quizzes.controller.ts            HTTP: parse a dto → call one use case → return a model
+├─ quizzes.repository.ts            abstract class QuizzesRepository, and its *Data types
+├─ quizzes.service.ts               logic more than one use case needs, or too big for one
 ├─ quizzes.errors.ts                each error extends ModuleError with status, code, details()
-├─ quiz.entity.ts                   today's domain/quiz-set/quiz-set.ts, moved as is
-├─ quiz.entity.types.ts             today's quiz-set.types.ts
-├─ quiz.entity.validation.ts        today's quiz-set.validation.ts
-├─ question.entity.ts, question.fingerprint.ts, create-question.ts
-├─ quiz.model.ts                    QuizSet → wire (the slice of today's wire.ts)
-├─ question.model.ts
+├─ quiz.entity.ts                   QuizEntity: the interface, and the class holding its statics
+├─ quiz.entity.types.ts             the shapes QuizEntity is built from and returns
+├─ question.entity.ts               QuestionEntity, QuestionFingerprint
+├─ quiz.model.ts                    QuizModel, QuizSummaryModel — what the HTTP layer returns
+├─ quizzes.helpers.ts               only what genuinely belongs to no class (see §4.4)
 ├─ dto/
-│  ├─ create-quiz.dto.ts            re-exports the zod schema from @recall/contracts
-│  └─ question-input.ts             today's modules/shared/authoring/question-input.ts
+│  ├─ create-quiz.dto.ts            CreateQuizInput — the HTTP shape and its zod schema
+│  └─ index.ts
 ├─ use-cases/
-│  ├─ create-quiz.ts                CreateQuizUseCase, exports CreateQuizUseCaseOptions
+│  ├─ create-quiz.ts                CreateQuizUseCase + CreateQuizUseCaseOptions
 │  ├─ create-quiz.test.ts
-│  └─ …
+│  └─ index.ts
 └─ repositories/
    ├─ quizzes.postgres.repository.ts   PostgresQuizzesRepository extends QuizzesRepository
    └─ quiz.mapper.ts
 ```
 
-### 4.1 File and naming conventions
+### 4.1 File naming
 
-| Thing | File | Symbol |
-| --- | --- | --- |
-| Module | `<module>.module.ts` | `QuizzesModule` |
-| Controller | `<module>.controller.ts`, or `<subject>.controller.ts` when a module has several | `QuizzesController` |
-| Port | `<module>.port.ts` | `abstract class QuizzesRepository` |
-| Postgres repository | `repositories/<module>.postgres.repository.ts` | `PostgresQuizzesRepository` |
-| In-memory double | `apps/api/tests/doubles/<module>/<module>.memory.repository.ts` | `MemoryQuizzesRepository` |
-| Entity | `<noun>.entity.ts` (+ `.types.ts`, `.validation.ts`, `.constants.ts` beside it) | today's domain names, unchanged |
-| Wire mapper | `<noun>.model.ts` | `quizSetToWire`, `questionToWire` |
-| Errors | `<module>.errors.ts` | `QuizSetNotFoundError` |
-| Use case | `use-cases/<verb-noun>.ts` — the directory names the role, the file does not | `CreateQuizUseCase`, `CreateQuizUseCaseOptions` |
-| DTO | `dto/<verb-noun>.dto.ts` | `createQuizCommandSchema` from contracts |
-| Guard | `<credential>.guard.ts` | `SessionGuard`, `BotTokenGuard` |
+**Inside a module there are no bare names.** A file at the module root is
+`<module>.<role>.ts`, and anything else lives in a subfolder that says what it is, or in an
+outer folder. `build-auth.ts`, `wire.ts`, `tokens.ts`, `parse-body.ts` and `session-owner.ts`
+are all names that only mean something to whoever wrote them; read out of context in an editor
+tab they say nothing about which module they belong to. `auth.factory.ts`, `auth.tokens.ts`,
+`auth.guard.ts` do.
 
-Files are kebab-case, types PascalCase, no `I` prefix, no `*.use-case.ts` suffix. Barrels
-(`index.ts`) exist only at the module root; inside a module, import the file.
+| Role | Where | Example | Symbol |
+| --- | --- | --- | --- |
+| Module | `<module>.module.ts` | `quizzes.module.ts` | `QuizzesModule` |
+| Controller | `<module>.controller.ts`, or `<subject>.controller.ts` in a subfolder when a module has several | `quizzes.controller.ts` | `QuizzesController` |
+| Repository port | `<module>.repository.ts` | `quizzes.repository.ts` | `abstract class QuizzesRepository` |
+| Repository | `repositories/<module>.postgres.repository.ts` | | `PostgresQuizzesRepository` |
+| Other port | `ports/<capability>.ts` | `notifications/ports/mailer.ts` | `abstract class Mailer` |
+| Service | `<module>.service.ts`, or `services/<subject>.service.ts` when a module has several | `auth.service.ts` | `AuthService` |
+| Entity | `<noun>.entity.ts` (+ `.types.ts`, `.constants.ts`, `.validation.ts` beside it) | `quiz.entity.ts` | `QuizEntity` |
+| HTTP model | `<noun>.model.ts` | `quiz.model.ts` | `QuizModel` |
+| DTO | `dto/<verb-noun>.dto.ts` | `dto/create-quiz.dto.ts` | `CreateQuizInput` |
+| Use case | `use-cases/<verb-noun>.ts` | `use-cases/create-quiz.ts` | `CreateQuizUseCase` |
+| Errors | `<module>.errors.ts` | `quizzes.errors.ts` | `QuizSetNotFoundError` |
+| Guard | `<module>.<credential>.guard.ts` | `auth.session.guard.ts` | `SessionGuard` |
+| Helpers | `<module>.helpers.ts`, or `helpers/` with an `index.ts` | | see §4.4 |
+
+Files are kebab-case, types PascalCase, no `I` prefix, no `*.use-case.ts` suffix — the
+`use-cases/` directory already says the role, and a path that stutters is worse than one that
+does not. A barrel (`index.ts`) exists at the module root and in `dto/`, `use-cases/`,
+`ports/` and `helpers/`. Inside a module, import the file; from outside, import the barrel.
 
 ### 4.2 The type vocabulary
 
+Each layer owns its own shape, and the controller maps between them. **Keep them distinct even
+when they are identical today**, because an HTTP-only field — a captcha token, a client
+timezone — must not be able to reach the database, and the three contracts drift apart over
+time.
+
 ```text
-CreateQuizCommand  →  CreateQuizUseCaseOptions  →  CreateQuizData  →  QuizSet  →  QuizSummary/QuizDetail
- (wire in,            (use case input,              (persistence,      (entity,    (wire out,
-  packages/contracts)  its own file)                 only when it        domain)     packages/contracts)
-                                                     differs)
+CreateQuizInput  →  CreateQuizUseCaseOptions  →  CreateQuizData  →  QuizEntity  →  QuizModel
+  (HTTP in,           (use case input,            (persistence in,    (business)    (HTTP out,
+   dto/, zod from      its own file)               beside the port)                  *.model.ts)
+   packages/contracts)
 ```
 
-Every use case declares `<Name>UseCaseOptions` in its own file, even when it equals the wire
-command today. A wire-only field must not be able to reach persistence by accident, and the
-three contracts drift. `*Data` types exist beside the port only where the persistence input
-genuinely differs from the entity; do not mint one per entity mechanically.
+- **`<Verb><Noun>Input`** lives in `dto/` and is the zod schema plus its inferred type. The
+  schema itself comes from `packages/contracts` wherever a client already shares it; the dto
+  file re-exports it under the HTTP name so the module has one place to look.
+- **`<UseCaseName>Options`** is declared in the use case's own file and exported under its full
+  name, so it stays unambiguous when imported elsewhere. A use case may need input no single
+  repository method accepts, which is why it is not the persistence type.
+- **`<Verb><Noun>Data`** sits beside the repository port, and only where the persistence input
+  genuinely differs from the entity. Do not mint one per entity mechanically.
+- **`<Noun>Entity`** is the business shape. **`<Noun>Model`** is what crosses the wire, built
+  by a static on the entity (`QuizEntity.toModel`), never by the entity leaking its own fields.
+
+### 4.3 Where the logic lives
+
+```text
+controller  →  use case  →  service  →  repository  →  db
+                    ↘_______________↗
+```
+
+- **A controller** parses a dto, calls **one** use case, and maps the result to a model.
+  No business logic, no drizzle, no controller calling another controller.
+- **A use case** is one operation, and holds that operation's logic. It opens the transaction
+  and orchestrates. It may inject repositories, services, other modules' exported use cases,
+  and the core ports.
+- **A service** holds logic that more than one use case needs, or that is too big to sit
+  comfortably in one. It may inject repositories and other services. It is not a pass-through:
+  a service whose every method forwards one call to one repository method is a repository with
+  extra steps, and the use case should hold the repository directly.
+- **A repository** is the only thing that talks to the database, and it returns entities, not
+  rows. It never takes an owner (§6.1).
+
+### 4.4 Functions belong to a class
+
+**A function that is about something belongs to that something.** Behaviour over a user goes on
+`UserEntity` as a static; behaviour that coordinates goes on a service. A file that is a loose
+bag of exported functions is the default this rewrite is removing — it is how
+`persistence/postgres/{owner,share,api-tokens}.ts` came to be reachable from a controller.
+
+The entity pattern is the reference project's, and it keeps the domain pure while giving the
+functions a home:
+
+```ts
+export interface QuizEntity extends QuizRow {}
+
+export class QuizEntity {
+	static create(draft: CreateQuizData): QuizEntity { … }
+	static publish(quiz: QuizEntity, at: Date): QuizEntity { … }
+	static isPublished(quiz: QuizEntity): boolean { … }
+	static toModel(quiz: QuizEntity): QuizModel { … }
+}
+```
+
+The interface and the class share a name by declaration merging: the type is the data, the
+class is where its behaviour lives. **Every method is static and every one is pure** — it takes
+the entity and returns a new one. Nothing mutates `this`, nothing is instantiated, and the data
+stays a plain readonly object that a repository can build from a row and a test can write by
+hand. So this is a regrouping of today's `createQuizSet` / `publishQuizSet` functions, not a
+rewrite into stateful objects.
+
+The narrow exceptions, each because attaching them would be worse than leaving them loose:
+
+- **`core/`** primitives (`brandedId`, `toOwnerId`) — they are about no module's noun.
+- **`shared/utils/`** — layer-free primitives over language types (`startOfDayIn`, `shuffled`).
+- **`db/schema/`** column builders — drizzle's own vocabulary.
+- **A module's `<module>.helpers.ts`**, for what genuinely attaches nowhere. If it grows past a
+  handful, it becomes `helpers/` with an `index.ts` and a file per function. Reach for this
+  last, not first: most functions that look homeless belong on an entity or a service.
+
+### 4.5 The shape of a use case
 
 ```ts
 export interface CreateQuizUseCaseOptions {
 	readonly title: string;
 	readonly language: string;
-	readonly folderId?: FolderId;
+	readonly pageId?: PageId;
 }
 
 type Options = CreateQuizUseCaseOptions;
-type Result = { readonly quizSetId: QuizSetId };
+type Result = { readonly quizId: QuizId };
 
 @Injectable()
 export class CreateQuizUseCase extends UseCase<Options, Result> {
 	constructor(
-		@Inject(QuizzesRepository) private readonly quizzes: QuizzesRepository,
-		@Inject(PagesRepository) private readonly pages: PagesRepository,
-		@Inject(Transaction) private readonly transaction: Transaction,
-		@Inject(Clock) private readonly clock: Clock,
-		@Inject(IdGenerator) private readonly ids: IdGenerator,
+		private readonly quizzes: QuizzesRepository,
+		private readonly pages: PagesService,
+		private readonly transaction: Transaction,
+		private readonly ids: IdGenerator,
+		private readonly clock: Clock,
 	) {
 		super();
 	}
 
-	execute(options: Options): Promise<Result> {
+	execute({ title, language, pageId }: Options): Promise<Result> {
 		return this.transaction.run(async () => { … });
 	}
 }
 ```
 
-A use case names exactly the ports it uses. A test constructs it with `new` and the in-memory
-doubles; the decorators are inert without Nest.
+- The exported options type carries the full use case name; the local `Options` and `Result`
+  aliases keep the signature readable and give one place to change either side.
+- When a use case takes no input, `type Options = void` and no exported interface until there
+  is real input.
+- **Dependencies are constructor parameters, one per collaborator** — never a single
+  `dependencies` object, which is what let today's 47 use cases each receive all seven
+  repositories without declaring which they use. The parameter types are the tokens; see §6.4.
+- A test constructs it with `new` and passes doubles. The decorators are inert without Nest.
 
 ## 5. The module catalogue
 
@@ -304,12 +400,12 @@ doubles; the decorators are inert without Nest.
 
 | Module | Tables (writes) | Today's domain | Today's use cases | Today's other code |
 | --- | --- | --- | --- | --- |
-| `auth` | `user`, `session`, `account`, `verification`, `auth_events` | — | — | `modules/auth/{build-auth,build-auth.constants,session-owner,tokens}.ts`, `modules/app/session.guard.ts`, the `record()` bodies of both services |
-| `owners` | — (reads `account`) | — | — | `persistence/postgres/owner.ts`, `modules/shared/database/instance-owner.ts`, `modules/bot/bot-token.guard.ts` |
-| `telegram-link` | — (writes through Better Auth's verification store) | — | — | `modules/auth/telegram-identity.service.ts`, `telegram-link.plugin.ts`, the `loginLink` route |
+| `users` | `user` | — | — | `persistence/postgres/owner.ts` (the user half) |
+| `auth` | `session`, `account`, `verification`, `auth_events` | — | — | `modules/auth/{build-auth,build-auth.constants,reset-password.letter,session-owner,tokens}.ts`, `modules/app/session.guard.ts`, `modules/bot/bot-token.guard.ts`, `persistence/postgres/owner.ts`, `modules/shared/database/instance-owner.ts`, the `record()` bodies of both services |
+| `telegram-link` | — (writes through Better Auth's verification store) | — | — | `modules/auth/{telegram-identity.service,telegram-link.plugin}.ts`, the `loginLink` route |
 | `api-tokens` | `api_tokens` | — | — | `persistence/postgres/api-tokens.ts`, `modules/auth/api-token.service.ts`, the four token routes, `adapters/mcp/http/bearer.ts` |
-| `oauth` | `oauth_clients`, `oauth_codes`, `oauth_tokens` | — | — | `persistence/postgres/oauth.store.ts`, `infrastructure/auth/oauth-store.types.ts`, `adapters/mcp/http/oauth/*` |
-| `notifications` | — | — | — | `application/ports/mailer.ts`, `modules/auth/{mailer-for,reset-password.letter}.ts` |
+| `oauth` | `oauth_clients`, `oauth_codes`, `oauth_tokens` | — | — | `persistence/postgres/oauth.store.ts`, `infrastructure/auth/oauth-store.types.ts` (the provider and consent stay with the MCP surface until phase 5) |
+| `notifications` | — | — | — | `application/ports/mailer.ts`, `modules/auth/mailer-for.ts`, `adapters/mail/*` |
 | `pages` | `pages`, `page_revisions`, `quiz_attachments` | `domain/folder/*` | `folders/*` — 15 files: attach-quiz, browse-folder, create-folder, delete-folder, detach-quiz, ensure-folder-path, list-folder-tree, list-revisions, move-folder, rename-folder, reorder-folder, resolve-folder-path, search-pages, set-page-icon, write-summary | `page.repository.ts` (port + Postgres) minus its share methods |
 | `page-shares` | `page_shares` | — | `sharing/{share-page,read-shared-page,referenced-uploads}.ts` | `persistence/postgres/share.ts`, `modules/public/*`, `shareOf/saveShare/deleteShare` from the page port |
 | `attachments` | `attachments` | — | — (the controller becomes two use cases: `upload-image`, `read-attachment`) | `application/ports/object-store.ts`, `attachment.repository.ts`, `modules/app/uploads.*`, `persistence/objects/minio.object-store.ts` → `adapters/storage` |
@@ -337,8 +433,9 @@ Two things that look like they should be modules and are not:
 ### 5.2 Module dependency graph
 
 ```text
-auth          ← owners ← telegram-link, api-tokens, oauth
-auth          ← notifications (reset mail)         [bound in auth's module class]
+users         ← auth ← telegram-link, api-tokens, oauth
+auth          → users                              (provisioning a user is users' write)
+auth          → notifications                      (the reset letter is auth's, delivery is not)
 pages         ← page-shares → attachments
 quizzes       → pages                              (requireFolder, moveQuizSetToFolder)
 vocabulary    → quizzes                            (replaceQuestions in one transaction)
@@ -362,12 +459,22 @@ Facts in the code that shaped this graph, so nobody re-derives them:
   one transaction. `vocabulary` never gets its own writer for `questions`.
 - `start-practice-session.ts` reads quizzes, the active attempt, attempt history and shuffle
   settings, then saves the attempt. It does not use analytics.
-- `auth_events` is written by both `TelegramIdentityService` and `ApiTokenService`. The port
-  `AuthEvents` lives in `auth`; both consumers inject it. Making `telegram-link` its owner
-  would give token management a dependency on Telegram.
-- `build-auth.ts` installs the Telegram verify plugin. `auth` must not import `telegram-link`,
-  so `AuthModule` takes the plugin list from a provider that `telegram-link` contributes
-  (`AUTH_PLUGINS` multi-provider), and the direction stays `telegram-link → auth`.
+- `auth_events` is written by both `TelegramIdentityService` and `ApiTokenService`. It is
+  `auth`'s table, reached through the identity repository; both consumers call it. Making
+  `telegram-link` its owner would give token management a dependency on Telegram.
+- **There is no `owners` module.** The plan had one for "telegram id ↔ owner, instance owner,
+  BotTokenGuard", and the code refuses it: `ensureTelegramOwner` *writes* `user` and `account`,
+  which are Better Auth's tables and therefore `auth`'s. A module that owns no table and writes
+  two of someone else's is a lookup wearing a module's clothes. The lookup and the provisioning
+  are both `auth`'s identity repository; the guards are `auth`'s because they answer who the
+  caller is; and `telegram-link` keeps the one capability that is genuinely its own, minting a
+  login link. That also makes the four credential seams in §6.1 consistent: each lives with the
+  credential it verifies.
+- `build-auth.ts` installs the Telegram verify plugin, and `auth` must not import
+  `telegram-link`. `AuthModule.forRoot({ plugins })` takes them instead, and `app.module.ts` —
+  the composition root, which may import anything — passes `telegramLink()`. A multi-provider
+  token would have needed `telegram-link` to be global for `auth` to resolve it, which is a
+  worse trade than a dynamic module.
 - `public.controller.ts` serves an upload only if the shared page's markdown references it. A
   share principal carries `{ owner, pageId }`, not just the owner, and `page-shares →
   attachments` is real.
@@ -394,7 +501,7 @@ type Principal =
   handler runs every request inside `storage.run({}, next)`. A Nest interceptor is too late:
   guards run first and need the store to exist.
 - Guards populate the store. `SessionGuard` (cookie → owner), `BotTokenGuard` (bearer + the
-  `telegramUserId` body check → the linked instance owner via `owners`), `ShareTokenGuard`
+  `telegramUserId` body check → the linked instance owner via `auth`), `ShareTokenGuard`
   (token → `{ owner, pageId }` via `page-shares`), the MCP bearer verifier (PAT, OAuth grant or
   static token → owner). MCP verifies outside Nest, so it wraps each tool execution in
   `runAs(principal, fn)` rather than binding an owner to the server instance.
@@ -403,7 +510,7 @@ type Principal =
 - Owner-scoped repositories inject `OwnerContext` and read `this.owners.current()` per call, not
   in the constructor. Use cases and repositories are therefore singletons. `useCasesFor`,
   `lazyScope`, `USE_CASE_DEPENDENCIES`, `USE_CASES_FOR` and `INSTANCE_OWNER` disappear.
-- Identity-resolution repositories (`owners`, `api-tokens` verify, `page-shares` lookup by
+- Identity-resolution repositories (`auth`'s identity lookup, `api-tokens` verify, `page-shares` lookup by
   token, `oauth`) run before an owner exists. They do not inject `OwnerContext`; they are the
   four seams that turn a credential into an owner, and they stay the only ones.
 - Multer runs after guards. Uploads stay session-only; a bot multipart route would have to
@@ -462,17 +569,41 @@ export abstract class ModuleError extends Error {
 
 ### 6.4 DI and module classes
 
-- Ports are abstract classes and therefore Nest tokens. A module binds
+- **A dependency is a constructor parameter typed with its class, and nothing else.**
+
+  ```ts
+  constructor(private readonly quizzes: QuizzesRepository) {}
+  ```
+
+  No `@Inject` at the parameter, no `dependencies` object. Ports are abstract classes, so the
+  type *is* the token, and a module binds it with
   `{ provide: QuizzesRepository, useClass: PostgresQuizzesRepository }`.
-- Use cases are `@Injectable()` providers listed in their module, injected into controllers by
-  class. A module `exports` the use cases and ports another module legitimately needs and
-  nothing else; the import graph is declared in `*.module.ts`.
-- `Clock`, `IdGenerator`, `Transaction`, `OwnerContext` are provided once by a `@Global()`
-  `CoreModule` in `shared/`. That module and `DatabaseModule` (connection lifecycle, shutdown
-  drain) are the only global modules.
-- Adapters are bound in the module class of the port they implement: `AttachmentsModule` binds
-  `ObjectStore → MinioObjectStore`, `NotificationsModule` binds `Mailer → SmtpMailer | LogMailer`
-  depending on `SMTP_URL`. Nowhere else imports `adapters/`.
+- That needs `emitDecoratorMetadata`, which was off, and turning it on re-opens a trap
+  `CLAUDE.md` documents: biome's `useImportType` autofix rewrites a class import to
+  `import type` when the file names it only as a parameter type, which erases the metadata and
+  breaks DI at runtime with the imports still looking correct. Reproduced, and it is worse than
+  the note says — the rewritten import made `bun test` report zero tests and exit 0, so broken
+  DI looked like a passing suite. **The fix is simply to turn the rule off**, for all of
+  `apps/api/**`. Two narrow globs were tried first and were a mistake: a test fixture landed
+  outside them and broke exactly as described, so the scope is the app, not the trees where
+  injectables happen to live today. `tests/unit/decorator-metadata.test.ts` boots a module
+  whose consumer names its dependency only as a parameter type, and passes
+  `abortOnError: false` so a regression fails loudly instead of exiting the process.
+- **`noStaticOnlyClass` is off for `apps/api/**` too**, and for the same kind of reason: §4.4
+  makes an entity a class of statics over a merged interface, which is precisely the shape that
+  rule exists to discourage. Where the conventions and a default lint rule disagree, the
+  conventions win and the rule goes, scoped to this app so the other workspaces keep it.
+- Use cases, services and repositories are all `@Injectable()` providers listed in their
+  module. A module `exports` only what another module legitimately needs; the import graph is
+  declared in `*.module.ts` rather than implied by whatever got imported.
+- `Clock`, `IdGenerator`, `Transaction` and `OwnerContext` are provided once by a `@Global()`
+  `CoreModule` in `shared/`. That module and `DatabaseModule` are the only global modules.
+- Adapters are bound in the module class of the port they implement, and **only** there — a
+  separate `mailer-for.ts` beside the module is not the composition root, which the lint rule
+  enforces and caught once already.
+- A dynamic `Module.forRoot(...)` is how a module takes something the composition root must
+  supply without importing the module that supplies it — `AuthModule.forRoot({ plugins })`
+  taking `telegramLink()` from `app.module.ts` is the case that earns it.
 
 ### 6.5 Controllers and presenters
 
@@ -503,7 +634,7 @@ mean different things there:
 | Route | Bot (`/bot/…`, bearer) | App (`/app/…`, cookie) | Module |
 | --- | --- | --- | --- |
 | `auth/login-link` | body names `telegramUserId`; creates the owner on first login | **absent** | `telegram-link` |
-| `auth/tokens/{issue,list,revoke}` | body names `telegramUserId`, resolved via `owners` | body omits it; owner from session | `api-tokens` |
+| `auth/tokens/{issue,list,revoke}` | body names `telegramUserId`, resolved via `auth` | body omits it; owner from session | `api-tokens` |
 | every practice and authoring route | owner = the linked instance owner | owner = session | one controller under `["bot","app"]` |
 | `app/uploads`, `app/uploads/:id` | absent | session | `attachments` |
 | `public/pages/:token`, `public/uploads/:token/:id` | share token, no other credential | | `page-shares` |
@@ -550,7 +681,7 @@ cases keep `ApplicationDependencies`; moved use cases take narrow ports. Both li
 | --- | --- | --- |
 | 0 ✅ | This document. Rewrite the `biome.json` overrides for the layout in §3.1; the module graph rules are added as modules land. | `bun run lint` passes with the new overrides against the current tree, with every planned violation listed in the PR. |
 | 1 ✅ | `core/`, `configs/`, `db/` (schema split per table, `client.ts`, `executor.ts`), `shared/request-context`, `shared/http`. The bridge above. | `db:generate` produces no new migration. Old code runs unchanged through the bridge. |
-| 2 | Identity: `auth`, `owners`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. `infrastructure/mail` and `adapters/mail` split out of today's two mailer files. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
+| 2 ✅ | Identity: `users`, `auth`, `telegram-link`, `api-tokens`, `oauth`, `notifications`. Loose Postgres functions become repositories behind ports. `AUTH_PLUGINS` multi-provider. `infrastructure/mail` and `adapters/mail` split out of today's two mailer files. | `tests/integration/auth/*` green. Login link creates an owner on first login. OAuth refresh keeps the grant's owner. |
 | 3 | Content: `pages`, `quizzes`, then `vocabulary`, `attachments`, `page-shares`. Presenters split out of `wire.ts`. `UploadsController` becomes two use cases. `infrastructure/minio` and `adapters/storage` split out of today's object store. | `tests/contracts/{page,quiz}*` bound to both engines. Shared page still refuses an upload its markdown does not reference. |
 | 4 | Study: `study-settings` and `scheduling` out of the review repository, then `attempts`, `practice`, `statistics`, `insights`. | `finish` writes attempt and schedules in one transaction, pinned by the rollback suite. The four ladder/FSRS behaviour tests from `CLAUDE.md` still pass. |
 | 5 | Surfaces: one controller per module under `["bot","app"]`; `telegram-link` and `api-tokens` keep their two controllers. `adapters/mcp` → `modules/mcp`, `adapters/admin` → `modules/admin`. Delete `modules/{app,bot,content,public,integration}`. | `tests/integration/app/*` and `e2e/*` green. No route path changed. |
@@ -570,6 +701,10 @@ the bulk and can each be several pull requests.
 
 ### Settled
 
+- **`users` owns the `user` row, `auth` owns the credentials.** Signing in, linking an
+  account and auditing are auth; the person record is its own noun with its own table, so
+  provisioning a telegram-linked account is `auth` calling `UsersService.create` inside its own
+  transaction rather than writing someone else's table.
 - **Capability modules, one per capability.** Named for what they own, never for who calls
   them. Two capabilities in one module is the smell this rewrite removes.
 - **Postgres repositories live in their module; every other port implementation is an
@@ -582,16 +717,32 @@ the bulk and can each be several pull requests.
   it use cases cannot be Nest singletons and every moved module would need to be touched twice.
   The five tests in §8 are the price of that choice and are not optional.
 - **No `nestjs-cls`.** `node:async_hooks` is enough.
-- **Use cases carry `@Injectable()` and explicit `@Inject`.** The alternative, one factory
-  provider per use case to keep them decorator-free, is 47 entries of boilerplate for a
-  framework boundary no test needs.
+- **Dependencies are constructor parameters typed with their class**, resolved by
+  `emitDecoratorMetadata`, with `useImportType` off in the two trees where injectables live and
+  a test that fails loudly if either half regresses (§6.4). `CLAUDE.md`'s explicit-`@Inject`
+  rule is superseded for `apps/api/src/modules/**`.
+- **No file inside a module carries a bare name.** `<module>.<role>.ts` at the module root, or
+  a subfolder that says what it is (§4.1). `build-auth.ts`, `wire.ts` and `tokens.ts` are the
+  names this rule exists to stop.
+- **A function belongs to the thing it is about** — a static on the entity, or a method on a
+  service. `<module>.helpers.ts` is the escape hatch and is reached for last (§4.4).
+- **Logic sits in the use case; a service holds what more than one use case needs or what is
+  too big for one; only a repository touches the database** (§4.3). A service that forwards one
+  call per method is not a service.
+- **Five type names per operation, kept distinct even when identical**: `Input` at the HTTP
+  edge, `UseCaseOptions`, `Data` at the persistence edge, `Entity`, `Model` on the way out
+  (§4.2).
+- **Every route has a dto.** The zod schema comes from `packages/contracts` wherever a client
+  shares it; `dto/<verb-noun>.dto.ts` is where the module looks for it.
 - **Errors know their status.** `error-map.ts` is deleted; `details()` is per class.
 - **URLs and prefixes do not change.** `/bot/*` and `/app/*` stay; they share controllers.
 - **No `common`, `helpers`, `utils` dumping grounds** beyond `shared/utils` for layer-free
   primitives and `core` for the six base types listed in §3.
-- **Domain names are not renamed in this rewrite.** `QuizSet`, `Folder`, `createQuizSet` and
-  friends keep their names while they move. The module is `quizzes` because that is the table
-  and the wire vocabulary; a domain rename is a separate change with its own diff.
+- **Domain nouns are not renamed in this rewrite**, but they gain the `Entity` suffix and lose
+  the loose function names: `QuizSet` stays the noun and becomes `QuizEntity` in `quizzes`,
+  `createQuizSet` becomes `QuizEntity.create`. The module is `quizzes` because that is the
+  table and the wire vocabulary. Renaming a noun outright is a separate change with its own
+  diff.
 
 ### Open
 
@@ -607,6 +758,7 @@ the bulk and can each be several pull requests.
 ## 11. Docs to update in phase 7
 
 - `CLAUDE.md` — the "know which code you are touching" section, the `apps/api` naming rules,
+  the explicit-`@Inject` rule that §6.4 supersedes,
   every path under `apps/api/src` it names (`persistence/postgres/owner.ts`, `error-map.ts`,
   `modules/auth/build-auth.ts`, `adapters/mcp/http/`, …).
 - `AGENTS.md` — the architecture boundaries section names `ARCHITECTURE.md` for v1 and this

@@ -17,10 +17,10 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiExcludeController } from "@nestjs/swagger";
 import type { Response } from "express";
 import type { ObjectStore } from "@/application/ports/object-store";
-import type { PostgresConnection } from "@/db/client";
-import { CONNECTION, OBJECT_STORE } from "@/modules/shared/database/tokens";
+import { DatabaseConnection } from "@/db/connection";
+import { SessionGuard, type SessionRequest } from "@/modules/auth";
+import { OBJECT_STORE } from "@/modules/shared/database/tokens";
 import { scopeFor } from "@/persistence/postgres/unit-of-work";
-import { SessionGuard, type SessionRequest } from "./session.guard";
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES } from "./uploads.constants";
 import type { UploadedImage } from "./uploads.types";
 
@@ -29,8 +29,7 @@ import type { UploadedImage } from "./uploads.types";
 @Controller("app/uploads")
 export class UploadsController {
 	constructor(
-		@Inject(CONNECTION)
-		private readonly connection: PostgresConnection,
+		private readonly connection: DatabaseConnection,
 		@Inject(OBJECT_STORE)
 		private readonly objects: ObjectStore,
 	) {}

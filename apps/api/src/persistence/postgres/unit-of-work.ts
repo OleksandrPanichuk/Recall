@@ -2,7 +2,11 @@ import type { OwnerId } from "@/application/ports/owner";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import type { RecallDatabase } from "@/db/client";
-import { type Executor, executorFor, PostgresTransaction } from "@/db/executor";
+import {
+	DatabaseExecutor,
+	type Executor,
+	PostgresTransaction,
+} from "@/db/executor";
 import { createAnalyticsPostgresRepository } from "./repositories/analytics.repository";
 import { createAttachmentPostgresRepository } from "./repositories/attachment.repository";
 import { createAttemptPostgresRepository } from "./repositories/attempt.repository";
@@ -30,11 +34,13 @@ export function createPostgresUnitOfWork(
 	db: RecallDatabase,
 	owner: OwnerId,
 ): UnitOfWork<RepositoryScope> {
-	const transaction = new PostgresTransaction(db);
+	const transaction = new PostgresTransaction(() => db);
 
 	return {
 		run: (operation) =>
-			transaction.run(() => operation(scopeFor(executorFor(db), owner))),
+			transaction.run(() =>
+				operation(scopeFor(DatabaseExecutor.for(db), owner)),
+			),
 	};
 }
 
