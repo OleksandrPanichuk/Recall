@@ -709,7 +709,7 @@ cases keep `ApplicationDependencies`; moved use cases take narrow ports. Both li
 | 4 ✅ | Study: `study-settings` and `scheduling` out of the review repository, then `attempts`, `practice`, `statistics`, `insights`. | `finish` writes attempt and schedules in one transaction, pinned by the rollback suite. The four ladder/FSRS behaviour tests from `CLAUDE.md` still pass. |
 | 5 ✅ | Surfaces: one controller per module under `["bot","app"]`; `telegram-link` and `api-tokens` keep their two controllers. `adapters/mcp` → `modules/mcp`, `adapters/admin` → `modules/admin`. Delete `modules/{app,bot,content,public,integration}`. | `tests/integration/app/*` and `e2e/*` green. No route path changed. |
 | 6 ✅ | Delete `composition/`, `application/`, `persistence/`, `domain/`, `entrypoints/` (→ `main.ts`, `scripts/`), `modules/shared/`. Remove the bridge. | `grep -r "RepositoryScope\|UnitOfWork\|useCasesFor\|lazyScope" apps/api/src` is empty. |
-| 7 | Docs: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `HANDOFF.md`, `README.md` (§11). | Every path named in those files exists. |
+| 7 ✅ | Docs: `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `HANDOFF.md`, `README.md` (§11). | Every path named in those files exists. |
 
 **`infrastructure/` and `adapters/` do not land in phase 1.** Each of the two remaining
 adapters implements a port a module will own — `Mailer` for `notifications`, `ObjectStore` for

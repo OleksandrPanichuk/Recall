@@ -1,33 +1,37 @@
 
 Default to using Bun instead of Node.js.
 
-## The rewrite landed — know which code you are touching
+## The api is capability modules — know what that means before you add a file
 
-**`main` is the trunk.** v2 shipped on it in #85; the `rewrite` branch is gone. Branch off
-`main`, and open pull requests against `main`.
+**`rewrite_v3` is the trunk while the api rewrite is in flight.** Branch off it, and open
+pull requests against it. `main` carries v2.
 
-The v1 and v2 shapes still coexist *inside* `apps/api/src`, so the distinction below is
-about code, not branches:
+There is no v1-shaped code left under `apps/api/src`. `domain/`, `application/`,
+`composition/`, `persistence/` and `entrypoints/` are gone; every capability owns its own
+directory under `apps/api/src/modules`, and **`REWRITE_PLAN.md` is the binding document for
+everything inside `apps/api`**. `ARCHITECTURE.md` describes the v1 layering and is history —
+read it to understand why something used to be the way it was, never to decide where a new
+file goes.
 
-| | v1 shape | v2 shape |
-| --- | --- | --- |
-| Lives in | `apps/api/src/{adapters,composition,entrypoints}` | `apps/*`, `packages/*`, and `apps/api/src/{modules,persistence}` |
-| Binding doc | `ARCHITECTURE.md` | **`REWRITE_PLAN.md`** |
-| Runtime | Bun | Bun everywhere **except `apps/api`** (Node + NestJS) |
-
-Where the two conflict, `REWRITE_PLAN.md` wins; `ARCHITECTURE.md` stays binding for the
-layering inside the three directories that still keep their v1 shape. Phase 2 moved that
-tree from `src/` to `apps/api/src/` without changing anything inside it.
+What is left beside `modules/` is small and each part has one job: `core/` (ports and the
+use-case base class), `configs/`, `db/` (schema, client, executor, migrations), `shared/`
+(request context, http helpers), `adapters/` and `infrastructure/` (the two port
+implementations that are not Postgres), `api.factory.ts` and `main.ts`.
 
 The dependency direction is **enforced, not just documented**: `biome.json` carries
-`noRestrictedImports` overrides that fail the build when `domain` imports outward or
-`application` imports adapters. Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md`
-has been deleted — its role is taken by the Sequencing section of `REWRITE_PLAN.md`.
+`noRestrictedImports` overrides that fail the build when a module reaches into another
+module's internals, binds an adapter outside its `*.module.ts`, or imports the test tree.
+Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md` has been deleted — its role is
+taken by the Sequencing section of `REWRITE_PLAN.md`.
 
-`HANDOFF.md` is a record of how the rewrite was carried out, not current instructions. Read
-it for context on why something is the way it is; do not follow its branch table.
+`HANDOFF.md` is a record of how the v2 rewrite was carried out, not current instructions.
+Read it for context; do not follow its branch table.
 
-Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITECTURE.md`, `REWRITE_PLAN.md`, and `WORKFLOW.md`. Treat `ARCHITECTURE.md` as binding for dependency direction, pattern selection, and folder ownership in the v1-shaped directories, and `REWRITE_PLAN.md` as binding for the same questions everywhere else. For planned implementation work, use the globally installed `run-reviewed-development` workflow when available: a fresh implementer handles one task, an independent read-only agent reviews it, findings return to the implementer, and every fix receives a scoped re-review before dependent work begins.
+Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `REWRITE_PLAN.md`,
+and `WORKFLOW.md`. For planned implementation work, use the globally installed
+`run-reviewed-development` workflow when available: a fresh implementer handles one task, an
+independent read-only agent reviews it, findings return to the implementer, and every fix
+receives a scoped re-review before dependent work begins.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
 - Use `bun test` instead of `jest` or `vitest`
@@ -42,13 +46,12 @@ Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `ARCHITEC
 These rules hold everywhere **except** the two v2 exemptions below.
 
 - `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express` —
-  with one exception, granted by the owner: `src/adapters/mcp/http/` runs on
+  with one exception, granted by the owner: `apps/api/src/modules/mcp/http/` runs on
   Express because the MCP SDK's OAuth endpoints (`mcpAuthRouter`,
   `requireBearerAuth`) are Express middleware, and hand-rolling an authorization
   server is not worth it. Do not "fix" that by removing Express.
 - `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
 - `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres in v1 code. Don't use `pg` or `postgres.js`.
 - `WebSocket` is built-in. Don't use `ws`.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
 - Bun.$`ls` instead of execa.
@@ -64,7 +67,7 @@ Both exemptions are **scoped to their directory** — do not let them spread.
    `bun run api:node` starts it with plain `node`. `bun run api` still runs the TypeScript
    directly for development. Two consequences worth knowing: **nothing under
    `apps/api/src` may use a Bun global** — `Bun.hash` in the fingerprint became
-   `node:crypto`, and the bootstrap moved out of `api.ts` into `entrypoints/serve.ts`
+   `node:crypto`, and the bootstrap moved out of `api.factory.ts` into `main.ts`
    because `import.meta.main` is a Bun-ism — and `packages/kit` / `packages/contracts`
    ship both: `exports` gives Bun `./src/index.ts` and Node `./dist/index.js`, so dev needs
    no build while Node gets real JavaScript. `better-auth` is ESM-only, which is why the
@@ -194,14 +197,14 @@ send a message, not who is asking.
 **The api decides who the caller is; the caller never says.** `BotTokenGuard` refuses any body
 naming a `telegramUserId` other than `ALLOWED_TELEGRAM_USER_ID`, so holding the bot token does not
 let anyone read another account's data. The owner itself is resolved from the linked Telegram
-account (`instanceOwnerResolver`), cached, and reached lazily through `lazyScope` — which is what
-lets the http surfaces be built at boot, before anyone has linked. `ensureTelegramOwner` /
-`findTelegramOwner` in `persistence/postgres/owner.ts` are the *only* place that maps a Telegram
+account (`instanceOwnerResolver`), cached, and read from the request context — which is what
+lets the http surfaces be built at boot, before anyone has linked. `AuthService.ensureOwnerForTelegram` /
+`findOwnerForTelegram` are the *only* place that maps a Telegram
 id to an owner; the ETL and the login flow both go through them, so an import cannot land under a
 different user than the one the bot will hand the platform to.
 
 **There is no SQLite left in the api's runtime.** The OAuth store lives in Postgres
-(`persistence/postgres/oauth.store.ts`) and its interface is **async** — it was synchronous only
+(`modules/oauth`) and its interface is **async** — it was synchronous only
 because it was a local file, and that is what used to pin this app to `bun:sqlite`. The one
 remaining `bun:sqlite` import is the ETL reading a v1 backup, which is a Bun script and not part
 of the server. `OAUTH_DATABASE_PATH` is gone.
@@ -224,8 +227,8 @@ assertion with no expiry**, so a non-expiring personal token still gets a bounde
 `{ error: "<ErrorName>", details }`, and the bot maps that name to user text
 (`ApiErrorName` / `isApiError` in `packages/contracts`). Only a whitelist of detail keys
 (`mode`, `folderId`, `quizSetId`, `questionId`, `attemptId`) crosses the wire, so an error can
-never leak a field nobody vetted. Adding an error the bot must distinguish means adding it to
-`error-map.ts` **and** `ApiErrorName` — an error missing from the map becomes a flat 500.
+never leak a field nobody vetted. Adding an error the bot must distinguish means giving it a `status`
+**and** adding its name to `ApiErrorName` — an error missing from the map becomes a flat 500.
 
 **`apps/mcp` and `apps/admin` are clients of the API, not of the database.** `apps/mcp` is a
 stdio↔HTTP bridge: it forwards JSON-RPC to the API's `/mcp` and holds no application code. The
@@ -421,19 +424,22 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 ## Naming
 
-Beyond the conventions in `ARCHITECTURE.md`:
+Beyond the conventions in `REWRITE_PLAN.md` §4:
 
 - Application use cases carry their role in the **class** name: `AnswerQuestionUseCase`, not
   `AnswerQuestion`. The class name is its NestJS injection token, so it is read out of
   context and has to be distinguishable from `AnswerQuestionCommand` and
   `AnswerQuestionController` at a glance.
-- **Every NestJS injection point uses an explicit `@Inject(Token)`.** Never rely on
-  constructor parameter types for DI: `emitDecoratorMetadata` is deliberately **off**, because
-  with it on, Biome's `useImportType` autofix rewrites a class import to `import type`, erases
-  the metadata, and DI breaks at runtime with the imports still looking correct. With it off,
-  a missing `@Inject` fails loudly at startup instead. `experimentalDecorators` is on — Nest
-  needs legacy decorators, and Bun defaults to the TC39 ones.
-- **File** names do not repeat it: `use-cases/attempts/answer-question.ts`, not
+- **Dependencies are constructor parameters typed with their class**, resolved by
+  `emitDecoratorMetadata`, which is **on**. `@Inject(Token)` is for the handful of symbol
+  tokens that are not classes. The trap that used to make this impossible is closed by
+  configuration, not by discipline: with `emitDecoratorMetadata` on, Biome's `useImportType`
+  autofix rewrites a class import to `import type`, erases the metadata and breaks DI at
+  runtime with the imports still looking correct — so `useImportType` is off for
+  `apps/api/**`, and `apps/api/tests/unit/decorator-metadata.test.ts` fails loudly if either
+  half regresses. `experimentalDecorators` is on — Nest needs legacy decorators, and Bun
+  defaults to the TC39 ones.
+- **File** names do not repeat it: `modules/attempts/use-cases/answer-question.ts`, not
   `answer-question.use-case.ts`. The directory already says `use-cases`, and a path that
   stutters is worse than one that does not. This is the opposite of `*.handler.ts` /
   `*.presenter.ts` / `*.tool.ts`, which sit in directories that do **not** name their role.
@@ -551,9 +557,9 @@ src/
   so `WEB_APP_URL` is a CORS origin with credentials. Objects are keyed `<owner>/<id>` and the
   `attachments` row is owner-scoped, so serving checks ownership before it streams.
 - **A shared page is a link, and the link is the credential.** A `page_shares` row holds one
-  page, one owner and one token; `ownerForShare` in `persistence/postgres/share.ts` maps a token
-  to an owner and nothing else — the same seam `findTelegramOwner` is — and everything after that
-  runs through the ordinary owner-scoped `useCasesFor(owner)`. There is no second identity model,
+  page, one owner and one token; `ShareTokens.ownerFor` in `modules/page-shares` maps a token
+  to an owner and nothing else — the same seam `findOwnerForTelegram` is — and everything after that
+  runs inside `runAs` for that owner, through the ordinary owner-scoped use cases. There is no second identity model,
   and no repository method that takes an owner. The token is stored in plain text, unlike a
   personal api token, because the owner has to be able to copy the link twice and it grants read
   of one page. `pages.visibility` and `quizzes.visibility` were dropped with it: both were written
