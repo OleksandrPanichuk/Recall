@@ -1,22 +1,19 @@
 import { Module } from "@nestjs/common";
 import { silentLogger } from "@recall/kit";
 import type { Express } from "express";
-import {
-	createUseCases,
-	systemClock,
-	uuidGenerator,
-} from "@/composition/create-application";
 import { loadApiEnvironment } from "@/configs/env.config";
-import { DatabaseConnection } from "@/db/connection";
 import { ApiTokensModule, ApiTokensService } from "@/modules/api-tokens";
+import { AttemptsModule } from "@/modules/attempts";
 import { AuthService } from "@/modules/auth";
-import { createMcpHttpApp } from "@/modules/mcp/http/app";
-import { createOAuthProvider } from "@/modules/mcp/http/oauth/provider";
+import { InsightsModule } from "@/modules/insights";
 import { OAuthModule, OAuthRepository } from "@/modules/oauth";
-import {
-	createPostgresUnitOfWork,
-	readOnlyScope,
-} from "@/persistence/postgres/unit-of-work";
+import { PagesModule } from "@/modules/pages";
+import { QuizzesModule } from "@/modules/quizzes";
+import { StudySettingsModule } from "@/modules/study-settings";
+import { VocabularyModule } from "@/modules/vocabulary";
+import { createMcpHttpApp } from "./http/app";
+import { createOAuthProvider } from "./http/oauth/provider";
+import { McpUseCases } from "./mcp.server.types";
 
 export const MCP_SURFACE = Symbol("MCP_SURFACE");
 
@@ -25,21 +22,26 @@ export interface McpSurface {
 }
 
 @Module({
-	imports: [ApiTokensModule, OAuthModule],
+	imports: [
+		ApiTokensModule,
+		AttemptsModule,
+		InsightsModule,
+		OAuthModule,
+		PagesModule,
+		QuizzesModule,
+		StudySettingsModule,
+		VocabularyModule,
+	],
 	providers: [
+		McpUseCases,
 		{
 			provide: MCP_SURFACE,
-			inject: [
-				DatabaseConnection,
-				AuthService,
-				OAuthRepository,
-				ApiTokensService,
-			],
+			inject: [AuthService, OAuthRepository, ApiTokensService, McpUseCases],
 			useFactory: (
-				connection: DatabaseConnection,
 				auth: AuthService,
 				oauth: OAuthRepository,
 				apiTokens: ApiTokensService,
+				useCases: McpUseCases,
 			): McpSurface => {
 				const environment = loadApiEnvironment();
 
@@ -49,14 +51,7 @@ export interface McpSurface {
 
 				return {
 					app: createMcpHttpApp({
-						applicationFor: (owner) =>
-							createUseCases({
-								unitOfWork: createPostgresUnitOfWork(connection.db, owner),
-								scope: readOnlyScope(connection.db, owner),
-								clock: systemClock,
-								idGenerator: uuidGenerator,
-								timezone: process.env.APP_TIMEZONE ?? "UTC",
-							}),
+						useCases,
 						logger: silentLogger,
 						instanceOwner: () => auth.instanceOwner(),
 						sessionOwner: (request) =>

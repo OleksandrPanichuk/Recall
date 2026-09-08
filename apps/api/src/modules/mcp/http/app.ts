@@ -3,9 +3,10 @@ import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Logger } from "@recall/kit";
 import express, { type Express, type Request, type Response } from "express";
-import type { OwnerId } from "@/application/ports/owner";
-import type { UseCases } from "@/composition/create-application";
+import type { OwnerId } from "@/core/owner";
+import { runAs } from "@/shared/request-context";
 import { createMcpServer } from "../mcp.server";
+import type { McpUseCases } from "../mcp.server.types";
 import { matchesToken } from "./bearer";
 
 const MCP_PATH = "/mcp";
@@ -20,7 +21,7 @@ import {
 export interface McpHttpAppDependencies {
 	sessionOwner?(request: Request): Promise<OwnerId | undefined>;
 	instanceOwner?(): Promise<OwnerId>;
-	applicationFor(owner: OwnerId): UseCases;
+	readonly useCases: McpUseCases;
 	readonly logger: Logger;
 	readonly oauth: RecallOAuth;
 	readonly allowedHosts: readonly string[];
@@ -32,7 +33,7 @@ export function createMcpHttpApp(
 	dependencies: McpHttpAppDependencies,
 ): Express {
 	const {
-		applicationFor,
+		useCases,
 		logger,
 		oauth,
 		allowedHosts,
@@ -162,11 +163,13 @@ export function createMcpHttpApp(
 				allowedHosts: [...allowedHosts],
 				enableDnsRebindingProtection: allowedHosts.length > 0,
 			});
-			const server = createMcpServer(applicationFor(owner), { logger });
+			const server = createMcpServer(useCases, { logger });
 
 			try {
 				await server.connect(transport);
-				await transport.handleRequest(request, response, request.body);
+				await runAs({ kind: "static-mcp", owner }, () =>
+					transport.handleRequest(request, response, request.body),
+				);
 			} finally {
 				await server.close();
 			}

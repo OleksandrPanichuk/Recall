@@ -1,7 +1,8 @@
+import { Injectable } from "@nestjs/common";
 import type { Logger } from "@recall/kit";
-import type { AbandonQuizAttemptUseCase } from "@/modules/attempts";
-import type { GetInsightsUseCase } from "@/modules/insights";
-import type {
+import { AbandonQuizAttemptUseCase } from "@/modules/attempts";
+import { GetInsightsUseCase } from "@/modules/insights";
+import {
 	AttachQuizUseCase,
 	BrowseFolderUseCase,
 	DeletePageUseCase,
@@ -37,36 +38,39 @@ import {
 	UpdateVocabularyUseCase,
 } from "@/modules/vocabulary";
 
-export interface McpUseCases {
-	readonly createQuizSet: CreateQuizSetUseCase;
-	readonly updateQuizSet: UpdateQuizSetUseCase;
-	readonly addQuestions: AddQuestionsUseCase;
-	readonly addVocabulary: AddVocabularyUseCase;
-	readonly updateVocabulary: UpdateVocabularyUseCase;
-	readonly listVocabulary: ListVocabularyUseCase;
-	readonly resolveQuizSettings: ResolveQuizSettingsUseCase;
-	readonly updateQuizSettings: UpdateQuizSettingsUseCase;
-	readonly publishQuizSet: PublishQuizSetUseCase;
-	readonly archiveQuizSet: ArchiveQuizSetUseCase;
-	readonly getQuizSet: GetQuizSetUseCase;
-	readonly listQuizSets: ListQuizSetsUseCase;
-	readonly moveQuizSet: MoveQuizSetUseCase;
-	readonly ensureFolderPath: EnsurePagePathUseCase;
-	readonly resolveFolderPath: ResolvePagePathUseCase;
-	readonly renameFolder: RenamePageUseCase;
-	readonly deleteFolder: DeletePageUseCase;
-	readonly listFolderTree: ListPageTreeUseCase;
-	readonly browseFolder: BrowseFolderUseCase;
-	readonly writeSummary: WriteSummaryUseCase;
-	readonly listRevisions: ListPageRevisionsUseCase;
-	readonly searchPages: SearchPagesUseCase;
-	readonly setPageIcon: SetPageIconUseCase;
-	readonly getInsights: GetInsightsUseCase;
-	readonly abandonQuizAttempt: AbandonQuizAttemptUseCase;
-	readonly attachQuiz: AttachQuizUseCase;
-	readonly detachQuiz: DetachQuizUseCase;
-	readonly updateQuestion: UpdateQuestionUseCase;
-	readonly deleteQuestion: DeleteQuestionUseCase;
+@Injectable()
+export class McpUseCases {
+	constructor(
+		public readonly createQuizSet: CreateQuizSetUseCase,
+		public readonly updateQuizSet: UpdateQuizSetUseCase,
+		public readonly addQuestions: AddQuestionsUseCase,
+		public readonly addVocabulary: AddVocabularyUseCase,
+		public readonly updateVocabulary: UpdateVocabularyUseCase,
+		public readonly listVocabulary: ListVocabularyUseCase,
+		public readonly resolveQuizSettings: ResolveQuizSettingsUseCase,
+		public readonly updateQuizSettings: UpdateQuizSettingsUseCase,
+		public readonly publishQuizSet: PublishQuizSetUseCase,
+		public readonly archiveQuizSet: ArchiveQuizSetUseCase,
+		public readonly getQuizSet: GetQuizSetUseCase,
+		public readonly listQuizSets: ListQuizSetsUseCase,
+		public readonly moveQuizSet: MoveQuizSetUseCase,
+		public readonly ensureFolderPath: EnsurePagePathUseCase,
+		public readonly resolveFolderPath: ResolvePagePathUseCase,
+		public readonly renameFolder: RenamePageUseCase,
+		public readonly deleteFolder: DeletePageUseCase,
+		public readonly listFolderTree: ListPageTreeUseCase,
+		public readonly browseFolder: BrowseFolderUseCase,
+		public readonly writeSummary: WriteSummaryUseCase,
+		public readonly listRevisions: ListPageRevisionsUseCase,
+		public readonly searchPages: SearchPagesUseCase,
+		public readonly setPageIcon: SetPageIconUseCase,
+		public readonly getInsights: GetInsightsUseCase,
+		public readonly abandonQuizAttempt: AbandonQuizAttemptUseCase,
+		public readonly attachQuiz: AttachQuizUseCase,
+		public readonly detachQuiz: DetachQuizUseCase,
+		public readonly updateQuestion: UpdateQuestionUseCase,
+		public readonly deleteQuestion: DeleteQuestionUseCase,
+	) {}
 }
 
 export interface McpServerOptions {
