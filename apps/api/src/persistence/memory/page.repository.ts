@@ -6,6 +6,9 @@ import type {
 } from "@/application/ports/repositories/page.repository";
 import {
 	excerptAround,
+	type LinkedQuizFilter,
+	type LinkedQuizId,
+	type LinkedQuizSummary,
 	PageEntity,
 	type PageId,
 	slugOf,
@@ -26,6 +29,15 @@ const byName = (left: PageEntity, right: PageEntity): number =>
 	left.name === right.name
 		? String(left.id).localeCompare(String(right.id))
 		: left.name.localeCompare(right.name);
+
+const summariesOf = (store: MemoryStore): LinkedQuizSummary[] =>
+	[...store.quizAggregates.values()].map((quiz) => ({
+		id: quiz.id,
+		title: quiz.title,
+		status: quiz.status,
+		questionCount: quiz.questions.length,
+		updatedAt: quiz.updatedAt,
+	}));
 
 const byPosition = (left: PageEntity, right: PageEntity): number =>
 	left.position === right.position
@@ -102,6 +114,36 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 					quiz.pageId === String(id) &&
 					(statuses === undefined || statuses.includes(quiz.status)),
 			).length;
+		},
+
+		async findLinkedQuiz(
+			id: LinkedQuizId,
+		): Promise<LinkedQuizSummary | undefined> {
+			return summariesOf(store).find((quiz) => String(quiz.id) === String(id));
+		},
+
+		async listPublishedQuizzes(
+			filter: LinkedQuizFilter,
+		): Promise<readonly LinkedQuizSummary[]> {
+			return summariesOf(store)
+				.filter((quiz) => quiz.status === QuizSetStatus.Published)
+				.filter((quiz) => {
+					if (filter.pageId === undefined) {
+						return true;
+					}
+
+					const aggregate = store.quizAggregates.get(String(quiz.id));
+
+					return filter.pageId === null
+						? aggregate?.folderId === undefined
+						: String(aggregate?.folderId ?? "") === String(filter.pageId);
+				})
+				.filter(
+					(quiz) =>
+						filter.ids === undefined ||
+						filter.ids.some((id) => String(id) === String(quiz.id)),
+				)
+				.sort((left, right) => left.title.localeCompare(right.title));
 		},
 
 		async countChildPages(id: PageId): Promise<number> {

@@ -1,20 +1,20 @@
 import type {
-	AttemptRepository,
 	AttemptStatistics,
+	AttemptsRepository,
 	TopicAccuracy,
-} from "@/application/ports/repositories/attempt.repository";
+} from "@/modules/attempts";
 import {
-	type QuizAttempt,
+	type AttemptEntity,
 	type QuizAttemptId,
 	QuizAttemptStatus,
-} from "@/domain/quiz-attempt/quiz-attempt";
+} from "@/modules/attempts";
 import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
 import type { MemoryStore } from "./store";
 
 export function createMemoryAttemptRepository(
 	store: MemoryStore,
-): AttemptRepository {
-	const forQuiz = (quizId: QuizSetId): readonly QuizAttempt[] =>
+): AttemptsRepository {
+	const forQuiz = (quizId: QuizSetId): readonly AttemptEntity[] =>
 		[...store.attempts.values()].filter(
 			(attempt) => String(attempt.quizSetId) === String(quizId),
 		);
@@ -34,7 +34,7 @@ export function createMemoryAttemptRepository(
 	};
 
 	return {
-		async save(attempt: QuizAttempt): Promise<void> {
+		async save(attempt: AttemptEntity): Promise<void> {
 			const stored = store.attempts.get(String(attempt.id));
 
 			if (stored !== undefined && stored.updatedAt > attempt.updatedAt) {
@@ -44,11 +44,11 @@ export function createMemoryAttemptRepository(
 			store.attempts.set(String(attempt.id), attempt);
 		},
 
-		async findById(id: QuizAttemptId): Promise<QuizAttempt | undefined> {
+		async findById(id: QuizAttemptId): Promise<AttemptEntity | undefined> {
 			return store.attempts.get(String(id));
 		},
 
-		async findActive(): Promise<QuizAttempt | undefined> {
+		async findActive(): Promise<AttemptEntity | undefined> {
 			return [...store.attempts.values()]
 				.filter(
 					(attempt) =>

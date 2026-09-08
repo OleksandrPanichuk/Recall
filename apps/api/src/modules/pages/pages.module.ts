@@ -3,6 +3,8 @@ import { PagesRepository } from "./pages.repository";
 import { PagesService } from "./pages.service";
 import { PostgresPagesRepository } from "./repositories/pages.postgres.repository";
 import {
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	CreatePageUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,
@@ -19,6 +21,8 @@ import {
 } from "./use-cases";
 
 const useCases = [
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	CreatePageUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,

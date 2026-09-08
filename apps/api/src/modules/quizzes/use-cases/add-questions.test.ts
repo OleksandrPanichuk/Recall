@@ -5,7 +5,7 @@ import {
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
+} from "@tests/fixtures/quiz-sets.fixture";
 import {
 	DuplicateQuestionError,
 	QuestionType,

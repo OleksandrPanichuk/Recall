@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { RepetitionSettings } from "@/domain/repetition/repetition";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
 import { toQuizSetId } from "@/modules/quizzes";
+import { type RepetitionSettings } from "@/modules/scheduling";
+import { StudySettingsEntity } from "@/modules/study-settings";
 import { ok } from "../presenters/tool-result.presenter";
 import {
 	quizSettingsScopeShape,
@@ -32,10 +32,10 @@ const inFreshOrder = (shuffled: boolean): string =>
 		? "in a fresh order every attempt"
 		: "in the order they were authored";
 
-const describe = (settings: QuizSettings): string =>
+const describe = (settings: StudySettingsEntity): string =>
 	`${describeRepetition(settings.repetition)}; options are shown ${inFreshOrder(settings.shuffleOptions)}; questions are asked ${inFreshOrder(settings.shuffleQuestions)}; verdicts are ${settings.examMode ? "withheld until the attempt is finished" : "shown after each answer"}`;
 
-const structured = (settings: QuizSettings) => ({
+const structured = (settings: StudySettingsEntity) => ({
 	intervalsDays: [...settings.repetition.intervalsDays],
 	maxIntervalDays: settings.repetition.maxIntervalDays,
 	maxRepetitions: settings.repetition.maxRepetitions,

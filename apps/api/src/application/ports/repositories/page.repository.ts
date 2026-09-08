@@ -7,9 +7,9 @@ export type {
 } from "@/modules/pages";
 
 import type { AttachmentsRepository } from "@/modules/attachments";
+import type { AttemptsRepository } from "@/modules/attempts";
+import type { AnalyticsRepository } from "@/modules/insights";
 import type { PagesRepository } from "@/modules/pages";
-import type { AnalyticsRepository } from "./analytics.repository";
-import type { AttemptRepository } from "./attempt.repository";
 import type { QuizRepository } from "./quiz.repository";
 import type { ReviewRepository } from "./review.repository";
 import type { TermPairRepository } from "./term-pair.repository";
@@ -17,7 +17,7 @@ import type { TermPairRepository } from "./term-pair.repository";
 export interface RepositoryScope {
 	readonly pages: PagesRepository;
 	readonly quizzes: QuizRepository;
-	readonly attempts: AttemptRepository;
+	readonly attempts: AttemptsRepository;
 	readonly reviews: ReviewRepository;
 	readonly termPairs: TermPairRepository;
 	readonly analytics: AnalyticsRepository;

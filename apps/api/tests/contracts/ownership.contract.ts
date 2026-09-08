@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
 import type { UnitOfWork } from "@/application/ports/unit-of-work";
 import {
+	AttemptEntity,
 	QuizAttemptMode,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
-import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
+} from "@/modules/attempts";
 import { PageEntity, toPageId } from "@/modules/pages";
 import {
 	createQuestion,
@@ -17,6 +16,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { StudySettingsEntity } from "@/modules/study-settings";
 
 export interface OwnedSide {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -254,7 +254,7 @@ export function describeOwnership(
 				await harness.mine.unitOfWork.run(async ({ quizzes, attempts }) => {
 					await quizzes.save(quiz);
 					await attempts.save(
-						startQuizAttempt({
+						AttemptEntity.start({
 							id: toQuizAttemptId(attemptId),
 							quizSetId: toQuizSetId(quizId),
 							telegramUserId,
@@ -280,7 +280,7 @@ export function describeOwnership(
 				await harness.mine.unitOfWork.run(({ reviews }) =>
 					reviews.saveSettings(
 						{ kind: "owner" },
-						{ ...defaultQuizSettings(), examMode: true },
+						{ ...StudySettingsEntity.defaults(), examMode: true },
 					),
 				);
 

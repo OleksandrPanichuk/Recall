@@ -44,30 +44,23 @@ import {
 	writeSummaryCommandSchema,
 } from "@recall/contracts";
 import type { Response } from "express";
-import { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
-import { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
-import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { GetCurrentQuestionUseCase } from "@/application/use-cases/attempts/get-current-question";
-import { RateRecallUseCase } from "@/application/use-cases/attempts/rate-recall";
-import {
-	PauseQuizAttemptUseCase,
-	ResumeQuizAttemptUseCase,
-} from "@/application/use-cases/attempts/resume-quiz-attempt";
-import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
-import { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
-import { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import { StartPracticeSessionUseCase } from "@/application/use-cases/practice/start-practice-session";
-import { ListDueRepetitionsUseCase } from "@/application/use-cases/repetition/list-due-repetitions";
-import { ListLeechesUseCase } from "@/application/use-cases/repetition/list-leeches";
-import { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
-import { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
-import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
-import { GetQuizStatisticsUseCase } from "@/application/use-cases/statistics/get-quiz-statistics";
-import { toQuizAttemptId } from "@/domain/quiz-attempt/quiz-attempt";
 import { ApiTokensService } from "@/modules/api-tokens";
-import { BotTokenGuard } from "@/modules/auth";
 import {
+	AbandonQuizAttemptUseCase,
+	AnswerQuestionUseCase,
+	FinishQuizAttemptUseCase,
+	GetCurrentQuestionUseCase,
+	PauseQuizAttemptUseCase,
+	RateRecallUseCase,
+	ResumeQuizAttemptUseCase,
+	StartQuizAttemptUseCase,
+	toQuizAttemptId,
+} from "@/modules/attempts";
+import { BotTokenGuard } from "@/modules/auth";
+import { GetInsightsUseCase } from "@/modules/insights";
+import {
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	CreatePageUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,
@@ -84,7 +77,20 @@ import {
 	toPageId,
 	WriteSummaryUseCase,
 } from "@/modules/pages";
+import { StartPracticeSessionUseCase } from "@/modules/practice";
 import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
+import {
+	ListDueRepetitionsUseCase,
+	ListLeechesUseCase,
+} from "@/modules/scheduling";
+import {
+	GetAttemptDetailUseCase,
+	GetQuizStatisticsUseCase,
+} from "@/modules/statistics";
+import {
+	ResolveQuizSettingsUseCase,
+	UpdateQuizSettingsUseCase,
+} from "@/modules/study-settings";
 import { IssueLoginLinkUseCase } from "@/modules/telegram-link";
 import { parseBody } from "./parse-body";
 import {

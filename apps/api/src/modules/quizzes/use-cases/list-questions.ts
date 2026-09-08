@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { AttemptRepository } from "@/application/ports/repositories/attempt.repository";
 import { UseCase } from "@/core/use-case";
+import type { AttemptsRepository } from "@/modules/attempts";
 import { QuestionEntity, type QuizSetId, QuizSetStatus } from "..";
 import { QuizzesRepository } from "../quizzes.repository";
 import { ATTEMPTS } from "../quizzes.tokens";
@@ -24,7 +24,7 @@ type Result = readonly QuestionRow[];
 export class ListQuestionsUseCase extends UseCase<Options, Result> {
 	constructor(
 		private readonly quizzes: QuizzesRepository,
-		@Inject(ATTEMPTS) private readonly attempts: AttemptRepository,
+		@Inject(ATTEMPTS) private readonly attempts: AttemptsRepository,
 	) {
 		super();
 	}

@@ -15,22 +15,23 @@ import type {
 	StartQuizAttemptResult as WireStartResult,
 	QuizStatistics as WireStatistics,
 } from "@recall/contracts";
-import type { Insights } from "@/application/use-cases/analytics/get-insights";
-import type { AnswerQuestionResult } from "@/application/use-cases/attempts/answer-question";
-import type { FinishQuizAttemptResult } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import type { CurrentQuestionView } from "@/application/use-cases/attempts/get-current-question";
-import type { ResumeQuizAttemptResult } from "@/application/use-cases/attempts/resume-quiz-attempt";
-import type { StartQuizAttemptResult } from "@/application/use-cases/attempts/start-quiz-attempt";
-import type { AttachedQuiz } from "@/application/use-cases/folders/attach-quiz";
-import type { BrowseView } from "@/application/use-cases/folders/browse-folder";
-import type { StartPracticeSessionResult } from "@/application/use-cases/practice/start-practice-session";
-import type { LeechView } from "@/application/use-cases/repetition/list-leeches";
-import type { ResolvedQuizSettings } from "@/application/use-cases/settings/resolve-quiz-settings";
-import type { AttemptDetail } from "@/application/use-cases/statistics/get-attempt-detail";
-import type { QuizStatistics } from "@/application/use-cases/statistics/get-quiz-statistics";
-import type { DueSet } from "@/domain/repetition/repetition.types";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
+import type {
+	AnswerQuestionResult,
+	CurrentQuestionView,
+	FinishQuizAttemptResult,
+	ResumeQuizAttemptResult,
+	StartQuizAttemptResult,
+} from "@/modules/attempts";
+import type { Insights } from "@/modules/insights";
+import type { AttachedQuiz, BrowseView } from "@/modules/pages";
+import type { StartPracticeSessionResult } from "@/modules/practice";
 import { questionToWire, quizSummaryToWire } from "@/modules/quizzes";
+import { type DueSet, type LeechView } from "@/modules/scheduling";
+import type { AttemptDetail, QuizStatistics } from "@/modules/statistics";
+import {
+	type ResolvedQuizSettings,
+	StudySettingsEntity,
+} from "@/modules/study-settings";
 
 const text = (value: string | undefined): string | undefined =>
 	value === undefined ? undefined : value;
@@ -222,7 +223,9 @@ export const leechToWire = (leech: LeechView): WireLeech => ({
 	lapses: leech.lapses,
 });
 
-export const settingsToWire = (settings: QuizSettings): WireQuizSettings => ({
+export const settingsToWire = (
+	settings: StudySettingsEntity,
+): WireQuizSettings => ({
 	repetition: {
 		scheduler: settings.repetition.scheduler,
 		intervalsDays: [...settings.repetition.intervalsDays],

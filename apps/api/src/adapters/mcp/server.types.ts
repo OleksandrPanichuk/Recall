@@ -1,11 +1,9 @@
 import type { Logger } from "@recall/kit";
-import type { GetInsightsUseCase } from "@/application/use-cases/analytics/get-insights";
-import type { AbandonQuizAttemptUseCase } from "@/application/use-cases/attempts/abandon-quiz-attempt";
-import type { AttachQuizUseCase } from "@/application/use-cases/folders/attach-quiz";
-import type { BrowseFolderUseCase } from "@/application/use-cases/folders/browse-folder";
-import type { ResolveQuizSettingsUseCase } from "@/application/use-cases/settings/resolve-quiz-settings";
-import type { UpdateQuizSettingsUseCase } from "@/application/use-cases/settings/update-quiz-settings";
+import type { AbandonQuizAttemptUseCase } from "@/modules/attempts";
+import type { GetInsightsUseCase } from "@/modules/insights";
 import type {
+	AttachQuizUseCase,
+	BrowseFolderUseCase,
 	DeletePageUseCase,
 	DetachQuizUseCase,
 	EnsurePagePathUseCase,
@@ -29,6 +27,10 @@ import {
 	UpdateQuestionUseCase,
 	UpdateQuizSetUseCase,
 } from "@/modules/quizzes";
+import {
+	ResolveQuizSettingsUseCase,
+	UpdateQuizSettingsUseCase,
+} from "@/modules/study-settings";
 import {
 	AddVocabularyUseCase,
 	ListVocabularyUseCase,

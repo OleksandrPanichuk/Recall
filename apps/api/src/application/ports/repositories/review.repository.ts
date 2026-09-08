@@ -1,19 +1,6 @@
-import type { RepetitionSchedule } from "@/domain/repetition/repetition";
-import type { QuizSettings } from "@/domain/settings/quiz-settings";
-import { type QuestionId, type QuizSetId } from "@/modules/quizzes";
+import type { SchedulesRepository } from "@/modules/scheduling";
+import type { StudySettingsRepository } from "@/modules/study-settings";
 
-export type SettingsScope =
-	| { readonly kind: "owner" }
-	| { readonly kind: "quiz"; readonly quizId: QuizSetId };
+export type { SettingsScope } from "@/modules/study-settings";
 
-export interface ReviewRepository {
-	saveSchedules(schedules: readonly RepetitionSchedule[]): Promise<void>;
-	findSchedules(
-		questionIds: readonly QuestionId[],
-	): Promise<readonly RepetitionSchedule[]>;
-	listDue(at: Date): Promise<readonly RepetitionSchedule[]>;
-	listLeeches(threshold: number): Promise<readonly RepetitionSchedule[]>;
-	saveSettings(scope: SettingsScope, settings: QuizSettings): Promise<void>;
-	findSettings(scope: SettingsScope): Promise<QuizSettings | undefined>;
-	clearSettings(scope: SettingsScope): Promise<void>;
-}
+export type ReviewRepository = SchedulesRepository & StudySettingsRepository;

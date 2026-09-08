@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { AttemptRepository } from "@/application/ports/repositories/attempt.repository";
 import { Clock } from "@/core/ports/clock";
 import { Transaction } from "@/core/transaction";
 import { UseCase } from "@/core/use-case";
+import type { AttemptsRepository } from "@/modules/attempts";
 import { type QuestionId, QuizSetEntity, type QuizSetId } from "..";
 import {
 	AnsweredQuestionError,
@@ -29,7 +29,7 @@ type Result = DeleteQuestionResult;
 export class DeleteQuestionUseCase extends UseCase<Options, Result> {
 	constructor(
 		private readonly quizzes: QuizzesRepository,
-		@Inject(ATTEMPTS) private readonly attempts: AttemptRepository,
+		@Inject(ATTEMPTS) private readonly attempts: AttemptsRepository,
 		private readonly transaction: Transaction,
 		private readonly clock: Clock,
 	) {

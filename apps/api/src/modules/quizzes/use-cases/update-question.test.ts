@@ -1,21 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
-import { AnswerQuestionUseCase } from "@/application/use-cases/attempts/answer-question";
-import { FinishQuizAttemptUseCase } from "@/application/use-cases/attempts/finish-quiz-attempt";
-import { StartQuizAttemptUseCase } from "@/application/use-cases/attempts/start-quiz-attempt";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
-import { GetAttemptDetailUseCase } from "@/application/use-cases/statistics/get-attempt-detail";
+} from "@tests/fixtures/quiz-sets.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	QuestionType,
 	QuestionValidationError,
 	toQuestionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { GetAttemptDetailUseCase } from "@/modules/statistics";
 import {
 	QuestionNotFoundError,
 	QuizSetNotFoundError,
@@ -230,10 +228,13 @@ describe("UpdateQuestionUseCase", () => {
 			throw new Error("the fixture has no incorrect option");
 		}
 
-		const start = new StartQuizAttemptUseCase(harness.context);
-		const answer = new AnswerQuestionUseCase(harness.context);
-		const finish = new FinishQuizAttemptUseCase(harness.context);
-		const detail = new GetAttemptDetailUseCase(harness.context);
+		const start = attemptsOver(harness.context).startQuizAttempt;
+		const answer = attemptsOver(harness.context).answerQuestion;
+		const finish = attemptsOver(harness.context).finishQuizAttempt;
+		const detail = new GetAttemptDetailUseCase(
+			harness.context.scope.attempts,
+			harness.context.scope.quizzes,
+		);
 
 		const { attemptId } = await start.execute({
 			quizSetId,

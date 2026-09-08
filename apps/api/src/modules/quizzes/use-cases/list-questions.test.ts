@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
 import { anAnswer, anAttempt } from "@tests/fixtures/quiz-attempt.fixture";
-import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
 import {
 	anotherQuestionInput,
 	aQuestionInput,
 	createQuizSetsHarness,
 	type QuizSetsHarness,
-} from "@/application/use-cases/quiz-sets/quiz-sets.fixture";
-import { recordResponse } from "@/domain/quiz-attempt/quiz-attempt";
+} from "@tests/fixtures/quiz-sets.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import { AttemptEntity } from "@/modules/attempts";
 import { type QuizSetId } from "@/modules/quizzes";
 import { ListQuestionsUseCase } from "./list-questions";
 
@@ -104,7 +104,7 @@ describe("ListQuestionsUseCase", () => {
 
 		await context.unitOfWork.run(({ attempts }) =>
 			attempts.save(
-				recordResponse(
+				AttemptEntity.recordResponse(
 					anAttempt({
 						quizSetId: String(quizSetId),
 						questionIds: [questionId],

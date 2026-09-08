@@ -4,14 +4,18 @@ import {
 	pageRevisions,
 	pageShares,
 	pages,
+	questions,
 	quizAttachments,
 	quizzes,
 } from "@/db/schema";
 import { isUuid } from "@/db/uuid";
 import { PageEntity, type PageId, toPageId } from "../page.entity";
 import {
+	type LinkedQuizFilter,
 	type LinkedQuizId,
 	type LinkedQuizStatus,
+	type LinkedQuizSummary,
+	PUBLISHED,
 	toLinkedQuizId,
 } from "../page.quiz-link";
 
@@ -469,6 +473,68 @@ export class PostgresPagesRepository extends PagesRepository {
 					eq(pageShares.pageId, String(id)),
 				),
 			);
+	}
+
+	async findLinkedQuiz(
+		id: LinkedQuizId,
+	): Promise<LinkedQuizSummary | undefined> {
+		const [found] = await this.listLinked([eq(quizzes.id, String(id))]);
+
+		return isUuid(String(id)) ? found : undefined;
+	}
+
+	listPublishedQuizzes(
+		filter: LinkedQuizFilter,
+	): Promise<readonly LinkedQuizSummary[]> {
+		const conditions = [inArray(quizzes.status, [...PUBLISHED])];
+
+		if (filter.pageId === null) {
+			conditions.push(isNull(quizzes.pageId));
+		} else if (filter.pageId !== undefined) {
+			if (!isUuid(String(filter.pageId))) {
+				return Promise.resolve([]);
+			}
+
+			conditions.push(eq(quizzes.pageId, String(filter.pageId)));
+		}
+
+		if (filter.ids !== undefined) {
+			const ids = filter.ids.map(String).filter(isUuid);
+
+			if (ids.length === 0) {
+				return Promise.resolve([]);
+			}
+
+			conditions.push(inArray(quizzes.id, ids));
+		}
+
+		return this.listLinked(conditions);
+	}
+
+	private async listLinked(
+		conditions: ReturnType<typeof eq>[],
+	): Promise<readonly LinkedQuizSummary[]> {
+		const rows = await this.executor
+			.select({
+				id: quizzes.id,
+				title: quizzes.title,
+				status: quizzes.status,
+				updatedAt: quizzes.updatedAt,
+				questionCount: count(questions.id),
+			})
+			.from(quizzes)
+			.leftJoin(questions, eq(questions.quizId, quizzes.id))
+			.where(and(eq(quizzes.ownerId, this.owner), ...conditions))
+			.groupBy(quizzes.id)
+			.orderBy(asc(quizzes.title));
+
+		return rows.map((row) => ({
+			id: toLinkedQuizId(row.id),
+			title: row.title,
+			status: row.status as LinkedQuizStatus,
+			questionCount: Number(row.questionCount),
+			updatedAt: row.updatedAt,
+		}));
 	}
 
 	async delete(id: PageId): Promise<void> {
