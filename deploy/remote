@@ -1,0 +1,124 @@
+#!/bin/sh
+set -eu
+
+target="${RECALL_SSH:-recall-server}"
+remote_dir="${RECALL_REMOTE_DIR:-recall-quiz}"
+nginx_port="${RECALL_NGINX_PORT:-8080}"
+host="ssh://$target"
+
+usage() {
+	cat <<USAGE
+recall remote — drive the deployment on $target from this machine
+
+  deploy/remote status                 what is running, and how healthy
+  deploy/remote logs [service] [n]     follow logs (default api, last 200 lines)
+  deploy/remote sh [service]           root shell inside a container (default api)
+  deploy/remote psql                   interactive psql on the deployment database
+  deploy/remote sql "select 1;"        run one statement and print the result
+  deploy/remote sql -f local.sql       run a local .sql file against the server
+  deploy/remote tunnel                 forward postgres, minio, mailpit, ngrok, nginx
+  deploy/remote stack <args...>        run deploy/stack on the server
+  deploy/remote ssh                    plain shell on the host
+
+  service is the short name: api, web, bot, nginx, ngrok, postgres, minio, mailpit
+
+  RECALL_SSH=$target
+  RECALL_REMOTE_DIR=$remote_dir
+  RECALL_NGINX_PORT=$nginx_port
+USAGE
+}
+
+container() {
+	case "$1" in
+	api | web | bot | nginx | ngrok | postgres | minio | mailpit) echo "recall-$1" ;;
+	recall-*) echo "$1" ;;
+	*)
+		echo "unknown service '$1' — pick api, web, bot, nginx, ngrok, postgres, minio or mailpit" >&2
+		exit 1
+		;;
+	esac
+}
+
+psql_in_container='exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+
+command="${1:-status}"
+[ $# -gt 0 ] && shift
+
+case "$command" in
+status)
+	docker -H "$host" ps -a --filter 'name=recall-' \
+		--format 'table {{.Names}}\t{{.State}}\t{{.Status}}'
+	;;
+
+logs)
+	name=$(container "${1:-api}")
+	docker -H "$host" logs -f --tail "${2:-200}" "$name"
+	;;
+
+sh)
+	name=$(container "${1:-api}")
+	ssh -t "$target" "docker exec -it -u root $name bash"
+	;;
+
+psql)
+	ssh -t "$target" "docker exec -it recall-postgres sh -c '$psql_in_container'"
+	;;
+
+sql)
+	if [ "${1:-}" = "-f" ]; then
+		[ -n "${2:-}" ] || {
+			echo "sql -f needs a file" >&2
+			exit 1
+		}
+		ssh "$target" "docker exec -i recall-postgres sh -c '$psql_in_container'" <"$2"
+	else
+		[ -n "${1:-}" ] || {
+			echo "sql needs a statement, or -f <file>" >&2
+			exit 1
+		}
+		printf '%s\n' "$*" |
+			ssh "$target" "docker exec -i recall-postgres sh -c '$psql_in_container'"
+	fi
+	;;
+
+tunnel)
+	cat <<PORTS
+forwarding from $target — Ctrl+C to close
+
+  postgres        127.0.0.1:15432   postgres://<user>@127.0.0.1:15432/<db>
+  minio s3        127.0.0.1:15090
+  minio console   http://127.0.0.1:15091
+  mailpit         http://127.0.0.1:15026
+  ngrok inspector http://127.0.0.1:14040
+  nginx           http://127.0.0.1:18080
+
+PORTS
+	exec ssh -N \
+		-L 15432:127.0.0.1:55432 \
+		-L 15090:127.0.0.1:55090 \
+		-L 15091:127.0.0.1:55091 \
+		-L 15026:127.0.0.1:55026 \
+		-L 14040:127.0.0.1:4040 \
+		-L "18080:127.0.0.1:$nginx_port" \
+		"$target"
+	;;
+
+stack)
+	ssh -t "$target" "cd '$remote_dir' && deploy/stack $*"
+	;;
+
+ssh)
+	exec ssh -t "$target"
+	;;
+
+help | -h | --help)
+	usage
+	;;
+
+*)
+	echo "unknown command '$command'" >&2
+	echo >&2
+	usage >&2
+	exit 1
+	;;
+esac
