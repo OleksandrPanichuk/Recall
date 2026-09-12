@@ -1,5 +1,5 @@
-import { emptyStore } from "@/persistence/memory/store";
-import { createMemoryPersistence } from "@/persistence/memory/unit-of-work";
+import { emptyStore } from "@tests/fixtures/memory/store";
+import { createMemoryPersistence } from "@tests/fixtures/memory/unit-of-work";
 import { describeReviewRepository } from "../contracts/review.repository.contract";
 
 const store = emptyStore();

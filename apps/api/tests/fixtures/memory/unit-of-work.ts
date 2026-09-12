@@ -1,0 +1,104 @@
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
+import type { OwnerId } from "@/core/owner";
+import { Transaction } from "@/core/transaction";
+import { createMemoryAnalyticsRepository } from "./analytics.repository";
+import { createMemoryAttachmentRepository } from "./attachment.repository";
+import { createMemoryAttemptRepository } from "./attempt.repository";
+import { createMemoryPageRepository } from "./page.repository";
+import { createMemoryQuizRepository } from "./quiz.repository";
+import { createMemoryReviewRepository } from "./review.repository";
+import { emptyStore, type MemoryStore, restoreInto, snapshotOf } from "./store";
+import { createMemoryTermPairRepository } from "./term-pair.repository";
+
+export class MemoryTransaction extends Transaction {
+	private depth = 0;
+
+	constructor(private readonly store: MemoryStore) {
+		super();
+	}
+
+	async run<TResult>(operation: () => Promise<TResult>): Promise<TResult> {
+		if (this.depth > 0) {
+			return operation();
+		}
+
+		const snapshot = snapshotOf(this.store);
+
+		this.depth += 1;
+
+		try {
+			return await operation();
+		} catch (error) {
+			restoreInto(this.store, snapshot);
+
+			throw error;
+		} finally {
+			this.depth -= 1;
+		}
+	}
+}
+
+export interface MemoryPersistence {
+	readonly store: MemoryStore;
+	readonly unitOfWork: UnitOfWork<RepositoryScope>;
+	readonly scope: RepositoryScope;
+	readonly transaction: Transaction;
+}
+
+export interface MemoryStores {
+	of(owner: OwnerId): MemoryStore;
+	owners(): readonly OwnerId[];
+}
+
+export function createMemoryStores(): MemoryStores {
+	const stores = new Map<string, MemoryStore>();
+
+	return {
+		of: (owner) => {
+			const existing = stores.get(owner);
+
+			if (existing !== undefined) {
+				return existing;
+			}
+
+			const created = emptyStore();
+
+			stores.set(owner, created);
+
+			return created;
+		},
+		owners: () => [...stores.keys()] as OwnerId[],
+	};
+}
+
+export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
+	const scope: RepositoryScope = {
+		pages: createMemoryPageRepository(store),
+		quizzes: createMemoryQuizRepository(store),
+		attempts: createMemoryAttemptRepository(store),
+		reviews: createMemoryReviewRepository(store),
+		termPairs: createMemoryTermPairRepository(store),
+		analytics: createMemoryAnalyticsRepository(store),
+		attachments: createMemoryAttachmentRepository(store),
+	};
+
+	return {
+		store,
+		scope,
+		transaction: new MemoryTransaction(store),
+		unitOfWork: {
+			run: async (operation) => {
+				const snapshot = snapshotOf(store);
+
+				try {
+					return await operation(scope);
+				} catch (error) {
+					restoreInto(store, snapshot);
+
+					throw error;
+				}
+			},
+		},
+	};
+}

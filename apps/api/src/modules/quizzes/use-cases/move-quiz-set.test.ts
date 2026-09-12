@@ -1,0 +1,117 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	createMemoryContext,
+	type MemoryContext,
+} from "@tests/fixtures/memory.fixture";
+import { quizzesOver } from "@tests/fixtures/quizzes.use-cases";
+import {
+	CreatePageUseCase,
+	FolderNotFoundError,
+	type PageId,
+	PagesService,
+} from "@/modules/pages";
+import {
+	QuizSetEntity,
+	type QuizSetId,
+	QuizSetStatus,
+} from "@/modules/quizzes";
+import {
+	aQuestion,
+	aQuizSet,
+} from "../../../../tests/fixtures/quiz-set.fixture";
+import { MoveQuizSetUseCase } from "./move-quiz-set";
+
+let context: MemoryContext;
+let moveQuizSet: MoveQuizSetUseCase;
+let createFolder: CreatePageUseCase;
+
+beforeEach(() => {
+	context = createMemoryContext();
+	createFolder = new CreatePageUseCase(
+		context.scope.pages,
+		new PagesService(context.scope.pages),
+		context.transaction,
+		context.clock,
+		context.idGenerator,
+	);
+	moveQuizSet = quizzesOver(context).moveQuizSet;
+});
+
+afterEach(() => {
+	context.close();
+});
+
+const storedSet = async (published = false): Promise<QuizSetId> => {
+	const draft = aQuizSet({ id: "set-1", questions: [aQuestion({ id: "q1" })] });
+	const quizSet = published
+		? QuizSetEntity.publish(draft, context.clock.now())
+		: draft;
+
+	await context.unitOfWork.run(({ quizzes }) => quizzes.save(quizSet));
+
+	return quizSet.id;
+};
+
+const folderOf = async (quizSetId: QuizSetId): Promise<PageId | undefined> =>
+	(await context.scope.quizzes.findById(quizSetId))?.folderId;
+
+describe("MoveQuizSetUseCase", () => {
+	test("files a set into a folder", async () => {
+		const quizSetId = await storedSet();
+		const { folderId } = await createFolder.execute({ name: "English" });
+
+		await moveQuizSet.execute({ quizSetId, folderId });
+
+		expect(await folderOf(quizSetId)).toBe(folderId);
+	});
+
+	test("files a published set", async () => {
+		const quizSetId = await storedSet(true);
+		const { folderId } = await createFolder.execute({ name: "English" });
+
+		await moveQuizSet.execute({ quizSetId, folderId });
+
+		expect(await folderOf(quizSetId)).toBe(folderId);
+		expect((await context.scope.quizzes.findById(quizSetId))?.status).toBe(
+			QuizSetStatus.Published,
+		);
+	});
+
+	test("returns a set to unfiled", async () => {
+		const quizSetId = await storedSet();
+		const { folderId } = await createFolder.execute({ name: "English" });
+		await moveQuizSet.execute({ quizSetId, folderId });
+
+		await moveQuizSet.execute({ quizSetId, folderId: undefined });
+
+		expect(await folderOf(quizSetId)).toBeUndefined();
+	});
+
+	test("rejects an unknown folder", async () => {
+		const quizSetId = await storedSet();
+
+		await expect(
+			moveQuizSet.execute({ quizSetId, folderId: "missing" as PageId }),
+		).rejects.toBeInstanceOf(FolderNotFoundError);
+	});
+
+	test("rejects a set created into an unknown folder", async () => {
+		const createQuizSet = quizzesOver(context).createQuizSet;
+
+		await expect(
+			createQuizSet.execute({
+				title: "T",
+				language: "uk",
+				folderId: "missing" as PageId,
+			}),
+		).rejects.toBeInstanceOf(FolderNotFoundError);
+	});
+
+	test("rejects an unknown set", async () => {
+		const { folderId } = await createFolder.execute({ name: "English" });
+
+		expect(
+			moveQuizSet.execute({ quizSetId: "missing" as QuizSetId, folderId }),
+		).rejects.toBeInstanceOf(Error);
+	});
+});

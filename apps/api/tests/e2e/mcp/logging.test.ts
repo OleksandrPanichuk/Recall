@@ -13,8 +13,8 @@ import {
 	createSequentialIdGenerator,
 	sequentialId,
 } from "@tests/fixtures/memory.fixture";
-import { createMcpServer } from "@/adapters/mcp/server";
-import { QuestionType } from "@/domain/quiz-set/question";
+import { createMcpServer } from "@/modules/mcp/mcp.server";
+import { QuestionType } from "@/modules/quizzes";
 
 let application: MemoryApplication;
 let client: Client;

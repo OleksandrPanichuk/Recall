@@ -1,25 +1,22 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { createFolder, toFolderId } from "@/domain/folder/folder";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
 import {
+	AttemptEntity,
 	QuizAttemptMode,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+} from "@/modules/attempts";
+import { PageEntity, toPageId } from "@/modules/pages";
 import {
+	createQuestion,
 	Difficulty,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import { defaultQuizSettings } from "@/domain/settings/quiz-settings";
+} from "@/modules/quizzes";
+import { StudySettingsEntity } from "@/modules/study-settings";
 
 export interface OwnedSide {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -78,15 +75,19 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					),
 				);
 
 				expect(
-					await harness.mine.scope.pages.findById(toFolderId(id)),
+					await harness.mine.scope.pages.findById(toPageId(id)),
 				).toBeDefined();
 				expect(
-					await harness.theirs.scope.pages.findById(toFolderId(id)),
+					await harness.theirs.scope.pages.findById(toPageId(id)),
 				).toBeUndefined();
 				expect(await harness.theirs.scope.pages.listAll()).toEqual([]);
 			});
@@ -95,7 +96,7 @@ export function describeOwnership(
 				const mine = uuid();
 				const theirs = uuid();
 				const page = (id: string) =>
-					createFolder({ id: toFolderId(id), name: "Books", createdAt: at });
+					PageEntity.create({ id: toPageId(id), name: "Books", createdAt: at });
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(page(mine)),
@@ -110,7 +111,7 @@ export function describeOwnership(
 
 			test("a quiz one owner writes is invisible to the other", async () => {
 				const id = uuid();
-				const quiz = createQuizSet({
+				const quiz = QuizSetEntity.create({
 					id: toQuizSetId(id),
 					title: "Designing Data-Intensive Applications",
 					language: "en",
@@ -136,15 +137,19 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					),
 				);
 				await harness.theirs.unitOfWork.run(({ pages }) =>
-					pages.delete(toFolderId(id)),
+					pages.delete(toPageId(id)),
 				);
 
 				expect(
-					await harness.mine.scope.pages.findById(toFolderId(id)),
+					await harness.mine.scope.pages.findById(toPageId(id)),
 				).toBeDefined();
 			});
 
@@ -153,20 +158,24 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(async ({ pages }) => {
 					await pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					);
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "mine-alone",
 						createdAt: at,
 					});
 				});
 
 				expect(
-					await harness.theirs.scope.pages.shareOf(toFolderId(id)),
+					await harness.theirs.scope.pages.shareOf(toPageId(id)),
 				).toBeUndefined();
 				expect(
-					(await harness.mine.scope.pages.shareOf(toFolderId(id)))?.token,
+					(await harness.mine.scope.pages.shareOf(toPageId(id)))?.token,
 				).toBe("mine-alone");
 			});
 
@@ -175,22 +184,26 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(({ pages }) =>
 					pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					),
 				);
 				await harness.theirs.unitOfWork.run(({ pages }) =>
 					pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "not-theirs-to-give",
 						createdAt: at,
 					}),
 				);
 
 				expect(
-					await harness.mine.scope.pages.shareOf(toFolderId(id)),
+					await harness.mine.scope.pages.shareOf(toPageId(id)),
 				).toBeUndefined();
 				expect(
-					await harness.theirs.scope.pages.shareOf(toFolderId(id)),
+					await harness.theirs.scope.pages.shareOf(toPageId(id)),
 				).toBeUndefined();
 			});
 
@@ -199,20 +212,24 @@ export function describeOwnership(
 
 				await harness.mine.unitOfWork.run(async ({ pages }) => {
 					await pages.save(
-						createFolder({ id: toFolderId(id), name: "Books", createdAt: at }),
+						PageEntity.create({
+							id: toPageId(id),
+							name: "Books",
+							createdAt: at,
+						}),
 					);
 					await pages.saveShare({
-						pageId: toFolderId(id),
+						pageId: toPageId(id),
 						token: "still-open",
 						createdAt: at,
 					});
 				});
 				await harness.theirs.unitOfWork.run(({ pages }) =>
-					pages.deleteShare(toFolderId(id)),
+					pages.deleteShare(toPageId(id)),
 				);
 
 				expect(
-					(await harness.mine.scope.pages.shareOf(toFolderId(id)))?.token,
+					(await harness.mine.scope.pages.shareOf(toPageId(id)))?.token,
 				).toBe("still-open");
 			});
 
@@ -223,8 +240,8 @@ export function describeOwnership(
 				const telegramUserId = 42;
 
 				const question = aQuestion(questionId);
-				const quiz = addQuestions(
-					createQuizSet({
+				const quiz = QuizSetEntity.addQuestions(
+					QuizSetEntity.create({
 						id: toQuizSetId(quizId),
 						title: "Replication",
 						language: "en",
@@ -237,7 +254,7 @@ export function describeOwnership(
 				await harness.mine.unitOfWork.run(async ({ quizzes, attempts }) => {
 					await quizzes.save(quiz);
 					await attempts.save(
-						startQuizAttempt({
+						AttemptEntity.start({
 							id: toQuizAttemptId(attemptId),
 							quizSetId: toQuizSetId(quizId),
 							telegramUserId,
@@ -263,7 +280,7 @@ export function describeOwnership(
 				await harness.mine.unitOfWork.run(({ reviews }) =>
 					reviews.saveSettings(
 						{ kind: "owner" },
-						{ ...defaultQuizSettings(), examMode: true },
+						{ ...StudySettingsEntity.defaults(), examMode: true },
 					),
 				);
 

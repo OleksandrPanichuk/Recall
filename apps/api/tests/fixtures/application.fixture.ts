@@ -1,12 +1,12 @@
 import {
+	createUseCases,
+	type UseCases,
+} from "@tests/fixtures/application.use-cases";
+import {
 	createMemoryContext,
 	type MemoryContext,
 	type MemoryContextOptions,
 } from "@tests/fixtures/memory.fixture";
-import {
-	createUseCases,
-	type UseCases,
-} from "@/composition/create-application";
 
 export interface MemoryApplication extends UseCases {
 	readonly context: MemoryContext;

@@ -96,7 +96,7 @@ export function planServices(
 	return [
 		{
 			name: "api",
-			entry: "apps/api/src/entrypoints/serve.ts",
+			entry: "apps/api/src/main.ts",
 			...(wanted("api") === undefined
 				? {
 						host: apiHost,

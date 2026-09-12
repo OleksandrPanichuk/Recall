@@ -1,27 +1,17 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
 import {
+	createQuestion,
 	Difficulty,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import {
-	defaultQuizSettings,
-	withExamMode,
-	withRepetition,
-} from "@/domain/settings/quiz-settings";
-import {
-	createVocabularyItem,
-	toVocabularyItemId,
-} from "@/domain/vocabulary/vocabulary-item";
+} from "@/modules/quizzes";
+import { StudySettingsEntity } from "@/modules/study-settings";
+import { TermPairEntity, toVocabularyItemId } from "@/modules/vocabulary";
 
 export interface ReviewRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -81,8 +71,8 @@ export function describeReviewRepository(
 
 				await harness.unitOfWork.run(async ({ quizzes }) => {
 					await quizzes.save(
-						addQuestions(
-							createQuizSet({
+						QuizSetEntity.addQuestions(
+							QuizSetEntity.create({
 								id: toQuizSetId(quizId),
 								title: "Replication",
 								language: "en",
@@ -201,8 +191,11 @@ export function describeReviewRepository(
 			});
 
 			test("keeps owner settings and quiz settings apart", async () => {
-				const owner = defaultQuizSettings();
-				const perQuiz = withExamMode(defaultQuizSettings(), true);
+				const owner = StudySettingsEntity.defaults();
+				const perQuiz = StudySettingsEntity.withExamMode(
+					StudySettingsEntity.defaults(),
+					true,
+				);
 
 				await harness.unitOfWork.run(async ({ reviews }) => {
 					await reviews.saveSettings({ kind: "owner" }, owner);
@@ -226,10 +219,16 @@ export function describeReviewRepository(
 
 			test("overwrites settings for the same scope", async () => {
 				await harness.unitOfWork.run(async ({ reviews }) => {
-					await reviews.saveSettings({ kind: "owner" }, defaultQuizSettings());
 					await reviews.saveSettings(
 						{ kind: "owner" },
-						withExamMode(defaultQuizSettings(), true),
+						StudySettingsEntity.defaults(),
+					);
+					await reviews.saveSettings(
+						{ kind: "owner" },
+						StudySettingsEntity.withExamMode(
+							StudySettingsEntity.defaults(),
+							true,
+						),
 					);
 				});
 
@@ -244,8 +243,8 @@ export function describeReviewRepository(
 				await harness.unitOfWork.run(async ({ reviews }) => {
 					await reviews.saveSettings(
 						{ kind: "owner" },
-						withRepetition(defaultQuizSettings(), {
-							...defaultQuizSettings().repetition,
+						StudySettingsEntity.withRepetition(StudySettingsEntity.defaults(), {
+							...StudySettingsEntity.defaults().repetition,
 							scheduler: "fsrs",
 							desiredRetention: 0.95,
 						}),
@@ -262,10 +261,13 @@ export function describeReviewRepository(
 
 			test("clears settings for one scope only", async () => {
 				await harness.unitOfWork.run(async ({ reviews }) => {
-					await reviews.saveSettings({ kind: "owner" }, defaultQuizSettings());
+					await reviews.saveSettings(
+						{ kind: "owner" },
+						StudySettingsEntity.defaults(),
+					);
 					await reviews.saveSettings(
 						{ kind: "quiz", quizId: toQuizSetId(quizId) },
-						defaultQuizSettings(),
+						StudySettingsEntity.defaults(),
 					);
 					await reviews.clearSettings({
 						kind: "quiz",
@@ -289,7 +291,7 @@ export function describeReviewRepository(
 
 				await harness.unitOfWork.run(async ({ termPairs }) => {
 					await termPairs.save(
-						createVocabularyItem({
+						TermPairEntity.create({
 							id: toVocabularyItemId(pairId),
 							quizSetId: toQuizSetId(quizId),
 							terms: ["shard"],

@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+if [ ! -f "$root/.env.deploy" ]; then
+	echo "missing $root/.env.deploy — start with: cp deploy/env.example .env.deploy" >&2
+	exit 1
+fi
+
+cd "$root"
+exec docker compose --env-file .env.deploy -f docker-compose.deploy.yml "$@"

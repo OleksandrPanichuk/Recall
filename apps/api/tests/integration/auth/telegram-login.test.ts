@@ -2,9 +2,9 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
-import { createApiApp } from "@/entrypoints/api";
-import { identifierFor } from "@/modules/auth/telegram-link.plugin";
-import { verification } from "@/persistence/postgres/auth-schema";
+import { createApiApp } from "@/api.factory";
+import { verification } from "@/db/schema";
+import { LoginToken } from "@/modules/telegram-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -203,7 +203,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 
 		await harness.db.insert(verification).values({
 			id: randomUUID(),
-			identifier: identifierFor(token),
+			identifier: LoginToken.identifierFor(token),
 			value: randomUUID(),
 			expiresAt: new Date(Date.now() - 60_000),
 		});

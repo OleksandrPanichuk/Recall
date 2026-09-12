@@ -1,0 +1,64 @@
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { type Express, json, urlencoded } from "express";
+import { loadApiEnvironment } from "@/configs/env.config";
+import { AppModule } from "@/modules/app.module";
+import { AUTH_BASE_PATH, AuthEngine } from "@/modules/auth";
+import { MCP_SURFACE, type McpSurface } from "@/modules/mcp/mcp.module";
+import { ModuleErrorFilter } from "@/shared/http/module-error.filter";
+import { mountSwagger, SWAGGER_PATH } from "@/shared/http/swagger.document";
+import { requestContextMiddleware } from "@/shared/request-context";
+
+export async function createApiApp() {
+	const app = await NestFactory.create(AppModule, {
+		bufferLogs: false,
+		bodyParser: false,
+	});
+
+	const environment = loadApiEnvironment();
+
+	const browserOrigins = [
+		environment.adminOrigin,
+		environment.webAppUrl,
+	].filter((origin): origin is string => origin !== undefined);
+
+	if (browserOrigins.length > 0) {
+		app.enableCors({ origin: browserOrigins, credentials: true });
+	}
+
+	const instance = app.getHttpAdapter().getInstance() as Express;
+
+	instance.use(requestContextMiddleware);
+
+	const mcp = app.get<McpSurface>(MCP_SURFACE);
+
+	if (mcp.app !== undefined) {
+		instance.use(mcp.app);
+	}
+
+	const handler = app.get(AuthEngine).handler();
+
+	if (handler !== undefined) {
+		instance.all(`${AUTH_BASE_PATH}/*splat`, handler);
+	}
+
+	instance.use(json());
+	instance.use(urlencoded({ extended: false }));
+
+	app.useGlobalFilters(new ModuleErrorFilter());
+	app.enableShutdownHooks();
+	mountSwagger(app);
+
+	return app;
+}
+
+export async function startApi(): Promise<void> {
+	const environment = loadApiEnvironment();
+	const app = await createApiApp();
+
+	await app.listen(environment.port, environment.host);
+
+	console.log(
+		`api listening on http://${environment.host}:${environment.port} (docs at /${SWAGGER_PATH})`,
+	);
+}

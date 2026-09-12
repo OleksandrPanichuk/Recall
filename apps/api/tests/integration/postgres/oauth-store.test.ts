@@ -1,9 +1,10 @@
 import { afterAll, beforeAll } from "bun:test";
 import { drizzle } from "drizzle-orm/postgres-js";
-import type { OwnerId } from "@/application/ports/owner";
-import type { RecallDatabase } from "@/persistence/postgres/client";
-import { createPostgresOAuthStore } from "@/persistence/postgres/oauth.store";
-import * as schema from "@/persistence/postgres/schema";
+import type { OwnerId } from "@/core/owner";
+import type { RecallDatabase } from "@/db/client";
+import { Database, DatabaseHandle } from "@/db/connection";
+import * as schema from "@/db/schema";
+import { PostgresOAuthRepository } from "@/modules/oauth";
 import { describeOAuthStore } from "../../contracts/oauth-store.contract";
 import {
 	applyMigration,
@@ -14,6 +15,8 @@ import {
 } from "../../fixtures/postgres";
 
 const available = await postgresAvailable();
+
+const databaseOf = (db: RecallDatabase): Database => new DatabaseHandle(db);
 const START = new Date("2026-08-01T10:00:00.000Z");
 
 let harness: PostgresHarness;
@@ -39,7 +42,9 @@ afterAll(async () => {
 describeOAuthStore(
 	"postgres",
 	() => ({
-		store: createPostgresOAuthStore(db, () => current),
+		store: new PostgresOAuthRepository(databaseOf(db), {
+			now: () => current,
+		}),
 		owner: String(owner),
 		at: () => current,
 		travel: (milliseconds) => {

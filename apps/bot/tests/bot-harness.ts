@@ -1,16 +1,51 @@
 import type { AddressInfo } from "node:net";
-import type { QuestionInput } from "@api/application/use-cases/quiz-sets/add-questions";
-import { Difficulty, QuestionType } from "@api/domain/quiz-set/question";
-import type { QuizSetId } from "@api/domain/quiz-set/quiz-set";
-import { AuthModule } from "@api/modules/auth/auth.module";
-import { BotModule } from "@api/modules/bot/bot.module";
+import { Clock } from "@api/core/ports/clock";
+import { Timezone } from "@api/core/ports/timezone";
+import { Transaction } from "@api/core/transaction";
+import { Database, DatabaseConnection } from "@api/db/connection";
+import { ApiTokensModule } from "@api/modules/api-tokens";
+import { AttachmentsRepository } from "@api/modules/attachments";
+import { AttemptsModule, AttemptsRepository } from "@api/modules/attempts";
+import { AuthModule } from "@api/modules/auth";
+import { AnalyticsRepository, InsightsModule } from "@api/modules/insights";
+import { PagesModule, PagesRepository } from "@api/modules/pages";
+import { PracticeModule } from "@api/modules/practice";
+import type { QuestionInput } from "@api/modules/quizzes";
 import {
-	CONNECTION,
-	USE_CASE_DEPENDENCIES,
-} from "@api/modules/shared/database/tokens";
-import { DomainExceptionFilter } from "@api/modules/shared/errors/domain-exception.filter";
+	Difficulty,
+	QuestionType,
+	type QuizSetId,
+	QuizzesModule,
+	QuizzesRepository,
+} from "@api/modules/quizzes";
+import { SchedulesRepository, SchedulingModule } from "@api/modules/scheduling";
+import { StatisticsModule } from "@api/modules/statistics";
+import {
+	StudySettingsModule,
+	StudySettingsRepository,
+} from "@api/modules/study-settings";
+import { TelegramLinkModule } from "@api/modules/telegram-link";
+import { TermPairsRepository } from "@api/modules/vocabulary";
+import { CoreModule } from "@api/shared/core.module";
+
+interface MemoryDependencies {
+	readonly scope: {
+		readonly pages: PagesRepository;
+		readonly quizzes: QuizzesRepository;
+		readonly termPairs: TermPairsRepository;
+		readonly attachments: AttachmentsRepository;
+		readonly attempts: AttemptsRepository;
+		readonly analytics: AnalyticsRepository;
+		readonly reviews: SchedulesRepository & StudySettingsRepository;
+	};
+	readonly transaction: Transaction;
+	readonly timezone: string;
+	readonly clock: Clock;
+}
+
+import { ModuleErrorFilter } from "@api/shared/http/module-error.filter";
 import { Global, type INestApplication, Module } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
+import { Test } from "@nestjs/testing";
 import { createBotClient } from "@recall/contracts";
 import type { Logger } from "@recall/kit";
 import { silentLogger } from "@recall/kit";
@@ -60,22 +95,63 @@ async function startApi(
 	@Global()
 	@Module({
 		providers: [
-			{ provide: USE_CASE_DEPENDENCIES, useValue: dependencies },
-			{ provide: CONNECTION, useValue: unreachableConnection },
+			{ provide: DatabaseConnection, useValue: unreachableConnection },
+			{ provide: Database, useValue: unreachableConnection },
 		],
-		exports: [USE_CASE_DEPENDENCIES, CONNECTION],
+		exports: [Database, DatabaseConnection],
 	})
 	class MemoryDependenciesModule {}
 
-	@Module({ imports: [MemoryDependenciesModule, AuthModule, BotModule] })
+	@Module({
+		imports: [
+			MemoryDependenciesModule,
+			CoreModule,
+			AuthModule.forRoot({ plugins: () => [] }),
+			ApiTokensModule,
+			AttemptsModule,
+			InsightsModule,
+			PagesModule,
+			PracticeModule,
+			QuizzesModule,
+			SchedulingModule,
+			StatisticsModule,
+			StudySettingsModule,
+			TelegramLinkModule,
+		],
+	})
 	class TestApiModule {}
 
-	const app = await NestFactory.create(TestApiModule, {
-		logger: false,
-		abortOnError: false,
-	});
+	const memory = dependencies as MemoryDependencies;
+	const app = (
+		await Test.createTestingModule({ imports: [TestApiModule] })
+			.overrideProvider(PagesRepository)
+			.useValue(memory.scope.pages)
+			.overrideProvider(AttemptsRepository)
+			.useValue(memory.scope.attempts)
+			.overrideProvider(AnalyticsRepository)
+			.useValue(memory.scope.analytics)
+			.overrideProvider(QuizzesRepository)
+			.useValue(memory.scope.quizzes)
+			.overrideProvider(TermPairsRepository)
+			.useValue(memory.scope.termPairs)
+			.overrideProvider(AttachmentsRepository)
+			.useValue(memory.scope.attachments)
+			.overrideProvider(SchedulesRepository)
+			.useValue(memory.scope.reviews)
+			.overrideProvider(StudySettingsRepository)
+			.useValue(memory.scope.reviews)
+			.overrideProvider(Transaction)
+			.useValue(memory.transaction)
+			.overrideProvider(Timezone)
+			.useValue({ name: () => memory.timezone })
+			.overrideProvider(Clock)
+			.useValue(memory.clock)
+			.compile()
+	).createNestApplication({ logger: false, abortOnError: false });
 
-	app.useGlobalFilters(new DomainExceptionFilter());
+	app.useGlobalFilters(new ModuleErrorFilter());
+
+	await app.init();
 	await app.listen(0, "127.0.0.1");
 
 	const address = app.getHttpServer().address() as AddressInfo;

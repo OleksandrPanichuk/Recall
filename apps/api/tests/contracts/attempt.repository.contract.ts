@@ -1,29 +1,22 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { RepositoryScope } from "@/application/ports/repositories/page.repository";
-import type { UnitOfWork } from "@/application/ports/unit-of-work";
+import type { RepositoryScope } from "@tests/fixtures/repository-scope";
+import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
 import {
-	completeQuizAttempt,
+	AttemptEntity,
 	QuizAttemptMode,
-	rateResponse,
-	recordResponse,
-	startQuizAttempt,
 	toQuizAttemptId,
-} from "@/domain/quiz-attempt/quiz-attempt";
-import { createQuestion } from "@/domain/quiz-set/create-question";
+} from "@/modules/attempts";
 import {
+	createQuestion,
 	Difficulty,
 	type QuestionId,
 	QuestionType,
+	QuizSetEntity,
 	toQuestionId,
 	toQuestionOptionId,
-} from "@/domain/quiz-set/question";
-import {
-	addQuestions,
-	createQuizSet,
-	type QuizSet,
 	toQuizSetId,
-} from "@/domain/quiz-set/quiz-set";
-import { RecallGrade } from "@/domain/repetition/grade";
+} from "@/modules/quizzes";
+import { RecallGrade } from "@/modules/scheduling";
 
 export interface AttemptRepositoryHarness {
 	readonly unitOfWork: UnitOfWork<RepositoryScope>;
@@ -79,7 +72,7 @@ export function describeAttemptRepository(
 			let quizId: string;
 			let firstQuestion: string;
 			let secondQuestion: string;
-			let quiz: QuizSet;
+			let quiz: QuizSetEntity;
 
 			beforeEach(async () => {
 				harness = open();
@@ -89,8 +82,8 @@ export function describeAttemptRepository(
 				firstQuestion = uuid();
 				secondQuestion = uuid();
 
-				quiz = addQuestions(
-					createQuizSet({
+				quiz = QuizSetEntity.addQuestions(
+					QuizSetEntity.create({
 						id: toQuizSetId(quizId),
 						title: "Replication",
 						language: "en",
@@ -109,7 +102,7 @@ export function describeAttemptRepository(
 			});
 
 			const started = () =>
-				startQuizAttempt({
+				AttemptEntity.start({
 					id: toQuizAttemptId(uuid()),
 					quizSetId: toQuizSetId(quizId),
 					telegramUserId: USER,
@@ -133,7 +126,7 @@ export function describeAttemptRepository(
 					(candidate) => candidate.isCorrect === correctly,
 				);
 
-				return recordResponse(attempt, {
+				return AttemptEntity.recordResponse(attempt, {
 					questionId: target.id,
 					selectedOptionIds: option === undefined ? [] : [option.id],
 					isCorrect: correctly,
@@ -197,7 +190,7 @@ export function describeAttemptRepository(
 
 				await harness.unitOfWork.run(async ({ attempts }) => {
 					await attempts.save(
-						rateResponse(
+						AttemptEntity.rateResponse(
 							attempt,
 							attempt.responses[0]?.questionId as QuestionId,
 							RecallGrade.Hard,
@@ -219,10 +212,20 @@ export function describeAttemptRepository(
 				await harness.unitOfWork.run(async ({ attempts }) => {
 					await attempts.save(attempt);
 					await attempts.save(
-						rateResponse(attempt, questionId, RecallGrade.Hard, later(2)),
+						AttemptEntity.rateResponse(
+							attempt,
+							questionId,
+							RecallGrade.Hard,
+							later(2),
+						),
 					);
 					await attempts.save(
-						rateResponse(attempt, questionId, RecallGrade.Easy, later(3)),
+						AttemptEntity.rateResponse(
+							attempt,
+							questionId,
+							RecallGrade.Easy,
+							later(3),
+						),
 					);
 				});
 
@@ -239,7 +242,12 @@ export function describeAttemptRepository(
 				await harness.unitOfWork.run(async ({ attempts }) => {
 					await attempts.save(attempt);
 					await attempts.save(
-						rateResponse(attempt, questionId, RecallGrade.Easy, later(2)),
+						AttemptEntity.rateResponse(
+							attempt,
+							questionId,
+							RecallGrade.Easy,
+							later(2),
+						),
 					);
 				});
 
@@ -275,7 +283,7 @@ export function describeAttemptRepository(
 			});
 
 			test("summarises completed attempts", async () => {
-				const finished = completeQuizAttempt(answered(true), later(2));
+				const finished = AttemptEntity.complete(answered(true), later(2));
 
 				await harness.unitOfWork.run(async ({ attempts }) => {
 					await attempts.save(finished);
@@ -293,7 +301,9 @@ export function describeAttemptRepository(
 
 			test("reports accuracy per topic", async () => {
 				await harness.unitOfWork.run(async ({ attempts }) => {
-					await attempts.save(completeQuizAttempt(answered(false), later(2)));
+					await attempts.save(
+						AttemptEntity.complete(answered(false), later(2)),
+					);
 				});
 
 				const topics = await harness.scope.attempts.topicAccuracy(
@@ -308,8 +318,12 @@ export function describeAttemptRepository(
 
 			test("names the questions answered wrongly, once each", async () => {
 				await harness.unitOfWork.run(async ({ attempts }) => {
-					await attempts.save(completeQuizAttempt(answered(false), later(2)));
-					await attempts.save(completeQuizAttempt(answered(false), later(3)));
+					await attempts.save(
+						AttemptEntity.complete(answered(false), later(2)),
+					);
+					await attempts.save(
+						AttemptEntity.complete(answered(false), later(3)),
+					);
 				});
 
 				const wrong = await harness.scope.attempts.incorrectQuestionIds(
@@ -322,10 +336,10 @@ export function describeAttemptRepository(
 			test("forgets a mistake once a later attempt got it right", async () => {
 				await harness.unitOfWork.run(async ({ attempts }) => {
 					await attempts.save(
-						completeQuizAttempt(answered(false, later(1)), later(2)),
+						AttemptEntity.complete(answered(false, later(1)), later(2)),
 					);
 					await attempts.save(
-						completeQuizAttempt(answered(true, later(3)), later(4)),
+						AttemptEntity.complete(answered(true, later(3)), later(4)),
 					);
 				});
 
@@ -339,13 +353,13 @@ export function describeAttemptRepository(
 			test("names it again when a later attempt got it wrong once more", async () => {
 				await harness.unitOfWork.run(async ({ attempts }) => {
 					await attempts.save(
-						completeQuizAttempt(answered(false, later(1)), later(2)),
+						AttemptEntity.complete(answered(false, later(1)), later(2)),
 					);
 					await attempts.save(
-						completeQuizAttempt(answered(true, later(3)), later(4)),
+						AttemptEntity.complete(answered(true, later(3)), later(4)),
 					);
 					await attempts.save(
-						completeQuizAttempt(answered(false, later(5)), later(6)),
+						AttemptEntity.complete(answered(false, later(5)), later(6)),
 					);
 				});
 

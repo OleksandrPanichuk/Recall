@@ -1,6 +1,6 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { type OwnerId, toOwnerId } from "@/application/ports/owner";
+import { type OwnerId, toOwnerId } from "@/core/owner";
 
 export const DEFAULT_POSTGRES_URL =
 	"postgres://recall:recall@127.0.0.1:55432/recall";
@@ -100,7 +100,14 @@ export const migrationsDirectory = (from: string): string => from;
 export async function applyMigration(harness: PostgresHarness): Promise<void> {
 	const { readdirSync, readFileSync } = await import("node:fs");
 	const { join } = await import("node:path");
-	const directory = join(import.meta.dir, "..", "..", "drizzle-postgres");
+	const directory = join(
+		import.meta.dir,
+		"..",
+		"..",
+		"src",
+		"db",
+		"migrations",
+	);
 	const names = readdirSync(directory)
 		.filter((entry) => entry.endsWith(".sql"))
 		.sort();

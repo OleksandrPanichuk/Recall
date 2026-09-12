@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
-import type { OwnerId } from "@/application/ports/owner";
-import { createApplication } from "@/composition/create-application";
-import { createApiApp } from "@/entrypoints/api";
+import { createApplication } from "@tests/fixtures/application.use-cases";
+import { createApiApp } from "@/api.factory";
+import type { OwnerId } from "@/core/owner";
 import {
 	applyMigration,
 	openPostgres,

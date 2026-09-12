@@ -1,22 +1,28 @@
-import { createTransport } from "nodemailer";
-import type { Letter, Mailer } from "@/application/ports/mailer";
+import {
+	createSmtpTransport,
+	type SmtpTransport,
+} from "@/infrastructure/mail/smtp.transport";
+import { type Letter, Mailer } from "@/modules/notifications/ports/mailer";
 
 export interface SmtpOptions {
 	readonly url: string;
 	readonly from: string;
 }
 
-export function createSmtpMailer(options: SmtpOptions): Mailer {
-	const transport = createTransport(options.url);
+export class SmtpMailer extends Mailer {
+	private readonly transport: SmtpTransport;
 
-	return {
-		async send(letter: Letter): Promise<void> {
-			await transport.sendMail({
-				from: options.from,
-				to: letter.to,
-				subject: letter.subject,
-				text: letter.text,
-			});
-		},
-	};
+	constructor(private readonly options: SmtpOptions) {
+		super();
+		this.transport = createSmtpTransport(options.url);
+	}
+
+	async send(letter: Letter): Promise<void> {
+		await this.transport.sendMail({
+			from: this.options.from,
+			to: letter.to,
+			subject: letter.subject,
+			text: letter.text,
+		});
+	}
 }

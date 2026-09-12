@@ -1,25 +1,54 @@
 import { Module } from "@nestjs/common";
-import { AppSurfaceModule } from "./app/app-surface.module";
-import { AuthModule } from "./auth/auth.module";
-import { BotModule } from "./bot/bot.module";
-import { ContentModule } from "./content/content.module";
-import { AdminModule } from "./integration/admin/admin.module";
-import { McpModule } from "./integration/mcp/mcp.module";
-import { PublicModule } from "./public/public.module";
-import { DatabaseModule } from "./shared/database/database.module";
-import { HealthController } from "./shared/health/health.controller";
+import { loadApiEnvironment } from "@/configs/env.config";
+import { DatabaseModule } from "@/db/database.module";
+import { AdminModule } from "@/modules/admin/admin.module";
+import { ApiTokensModule } from "@/modules/api-tokens";
+import { AttachmentsModule } from "@/modules/attachments";
+import { AttemptsModule } from "@/modules/attempts";
+import { AuthModule } from "@/modules/auth";
+import { HealthModule } from "@/modules/health";
+import { InsightsModule } from "@/modules/insights";
+import { McpModule } from "@/modules/mcp/mcp.module";
+import { OAuthModule } from "@/modules/oauth";
+import { PageSharesModule } from "@/modules/page-shares";
+import { PagesModule } from "@/modules/pages";
+import { PracticeModule } from "@/modules/practice";
+import { QuizzesModule } from "@/modules/quizzes";
+import { SchedulingModule } from "@/modules/scheduling";
+import { StatisticsModule } from "@/modules/statistics";
+import { StudySettingsModule } from "@/modules/study-settings";
+import { TelegramLinkModule, telegramLink } from "@/modules/telegram-link";
+import { UsersModule } from "@/modules/users";
+import { VocabularyModule } from "@/modules/vocabulary";
+import { CoreModule } from "@/shared/core.module";
 
 @Module({
 	imports: [
+		CoreModule,
 		DatabaseModule,
-		AuthModule,
-		ContentModule,
-		AppSurfaceModule,
-		PublicModule,
-		BotModule,
+		UsersModule,
+		AuthModule.forRoot({
+			plugins: () => [
+				telegramLink({ successUrl: loadApiEnvironment().authSuccessUrl }),
+			],
+		}),
+		TelegramLinkModule,
+		ApiTokensModule,
+		AttachmentsModule,
+		AttemptsModule,
+		StatisticsModule,
+		PracticeModule,
+		InsightsModule,
+		OAuthModule,
+		PagesModule,
+		QuizzesModule,
+		VocabularyModule,
+		StudySettingsModule,
+		SchedulingModule,
+		PageSharesModule,
 		AdminModule,
 		McpModule,
+		HealthModule,
 	],
-	controllers: [HealthController],
 })
 export class AppModule {}

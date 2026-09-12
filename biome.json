@@ -53,10 +53,25 @@
 	},
 	"overrides": [
 		{
-			"includes": [
-				"apps/api/src/modules/**",
-				"apps/api/src/entrypoints/api.ts"
-			],
+			"includes": ["apps/api/**"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noStaticOnlyClass": "off"
+					},
+					"suspicious": {
+						"noConfusingVoidType": "off",
+						"noRedeclare": "off",
+						"noUnsafeDeclarationMerging": "off"
+					},
+					"style": {
+						"useImportType": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/modules/**", "apps/api/src/main.ts"],
 			"linter": {
 				"rules": {
 					"correctness": {
@@ -66,7 +81,7 @@
 			}
 		},
 		{
-			"includes": ["apps/api/src/domain/**"],
+			"includes": ["apps/api/src/core/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -77,13 +92,13 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/application/**",
+											"@/configs/**",
+											"@/db/**",
 											"@/infrastructure/**",
-											"@/composition/**",
 											"@/modules/**",
-											"@/persistence/**"
+											"@/shared/**"
 										],
-										"message": "domain must not import outward (ARCHITECTURE.md dependency rule 1)"
+										"message": "core imports nothing from src (REWRITE_PLAN.md \u00a73.1)"
 									}
 								]
 							}
@@ -93,7 +108,7 @@
 			}
 		},
 		{
-			"includes": ["apps/api/src/application/**", "!**/*.test.ts"],
+			"includes": ["apps/api/src/configs/**"],
 			"linter": {
 				"rules": {
 					"style": {
@@ -104,11 +119,193 @@
 									{
 										"group": [
 											"@/adapters/**",
-											"@/composition/**",
+											"@/db/**",
+											"@/infrastructure/**",
 											"@/modules/**",
-											"@/persistence/**"
+											"@/shared/**"
 										],
-										"message": "application must not import adapters or the composition root (ARCHITECTURE.md dependency rule 2)"
+										"message": "configs may import core and nothing else (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/db/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/infrastructure/**",
+											"@/modules/**",
+											"@/shared/**"
+										],
+										"message": "db may import core and configs only; it knows tables, not the domain (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/infrastructure/**",
+				"!apps/api/src/infrastructure/lifecycle/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/core/**",
+											"@/db/**",
+											"@/modules/**",
+											"@/shared/http/**",
+											"@/shared/request-context/**"
+										],
+										"message": "infrastructure is a technology client: configs and shared/utils only, so it could be copied to another project unchanged (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/adapters/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["@/db/**"],
+										"message": "an adapter implements one module port over infrastructure and never touches the database (REWRITE_PLAN.md \u00a73.1)"
+									},
+									{
+										"group": ["@/modules/*"],
+										"message": "an adapter imports the port file it implements, never the module barrel: the barrel exports the module class, which imports the adapter (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/shared/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/adapters/**",
+											"@/infrastructure/**",
+											"@/modules/**"
+										],
+										"message": "shared is below every module: core, configs and db only (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/modules/**",
+				"!apps/api/src/modules/app.module.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["@/adapters/**", "@/infrastructure/**"],
+										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (REWRITE_PLAN.md \u00a73.1)"
+									},
+									{
+										"group": ["@/db/migrations/**"],
+										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
+									},
+									{
+										"group": ["@/modules/*/**"],
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/api/src/modules/**/*.module.ts",
+				"!apps/api/src/modules/app.module.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["@/db/migrations/**"],
+										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
+									},
+									{
+										"group": ["@/modules/*/**"],
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md \u00a73.1)"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["apps/api/src/**", "!**/*.test.ts", "!**/*.fixture.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["@tests/**"],
+										"message": "production code may not reach into the test tree; move the helper into src or duplicate it (REWRITE_PLAN.md \u00a78)"
 									}
 								]
 							}

@@ -1,26 +1,26 @@
 import type {
-	OAuthStore,
-	StoredAuthorizationCode,
-	StoredClient,
-	StoredToken,
+	OAuthAuthorizationCode,
+	OAuthClient,
+	OAuthRepository,
+	OAuthToken,
 	TokenKind,
-} from "@/infrastructure/auth/oauth-store.types";
+} from "@/modules/oauth";
 
 interface Held {
 	readonly kind: TokenKind;
-	readonly token: StoredToken;
+	readonly token: OAuthToken;
 	revoked: boolean;
 }
 
-export function createMemoryOAuthStore(now: () => Date): OAuthStore {
-	const clients = new Map<string, StoredClient>();
+export function createMemoryOAuthStore(now: () => Date): OAuthRepository {
+	const clients = new Map<string, OAuthClient>();
 	const codes = new Map<
 		string,
-		{ data: StoredAuthorizationCode; used: boolean }
+		{ data: OAuthAuthorizationCode; used: boolean }
 	>();
 	const tokens = new Map<string, Held>();
 
-	const live = (code: { data: StoredAuthorizationCode; used: boolean }) =>
+	const live = (code: { data: OAuthAuthorizationCode; used: boolean }) =>
 		!code.used && code.data.expiresAt.getTime() > now().getTime();
 
 	return {
