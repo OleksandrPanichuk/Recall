@@ -32,6 +32,7 @@ to Postgres or MinIO.
 | `deploy/stack` | `docker compose --env-file .env.deploy -f docker-compose.deploy.yml …` |
 | `deploy/release` | put one commit live, on the server: lock, back up, rebuild, record |
 | `deploy/backup` | back up under the same lock a release takes |
+| `deploy/init-env` | write `.env.deploy`: five secrets generated, four answers from you |
 | `deploy/remote` | the same stack, driven over SSH from another machine |
 | `deploy/recall.service` | systemd unit that reasserts the stack after a reboot |
 
@@ -72,10 +73,39 @@ after a power cut. Give it a DHCP reservation so the SSH alias keeps resolving.
 ```sh
 git clone git@github.com:OleksandrPanichuk/Recall.git /srv/recall
 cd /srv/recall
-cp deploy/env.example .env.deploy && $EDITOR .env.deploy
-chmod 600 .env.deploy
+deploy/init-env
 deploy/stack up -d --build --wait
 ```
+
+`.env.deploy` is gitignored and never leaves the server, so it has to be written
+there — but only four of its values are things you know. `deploy/init-env` asks
+for those, generates the five secrets at the lengths the apps actually enforce,
+and copies the template's comments through unchanged:
+
+| Asked | |
+| --- | --- |
+| `PUBLIC_HOST` | your reserved ngrok domain |
+| `NGROK_AUTHTOKEN` | from the ngrok dashboard |
+| `TELEGRAM_BOT_KEY` | from @BotFather |
+| `ALLOWED_TELEGRAM_USER_ID` | your numeric id — copy this one from your dev `.env`, it identifies you |
+
+| Generated | |
+| --- | --- |
+| `BETTER_AUTH_SECRET`, `BOT_API_TOKEN`, `MCP_HTTP_TOKEN` | 64 hex chars; the api rejects anything under 32 |
+| `POSTGRES_PASSWORD`, `OBJECT_STORE_SECRET_KEY` | 32 hex chars; MinIO refuses to start under 8 |
+
+Preset any of the four in the environment to skip its question, and pass
+`--force` to replace an existing file (the old one is kept as `.env.deploy.bak`).
+Everything else in the template already has a working default.
+
+**Do not copy the secrets from your dev `.env`.** A shared `BETTER_AUTH_SECRET`
+means a session cookie minted in development is valid in production.
+
+**One Telegram bot token serves one running bot.** If the server long-polls and
+you also run `bun run up` here, Telegram answers one of them `409 Conflict` and
+the bot flaps. Either stop the local one while the server is live, or take a
+second bot from @BotFather for development — in which case `TELEGRAM_BOT_KEY`
+legitimately differs between the two files.
 
 **Finally, survive reboots.** `restart: unless-stopped` brings containers back,
 but Docker restarts them *independently* — it does not replay Compose's
