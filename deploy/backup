@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+
+take_backup() {
+	root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+	state="${RECALL_STATE_DIR:-$HOME/.local/state/recall}"
+
+	if [ "${RECALL_DEPLOY_LOCKED:-}" != "1" ]; then
+		command -v flock >/dev/null || {
+			echo "flock is missing — install util-linux; without it a backup could run mid-release" >&2
+			return 1
+		}
+		mkdir -p "$state"
+		exec 9>"$state/deploy.lock"
+		flock -n 9 || {
+			echo "a release or another backup is already running — not starting a second" >&2
+			return 1
+		}
+	fi
+
+	cd "$root"
+
+	docker inspect -f '{{.State.Running}}' recall-postgres 2>/dev/null | grep -q true || {
+		echo "recall-postgres is not running — nothing to back up" >&2
+		return 1
+	}
+
+	DATABASE_URL=$(docker inspect recall-api \
+		--format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null |
+		sed -n 's/^DATABASE_URL=//p' | head -1 || true)
+	export DATABASE_URL
+
+	exec bun run backup "$@"
+}
+
+take_backup "$@"

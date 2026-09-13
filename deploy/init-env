@@ -1,0 +1,163 @@
+#!/bin/sh
+set -eu
+
+secret() {
+	if command -v openssl >/dev/null 2>&1; then
+		openssl rand -hex "$1"
+	else
+		od -An -tx1 -N "$1" /dev/urandom | tr -d ' \n'
+	fi
+}
+
+a_host() {
+	case "$1" in
+	*://* | */*)
+		echo "  just the hostname — no https://, no trailing path" >&2
+		return 1
+		;;
+	*.*) return 0 ;;
+	*)
+		echo "  that does not look like a hostname" >&2
+		return 1
+		;;
+	esac
+}
+
+a_token() {
+	[ "${#1}" -ge 8 ] || {
+		echo "  that looks too short to be the real thing" >&2
+		return 1
+	}
+}
+
+a_telegram_id() {
+	case "$1" in
+	'' | *[!0-9]*)
+		echo "  digits only — ask @userinfobot for yours" >&2
+		return 1
+		;;
+	*) [ "$1" -gt 0 ] ;;
+	esac
+}
+
+a_bot_key() {
+	case "$1" in
+	[0-9]*:?*) return 0 ;;
+	*)
+		echo "  a bot token from @BotFather looks like 123456789:AAH..." >&2
+		return 1
+		;;
+	esac
+}
+
+ask() {
+	value=$3
+	while :; do
+		if [ -n "$value" ] && "$2" "$value"; then
+			printf '%s' "$value"
+			return 0
+		fi
+		printf '%s ' "$1" >&2
+		IFS= read -r value || {
+			echo >&2
+			echo "  ran out of input — run this in a terminal, or preset $4" >&2
+			return 1
+		}
+	done
+}
+
+init() {
+	root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+	template="$root/deploy/env.example"
+	out="$root/.env.deploy"
+	force=no
+
+	case "${1:-}" in
+	--force) force=yes ;;
+	-h | --help)
+		cat <<USAGE
+deploy/init-env — write .env.deploy: five secrets generated, four answers from you
+
+  deploy/init-env           ask for what only you know, generate the rest
+  deploy/init-env --force   replace an existing .env.deploy (keeps a .bak)
+
+Preset any of these in the environment to skip its question:
+  PUBLIC_HOST  NGROK_AUTHTOKEN  TELEGRAM_BOT_KEY  ALLOWED_TELEGRAM_USER_ID
+USAGE
+		return 0
+		;;
+	"") ;;
+	*)
+		echo "unknown flag '${1:-}'" >&2
+		return 1
+		;;
+	esac
+
+	[ -r "$template" ] || {
+		echo "cannot read $template" >&2
+		return 1
+	}
+
+	if [ -e "$out" ] && [ "$force" = no ]; then
+		echo ".env.deploy already exists — it holds live secrets, so this will not" >&2
+		echo "overwrite it. Pass --force to replace it (the old one is kept as .bak)." >&2
+		return 1
+	fi
+
+	echo "Four things only you know. Everything else is generated or has a default."
+	echo
+
+	public_host=$(ask "ngrok domain (no https://), e.g. recall.ngrok.app:" a_host "${PUBLIC_HOST:-}" PUBLIC_HOST)
+	ngrok_token=$(ask "ngrok authtoken (dashboard.ngrok.com):" a_token "${NGROK_AUTHTOKEN:-}" NGROK_AUTHTOKEN)
+	bot_key=$(ask "Telegram bot token (@BotFather):" a_bot_key "${TELEGRAM_BOT_KEY:-}" TELEGRAM_BOT_KEY)
+	telegram_id=$(ask "your numeric Telegram id (@userinfobot):" a_telegram_id "${ALLOWED_TELEGRAM_USER_ID:-}" ALLOWED_TELEGRAM_USER_ID)
+
+	umask 077
+	tmp="$out.tmp.$$"
+	trap 'rm -f "$tmp"' EXIT INT TERM
+
+	while IFS= read -r line || [ -n "$line" ]; do
+		case "$line" in
+		PUBLIC_HOST=*) printf '%s\n' "PUBLIC_HOST=$public_host" ;;
+		NGROK_AUTHTOKEN=*) printf '%s\n' "NGROK_AUTHTOKEN=$ngrok_token" ;;
+		TELEGRAM_BOT_KEY=*) printf '%s\n' "TELEGRAM_BOT_KEY=$bot_key" ;;
+		ALLOWED_TELEGRAM_USER_ID=*) printf '%s\n' "ALLOWED_TELEGRAM_USER_ID=$telegram_id" ;;
+		POSTGRES_PASSWORD=*) printf '%s\n' "POSTGRES_PASSWORD=$(secret 16)" ;;
+		OBJECT_STORE_SECRET_KEY=*) printf '%s\n' "OBJECT_STORE_SECRET_KEY=$(secret 16)" ;;
+		BETTER_AUTH_SECRET=*) printf '%s\n' "BETTER_AUTH_SECRET=$(secret 32)" ;;
+		BOT_API_TOKEN=*) printf '%s\n' "BOT_API_TOKEN=$(secret 32)" ;;
+		MCP_HTTP_TOKEN=*) printf '%s\n' "MCP_HTTP_TOKEN=$(secret 32)" ;;
+		*) printf '%s\n' "$line" ;;
+		esac
+	done <"$template" >"$tmp"
+
+	for key in PUBLIC_HOST NGROK_AUTHTOKEN TELEGRAM_BOT_KEY ALLOWED_TELEGRAM_USER_ID \
+		POSTGRES_PASSWORD OBJECT_STORE_SECRET_KEY BETTER_AUTH_SECRET BOT_API_TOKEN MCP_HTTP_TOKEN; do
+		grep -qE "^$key=.+" "$tmp" || {
+			echo "$key came out empty — $template may have drifted from this script" >&2
+			return 1
+		}
+	done
+
+	replaced=no
+	if [ -e "$out" ]; then
+		mv "$out" "$out.bak"
+		replaced=yes
+	fi
+	mv "$tmp" "$out"
+	chmod 600 "$out"
+	trap - EXIT INT TERM
+
+	echo
+	echo "wrote .env.deploy (chmod 600)"
+	echo "  generated: POSTGRES_PASSWORD, OBJECT_STORE_SECRET_KEY, BETTER_AUTH_SECRET,"
+	echo "             BOT_API_TOKEN, MCP_HTTP_TOKEN"
+	echo "  public:    https://$public_host"
+	if [ "$replaced" = yes ]; then
+		echo "  the previous file is now .env.deploy.bak"
+	fi
+	echo
+	echo "next: deploy/stack up -d --build --wait"
+}
+
+init "$@"

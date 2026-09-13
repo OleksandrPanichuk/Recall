@@ -4,12 +4,16 @@ set -eu
 target="${RECALL_SSH:-recall-server}"
 remote_dir="${RECALL_REMOTE_DIR:-recall-quiz}"
 nginx_port="${RECALL_NGINX_PORT:-8080}"
+backup_dir="${RECALL_BACKUP_DIR:-$HOME/recall-backups}"
 host="ssh://$target"
 
 usage() {
 	cat <<USAGE
 recall remote — drive the deployment on $target from this machine
 
+  deploy/remote deploy [ref]           release origin/main (or ref) — refuses a red CI
+  deploy/remote rollback               go back to the last release that came up healthy
+  deploy/remote backup                 back up on the server, then copy it to this machine
   deploy/remote status                 what is running, and how healthy
   deploy/remote logs [service] [n]     follow logs (default api, last 200 lines)
   deploy/remote sh [service]           root shell inside a container (default api)
@@ -25,6 +29,7 @@ recall remote — drive the deployment on $target from this machine
   RECALL_SSH=$target
   RECALL_REMOTE_DIR=$remote_dir
   RECALL_NGINX_PORT=$nginx_port
+  RECALL_BACKUP_DIR=$backup_dir
 USAGE
 }
 
@@ -41,13 +46,72 @@ container() {
 
 psql_in_container='exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
+checks_green() {
+	slug=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+	gh api "repos/$slug/commits/$1/check-runs" \
+		--jq '.check_runs | if length == 0 then "none" else
+			(map(select(.conclusion != "success")) | if length == 0 then "green" else
+				(map("\(.name): \(.status)/\(.conclusion // "running")") | join(", ")) end) end'
+}
+
 command="${1:-status}"
 [ $# -gt 0 ] && shift
 
 case "$command" in
+deploy)
+	ref="${1:-origin/main}"
+	git fetch -q origin
+	sha=$(git rev-parse --verify --quiet "$ref^{commit}") || {
+		echo "'$ref' is not a commit — fetch it first, or pass a sha" >&2
+		exit 1
+	}
+	echo "$ref is $(git log --oneline -1 "$sha")"
+
+	if [ "${RECALL_SKIP_CHECKS:-}" = "1" ]; then
+		echo "skipping the CI check (RECALL_SKIP_CHECKS=1)"
+	else
+		verdict=$(checks_green "$sha")
+		case "$verdict" in
+		green) echo "CI is green for this commit" ;;
+		none)
+			echo "no CI run has reported on $(git rev-parse --short "$sha") yet." >&2
+			echo "Wait for verify, or set RECALL_SKIP_CHECKS=1 to deploy anyway." >&2
+			exit 1
+			;;
+		*)
+			echo "CI is not green for $(git rev-parse --short "$sha"): $verdict" >&2
+			echo "Set RECALL_SKIP_CHECKS=1 to deploy it anyway." >&2
+			exit 1
+			;;
+		esac
+	fi
+
+	ssh -t "$target" "cd '$remote_dir' && deploy/release $sha"
+	;;
+
+rollback)
+	ssh -t "$target" "cd '$remote_dir' && deploy/release --rollback"
+	;;
+
+backup)
+	ssh -t "$target" "cd '$remote_dir' && deploy/backup"
+	stamp=$(ssh "$target" "ls -1 '$remote_dir'/backups 2>/dev/null | sort | tail -1")
+	[ -n "$stamp" ] || {
+		echo "the server reported no backup to copy" >&2
+		exit 1
+	}
+	mkdir -p "$backup_dir"
+	echo "copying $stamp to $backup_dir …"
+	ssh "$target" "cd '$remote_dir'/backups && tar cz '$stamp'" | tar xz -C "$backup_dir"
+	du -sh "$backup_dir/$stamp"
+	;;
+
 status)
 	docker -H "$host" ps -a --filter 'name=recall-' \
 		--format 'table {{.Names}}\t{{.State}}\t{{.Status}}'
+	echo
+	ssh "$target" "cd '$remote_dir' && git log --oneline -1 HEAD" 2>/dev/null |
+		sed 's/^/deployed: /' || true
 	;;
 
 logs)

@@ -1,0 +1,20 @@
+[Unit]
+Description=Recall stack
+Documentation=file://__DIR__/deploy/README.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=__USER__
+WorkingDirectory=__DIR__
+ExecStart=__DIR__/deploy/stack up -d --wait --remove-orphans
+ExecStop=__DIR__/deploy/stack stop
+TimeoutStartSec=900
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
