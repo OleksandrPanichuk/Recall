@@ -30,7 +30,67 @@ to Postgres or MinIO.
 | `deploy/ngrok/ngrok.yml` | Binds the ngrok inspector to `0.0.0.0:4040` so it can be published. |
 | `deploy/env.example` | Template for `.env.deploy`. |
 | `deploy/stack` | `docker compose --env-file .env.deploy -f docker-compose.deploy.yml …` |
+| `deploy/release` | put one commit live, on the server: lock, back up, rebuild, record |
+| `deploy/backup` | back up under the same lock a release takes |
 | `deploy/remote` | the same stack, driven over SSH from another machine |
+| `deploy/recall.service` | systemd unit that reasserts the stack after a reboot |
+
+## Setting up the server
+
+Ubuntu Server on a repurposed laptop. Six things it needs beyond the app:
+
+```sh
+sudo apt update && sudo apt install -y git curl util-linux
+curl -fsSL https://bun.sh/install | bash          # backup/restore are Bun scripts
+```
+
+**Docker from the official apt repo, not snap.** Snap confinement breaks bind
+mounts, and this stack mounts the nginx config into the container:
+
+```sh
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker "$USER"                   # log out and back in
+sudo systemctl enable --now docker ssh
+```
+
+**Do not let it sleep with the lid shut**, or the tunnel and your SSH session
+both vanish:
+
+```sh
+sudo sed -i 's/^#\?HandleLidSwitch=.*/HandleLidSwitch=ignore/' /etc/systemd/logind.conf
+sudo systemctl restart systemd-logind
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+```
+
+**Check the firmware and the bootloader too.** Set it to power on after AC
+returns, make Ubuntu the default GRUB entry, and skip full-disk encryption on
+this install — a passphrase prompt means the laptop never comes back on its own
+after a power cut. Give it a DHCP reservation so the SSH alias keeps resolving.
+
+**Then the app:**
+
+```sh
+git clone git@github.com:OleksandrPanichuk/Recall.git /srv/recall
+cd /srv/recall
+cp deploy/env.example .env.deploy && $EDITOR .env.deploy
+chmod 600 .env.deploy
+deploy/stack up -d --build --wait
+```
+
+**Finally, survive reboots.** `restart: unless-stopped` brings containers back,
+but Docker restarts them *independently* — it does not replay Compose's
+`depends_on` health ordering, so api, web, bot, nginx and ngrok would race
+Postgres recovery. A oneshot unit reasserts the whole stack instead:
+
+```sh
+sudo cp deploy/recall.service /etc/systemd/system/
+sudo sed -i "s|__DIR__|$PWD|g; s|__USER__|$USER|g" /etc/systemd/system/recall.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now recall.service
+```
+
+Test it for real: `sudo reboot`, then pull the power cord, then close the lid.
+All three should end with the stack healthy.
 
 ## First run
 
@@ -50,12 +110,12 @@ Then, in Telegram, `/start` the bot and press the login button, or open
 owner — ownership is resolved from the session, so a second account starts empty
 and can never see the first one's rows.
 
-Day to day:
+Day to day you drive it from the MacBook instead — see *Releasing a new
+version* and *Operating it from your MacBook*. On the box itself:
 
 ```sh
 deploy/stack ps
 deploy/stack logs -f api
-deploy/stack up -d --build          # after a `git pull`
 deploy/stack down                   # keeps the volumes
 ```
 
@@ -67,6 +127,84 @@ cookie's secure/`SameSite` behaviour, the MCP OAuth issuer, the MCP allowed-host
 allowlist, and Telegram's webhook target. A random ngrok URL changes on every
 restart and breaks all five at once, so claim the free static domain on the ngrok
 dashboard and put it in `PUBLIC_HOST` before the first start.
+
+## Releasing a new version
+
+From the MacBook, one command:
+
+```sh
+deploy/remote deploy                 # origin/main
+deploy/remote deploy v1.2.0          # or any ref or sha
+deploy/remote rollback               # back to the last release that came up healthy
+```
+
+`deploy` resolves the ref to an exact commit and **refuses to deploy one whose
+CI is not green** — it asks GitHub for that commit's check runs first. Deploying
+the moving tip of `origin/main` would happily ship a commit whose `verify` is
+still running, or one that already failed. `RECALL_SKIP_CHECKS=1` overrides it
+when you know better.
+
+On the server `deploy/release` then:
+
+1. takes an exclusive `flock`, so a release cannot overlap another release or a
+   restore,
+2. dumps the database first — a migration is the one part of a deploy that a
+   code revert cannot undo,
+3. `git reset --hard` to that exact commit (the checkout is a deployment
+   artefact, not a workspace; `.env.deploy` and `backups/` are untracked and
+   survive),
+4. `deploy/stack up -d --build --wait --remove-orphans`,
+5. records the commit only **if it came up healthy**.
+
+That last point is what makes rollback trustworthy: `deploy/release --rollback`
+targets the last commit that actually passed its health checks, not merely the
+one that was checked out before.
+
+**A failed release does not roll back by itself, on purpose.** By then the
+migration may already have changed the schema, and reverting only the code would
+leave an older api against a newer database. It stops, says so, and hands you
+the rollback command to run once you have looked.
+
+## Backups, and getting them off the laptop
+
+```sh
+deploy/remote backup                 # dump on the server, then copy it here
+```
+
+Everything — Postgres, MinIO and `backups/` — lives on that one laptop disk.
+That single disk is the real risk to your data here, far more than anything
+container orchestration would address, so pull a copy to the MacBook regularly
+and test a restore at least once.
+
+`RECALL_BACKUP_DIR` sets where copies land (default `~/recall-backups`).
+
+`bun run backup` and `bun run restore` still work from the host. They drive
+`docker exec` / `docker cp` against the container names `recall-postgres` and
+`recall-minio`, which this stack deliberately keeps.
+
+```sh
+bun run backup                      # backups/<UTC stamp>/{postgres.sql,minio/}
+bun run restore --yes               # newest backup
+```
+
+One catch, if you call them by hand: both read the Postgres **role and database
+name** out of `DATABASE_URL` — the root `.env`, not `.env.deploy` — falling back
+to `recall`/`recall`. `deploy/release` and `deploy/remote backup` sidestep this
+by lifting `DATABASE_URL` off the running api container, so only a manual
+invocation needs it. Keep `POSTGRES_USER` and `POSTGRES_DB` at their defaults
+and it makes no difference either way. Change either and pass it in:
+
+```sh
+DATABASE_URL=postgres://myuser:whatever@127.0.0.1:55432/mydb bun run backup
+```
+
+The password is not used — `pg_dump` runs inside the container as a local
+socket connection.
+
+Migrations are the `migrate` service's job, not `bun run db:migrate`'s. That
+root script reads its configuration through `bun run --filter`, and the drizzle
+config falls back to the dev compose URL when it sees none, so it will happily
+migrate the wrong database. Use `deploy/stack run --rm migrate`.
 
 ## Operating it from your MacBook
 
@@ -366,34 +504,6 @@ MCP_HTTP_ALLOWED_HOST=recall.ngrok.app,api:8767
 
 Which is also why nginx is published on loopback by default: a caller who can
 reach it directly can forge all of the above.
-
-## Backups
-
-`bun run backup` and `bun run restore` still work from the host. They drive
-`docker exec` / `docker cp` against the container names `recall-postgres` and
-`recall-minio`, which this stack deliberately keeps.
-
-```sh
-bun run backup                      # backups/<UTC stamp>/{postgres.sql,minio/}
-bun run restore --yes               # newest backup
-```
-
-One catch: both read the Postgres **role and database name** out of
-`DATABASE_URL` — the root `.env`, not `.env.deploy` — falling back to
-`recall`/`recall`. Keep `POSTGRES_USER` and `POSTGRES_DB` at their defaults and
-they need no configuration at all. Change either and pass it in:
-
-```sh
-DATABASE_URL=postgres://myuser:whatever@127.0.0.1:55432/mydb bun run backup
-```
-
-The password is not used — `pg_dump` runs inside the container as a local
-socket connection.
-
-Migrations are the `migrate` service's job, not `bun run db:migrate`'s. That
-root script reads its configuration through `bun run --filter`, and the drizzle
-config falls back to the dev compose URL when it sees none, so it will happily
-migrate the wrong database. Use `deploy/stack run --rm migrate`.
 
 ## Three things that will surprise you
 

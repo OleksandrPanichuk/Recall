@@ -1,5 +1,11 @@
 name: recall
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-app-build: &app-build
   context: .
   dockerfile: deploy/Dockerfile
@@ -11,6 +17,7 @@ services:
     image: postgres:17-alpine
     container_name: recall-postgres
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-recall}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.deploy}
@@ -30,9 +37,10 @@ services:
       - postgres:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: recall-minio
     restart: unless-stopped
+    logging: *logging
     command: server /data --console-address ":55091"
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-recall}
@@ -52,6 +60,7 @@ services:
     image: axllent/mailpit:v1.21
     container_name: recall-mailpit
     restart: unless-stopped
+    logging: *logging
     ports:
       - "127.0.0.1:55026:8025"
     healthcheck:
@@ -67,6 +76,7 @@ services:
     image: recall-migrate
     container_name: recall-migrate
     restart: "no"
+    logging: *logging
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-recall}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recall}
     depends_on:
@@ -80,6 +90,7 @@ services:
     image: recall-api
     container_name: recall-api
     restart: unless-stopped
+    logging: *logging
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8767
@@ -131,6 +142,7 @@ services:
     image: recall-web
     container_name: recall-web
     restart: unless-stopped
+    logging: *logging
     environment:
       - HOST=0.0.0.0
       - PORT=3000
@@ -160,6 +172,7 @@ services:
     image: recall-bot
     container_name: recall-bot
     restart: unless-stopped
+    logging: *logging
     environment:
       - RECALL_API_URL=http://api:8767
       - BOT_PORT=8768
@@ -178,6 +191,7 @@ services:
     image: nginx:1.29-alpine
     container_name: recall-nginx
     restart: unless-stopped
+    logging: *logging
     ports:
       - "${NGINX_BIND:-127.0.0.1}:${NGINX_PORT:-8080}:80"
     volumes:
@@ -198,6 +212,7 @@ services:
     image: ngrok/ngrok:3-alpine
     container_name: recall-ngrok
     restart: unless-stopped
+    logging: *logging
     command:
       - http
       - nginx:80
@@ -222,6 +237,7 @@ services:
     image: recall-mcp
     profiles: ["tools"]
     restart: "no"
+    logging: *logging
     stdin_open: true
     environment:
       - RECALL_API_MCP_URL=http://api:8767/mcp

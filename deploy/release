@@ -1,0 +1,115 @@
+#!/bin/sh
+set -eu
+
+release() {
+	root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+	state="${RECALL_STATE_DIR:-$HOME/.local/state/recall}"
+	backup=yes
+	wanted=""
+
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--rollback) wanted=rollback ;;
+		--no-backup) backup=no ;;
+		-h | --help)
+			cat <<USAGE
+deploy/release — put one commit on this machine, one release at a time
+
+  deploy/release <sha>        fetch that commit, back up, rebuild, bring the stack up
+  deploy/release --rollback   redeploy the last commit that came up healthy
+
+  --no-backup                 skip the pre-deploy database dump
+  RECALL_STATE_DIR=$state
+USAGE
+			return 0
+			;;
+		-*)
+			echo "unknown flag '$1'" >&2
+			return 1
+			;;
+		*) wanted="$1" ;;
+		esac
+		shift
+	done
+
+	[ -n "$wanted" ] || {
+		echo "deploy/release needs a commit sha, or --rollback" >&2
+		return 1
+	}
+
+	command -v flock >/dev/null || {
+		echo "flock is missing — install util-linux; without it two releases could overlap" >&2
+		return 1
+	}
+
+	cd "$root"
+	mkdir -p "$state"
+
+	exec 9>"$state/deploy.lock"
+	flock -n 9 || {
+		echo "another release or restore is already running — not starting a second" >&2
+		return 1
+	}
+
+	healthy=$(cat "$state/deployed" 2>/dev/null || true)
+	older=$(cat "$state/previous" 2>/dev/null || true)
+	here=$(git rev-parse HEAD)
+
+	if [ "$wanted" = rollback ]; then
+		if [ -n "$healthy" ] && [ "$healthy" != "$here" ]; then
+			wanted="$healthy"
+		elif [ -n "$older" ]; then
+			wanted="$older"
+		else
+			echo "no earlier healthy release is recorded in $state — nothing to roll back to" >&2
+			return 1
+		fi
+		echo "rolling back to $(git log --oneline -1 "$wanted")"
+	fi
+
+	git fetch --prune --tags origin
+	sha=$(git rev-parse --verify --quiet "$wanted^{commit}") || {
+		echo "'$wanted' is not a commit this checkout can see" >&2
+		return 1
+	}
+
+	if [ "$sha" = "$here" ]; then
+		echo "already on $(git log --oneline -1 "$sha") — rebuilding anyway"
+	else
+		echo "$(git log --oneline -1 "$here")  →  $(git log --oneline -1 "$sha")"
+	fi
+
+	if [ "$backup" = yes ]; then
+		if docker inspect -f '{{.State.Running}}' recall-postgres 2>/dev/null | grep -q true; then
+			echo "backing up first…"
+			RECALL_DEPLOY_LOCKED=1 deploy/backup
+		else
+			echo "postgres is not running — nothing to back up yet"
+		fi
+	fi
+
+	git reset --hard "$sha"
+
+	if deploy/stack up -d --build --wait --remove-orphans; then
+		if [ -n "$healthy" ] && [ "$healthy" != "$sha" ]; then
+			printf '%s\n' "$healthy" >"$state/previous"
+		fi
+		printf '%s\n' "$sha" >"$state/deployed"
+		date -u +%Y-%m-%dT%H:%M:%SZ >"$state/deployed-at"
+		echo
+		echo "live: $(git log --oneline -1 "$sha")"
+		return 0
+	fi
+
+	echo >&2
+	echo "the stack did not come up, and nothing was rolled back automatically: the" >&2
+	echo "migration for $(git rev-parse --short "$sha") may already have changed the database," >&2
+	echo "and reverting the code alone would leave an older api against a newer schema." >&2
+	echo >&2
+	echo "  deploy/stack ps             what is unhealthy" >&2
+	echo "  deploy/stack logs api       why" >&2
+	echo "  deploy/release --rollback   back to $(git rev-parse --short "${healthy:-HEAD}"), once the schema allows it" >&2
+	return 1
+}
+
+release "$@"
