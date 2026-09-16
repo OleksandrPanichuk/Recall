@@ -9,6 +9,7 @@ import { usePracticeSession } from "@/features/practice/hooks/use-practice-sessi
 import { AttemptFinished } from "@/features/practice/ui/components/AttemptFinished";
 import { AttemptInProgress } from "@/features/practice/ui/components/AttemptInProgress";
 import { AttemptPaused } from "@/features/practice/ui/components/AttemptPaused";
+import { HintReveal } from "@/features/practice/ui/components/HintReveal";
 import { OutOfQuestions } from "@/features/practice/ui/components/OutOfQuestions";
 import { QuestionCard } from "@/features/practice/ui/components/QuestionCard";
 import { RecallButtons } from "@/features/practice/ui/components/RecallButtons";
@@ -97,15 +98,24 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 			)}
 
 			{session.verdict === null ? (
-				<Button
-					variant="ghost"
-					size="sm"
-					disabled={session.busy}
-					onClick={() => session.send({ revealed: true })}
-				>
-					<Eye />
-					Show the answer
-				</Button>
+				<div className="flex flex-col items-start gap-2">
+					{current.question.hint === undefined ? null : (
+						<HintReveal
+							key={current.question.id}
+							hint={current.question.hint}
+							disabled={session.busy}
+						/>
+					)}
+					<Button
+						variant="ghost"
+						size="sm"
+						disabled={session.busy}
+						onClick={() => session.send({ revealed: true })}
+					>
+						<Eye />
+						Show the answer
+					</Button>
+				</div>
 			) : (
 				<div ref={verdictRef} className="space-y-4 scroll-mt-4">
 					<VerdictPanel verdict={session.verdict} />
