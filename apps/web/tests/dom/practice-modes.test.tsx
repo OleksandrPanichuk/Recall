@@ -33,6 +33,7 @@ const finished = (correct: number, total: number): FinishedAttempt => ({
 	total,
 	percentage: Math.round((correct / total) * 100),
 	scheduled: [],
+	nextDue: null,
 });
 
 describe("when a mode has nothing to offer", () => {

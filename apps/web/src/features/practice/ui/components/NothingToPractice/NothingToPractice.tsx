@@ -19,9 +19,15 @@ export function NothingToPractice({ mode, quizId }: Props) {
 					<p className="text-sm text-muted-foreground">
 						{NOTHING_TO_PRACTICE_TEXT[mode]}
 					</p>
-					<Link to="/quizzes/$quizId" params={{ quizId }}>
-						<Button variant="outline">Back to quiz</Button>
-					</Link>
+					{mode === "due" ? (
+						<Link to="/review">
+							<Button variant="outline">Back to review</Button>
+						</Link>
+					) : (
+						<Link to="/quizzes/$quizId" params={{ quizId }}>
+							<Button variant="outline">Back to quiz</Button>
+						</Link>
+					)}
 				</CardContent>
 			</Card>
 		</>

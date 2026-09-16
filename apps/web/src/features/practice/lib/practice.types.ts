@@ -1,4 +1,8 @@
-import type { QuizAttemptMode, ScheduledQuestion } from "@recall/contracts";
+import type {
+	DueSet,
+	QuizAttemptMode,
+	ScheduledQuestion,
+} from "@recall/contracts";
 
 export interface Answer {
 	readonly selectedOptionPositions?: readonly number[];
@@ -13,4 +17,5 @@ export interface FinishedAttempt {
 	readonly total: number;
 	readonly percentage: number;
 	readonly scheduled: readonly ScheduledQuestion[];
+	readonly nextDue: DueSet | null;
 }

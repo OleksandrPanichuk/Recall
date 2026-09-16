@@ -20,6 +20,7 @@ export function DueList({ due }: { readonly due: readonly DueSet[] }) {
 					key={set.quizSetId}
 					to="/practice/$quizId"
 					params={{ quizId: set.quizSetId }}
+					search={{ mode: "due" }}
 					className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-accent/60"
 				>
 					<span className="flex min-w-0 items-center gap-3">
