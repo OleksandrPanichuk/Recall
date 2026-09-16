@@ -26,6 +26,7 @@
 		"verify": "bun run check && bun run build && bun run typecheck && bun run test",
 		"db:generate": "bun --env-file=.env run --filter '@recall/api' db:generate:pg",
 		"db:migrate": "bun --env-file=.env run --filter '@recall/api' db:migrate:pg",
+		"db:studio": "bun --env-file=.env run --filter '@recall/api' db:studio:pg",
 		"up": "bun run ./scripts/up.ts",
 		"down": "bun run ./scripts/down.ts",
 		"backup": "bun run ./scripts/backup.ts",
