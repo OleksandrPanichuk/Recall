@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
+import type { PracticeSearchMode } from "@/features/practice/lib/practice-mode";
 import type { FinishedAttempt } from "@/features/practice/lib/practice.types";
 import { ScheduleSummary } from "@/features/practice/ui/components/ScheduleSummary";
 import { ScoreSummary } from "@/features/statistics/ui/components/ScoreSummary";
@@ -9,10 +10,12 @@ import { PageHeading } from "@/shared/ui/components/PageHeading";
 interface Props {
 	readonly finished: FinishedAttempt;
 	readonly quizId: string;
+	readonly mode?: PracticeSearchMode;
 }
 
-export function AttemptFinished({ finished, quizId }: Props) {
+export function AttemptFinished({ finished, quizId, mode }: Props) {
 	const missed = finished.correct < finished.total;
+	const nextDue = finished.nextDue;
 
 	return (
 		<>
@@ -37,21 +40,41 @@ export function AttemptFinished({ finished, quizId }: Props) {
 							today={new Date()}
 						/>
 					)}
+					{mode === "due" && nextDue === null ? (
+						<p className="text-sm text-muted-foreground">
+							That was everything due today.
+						</p>
+					) : null}
 					<div className="flex flex-wrap gap-2">
+						{nextDue === null ? null : (
+							<Link
+								to="/practice/$quizId"
+								params={{ quizId: nextDue.quizSetId }}
+								search={{ mode: "due" }}
+							>
+								<Button>
+									Next: {nextDue.title} ({nextDue.dueCount} due)
+								</Button>
+							</Link>
+						)}
 						{missed ? (
 							<Link
 								to="/practice/$quizId"
 								params={{ quizId }}
 								search={{ mode: "mistakes" }}
 							>
-								<Button>Retry the ones you missed</Button>
+								<Button variant={nextDue === null ? "default" : "outline"}>
+									Retry the ones you missed
+								</Button>
 							</Link>
 						) : null}
 						<Link
 							to="/attempts/$attemptId"
 							params={{ attemptId: finished.attemptId }}
 						>
-							<Button variant={missed ? "outline" : "default"}>
+							<Button
+								variant={missed || nextDue !== null ? "outline" : "default"}
+							>
 								Go through the answers
 							</Button>
 						</Link>

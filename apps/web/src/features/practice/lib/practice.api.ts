@@ -1,8 +1,8 @@
 import { ApiErrorName, type FeltGrade, isApiError } from "@recall/contracts";
 import { createServerFn } from "@tanstack/react-start";
-import { isPracticeSearchMode } from "@/features/practice/lib/practice-mode";
+import { finishedWith } from "@/features/practice/lib/next-due";
+import { isPracticeMode } from "@/features/practice/lib/practice-mode";
 import { api } from "@/shared/lib/api";
-import { idInput } from "@/shared/lib/request";
 
 const blockedByFor = async (quizSetId: string | undefined) => ({
 	quizSetId: quizSetId ?? null,
@@ -26,11 +26,22 @@ export const loadCurrentQuestion = createServerFn().handler(async () => ({
 }));
 
 export const startAttempt = createServerFn({ method: "POST" })
-	.validator(idInput)
+	.validator((value: unknown) => {
+		const input = value as { id: string; onlyDue?: boolean };
+
+		return { id: String(input.id), onlyDue: input.onlyDue === true };
+	})
 	.handler(async ({ data }) => {
 		try {
-			await api().startQuizAttempt.execute({ quizSetId: data.id });
+			await api().startQuizAttempt.execute({
+				quizSetId: data.id,
+				onlyDue: data.onlyDue,
+			});
 		} catch (error) {
+			if (isApiError(error, ApiErrorName.NothingDue)) {
+				return { current: null, blockedBy: null, nothing: "due" as const };
+			}
+
 			if (!isApiError(error, ApiErrorName.AttemptAlreadyInProgress)) {
 				throw error;
 			}
@@ -49,7 +60,7 @@ export const startPractice = createServerFn({ method: "POST" })
 	.validator((value: unknown) => {
 		const input = value as { id: string; mode: unknown };
 
-		if (!isPracticeSearchMode(input.mode)) {
+		if (!isPracticeMode(input.mode)) {
 			throw new Error(`Unknown practice mode: ${String(input.mode)}`);
 		}
 
@@ -129,5 +140,9 @@ export const answerQuestion = createServerFn({ method: "POST" })
 	});
 
 export const finishAttempt = createServerFn({ method: "POST" }).handler(
-	async () => api().finishQuizAttempt.execute({}),
+	async () =>
+		finishedWith(
+			() => api().finishQuizAttempt.execute({}),
+			() => api().listDueRepetitions.execute({}),
+		),
 );

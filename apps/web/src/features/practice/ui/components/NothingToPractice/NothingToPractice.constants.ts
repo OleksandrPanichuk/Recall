@@ -13,4 +13,5 @@ export const NOTHING_TO_PRACTICE_TEXT: Readonly<
 	[PracticeMode.Mistakes]:
 		"Nothing to retry — every question you got wrong has since been answered right.",
 	[PracticeMode.WeakTopics]: `No weak topics yet. A topic counts as weak once it has at least ${MIN_ANSWERS_FOR_TOPIC} answers and fewer than ${WEAK_PERCENT}% of them are right. Questions without a topic never qualify.`,
+	due: "Nothing in this set is due right now.",
 };

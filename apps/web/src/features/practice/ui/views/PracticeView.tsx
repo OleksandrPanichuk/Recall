@@ -20,6 +20,7 @@ import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
 
 interface Props {
 	readonly quizId: string;
+	readonly mode?: PracticeSearchMode;
 	readonly started: CurrentQuestionView | null;
 	readonly blockedBy: {
 		readonly quizSetId: string | null;
@@ -31,6 +32,7 @@ interface Props {
 
 export function PracticeView({
 	quizId,
+	mode,
 	started,
 	blockedBy,
 	nothing,
@@ -75,7 +77,13 @@ export function PracticeView({
 	}
 
 	if (session.finished !== null) {
-		return <AttemptFinished finished={session.finished} quizId={quizId} />;
+		return (
+			<AttemptFinished
+				finished={session.finished}
+				quizId={quizId}
+				mode={mode}
+			/>
+		);
 	}
 
 	const current = session.current;
