@@ -41,6 +41,7 @@ export function attemptsOver(context: MemoryContext): AttemptsUseCases {
 		),
 		finishQuizAttempt: new FinishQuizAttemptUseCase(
 			attempts,
+			quizzes,
 			reviews,
 			settings,
 			transaction,

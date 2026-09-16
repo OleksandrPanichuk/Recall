@@ -39,9 +39,11 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 
 			setFinished({
 				attemptId: result.attemptId,
+				mode: result.mode,
 				correct: result.score.correct,
 				total: result.score.total,
 				percentage: result.score.percentage,
+				scheduled: result.scheduled,
 			});
 		} catch (error) {
 			setFailure(messageFor(error));

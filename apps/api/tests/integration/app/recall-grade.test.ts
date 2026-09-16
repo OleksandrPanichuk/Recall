@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { finishResultSchema } from "@recall/contracts";
 import {
 	type AppSession,
 	bodyOf as json,
@@ -149,8 +150,36 @@ describe.skipIf(!available)("saying how well something was recalled", () => {
 		).toBeGreaterThanOrEqual(400);
 	});
 
-	test("rating survives finishing the attempt", async () => {
-		expect((await call("attempts/finish", {})).status).toBe(200);
+	test("rating survives finishing the attempt, and the finish says what it scheduled", async () => {
+		const detail = await json<{ questions: { id: string }[] }>(
+			await call("sets/get", { quizSetId }),
+		);
+		const response = await call("attempts/finish", {});
+
+		expect(response.status).toBe(200);
+
+		const parsed = finishResultSchema.safeParse(await response.json());
+
+		expect(parsed.success).toBe(true);
+
+		if (!parsed.success) {
+			return;
+		}
+
+		expect(parsed.data.mode).toBe("full");
+		expect(parsed.data.scheduled.map((entry) => entry.questionId)).toEqual(
+			detail.questions.map((question) => question.id),
+		);
+		expect(parsed.data.scheduled.map((entry) => entry.grade)).toEqual([
+			"hard",
+			"easy",
+		]);
+		for (const entry of parsed.data.scheduled) {
+			expect(entry.dueAt).toBeDefined();
+			expect(new Date(entry.dueAt as string).toISOString()).toBe(
+				entry.dueAt as string,
+			);
+		}
 
 		const due = await json<Due[]>(await call("repetitions/due", {}));
 

@@ -4,9 +4,14 @@ import { Clock } from "@/core/ports/clock";
 import { Timezone } from "@/core/ports/timezone";
 import { Transaction } from "@/core/transaction";
 import { UseCase } from "@/core/use-case";
-import { type QuizSetId } from "@/modules/quizzes";
+import {
+	type QuestionId,
+	type QuizSetId,
+	QuizzesRepository,
+} from "@/modules/quizzes";
 import {
 	gradeOf,
+	type RecallGrade,
 	ScheduleEntity,
 	SchedulesRepository,
 } from "@/modules/scheduling";
@@ -23,11 +28,20 @@ import {
 
 export type FinishQuizAttemptUseCaseOptions = AttemptOfUserCommand;
 
+export interface ScheduledQuestion {
+	readonly questionId: QuestionId;
+	readonly prompt: string;
+	readonly grade: RecallGrade;
+	readonly dueAt?: Date;
+}
+
 export interface FinishQuizAttemptResult {
 	readonly attemptId: QuizAttemptId;
 	readonly quizSetId: QuizSetId;
+	readonly mode: QuizAttemptMode;
 	readonly score: Score;
 	readonly unansweredCount: number;
+	readonly scheduled: readonly ScheduledQuestion[];
 }
 
 type Options = FinishQuizAttemptUseCaseOptions;
@@ -37,6 +51,7 @@ type Result = FinishQuizAttemptResult;
 export class FinishQuizAttemptUseCase extends UseCase<Options, Result> {
 	constructor(
 		private readonly attempts: AttemptsRepository,
+		private readonly quizzes: QuizzesRepository,
 		private readonly schedules: SchedulesRepository,
 		private readonly settings: StudySettingsService,
 		private readonly transaction: Transaction,
@@ -48,7 +63,7 @@ export class FinishQuizAttemptUseCase extends UseCase<Options, Result> {
 
 	async execute(_options: Options): Promise<Result> {
 		const at = this.clock.now();
-		const finished = await this.transaction.run(async () => {
+		const { finished, scheduled } = await this.transaction.run(async () => {
 			const attempt = await this.attempts.findActive();
 
 			if (attempt === undefined) {
@@ -63,7 +78,7 @@ export class FinishQuizAttemptUseCase extends UseCase<Options, Result> {
 				completed.responses.length === 0 ||
 				completed.mode !== QuizAttemptMode.Full
 			) {
-				return completed;
+				return { finished: completed, scheduled: [] };
 			}
 
 			const settings = await this.settings.repetitionFor(completed.quizSetId);
@@ -77,29 +92,59 @@ export class FinishQuizAttemptUseCase extends UseCase<Options, Result> {
 					schedule,
 				]),
 			);
+			const graded = completed.responses.map((response) => {
+				const grade = gradeOf(response.isCorrect, response.recall);
 
-			await this.schedules.saveSchedules(
-				completed.responses.map((response) =>
-					ScheduleEntity.scheduleAfter(
+				return {
+					grade,
+					schedule: ScheduleEntity.scheduleAfter(
 						existing.get(response.questionId),
 						response.questionId,
 						completed.telegramUserId,
 						settings,
 						at,
 						dayStart,
-						gradeOf(response.isCorrect, response.recall),
+						grade,
 					),
-				),
+				};
+			});
+
+			await this.schedules.saveSchedules(
+				graded.map(({ schedule }) => schedule),
 			);
 
-			return completed;
+			const prompts = new Map(
+				(
+					(await this.quizzes.findById(completed.quizSetId))?.questions ?? []
+				).map((question) => [question.id, question.prompt]),
+			);
+
+			return {
+				finished: completed,
+				scheduled: graded.flatMap(({ grade, schedule }) => {
+					const prompt = prompts.get(schedule.questionId);
+
+					return prompt === undefined
+						? []
+						: [
+								{
+									questionId: schedule.questionId,
+									prompt,
+									grade,
+									dueAt: schedule.dueAt,
+								},
+							];
+				}),
+			};
 		});
 
 		return {
 			attemptId: finished.id,
 			quizSetId: finished.quizSetId,
+			mode: finished.mode,
 			unansweredCount: finished.questionIds.length - finished.responses.length,
 			score: AttemptEntity.score(finished),
+			scheduled,
 		};
 	}
 }

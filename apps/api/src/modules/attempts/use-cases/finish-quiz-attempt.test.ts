@@ -4,8 +4,14 @@ import {
 	createAttemptsHarness,
 	USER,
 } from "@tests/fixtures/attempts.fixture";
+import { attemptsOver } from "@tests/fixtures/attempts.use-cases";
 import type { MemoryContext } from "@tests/fixtures/memory.fixture";
-import { QuizAttemptStatus } from "@/modules/attempts";
+import {
+	aQuestionInput as aPracticeQuestion,
+	createPracticeHarness,
+} from "@tests/fixtures/practice.fixture";
+import { QuizAttemptMode, QuizAttemptStatus } from "@/modules/attempts";
+import { RecallGrade } from "@/modules/scheduling";
 import { StudySettingsEntity } from "@/modules/study-settings";
 import type { AnswerQuestionUseCase } from "./answer-question";
 import type { FinishQuizAttemptUseCase } from "./finish-quiz-attempt";
@@ -40,6 +46,16 @@ beforeEach(() => {
 afterEach(() => {
 	context.close();
 });
+
+const chooseFsrs = async (): Promise<void> => {
+	await context.scope.reviews.saveSettings(
+		{ kind: "owner" },
+		StudySettingsEntity.withRepetition(StudySettingsEntity.defaults(), {
+			...StudySettingsEntity.defaults().repetition,
+			scheduler: "fsrs",
+		}),
+	);
+};
 
 describe("FinishQuizAttemptUseCase", () => {
 	test("completes a partially answered attempt", async () => {
@@ -90,16 +106,6 @@ describe("FinishQuizAttemptUseCase", () => {
 });
 
 describe("what finishing writes into the review schedule", () => {
-	const chooseFsrs = async (): Promise<void> => {
-		await context.scope.reviews.saveSettings(
-			{ kind: "owner" },
-			StudySettingsEntity.withRepetition(StudySettingsEntity.defaults(), {
-				...StudySettingsEntity.defaults().repetition,
-				scheduler: "fsrs",
-			}),
-		);
-	};
-
 	const playThrough = async (correct: boolean) => {
 		const quizSetId = await seedPublishedSet(["One"]);
 
@@ -145,5 +151,91 @@ describe("what finishing writes into the review schedule", () => {
 		const [schedule] = await playThrough(false);
 
 		expect(schedule?.lapses).toBe(1);
+	});
+});
+
+describe("what finishing tells the learner about the schedule", () => {
+	test("a full attempt lists every answered question with its grade and due date", async () => {
+		const quizSetId = await seedPublishedSet(["One", "Two"]);
+		await start.execute({ quizSetId });
+		await answer.execute({
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
+		});
+		await answer.execute({
+			questionId: await questionIdOf(quizSetId, 1),
+			selectedOptionPositions: [await positionOf(quizSetId, 1, false)],
+		});
+
+		const result = await finish.execute({});
+
+		expect(result.mode).toBe(QuizAttemptMode.Full);
+		expect(result.scheduled).toHaveLength(2);
+		expect(result.scheduled[0]).toMatchObject({
+			questionId: await questionIdOf(quizSetId, 0),
+			prompt: "One",
+			grade: RecallGrade.Good,
+		});
+		expect(result.scheduled[1]).toMatchObject({
+			questionId: await questionIdOf(quizSetId, 1),
+			prompt: "Two",
+			grade: RecallGrade.Again,
+		});
+		for (const entry of result.scheduled) {
+			expect(entry.dueAt).toBeInstanceOf(Date);
+			expect(entry.dueAt?.getTime()).toBeGreaterThan(
+				context.clock.now().getTime(),
+			);
+		}
+	});
+
+	test("an attempt with no answers schedules nothing", async () => {
+		const quizSetId = await seedPublishedSet();
+		await start.execute({ quizSetId });
+
+		const result = await finish.execute({});
+
+		expect(result.scheduled).toEqual([]);
+	});
+
+	test("a rated answer carries the felt grade under fsrs", async () => {
+		await chooseFsrs();
+		const rate = attemptsOver(context).rateRecall;
+		const quizSetId = await seedPublishedSet(["One"]);
+		await start.execute({ quizSetId });
+		await answer.execute({
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
+		});
+		await rate.execute({
+			questionId: await questionIdOf(quizSetId, 0),
+			recall: RecallGrade.Hard,
+		});
+
+		const result = await finish.execute({});
+
+		expect(result.scheduled).toHaveLength(1);
+		expect(result.scheduled[0]?.grade).toBe(RecallGrade.Hard);
+		expect(result.scheduled[0]?.dueAt).toBeInstanceOf(Date);
+	});
+
+	test("a mistakes attempt reports its mode and schedules nothing", async () => {
+		const practice = createPracticeHarness();
+		const quizSetId = await practice.seedPublishedSet([
+			aPracticeQuestion("One"),
+			aPracticeQuestion("Two"),
+		]);
+		await practice.playAttempt(quizSetId, [true, false]);
+		await practice.practice.execute({
+			quizSetId,
+			mode: QuizAttemptMode.Mistakes,
+		});
+		await practice.answerCurrent(true);
+
+		const result = await practice.finish.execute({});
+
+		expect(result.mode).toBe(QuizAttemptMode.Mistakes);
+		expect(result.scheduled).toEqual([]);
+		practice.context.close();
 	});
 });
