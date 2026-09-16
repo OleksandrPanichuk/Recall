@@ -12,6 +12,8 @@ interface Props {
 }
 
 export function AttemptFinished({ finished, quizId }: Props) {
+	const missed = finished.correct < finished.total;
+
 	return (
 		<>
 			<PageHeading title="Attempt finished" />
@@ -36,11 +38,22 @@ export function AttemptFinished({ finished, quizId }: Props) {
 						/>
 					)}
 					<div className="flex flex-wrap gap-2">
+						{missed ? (
+							<Link
+								to="/practice/$quizId"
+								params={{ quizId }}
+								search={{ mode: "mistakes" }}
+							>
+								<Button>Retry the ones you missed</Button>
+							</Link>
+						) : null}
 						<Link
 							to="/attempts/$attemptId"
 							params={{ attemptId: finished.attemptId }}
 						>
-							<Button>Go through the answers</Button>
+							<Button variant={missed ? "outline" : "default"}>
+								Go through the answers
+							</Button>
 						</Link>
 						<Link to="/quizzes/$quizId" params={{ quizId }}>
 							<Button variant="ghost">Back to quiz</Button>

@@ -1,7 +1,25 @@
 import { ApiErrorName, type FeltGrade, isApiError } from "@recall/contracts";
 import { createServerFn } from "@tanstack/react-start";
+import { isPracticeSearchMode } from "@/features/practice/lib/practice-mode";
 import { api } from "@/shared/lib/api";
 import { idInput } from "@/shared/lib/request";
+
+const blockedByFor = async (quizSetId: string | undefined) => ({
+	quizSetId: quizSetId ?? null,
+	title:
+		quizSetId === undefined
+			? null
+			: await api()
+					.getQuizStatistics.execute({ quizSetId })
+					.then((statistics) => statistics.title)
+					.catch(() => null),
+});
+
+const startedNow = async () => ({
+	current: (await api().getCurrentQuestion.execute({})) ?? null,
+	blockedBy: null,
+	nothing: null,
+});
 
 export const loadCurrentQuestion = createServerFn().handler(async () => ({
 	current: (await api().getCurrentQuestion.execute({})) ?? null,
@@ -17,27 +35,49 @@ export const startAttempt = createServerFn({ method: "POST" })
 				throw error;
 			}
 
-			const quizSetId = error.details.quizSetId;
-
 			return {
 				current: null,
-				blockedBy: {
-					quizSetId: quizSetId ?? null,
-					title:
-						quizSetId === undefined
-							? null
-							: await api()
-									.getQuizStatistics.execute({ quizSetId })
-									.then((statistics) => statistics.title)
-									.catch(() => null),
-				},
+				blockedBy: await blockedByFor(error.details.quizSetId),
+				nothing: null,
 			};
 		}
 
-		return {
-			current: (await api().getCurrentQuestion.execute({})) ?? null,
-			blockedBy: null,
-		};
+		return startedNow();
+	});
+
+export const startPractice = createServerFn({ method: "POST" })
+	.validator((value: unknown) => {
+		const input = value as { id: string; mode: unknown };
+
+		if (!isPracticeSearchMode(input.mode)) {
+			throw new Error(`Unknown practice mode: ${String(input.mode)}`);
+		}
+
+		return { id: String(input.id), mode: input.mode };
+	})
+	.handler(async ({ data }) => {
+		try {
+			await api().startPracticeSession.execute({
+				quizSetId: data.id,
+				mode: data.mode,
+			});
+		} catch (error) {
+			if (isApiError(error, ApiErrorName.NothingToPractice)) {
+				return { current: null, blockedBy: null, nothing: data.mode };
+			}
+
+			if (!isApiError(error, ApiErrorName.AttemptAlreadyInProgress)) {
+				throw error;
+			}
+
+			return {
+				current: null,
+				blockedBy: await blockedByFor(error.details.quizSetId),
+				nothing: null,
+			};
+		}
+
+		return startedNow();
 	});
 
 export const abandonAttempt = createServerFn({ method: "POST" }).handler(
