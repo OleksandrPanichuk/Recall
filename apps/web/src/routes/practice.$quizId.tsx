@@ -1,10 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { startAttempt } from "@/features/practice/lib/practice.api";
+import {
+	startAttempt,
+	startPractice,
+} from "@/features/practice/lib/practice.api";
+import { parsePracticeSearch } from "@/features/practice/lib/practice-mode";
 import { PracticeView } from "@/features/practice/ui/views/PracticeView";
 
 export const Route = createFileRoute("/practice/$quizId")({
-	loader: async ({ context, params }) =>
-		context.viewer === null ? null : startAttempt({ data: params.quizId }),
+	preload: false,
+	validateSearch: parsePracticeSearch,
+	loaderDeps: ({ search }) => search,
+	loader: async ({ context, params, deps }) => {
+		if (context.viewer === null) {
+			return null;
+		}
+
+		return deps.mode === undefined
+			? startAttempt({ data: params.quizId })
+			: startPractice({ data: { id: params.quizId, mode: deps.mode } });
+	},
 	head: ({ loaderData }) => ({
 		meta: [
 			{
@@ -24,6 +38,7 @@ function Practice() {
 			quizId={quizId}
 			started={loaded?.current ?? null}
 			blockedBy={loaded?.blockedBy ?? null}
+			nothing={loaded?.nothing ?? null}
 			signedIn={loaded !== null}
 		/>
 	);
