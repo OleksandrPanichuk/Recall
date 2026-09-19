@@ -22,6 +22,9 @@ export const CallbackAction = {
 	WeakTopics: "w",
 	WeakTopicsFor: "W",
 	Login: "i",
+	Leeches: "g",
+	Retired: "z",
+	Retire: "c",
 } as const;
 export const SettingsChange = {
 	Preset: "p",

@@ -16,7 +16,12 @@ import { browseHandler } from "./handlers/browse.handler";
 import { finishHandler } from "./handlers/finish-attempt.handler";
 import { loginHandler } from "./handlers/login.handler";
 import { practiceHandler } from "./handlers/practice.handler";
-import { repetitionsHandler } from "./handlers/repetitions.handler";
+import {
+	leechesHandler,
+	repetitionsHandler,
+	retiredHandler,
+	retireHandler,
+} from "./handlers/repetitions.handler";
 import {
 	settingsEditHandler,
 	settingsForHandler,
@@ -120,6 +125,18 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 				return;
 			case CallbackAction.Repetitions:
 				await repetitionsHandler(useCases)(ctx);
+
+				return;
+			case CallbackAction.Leeches:
+				await leechesHandler(useCases)(ctx);
+
+				return;
+			case CallbackAction.Retired:
+				await retiredHandler(useCases)(ctx);
+
+				return;
+			case CallbackAction.Retire:
+				await retireHandler(useCases)(ctx, callback);
 
 				return;
 			case CallbackAction.Settings:

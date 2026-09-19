@@ -200,6 +200,7 @@ describe("the review screen", () => {
 			<ReviewView
 				due={[dueSet("set-b", "Verbs", 3), dueSet("set-a", "Nouns", 2)]}
 				leeches={[]}
+				retired={[]}
 				signedIn
 			/>,
 		);
@@ -212,7 +213,7 @@ describe("the review screen", () => {
 	});
 
 	test("has no review to start when nothing is due", async () => {
-		routed(<ReviewView due={[]} leeches={[]} signedIn />);
+		routed(<ReviewView due={[]} leeches={[]} retired={[]} signedIn />);
 
 		await screen.findByText("Nothing is due today.");
 
