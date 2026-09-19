@@ -1,7 +1,7 @@
 import { ApiErrorName, type FeltGrade, isApiError } from "@recall/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { finishedWith } from "@/features/practice/lib/next-due";
-import { isPracticeMode } from "@/features/practice/lib/practice-mode";
+import { isStartablePracticeMode } from "@/features/practice/lib/practice-mode";
 import { api } from "@/shared/lib/api";
 
 const blockedByFor = async (quizSetId: string | undefined) => ({
@@ -60,7 +60,7 @@ export const startPractice = createServerFn({ method: "POST" })
 	.validator((value: unknown) => {
 		const input = value as { id: string; mode: unknown };
 
-		if (!isPracticeMode(input.mode)) {
+		if (!isStartablePracticeMode(input.mode)) {
 			throw new Error(`Unknown practice mode: ${String(input.mode)}`);
 		}
 

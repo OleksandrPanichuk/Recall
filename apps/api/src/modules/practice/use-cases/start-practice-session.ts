@@ -28,7 +28,8 @@ import { WeakTopicEntity } from "../weak-topic.entity";
 
 export type PracticeMode =
 	| typeof QuizAttemptMode.Mistakes
-	| typeof QuizAttemptMode.WeakTopics;
+	| typeof QuizAttemptMode.WeakTopics
+	| typeof QuizAttemptMode.Selected;
 
 export class NothingToPracticeError extends Error {
 	readonly quizSetId: QuizSetId;
@@ -48,6 +49,7 @@ export interface StartPracticeSessionUseCaseOptions {
 	readonly quizSetId: QuizSetId;
 	readonly telegramUserId?: number;
 	readonly mode: PracticeMode;
+	readonly questionIds?: readonly QuestionId[];
 }
 
 export interface StartPracticeSessionResult {
@@ -98,10 +100,7 @@ export class StartPracticeSessionUseCase extends UseCase<Options, Result> {
 				options.mode === QuizAttemptMode.WeakTopics
 					? await this.weakTopics(options.quizSetId)
 					: [];
-			const selected =
-				options.mode === QuizAttemptMode.WeakTopics
-					? this.questionsOfTopics(quizSet, topics)
-					: await this.outstandingMistakes(options.quizSetId, quizSet);
+			const selected = await this.questionsFor(options, quizSet, topics);
 
 			if (selected.length === 0) {
 				throw new NothingToPracticeError(
@@ -114,13 +113,15 @@ export class StartPracticeSessionUseCase extends UseCase<Options, Result> {
 			const id = toQuizAttemptId(this.ids.generate());
 			const { shuffleQuestions } = (await this.settings.resolve(quizSet.id))
 				.settings;
+			const shuffle =
+				shuffleQuestions && options.mode !== QuizAttemptMode.Selected;
 
 			const attempt = AttemptEntity.start({
 				id,
 				quizSetId: quizSet.id,
 				telegramUserId: options.telegramUserId,
 				mode: options.mode,
-				questionIds: shuffleQuestions ? shuffled(selected, id) : selected,
+				questionIds: shuffle ? shuffled(selected, id) : selected,
 				startedAt: this.clock.now(),
 			});
 
@@ -133,6 +134,42 @@ export class StartPracticeSessionUseCase extends UseCase<Options, Result> {
 				topics,
 			};
 		});
+	}
+
+	private async questionsFor(
+		options: Options,
+		quizSet: QuizSetEntity,
+		topics: readonly string[],
+	): Promise<readonly QuestionId[]> {
+		switch (options.mode) {
+			case QuizAttemptMode.WeakTopics:
+				return this.questionsOfTopics(quizSet, topics);
+			case QuizAttemptMode.Selected:
+				return this.chosenQuestions(quizSet, options.questionIds ?? []);
+			default:
+				return this.outstandingMistakes(options.quizSetId, quizSet);
+		}
+	}
+
+	private chosenQuestions(
+		quizSet: QuizSetEntity,
+		questionIds: readonly QuestionId[],
+	): readonly QuestionId[] {
+		const present = new Set<string>(
+			quizSet.questions.map((question) => String(question.id)),
+		);
+		const chosen: QuestionId[] = [];
+
+		for (const questionId of questionIds) {
+			if (
+				present.has(String(questionId)) &&
+				!chosen.some((taken) => String(taken) === String(questionId))
+			) {
+				chosen.push(questionId);
+			}
+		}
+
+		return chosen;
 	}
 
 	private async weakTopics(quizSetId: QuizSetId): Promise<readonly string[]> {

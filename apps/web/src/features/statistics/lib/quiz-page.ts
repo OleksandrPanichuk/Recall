@@ -3,6 +3,7 @@ import {
 	PracticeMode,
 	type QuizStatistics,
 } from "@recall/contracts";
+import type { StartablePracticeMode } from "@/features/practice/lib/practice-mode";
 import { attempts as countedAttempts } from "@/shared/lib/plural";
 
 export interface QuizCallToAction {
@@ -46,7 +47,7 @@ export function quizCallToAction(
 }
 
 export interface SecondaryAction {
-	readonly mode: PracticeMode;
+	readonly mode: StartablePracticeMode;
 	readonly label: string;
 }
 

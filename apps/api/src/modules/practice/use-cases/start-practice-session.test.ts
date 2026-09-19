@@ -10,7 +10,11 @@ import {
 	QuizAttemptMode,
 	QuizSetNotPublishedError,
 } from "@/modules/attempts";
-import { QuizSetNotFoundError, toQuizSetId } from "@/modules/quizzes";
+import {
+	type QuestionId,
+	QuizSetNotFoundError,
+	toQuizSetId,
+} from "@/modules/quizzes";
 import { quizScope, StudySettingsEntity } from "@/modules/study-settings";
 import { NothingToPracticeError } from "./start-practice-session";
 
@@ -322,5 +326,112 @@ describe("question order", () => {
 		expect(await harness.plannedPrompts(quizSetId)).toEqual(
 			shuffled(unshuffled, String(attemptId)),
 		);
+	});
+});
+
+describe("a selected session", () => {
+	const idsOf = async (
+		quizSetId: ReturnType<typeof toQuizSetId>,
+		prompts: readonly string[],
+	): Promise<readonly QuestionId[]> => {
+		const questions =
+			(await harness.context.scope.quizzes.findById(quizSetId))?.questions ??
+			[];
+
+		return prompts.map((prompt) => {
+			const question = questions.find(
+				(candidate) => candidate.prompt === prompt,
+			);
+
+			if (question === undefined) {
+				throw new Error(`The set holds no question prompted "${prompt}"`);
+			}
+
+			return question.id;
+		});
+	};
+
+	test("asks exactly the chosen questions in the order given", async () => {
+		const quizSetId = await harness.seedPublishedSet([
+			aQuestionInput("One"),
+			aQuestionInput("Two"),
+			aQuestionInput("Three"),
+		]);
+
+		const result = await harness.practice.execute({
+			quizSetId,
+			mode: QuizAttemptMode.Selected,
+			questionIds: await idsOf(quizSetId, ["Three", "One"]),
+		});
+
+		expect(result.questionCount).toBe(2);
+		expect(await harness.plannedPrompts(quizSetId)).toEqual(["Three", "One"]);
+		expect((await harness.context.scope.attempts.findActive())?.mode).toBe(
+			QuizAttemptMode.Selected,
+		);
+	});
+
+	test("drops ids the set does not hold", async () => {
+		const quizSetId = await harness.seedPublishedSet([aQuestionInput("One")]);
+		const other = await harness.seedPublishedSet([aQuestionInput("Two")]);
+
+		await harness.practice.execute({
+			quizSetId,
+			mode: QuizAttemptMode.Selected,
+			questionIds: [
+				...(await idsOf(other, ["Two"])),
+				...(await idsOf(quizSetId, ["One"])),
+			],
+		});
+
+		expect(await harness.plannedPrompts(quizSetId)).toEqual(["One"]);
+	});
+
+	test("refuses when none of the ids belong to the set", async () => {
+		const quizSetId = await harness.seedPublishedSet([aQuestionInput("One")]);
+		const other = await harness.seedPublishedSet([aQuestionInput("Two")]);
+
+		await expect(
+			harness.practice.execute({
+				quizSetId,
+				mode: QuizAttemptMode.Selected,
+				questionIds: await idsOf(other, ["Two"]),
+			}),
+		).rejects.toThrow(NothingToPracticeError);
+	});
+
+	test("refuses when no ids are given at all", async () => {
+		const quizSetId = await harness.seedPublishedSet([aQuestionInput("One")]);
+
+		await expect(
+			harness.practice.execute({
+				quizSetId,
+				mode: QuizAttemptMode.Selected,
+			}),
+		).rejects.toThrow(NothingToPracticeError);
+	});
+
+	test("keeps the given order even when the set shuffles", async () => {
+		const prompts = ["One", "Two", "Three", "Four", "Five", "Six", "Seven"];
+		const quizSetId = await harness.seedPublishedSet(
+			prompts.map((prompt) => aQuestionInput(prompt)),
+		);
+
+		await harness.context.unitOfWork.run(({ reviews }) =>
+			reviews.saveSettings(quizScope(quizSetId), {
+				...StudySettingsEntity.defaults(),
+				shuffleQuestions: true,
+			}),
+		);
+
+		const wanted = [...prompts].reverse();
+
+		await harness.practice.execute({
+			quizSetId,
+			mode: QuizAttemptMode.Selected,
+			questionIds: await idsOf(quizSetId, wanted),
+		});
+
+		expect(await harness.plannedPrompts(quizSetId)).toEqual(wanted);
 	});
 });

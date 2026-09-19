@@ -9,7 +9,7 @@ import {
 import { ApiExcludeController } from "@nestjs/swagger";
 import { BOT_ROUTES } from "@recall/contracts";
 import { SurfaceGuard } from "@/modules/auth";
-import { toQuizSetId } from "@/modules/quizzes";
+import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import { parseBody } from "@/shared/http/parse-body";
 import { startPracticeDto } from "./dto";
 import { practiceResultToWire } from "./practice.model";
@@ -32,6 +32,7 @@ export class PracticeController {
 			await this.startPracticeSession.execute({
 				...command,
 				quizSetId: toQuizSetId(command.quizSetId),
+				questionIds: command.questionIds?.map(toQuestionId),
 			}),
 		);
 	}
