@@ -1,4 +1,5 @@
 import type { FeltGrade } from "@recall/contracts";
+import { RECALL_GRADE_LABELS } from "@/features/practice/constants/recall-grades";
 
 export interface RecallChoice {
 	readonly grade: FeltGrade;
@@ -7,7 +8,15 @@ export interface RecallChoice {
 }
 
 export const RECALL_CHOICES: readonly RecallChoice[] = [
-	{ grade: "hard", label: "Hard", caption: "dragged it up" },
-	{ grade: "good", label: "Good", caption: "came back as usual" },
-	{ grade: "easy", label: "Easy", caption: "knew it at once" },
+	{ grade: "hard", label: RECALL_GRADE_LABELS.hard, caption: "dragged it up" },
+	{
+		grade: "good",
+		label: RECALL_GRADE_LABELS.good,
+		caption: "came back as usual",
+	},
+	{
+		grade: "easy",
+		label: RECALL_GRADE_LABELS.easy,
+		caption: "knew it at once",
+	},
 ];

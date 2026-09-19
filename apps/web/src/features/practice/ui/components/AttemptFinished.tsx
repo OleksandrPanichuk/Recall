@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import type { FinishedAttempt } from "@/features/practice/lib/practice.types";
+import { ScheduleSummary } from "@/features/practice/ui/components/ScheduleSummary";
 import { ScoreSummary } from "@/features/statistics/ui/components/ScoreSummary";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
 
@@ -23,6 +24,17 @@ export function AttemptFinished({ finished, quizId }: Props) {
 							percentage: finished.percentage,
 						}}
 					/>
+					{finished.mode === "full" ? null : (
+						<p className="text-sm text-muted-foreground">
+							Practice attempts do not change the schedule.
+						</p>
+					)}
+					{finished.scheduled.length === 0 ? null : (
+						<ScheduleSummary
+							scheduled={finished.scheduled}
+							today={new Date()}
+						/>
+					)}
 					<div className="flex flex-wrap gap-2">
 						<Link
 							to="/attempts/$attemptId"

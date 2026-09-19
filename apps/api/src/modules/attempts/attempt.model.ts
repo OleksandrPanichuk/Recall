@@ -78,6 +78,13 @@ export const finishResultToWire = (
 ): WireFinishResult => ({
 	attemptId: String(result.attemptId),
 	quizSetId: String(result.quizSetId),
+	mode: result.mode,
 	score: { ...result.score },
 	unansweredCount: result.unansweredCount,
+	scheduled: result.scheduled.map((entry) => ({
+		questionId: String(entry.questionId),
+		prompt: entry.prompt,
+		grade: entry.grade,
+		dueAt: entry.dueAt?.toISOString(),
+	})),
 });

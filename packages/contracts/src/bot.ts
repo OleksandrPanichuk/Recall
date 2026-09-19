@@ -151,11 +151,20 @@ export const resumedAttemptSchema = z.object({
 	currentQuestionId: optionalId,
 });
 
+export const scheduledQuestionSchema = z.object({
+	questionId: id,
+	prompt: z.string(),
+	grade: z.enum(RecallGrade),
+	dueAt: z.string().optional(),
+});
+
 export const finishResultSchema = z.object({
 	attemptId: id,
 	quizSetId: id,
+	mode: z.enum(QuizAttemptMode),
 	score: scoreSchema,
 	unansweredCount: count,
+	scheduled: z.array(scheduledQuestionSchema).readonly(),
 });
 
 export const attemptSummarySchema = z.object({
@@ -512,6 +521,7 @@ export type CurrentQuestionView = z.infer<typeof currentQuestionSchema>;
 export type StartQuizAttemptResult = z.infer<typeof startAttemptResultSchema>;
 export type StartPracticeSessionResult = z.infer<typeof practiceResultSchema>;
 export type AnswerQuestionResult = z.infer<typeof answerResultSchema>;
+export type ScheduledQuestion = z.infer<typeof scheduledQuestionSchema>;
 export type FinishQuizAttemptResult = z.infer<typeof finishResultSchema>;
 export type AttemptSummary = z.infer<typeof attemptSummarySchema>;
 export type QuizStatistics = z.infer<typeof quizStatisticsSchema>;

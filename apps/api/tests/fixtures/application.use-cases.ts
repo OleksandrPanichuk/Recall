@@ -327,6 +327,7 @@ export function createUseCases(
 		),
 		finishQuizAttempt: new FinishQuizAttemptUseCase(
 			attemptsRepo,
+			quizzes,
 			reviews,
 			settingsService,
 			transaction,
