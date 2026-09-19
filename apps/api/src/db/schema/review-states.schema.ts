@@ -25,6 +25,7 @@ export const reviewStates = pgTable(
 		difficulty: numeric("difficulty", { precision: 10, scale: 4 }),
 		lastReviewedAt: timestamp("last_reviewed_at", { withTimezone: true }),
 		dueAt: timestamp("due_at", { withTimezone: true }),
+		retiredAt: timestamp("retired_at", { withTimezone: true }),
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),
 	},

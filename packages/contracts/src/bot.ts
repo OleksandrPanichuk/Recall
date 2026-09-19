@@ -13,6 +13,7 @@ export const QuizAttemptMode = {
 	Full: "full",
 	Mistakes: "mistakes",
 	WeakTopics: "weak_topics",
+	Selected: "selected",
 } as const;
 export type QuizAttemptMode =
 	(typeof QuizAttemptMode)[keyof typeof QuizAttemptMode];
@@ -234,6 +235,19 @@ export const leechSchema = z.object({
 	quizSetTitle: z.string(),
 	prompt: z.string(),
 	lapses: count,
+});
+
+export const retiredViewSchema = z.object({
+	questionId: id,
+	quizSetId: id,
+	quizSetTitle: z.string(),
+	prompt: z.string(),
+	retiredAt: z.string(),
+});
+
+export const retiredQuestionSchema = z.object({
+	questionId: id,
+	retired: z.boolean(),
 });
 
 export const resolvedSettingsSchema = z.object({
@@ -468,14 +482,26 @@ export const startAttemptCommandSchema = z.object({
 export const PracticeMode = {
 	Mistakes: QuizAttemptMode.Mistakes,
 	WeakTopics: QuizAttemptMode.WeakTopics,
+	Selected: QuizAttemptMode.Selected,
 } as const;
 export type PracticeMode = (typeof PracticeMode)[keyof typeof PracticeMode];
 
-export const practiceCommandSchema = z.object({
-	quizSetId: id,
-	telegramUserId: z.number().int().optional(),
-	mode: z.enum(PracticeMode),
-});
+export const practiceCommandSchema = z
+	.object({
+		quizSetId: id,
+		telegramUserId: z.number().int().optional(),
+		mode: z.enum(PracticeMode),
+		questionIds: z.array(id).optional(),
+	})
+	.refine(
+		(command) =>
+			command.mode !== PracticeMode.Selected ||
+			(command.questionIds !== undefined && command.questionIds.length > 0),
+		{
+			message: "selected mode needs at least one questionId",
+			path: ["questionIds"],
+		},
+	);
 
 export const currentQuestionCommandSchema = z.object({});
 
@@ -496,6 +522,13 @@ export const dueRepetitionsCommandSchema = z.object({});
 
 export const leechesCommandSchema = z.object({
 	threshold: z.number().int().optional(),
+});
+
+export const retiredCommandSchema = z.object({});
+
+export const retireQuestionCommandSchema = z.object({
+	questionId: id,
+	retired: z.boolean(),
 });
 
 export const resolveSettingsCommandSchema = z.object({
@@ -529,6 +562,8 @@ export type AttemptDetail = z.infer<typeof attemptDetailSchema>;
 export type AnsweredQuestion = AttemptDetail["answers"][number];
 export type DueSet = z.infer<typeof dueSetSchema>;
 export type LeechView = z.infer<typeof leechSchema>;
+export type RetiredView = z.infer<typeof retiredViewSchema>;
+export type RetiredQuestion = z.infer<typeof retiredQuestionSchema>;
 export type ResolvedQuizSettings = z.infer<typeof resolvedSettingsSchema>;
 
 export type LoginLink = z.infer<typeof loginLinkSchema>;
@@ -597,6 +632,8 @@ export type ListDueRepetitionsCommand = z.infer<
 	typeof dueRepetitionsCommandSchema
 >;
 export type ListLeechesCommand = z.infer<typeof leechesCommandSchema>;
+export type ListRetiredCommand = z.infer<typeof retiredCommandSchema>;
+export type RetireQuestionCommand = z.infer<typeof retireQuestionCommandSchema>;
 export type ResolveQuizSettingsCommand = z.infer<
 	typeof resolveSettingsCommandSchema
 >;

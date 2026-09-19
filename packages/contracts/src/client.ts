@@ -102,6 +102,7 @@ import {
 	type ListDueRepetitionsCommand,
 	type ListLeechesCommand,
 	type ListOwnApiTokensCommand,
+	type ListRetiredCommand,
 	type ListRevisionsCommand,
 	type LoginLink,
 	leechesCommandSchema,
@@ -135,6 +136,9 @@ import {
 	type ResolvedQuizSettings,
 	type ResolveQuizSettingsCommand,
 	type ResumedAttempt,
+	type RetiredQuestion,
+	type RetiredView,
+	type RetireQuestionCommand,
 	type RevokeApiTokenCommand,
 	type RevokedApiToken,
 	type RevokeOwnApiTokenCommand,
@@ -144,6 +148,10 @@ import {
 	resolvedSettingsSchema,
 	resolveSettingsCommandSchema,
 	resumedAttemptSchema,
+	retiredCommandSchema,
+	retiredQuestionSchema,
+	retiredViewSchema,
+	retireQuestionCommandSchema,
 	revokeApiTokenCommandSchema,
 	revokedApiTokenSchema,
 	revokeOwnApiTokenCommandSchema,
@@ -243,6 +251,7 @@ export const ApiErrorName = {
 	FolderNotEmpty: "FolderNotEmptyError",
 	NothingToPractice: "NothingToPracticeError",
 	NothingDue: "NothingDueError",
+	QuestionNotFound: "QuestionNotFoundError",
 } as const;
 export type ApiErrorName = (typeof ApiErrorName)[keyof typeof ApiErrorName];
 
@@ -333,6 +342,8 @@ export interface PracticeUseCases extends AuthoringUseCases {
 		readonly DueSet[]
 	>;
 	readonly listLeeches: UseCaseLike<ListLeechesCommand, readonly LeechView[]>;
+	readonly listRetired: UseCaseLike<ListRetiredCommand, readonly RetiredView[]>;
+	readonly retireQuestion: UseCaseLike<RetireQuestionCommand, RetiredQuestion>;
 	readonly getAttemptDetail: UseCaseLike<
 		GetAttemptDetailCommand,
 		AttemptDetail
@@ -446,6 +457,8 @@ export const BOT_ROUTES = {
 	attemptDetail: "attempts/detail",
 	dueRepetitions: "repetitions/due",
 	leeches: "repetitions/leeches",
+	retired: "repetitions/retired",
+	retireQuestion: "repetitions/retire",
 	resolveSettings: "settings/resolve",
 	updateSettings: "settings/update",
 } as const;
@@ -707,6 +720,16 @@ function createClient(options: RecallClientOptions) {
 			BOT_ROUTES.leeches,
 			leechesCommandSchema,
 			leechSchema.array().readonly(),
+		),
+		listRetired: operation(
+			BOT_ROUTES.retired,
+			retiredCommandSchema,
+			retiredViewSchema.array().readonly(),
+		),
+		retireQuestion: operation(
+			BOT_ROUTES.retireQuestion,
+			retireQuestionCommandSchema,
+			retiredQuestionSchema,
 		),
 		getAttemptDetail: operation(
 			BOT_ROUTES.attemptDetail,

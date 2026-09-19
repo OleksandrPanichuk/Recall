@@ -7,7 +7,7 @@ import {
 	State,
 } from "ts-fsrs";
 import { type QuestionId } from "@/modules/quizzes";
-import { copiedDate } from "@/shared/utils/date";
+import { copiedDate, copiedOptionalDate } from "@/shared/utils/date";
 import { RecallGrade } from "./recall-grade";
 import { ScheduleEntity } from "./schedule.entity";
 import { type RepetitionSettings } from "./schedule.entity.types";
@@ -70,14 +70,20 @@ export function fsrsScheduleAfter(
 		Math.min(card.scheduled_days, settings.maxIntervalDays),
 	);
 
+	const retiredAt = copiedOptionalDate(previous?.retiredAt);
+
 	return Object.freeze({
 		questionId,
 		telegramUserId,
 		repetitionCount: card.reps,
 		lapses: card.lapses,
 		lastCompletedAt: copiedDate(completedAt),
-		dueAt: new Date(completedDayStart.getTime() + intervalDays * DAY_MS),
+		dueAt:
+			retiredAt === undefined
+				? new Date(completedDayStart.getTime() + intervalDays * DAY_MS)
+				: undefined,
 		stability: card.stability,
 		difficulty: card.difficulty,
+		retiredAt,
 	});
 }

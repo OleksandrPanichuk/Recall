@@ -6,6 +6,7 @@ import {
 	QuizzesRepository,
 } from "@/modules/quizzes";
 import { DEFAULT_LEECH_THRESHOLD } from "..";
+import { locateQuestions } from "../question-locator";
 import { SchedulesRepository } from "../scheduling.repository";
 
 export interface LeechView {
@@ -38,40 +39,19 @@ export class ListLeechesUseCase extends UseCase<Options, Result> {
 		const stuck = await this.schedules.listLeeches(
 			options.threshold ?? DEFAULT_LEECH_THRESHOLD,
 		);
-
-		if (stuck.length === 0) {
-			return [];
-		}
-
-		const lapsesOf = new Map(
-			stuck.map((schedule) => [schedule.questionId, schedule.lapses]),
+		const located = await locateQuestions(
+			this.quizzes,
+			stuck.map((schedule) => schedule.questionId),
 		);
-		const views: LeechView[] = [];
 
-		for (const summary of await this.quizzes.list()) {
-			const quizSet = await this.quizzes.findById(summary.id);
+		return stuck
+			.flatMap((schedule) => {
+				const question = located.get(schedule.questionId);
 
-			if (quizSet === undefined) {
-				continue;
-			}
-
-			for (const question of quizSet.questions) {
-				const lapses = lapsesOf.get(question.id);
-
-				if (lapses === undefined) {
-					continue;
-				}
-
-				views.push({
-					questionId: question.id,
-					quizSetId: quizSet.id,
-					quizSetTitle: quizSet.title,
-					prompt: question.prompt,
-					lapses,
-				});
-			}
-		}
-
-		return views.toSorted((one, other) => other.lapses - one.lapses);
+				return question === undefined
+					? []
+					: [{ ...question, lapses: schedule.lapses }];
+			})
+			.toSorted((one, other) => other.lapses - one.lapses);
 	}
 }

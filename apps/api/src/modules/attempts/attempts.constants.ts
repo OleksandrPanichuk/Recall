@@ -18,6 +18,7 @@ export const QuizAttemptMode = {
 	Full: "full",
 	Mistakes: "mistakes",
 	WeakTopics: "weak_topics",
+	Selected: "selected",
 } as const;
 export type QuizAttemptMode =
 	(typeof QuizAttemptMode)[keyof typeof QuizAttemptMode];

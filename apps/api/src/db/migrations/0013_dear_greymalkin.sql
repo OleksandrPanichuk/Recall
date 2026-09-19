@@ -1,0 +1,1 @@
+ALTER TABLE "review_states" ADD COLUMN "retired_at" timestamp with time zone;

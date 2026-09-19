@@ -10,6 +10,7 @@ import {
 	toQuestionOptionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { ScheduleEntity } from "@/modules/scheduling";
 import { StudySettingsEntity } from "@/modules/study-settings";
 import { TermPairEntity, toVocabularyItemId } from "@/modules/vocabulary";
 
@@ -188,6 +189,117 @@ export function describeReviewRepository(
 				expect(leeches.map((entry) => String(entry.questionId))).toEqual([
 					secondQuestion,
 				]);
+			});
+
+			test("a retired schedule comes back retired", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([
+						ScheduleEntity.retire(
+							schedule(firstQuestion, 4, 1),
+							toQuestionId(firstQuestion),
+							day(2),
+						),
+					]);
+				});
+
+				const [found] = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
+
+				expect(found?.retiredAt).toEqual(day(2));
+				expect(found?.dueAt).toBeUndefined();
+				expect(found?.lapses).toBe(4);
+				expect(
+					found === undefined ? false : ScheduleEntity.isRetired(found),
+				).toBe(true);
+			});
+
+			test("a retired question is neither stuck nor due, only retired", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([
+						ScheduleEntity.retire(
+							schedule(firstQuestion, 5, 0),
+							toQuestionId(firstQuestion),
+							day(1),
+						),
+						schedule(secondQuestion, 5, 0),
+					]);
+				});
+
+				const ids = (entries: readonly ScheduleEntity[]) =>
+					entries.map((entry) => String(entry.questionId));
+
+				expect(ids(await harness.scope.reviews.listLeeches(3))).toEqual([
+					secondQuestion,
+				]);
+				expect(ids(await harness.scope.reviews.listDue(day(5)))).toEqual([
+					secondQuestion,
+				]);
+				expect(ids(await harness.scope.reviews.listRetired())).toEqual([
+					firstQuestion,
+				]);
+			});
+
+			test("lists retired questions newest first", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([
+						ScheduleEntity.retire(
+							schedule(firstQuestion, 0, 1),
+							toQuestionId(firstQuestion),
+							day(1),
+						),
+						ScheduleEntity.retire(
+							schedule(secondQuestion, 0, 1),
+							toQuestionId(secondQuestion),
+							day(3),
+						),
+					]);
+				});
+
+				expect(
+					(await harness.scope.reviews.listRetired()).map((entry) =>
+						String(entry.questionId),
+					),
+				).toEqual([secondQuestion, firstQuestion]);
+			});
+
+			test("bringing a question back puts it among the due", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([
+						ScheduleEntity.retire(
+							schedule(firstQuestion, 0, 1),
+							toQuestionId(firstQuestion),
+							day(1),
+						),
+					]);
+				});
+
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					const [retired] = await reviews.findSchedules([
+						toQuestionId(firstQuestion),
+					]);
+
+					if (retired === undefined) {
+						throw new Error("the retired schedule vanished");
+					}
+
+					await reviews.saveSchedules([
+						ScheduleEntity.unretire(retired, day(4)),
+					]);
+				});
+
+				const [found] = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
+
+				expect(found?.retiredAt).toBeUndefined();
+				expect(found?.dueAt).toEqual(day(4));
+				expect(
+					(await harness.scope.reviews.listDue(day(4))).map((entry) =>
+						String(entry.questionId),
+					),
+				).toEqual([firstQuestion]);
+				expect(await harness.scope.reviews.listRetired()).toEqual([]);
 			});
 
 			test("keeps owner settings and quiz settings apart", async () => {

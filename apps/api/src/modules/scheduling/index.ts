@@ -14,4 +14,10 @@ export {
 	type ListDueRepetitionsUseCaseOptions,
 	ListLeechesUseCase,
 	type ListLeechesUseCaseOptions,
+	ListRetiredUseCase,
+	type ListRetiredUseCaseOptions,
+	type RetiredView,
+	type RetireQuestionResult,
+	RetireQuestionUseCase,
+	type RetireQuestionUseCaseOptions,
 } from "./use-cases";

@@ -1,3 +1,5 @@
+import type { QuestionId } from "@/modules/quizzes";
+
 export class RepetitionSettingsValidationError extends Error {
 	readonly issues: readonly string[];
 
@@ -7,5 +9,15 @@ export class RepetitionSettingsValidationError extends Error {
 		);
 		this.name = "RepetitionSettingsValidationError";
 		this.issues = issues;
+	}
+}
+
+export class QuestionNotFoundError extends Error {
+	readonly questionId: QuestionId;
+
+	constructor(questionId: QuestionId) {
+		super(`No quiz set holds question ${questionId}`);
+		this.name = "QuestionNotFoundError";
+		this.questionId = questionId;
 	}
 }
