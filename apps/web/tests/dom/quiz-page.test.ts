@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { CurrentQuestionView } from "@recall/contracts";
-import { quizCallToAction } from "@/features/statistics/lib/quiz-page";
+import type { CurrentQuestionView, QuizStatistics } from "@recall/contracts";
+import {
+	quizCallToAction,
+	secondaryActions,
+} from "@/features/statistics/lib/quiz-page";
 
 const active = (over: Partial<CurrentQuestionView> = {}): CurrentQuestionView =>
 	({
@@ -60,5 +63,61 @@ describe("what the quiz page offers", () => {
 
 		expect(action.label).toBe("Finish attempt");
 		expect(action.caption).toContain("waiting to be finished");
+	});
+});
+
+const statistics = (
+	over: Partial<Pick<QuizStatistics, "incorrectQuestionIds" | "topics">> = {},
+): Pick<QuizStatistics, "incorrectQuestionIds" | "topics"> => ({
+	incorrectQuestionIds: [],
+	topics: [],
+	...over,
+});
+
+describe("the other ways the quiz page offers to practise", () => {
+	test("offers nothing when nothing went wrong and no topic is known", () => {
+		expect(secondaryActions(statistics(), null)).toEqual([]);
+	});
+
+	test("offers to retry mistakes, and says how many there are", () => {
+		expect(
+			secondaryActions(
+				statistics({ incorrectQuestionIds: ["q1", "q2", "q3"] }),
+				null,
+			),
+		).toEqual([{ mode: "mistakes", label: "Retry mistakes (3)" }]);
+	});
+
+	test("offers weak topics once topics have been answered", () => {
+		expect(
+			secondaryActions(
+				statistics({ topics: [{ topic: "Cells", answered: 4, correct: 1 }] }),
+				null,
+			),
+		).toEqual([{ mode: "weak_topics", label: "Weak topics" }]);
+	});
+
+	test("lists mistakes before weak topics when both apply", () => {
+		expect(
+			secondaryActions(
+				statistics({
+					incorrectQuestionIds: ["q1"],
+					topics: [{ topic: "Cells", answered: 4, correct: 1 }],
+				}),
+				null,
+			).map((action) => action.mode),
+		).toEqual(["mistakes", "weak_topics"]);
+	});
+
+	test("offers neither while an attempt is open", () => {
+		expect(
+			secondaryActions(
+				statistics({
+					incorrectQuestionIds: ["q1"],
+					topics: [{ topic: "Cells", answered: 4, correct: 1 }],
+				}),
+				active(),
+			),
+		).toEqual([]);
 	});
 });

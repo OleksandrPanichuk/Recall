@@ -6,10 +6,12 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { usePracticeKeys } from "@/features/practice/hooks/use-practice-keys";
 import { usePracticeSession } from "@/features/practice/hooks/use-practice-session";
+import type { PracticeSearchMode } from "@/features/practice/lib/practice-mode";
 import { AttemptFinished } from "@/features/practice/ui/components/AttemptFinished";
 import { AttemptInProgress } from "@/features/practice/ui/components/AttemptInProgress";
 import { AttemptPaused } from "@/features/practice/ui/components/AttemptPaused";
 import { HintReveal } from "@/features/practice/ui/components/HintReveal";
+import { NothingToPractice } from "@/features/practice/ui/components/NothingToPractice";
 import { OutOfQuestions } from "@/features/practice/ui/components/OutOfQuestions";
 import { QuestionCard } from "@/features/practice/ui/components/QuestionCard";
 import { RecallButtons } from "@/features/practice/ui/components/RecallButtons";
@@ -23,10 +25,17 @@ interface Props {
 		readonly quizSetId: string | null;
 		readonly title: string | null;
 	} | null;
+	readonly nothing: PracticeSearchMode | null;
 	readonly signedIn: boolean;
 }
 
-export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
+export function PracticeView({
+	quizId,
+	started,
+	blockedBy,
+	nothing,
+	signedIn,
+}: Props) {
 	const session = usePracticeSession(started);
 	const verdictRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +58,10 @@ export function PracticeView({ quizId, started, blockedBy, signedIn }: Props) {
 
 	if (!signedIn) {
 		return <SignInPrompt />;
+	}
+
+	if (nothing !== null && session.current === null) {
+		return <NothingToPractice mode={nothing} quizId={quizId} />;
 	}
 
 	if (blockedBy !== null && session.current === null) {

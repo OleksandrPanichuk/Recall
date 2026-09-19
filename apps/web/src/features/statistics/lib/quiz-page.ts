@@ -1,4 +1,8 @@
-import type { CurrentQuestionView } from "@recall/contracts";
+import {
+	type CurrentQuestionView,
+	PracticeMode,
+	type QuizStatistics,
+} from "@recall/contracts";
 import { attempts as countedAttempts } from "@/shared/lib/plural";
 
 export interface QuizCallToAction {
@@ -39,4 +43,34 @@ export function quizCallToAction(
 		label: "Carry on",
 		resuming: true,
 	};
+}
+
+export interface SecondaryAction {
+	readonly mode: PracticeMode;
+	readonly label: string;
+}
+
+export function secondaryActions(
+	statistics: Pick<QuizStatistics, "incorrectQuestionIds" | "topics">,
+	active: CurrentQuestionView | null,
+): readonly SecondaryAction[] {
+	if (active !== null) {
+		return [];
+	}
+
+	const mistakes = statistics.incorrectQuestionIds.length;
+	const actions: SecondaryAction[] = [];
+
+	if (mistakes > 0) {
+		actions.push({
+			mode: PracticeMode.Mistakes,
+			label: `Retry mistakes (${mistakes})`,
+		});
+	}
+
+	if (statistics.topics.length > 0) {
+		actions.push({ mode: PracticeMode.WeakTopics, label: "Weak topics" });
+	}
+
+	return actions;
 }

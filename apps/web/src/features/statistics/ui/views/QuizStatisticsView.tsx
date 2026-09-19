@@ -7,7 +7,10 @@ import { Link } from "@tanstack/react-router";
 import { CirclePlay, Pencil, Play } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { SettingsEditor } from "@/features/settings/ui/components/SettingsEditor";
-import { quizCallToAction } from "@/features/statistics/lib/quiz-page";
+import {
+	quizCallToAction,
+	secondaryActions,
+} from "@/features/statistics/lib/quiz-page";
 import { AttemptHistory } from "@/features/statistics/ui/components/AttemptHistory";
 import { QuizAccuracyCard } from "@/features/statistics/ui/components/QuizAccuracyCard";
 import { TopicAccuracyList } from "@/features/statistics/ui/components/TopicAccuracyList";
@@ -36,6 +39,7 @@ export function QuizStatisticsView({
 
 	const attempts = statistics.attempts.length;
 	const action = quizCallToAction(attempts, active);
+	const secondary = secondaryActions(statistics, active);
 
 	return (
 		<>
@@ -53,6 +57,21 @@ export function QuizStatisticsView({
 					</Button>
 				</Link>
 			</PageHeading>
+
+			{secondary.length === 0 ? null : (
+				<div className="mb-6 flex flex-wrap gap-2">
+					{secondary.map((entry) => (
+						<Link
+							key={entry.mode}
+							to="/practice/$quizId"
+							params={{ quizId }}
+							search={{ mode: entry.mode }}
+						>
+							<Button variant="outline">{entry.label}</Button>
+						</Link>
+					))}
+				</div>
+			)}
 
 			{attempts > 0 ? (
 				<div className="space-y-6">
