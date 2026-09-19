@@ -35,7 +35,7 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 		setFailure(null);
 
 		try {
-			const result = await finishAttempt();
+			const { result, nextDue } = await finishAttempt();
 
 			setFinished({
 				attemptId: result.attemptId,
@@ -44,6 +44,7 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 				total: result.score.total,
 				percentage: result.score.percentage,
 				scheduled: result.scheduled,
+				nextDue,
 			});
 		} catch (error) {
 			setFailure(messageFor(error));

@@ -3,6 +3,7 @@ import { PracticeMode } from "@recall/contracts";
 export const PRACTICE_SEARCH_MODES = [
 	PracticeMode.Mistakes,
 	PracticeMode.WeakTopics,
+	"due",
 ] as const;
 
 export type PracticeSearchMode = (typeof PRACTICE_SEARCH_MODES)[number];
@@ -15,6 +16,9 @@ export const isPracticeSearchMode = (
 	value: unknown,
 ): value is PracticeSearchMode =>
 	PRACTICE_SEARCH_MODES.some((mode) => mode === value);
+
+export const isPracticeMode = (value: unknown): value is PracticeMode =>
+	Object.values(PracticeMode).some((mode) => mode === value);
 
 export const parsePracticeSearch = (
 	search: Record<string, unknown>,

@@ -15,9 +15,15 @@ export const Route = createFileRoute("/practice/$quizId")({
 			return null;
 		}
 
-		return deps.mode === undefined
-			? startAttempt({ data: params.quizId })
-			: startPractice({ data: { id: params.quizId, mode: deps.mode } });
+		if (deps.mode === undefined) {
+			return startAttempt({ data: { id: params.quizId } });
+		}
+
+		if (deps.mode === "due") {
+			return startAttempt({ data: { id: params.quizId, onlyDue: true } });
+		}
+
+		return startPractice({ data: { id: params.quizId, mode: deps.mode } });
 	},
 	head: ({ loaderData }) => ({
 		meta: [
@@ -32,10 +38,12 @@ export const Route = createFileRoute("/practice/$quizId")({
 function Practice() {
 	const loaded = Route.useLoaderData();
 	const { quizId } = Route.useParams();
+	const { mode } = Route.useSearch();
 
 	return (
 		<PracticeView
 			quizId={quizId}
+			mode={mode}
 			started={loaded?.current ?? null}
 			blockedBy={loaded?.blockedBy ?? null}
 			nothing={loaded?.nothing ?? null}

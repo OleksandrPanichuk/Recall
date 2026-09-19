@@ -1,4 +1,6 @@
 import type { DueSet, LeechView } from "@recall/contracts";
+import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/Button";
 import { DueList } from "@/features/review/ui/components/DueList";
 import { LeechList } from "@/features/review/ui/components/LeechList";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
@@ -16,9 +18,21 @@ export function ReviewView({ due, leeches, signedIn }: Props) {
 		return <SignInPrompt />;
 	}
 
+	const first = due[0];
+
 	return (
 		<div className="space-y-8">
-			<PageHeading title="Review" caption={reviewCaption(due)} />
+			<PageHeading title="Review" caption={reviewCaption(due)}>
+				{first === undefined ? null : (
+					<Link
+						to="/practice/$quizId"
+						params={{ quizId: first.quizSetId }}
+						search={{ mode: "due" }}
+					>
+						<Button>Start today's review</Button>
+					</Link>
+				)}
+			</PageHeading>
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium text-muted-foreground">Due today</h2>
 				<DueList due={due} />
