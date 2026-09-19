@@ -28,6 +28,9 @@ const CALLBACK_ACTION_NAMES: Readonly<Record<CallbackAction, string>> = {
 	[CallbackAction.MistakesFor]: "mistakes-for",
 	[CallbackAction.WeakTopics]: "weak-topics",
 	[CallbackAction.WeakTopicsFor]: "weak-topics-for",
+	[CallbackAction.Leeches]: "leeches",
+	[CallbackAction.Retired]: "retired",
+	[CallbackAction.Retire]: "retire",
 };
 
 function describeCallback(callback: Callback): LogFields {
@@ -48,6 +51,8 @@ function describeCallback(callback: Callback): LogFields {
 			};
 		case CallbackAction.Browse:
 			return { folderId: callback.folderId, page: callback.page };
+		case CallbackAction.Retire:
+			return { questionId: callback.questionId, retired: callback.retired };
 		default:
 			return {};
 	}
