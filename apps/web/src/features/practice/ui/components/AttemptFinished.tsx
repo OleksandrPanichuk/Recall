@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import type { PracticeSearchMode } from "@/features/practice/lib/practice-mode";
 import type { FinishedAttempt } from "@/features/practice/lib/practice.types";
+import type { PracticeSearchMode } from "@/features/practice/lib/practice-mode";
 import { ScheduleSummary } from "@/features/practice/ui/components/ScheduleSummary";
 import { ScoreSummary } from "@/features/statistics/ui/components/ScoreSummary";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
