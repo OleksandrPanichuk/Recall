@@ -80,6 +80,18 @@ export interface SettingsEditCallback {
 	readonly presetKey?: string;
 }
 
+export interface LeechesCallback {
+	readonly action: typeof CallbackAction.Leeches;
+}
+export interface RetiredCallback {
+	readonly action: typeof CallbackAction.Retired;
+}
+export interface RetireCallback {
+	readonly action: typeof CallbackAction.Retire;
+	readonly questionId: string;
+	readonly retired: boolean;
+}
+
 export interface MistakesCallback {
 	readonly action: typeof CallbackAction.Mistakes;
 }
@@ -118,4 +130,7 @@ export type Callback =
 	| MistakesForCallback
 	| WeakTopicsCallback
 	| WeakTopicsForCallback
+	| LeechesCallback
+	| RetiredCallback
+	| RetireCallback
 	| LoginCallback;

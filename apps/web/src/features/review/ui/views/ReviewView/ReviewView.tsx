@@ -1,8 +1,9 @@
-import type { DueSet, LeechView } from "@recall/contracts";
+import type { DueSet, LeechView, RetiredView } from "@recall/contracts";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { DueList } from "@/features/review/ui/components/DueList";
 import { LeechList } from "@/features/review/ui/components/LeechList";
+import { RetiredList } from "@/features/review/ui/components/RetiredList";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
 import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
 import { reviewCaption } from "./ReviewView.constants";
@@ -10,10 +11,11 @@ import { reviewCaption } from "./ReviewView.constants";
 interface Props {
 	readonly due: readonly DueSet[];
 	readonly leeches: readonly LeechView[];
+	readonly retired: readonly RetiredView[];
 	readonly signedIn: boolean;
 }
 
-export function ReviewView({ due, leeches, signedIn }: Props) {
+export function ReviewView({ due, leeches, retired, signedIn }: Props) {
 	if (!signedIn) {
 		return <SignInPrompt />;
 	}
@@ -43,6 +45,12 @@ export function ReviewView({ due, leeches, signedIn }: Props) {
 				</h2>
 				<LeechList leeches={leeches} />
 			</section>
+			{retired.length === 0 ? null : (
+				<section className="space-y-3">
+					<h2 className="text-sm font-medium text-muted-foreground">Retired</h2>
+					<RetiredList retired={retired} today={new Date()} />
+				</section>
+			)}
 		</div>
 	);
 }

@@ -39,6 +39,8 @@ function serialise(callback: Callback): string {
 		case CallbackAction.Settings:
 		case CallbackAction.Mistakes:
 		case CallbackAction.WeakTopics:
+		case CallbackAction.Leeches:
+		case CallbackAction.Retired:
 		case CallbackAction.Login:
 			return callback.action;
 		case CallbackAction.SettingsFor:
@@ -57,6 +59,12 @@ function serialise(callback: Callback): string {
 			return [callback.action, callback.quizSetId].join(SEPARATOR);
 		case CallbackAction.Reveal:
 			return [callback.action, callback.questionId].join(SEPARATOR);
+		case CallbackAction.Retire:
+			return [
+				callback.action,
+				callback.questionId,
+				callback.retired ? "1" : "0",
+			].join(SEPARATOR);
 		case CallbackAction.AttemptDetail:
 			return [
 				callback.action,
@@ -112,6 +120,8 @@ export function decodeCallback(data: string): Callback | undefined {
 		case CallbackAction.Settings:
 		case CallbackAction.Mistakes:
 		case CallbackAction.WeakTopics:
+		case CallbackAction.Leeches:
+		case CallbackAction.Retired:
 		case CallbackAction.Login:
 			return { action };
 		case CallbackAction.SettingsFor:
@@ -150,6 +160,16 @@ export function decodeCallback(data: string): Callback | undefined {
 			return first === undefined || first.length === 0
 				? undefined
 				: { action, questionId: first };
+		case CallbackAction.Retire:
+			if (
+				first === undefined ||
+				first.length === 0 ||
+				(second !== "0" && second !== "1")
+			) {
+				return undefined;
+			}
+
+			return { action, questionId: first, retired: second === "1" };
 		case CallbackAction.AttemptDetail: {
 			if (first === undefined || first.length === 0) {
 				return undefined;

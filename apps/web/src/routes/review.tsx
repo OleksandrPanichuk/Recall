@@ -16,6 +16,7 @@ function Review() {
 		<ReviewView
 			due={loaded?.due ?? []}
 			leeches={loaded?.leeches ?? []}
+			retired={loaded?.retired ?? []}
 			signedIn={loaded !== null}
 		/>
 	);
