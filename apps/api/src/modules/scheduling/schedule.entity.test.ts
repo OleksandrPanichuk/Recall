@@ -260,3 +260,98 @@ describe("leeches", () => {
 		expect(ScheduleEntity.leechOf(withLapses(1), 5)).toBeUndefined();
 	});
 });
+
+describe("retiring a question by hand", () => {
+	const retiredAt = at("2026-08-20T12:00:00.000Z");
+	const fsrs = ScheduleEntity.createSettings({
+		...settings,
+		scheduler: "fsrs",
+	});
+
+	const afterAnswer = (
+		previous: ScheduleEntity,
+		grade: RecallGrade,
+		which: typeof settings | typeof fsrs,
+	): ScheduleEntity =>
+		ScheduleEntity.scheduleAfter(
+			previous,
+			questionId,
+			user,
+			which,
+			at("2026-09-01T09:00:00.000Z"),
+			startOfDay(at("2026-09-01T09:00:00.000Z")),
+			grade,
+		);
+
+	test("keeps the counters of the schedule it retires", () => {
+		const before = complete(complete(undefined, start), start);
+		const retired = ScheduleEntity.retire(before, questionId, retiredAt);
+
+		expect(retired.repetitionCount).toBe(2);
+		expect(retired.lapses).toBe(0);
+		expect(retired.dueAt).toBeUndefined();
+		expect(retired.retiredAt).toEqual(retiredAt);
+		expect(retired.retiredAt).not.toBe(retiredAt);
+		expect(ScheduleEntity.isRetired(retired)).toBe(true);
+	});
+
+	test("starts from nothing when the question was never scheduled", () => {
+		const retired = ScheduleEntity.retire(undefined, questionId, retiredAt);
+
+		expect(retired.repetitionCount).toBe(0);
+		expect(retired.lapses).toBe(0);
+		expect(retired.lastCompletedAt).toEqual(retiredAt);
+		expect(retired.dueAt).toBeUndefined();
+		expect(retired.retiredAt).toEqual(retiredAt);
+	});
+
+	test("bringing it back makes it due right away", () => {
+		const retired = ScheduleEntity.retire(
+			complete(undefined, start),
+			questionId,
+			retiredAt,
+		);
+		const back = ScheduleEntity.unretire(
+			retired,
+			at("2026-08-21T08:00:00.000Z"),
+		);
+
+		expect(back.retiredAt).toBeUndefined();
+		expect(back.dueAt).toEqual(at("2026-08-21T08:00:00.000Z"));
+		expect(back.repetitionCount).toBe(retired.repetitionCount);
+		expect(ScheduleEntity.isRetired(back)).toBe(false);
+		expect(ScheduleEntity.isDue(back, at("2026-08-21T08:00:00.000Z"))).toBe(
+			true,
+		);
+	});
+
+	test.each([
+		["ladder", "right", RecallGrade.Good],
+		["ladder", "wrong", RecallGrade.Again],
+		["fsrs", "right", RecallGrade.Good],
+		["fsrs", "wrong", RecallGrade.Again],
+	] as const)("under %s a %s answer leaves a retired question undue", (scheduler, _answer, grade) => {
+		const which = scheduler === "fsrs" ? fsrs : settings;
+		const retired = ScheduleEntity.retire(
+			complete(undefined, start),
+			questionId,
+			retiredAt,
+		);
+
+		const next = afterAnswer(retired, grade, which);
+
+		expect(next.dueAt).toBeUndefined();
+		expect(next.retiredAt).toEqual(retiredAt);
+		expect(ScheduleEntity.isRetired(next)).toBe(true);
+	});
+
+	test("a wrong answer on a retired question still counts as a lapse", () => {
+		const retired = ScheduleEntity.retire(
+			complete(undefined, start),
+			questionId,
+			retiredAt,
+		);
+
+		expect(afterAnswer(retired, RecallGrade.Again, settings).lapses).toBe(1);
+	});
+});

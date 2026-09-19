@@ -25,6 +25,7 @@ const scheduleMethods = (schedules: PostgresSchedulesRepository) => ({
 	) => schedules.findSchedules(ids),
 	listDue: (at: Date) => schedules.listDue(at),
 	listLeeches: (threshold: number) => schedules.listLeeches(threshold),
+	listRetired: () => schedules.listRetired(),
 });
 
 const settingsMethods = (settings: PostgresStudySettingsRepository) => ({

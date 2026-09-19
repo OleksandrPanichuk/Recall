@@ -8,4 +8,5 @@ export abstract class SchedulesRepository {
 	): Promise<readonly ScheduleEntity[]>;
 	abstract listDue(at: Date): Promise<readonly ScheduleEntity[]>;
 	abstract listLeeches(threshold: number): Promise<readonly ScheduleEntity[]>;
+	abstract listRetired(): Promise<readonly ScheduleEntity[]>;
 }

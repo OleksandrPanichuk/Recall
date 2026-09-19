@@ -47,8 +47,21 @@ export function createMemoryReviewRepository(
 
 		async listLeeches(threshold: number): Promise<readonly ScheduleEntity[]> {
 			return all()
-				.filter((schedule) => schedule.lapses >= threshold)
+				.filter(
+					(schedule) =>
+						schedule.retiredAt === undefined && schedule.lapses >= threshold,
+				)
 				.sort((left, right) => right.lapses - left.lapses);
+		},
+
+		async listRetired(): Promise<readonly ScheduleEntity[]> {
+			return all()
+				.filter((schedule) => schedule.retiredAt !== undefined)
+				.sort(
+					(left, right) =>
+						(right.retiredAt?.getTime() ?? 0) -
+						(left.retiredAt?.getTime() ?? 0),
+				);
 		},
 
 		async saveSettings(

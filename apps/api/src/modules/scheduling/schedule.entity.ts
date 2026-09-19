@@ -1,5 +1,9 @@
 import { type QuestionId } from "@/modules/quizzes";
-import { copiedDate, isValidDate } from "@/shared/utils/date";
+import {
+	copiedDate,
+	copiedOptionalDate,
+	isValidDate,
+} from "@/shared/utils/date";
 import { fsrsScheduleAfter } from "./fsrs.scheduler";
 import { RecallGrade, wasRecalled } from "./recall-grade";
 import { type Leech, type RepetitionSettings } from "./schedule.entity.types";
@@ -51,6 +55,7 @@ export interface ScheduleEntity {
 	readonly dueAt?: Date;
 	readonly stability?: number;
 	readonly difficulty?: number;
+	readonly retiredAt?: Date;
 }
 
 export class ScheduleEntity {
@@ -169,8 +174,10 @@ export class ScheduleEntity {
 			? (previous?.repetitionCount ?? 0) + 1
 			: 1;
 		const lapses = (previous?.lapses ?? 0) + (answeredCorrectly ? 0 : 1);
+		const retiredAt = copiedOptionalDate(previous?.retiredAt);
 		const retired =
-			answeredCorrectly && repetitionCount > settings.maxRepetitions;
+			retiredAt !== undefined ||
+			(answeredCorrectly && repetitionCount > settings.maxRepetitions);
 
 		return Object.freeze({
 			questionId,
@@ -185,11 +192,38 @@ export class ScheduleEntity {
 							ScheduleEntity.intervalDaysFor(repetitionCount, settings) *
 								DAY_MS,
 					),
+			retiredAt,
+		});
+	}
+
+	static retire(
+		previous: ScheduleEntity | undefined,
+		questionId: QuestionId,
+		at: Date,
+	): ScheduleEntity {
+		return Object.freeze({
+			questionId,
+			telegramUserId: previous?.telegramUserId,
+			repetitionCount: previous?.repetitionCount ?? 0,
+			lapses: previous?.lapses ?? 0,
+			lastCompletedAt: copiedDate(previous?.lastCompletedAt ?? at),
+			dueAt: undefined,
+			stability: previous?.stability,
+			difficulty: previous?.difficulty,
+			retiredAt: copiedDate(at),
+		});
+	}
+
+	static unretire(schedule: ScheduleEntity, at: Date): ScheduleEntity {
+		return Object.freeze({
+			...schedule,
+			dueAt: copiedDate(at),
+			retiredAt: undefined,
 		});
 	}
 
 	static isRetired(schedule: ScheduleEntity): boolean {
-		return schedule.dueAt === undefined;
+		return schedule.dueAt === undefined || schedule.retiredAt !== undefined;
 	}
 
 	static isDue(schedule: ScheduleEntity, at: Date): boolean {

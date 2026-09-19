@@ -1,5 +1,15 @@
 import { Injectable } from "@nestjs/common";
-import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	isNull,
+	lte,
+	sql,
+} from "drizzle-orm";
 import { reviewStates } from "@/db/schema";
 import { type QuestionId, toQuestionId } from "@/modules/quizzes";
 import { ScheduleEntity } from "@/modules/scheduling";
@@ -15,6 +25,7 @@ const toSchedule = (row: ReviewRow): ScheduleEntity => ({
 	dueAt: row.dueAt ?? undefined,
 	stability: row.stability === null ? undefined : Number(row.stability),
 	difficulty: row.difficulty === null ? undefined : Number(row.difficulty),
+	retiredAt: row.retiredAt ?? undefined,
 });
 
 import { OwnerContext } from "@/core/owner-context";
@@ -59,6 +70,7 @@ export class PostgresSchedulesRepository extends SchedulesRepository {
 					schedule.difficulty === undefined
 						? null
 						: String(schedule.difficulty),
+				retiredAt: schedule.retiredAt ?? null,
 				updatedAt: schedule.lastCompletedAt,
 			};
 
@@ -103,8 +115,24 @@ export class PostgresSchedulesRepository extends SchedulesRepository {
 		const rows = await this.executor
 			.select()
 			.from(reviewStates)
-			.where(and(this.mine, sql`${reviewStates.lapses} >= ${threshold}`))
+			.where(
+				and(
+					this.mine,
+					isNull(reviewStates.retiredAt),
+					sql`${reviewStates.lapses} >= ${threshold}`,
+				),
+			)
 			.orderBy(sql`${reviewStates.lapses} desc`);
+
+		return rows.map(toSchedule);
+	}
+
+	async listRetired(): Promise<readonly ScheduleEntity[]> {
+		const rows = await this.executor
+			.select()
+			.from(reviewStates)
+			.where(and(this.mine, isNotNull(reviewStates.retiredAt)))
+			.orderBy(desc(reviewStates.retiredAt));
 
 		return rows.map(toSchedule);
 	}
