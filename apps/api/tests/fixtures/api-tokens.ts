@@ -3,6 +3,7 @@ import { Database, DatabaseHandle } from "@/db/connection";
 import { PostgresTransaction } from "@/db/executor";
 import {
 	ApiTokensService,
+	PostgresApiTokenCredentials,
 	PostgresApiTokensRepository,
 } from "@/modules/api-tokens";
 import {
@@ -11,6 +12,7 @@ import {
 	PostgresAuthRepository,
 } from "@/modules/auth";
 import { PostgresUsersRepository, UsersService } from "@/modules/users";
+import { AlsOwnerContext } from "@/shared/request-context";
 
 export const databaseOver = (db: RecallDatabase): Database =>
 	new DatabaseHandle(db);
@@ -27,8 +29,11 @@ export function authOver(db: RecallDatabase): AuthService {
 }
 
 export function issuerOver(db: RecallDatabase): ApiTokensService {
+	const database = databaseOver(db);
+
 	return new ApiTokensService(
-		new PostgresApiTokensRepository(databaseOver(db)),
+		new PostgresApiTokensRepository(database, new AlsOwnerContext()),
+		new PostgresApiTokenCredentials(database),
 		authOver(db),
 		{ now: () => new Date() },
 	);

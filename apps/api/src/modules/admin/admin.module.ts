@@ -3,7 +3,7 @@ import {
 	Module,
 	type NestModule,
 } from "@nestjs/common";
-import { silentLogger } from "@recall/kit";
+import { createLogger } from "@recall/kit";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { AuthService } from "@/modules/auth";
 import { InsightsModule } from "@/modules/insights";
@@ -45,7 +45,7 @@ export class AdminModule implements NestModule {
 
 		const routes = createAdminApi({
 			application: this.useCases,
-			logger: silentLogger,
+			logger: createLogger(),
 			passphrase: environment.adminPassphrase,
 			now: () => new Date(),
 		});

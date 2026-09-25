@@ -3,7 +3,11 @@ import { NestFactory } from "@nestjs/core";
 import { type Express, json, urlencoded } from "express";
 import { loadApiEnvironment } from "@/configs/env.config";
 import { AppModule } from "@/modules/app.module";
-import { AUTH_BASE_PATH, AuthEngine } from "@/modules/auth";
+import {
+	AUTH_BASE_PATH,
+	AuthEngine,
+	clientAddressMiddleware,
+} from "@/modules/auth";
 import { MCP_SURFACE, type McpSurface } from "@/modules/mcp/mcp.module";
 import { ModuleErrorFilter } from "@/shared/http/module-error.filter";
 import { mountSwagger, SWAGGER_PATH } from "@/shared/http/swagger.document";
@@ -38,8 +42,23 @@ export async function createApiApp() {
 
 	const handler = app.get(AuthEngine).handler();
 
+	if (
+		handler !== undefined &&
+		environment.authRateLimit &&
+		environment.webAppUrl !== undefined &&
+		environment.clientIpSecret === undefined
+	) {
+		console.warn(
+			"AUTH_CLIENT_IP_SECRET is not set, so every sign-in through the web shares one rate-limit bucket",
+		);
+	}
+
 	if (handler !== undefined) {
-		instance.all(`${AUTH_BASE_PATH}/*splat`, handler);
+		instance.all(
+			`${AUTH_BASE_PATH}/*splat`,
+			clientAddressMiddleware(environment.clientIpSecret),
+			handler,
+		);
 	}
 
 	instance.use(json());

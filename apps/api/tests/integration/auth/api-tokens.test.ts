@@ -3,8 +3,10 @@ import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { createApiApp } from "@/api.factory";
+import type { OwnerId } from "@/core/owner";
 import * as schema from "@/db/schema";
 import { ApiTokensService } from "@/modules/api-tokens";
+import { runAs } from "@/shared/request-context";
 import { issuerOver } from "../../fixtures/api-tokens";
 import {
 	applyMigration,
@@ -83,8 +85,12 @@ beforeAll(async () => {
 
 	const tokens: ApiTokensService = issuerOver(db);
 
-	mineToken = (await tokens.issue(mine, { name: "mine" })).token;
-	theirsToken = (await tokens.issue(theirs, { name: "theirs" })).token;
+	const issueAs = async (owner: OwnerId, name: string): Promise<string> =>
+		(await runAs({ kind: "instance", owner }, () => tokens.issue({ name })))
+			.token;
+
+	mineToken = await issueAs(mine, "mine");
+	theirsToken = await issueAs(theirs, "theirs");
 
 	override("DATABASE_URL", harness.url);
 	override("BOT_API_TOKEN", BOT_TOKEN);

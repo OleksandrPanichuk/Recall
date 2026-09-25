@@ -3,13 +3,17 @@ import { Injectable } from "@nestjs/common";
 import type { OwnerId } from "@/core/owner";
 import { Clock } from "@/core/ports/clock";
 import { AuthService } from "@/modules/auth";
+import { requireOwner } from "@/shared/request-context";
 import {
 	ApiTokenEntity,
 	type ApiTokenPrincipal,
 	type ApiTokenSummary,
 	type IssuedApiToken,
 } from "./api-token.entity";
-import { ApiTokensRepository } from "./api-tokens.repository";
+import {
+	ApiTokenCredentials,
+	ApiTokensRepository,
+} from "./api-tokens.repository";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -17,14 +21,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export class ApiTokensService {
 	constructor(
 		private readonly repository: ApiTokensRepository,
+		private readonly credentials: ApiTokenCredentials,
 		private readonly auth: AuthService,
 		private readonly clock: Clock,
 	) {}
 
-	async issue(
-		owner: OwnerId,
-		options: { readonly name: string; readonly expiresInDays?: number },
-	): Promise<IssuedApiToken> {
+	async issue(options: {
+		readonly name: string;
+		readonly expiresInDays?: number;
+	}): Promise<IssuedApiToken> {
+		const owner = requireOwner();
 		const id = randomUUID();
 		const token = ApiTokenEntity.mint();
 		const expiresAt =
@@ -34,7 +40,6 @@ export class ApiTokensService {
 
 		await this.repository.insert({
 			id,
-			ownerId: owner,
 			name: options.name,
 			tokenHash: ApiTokenEntity.hashOf(token),
 			scopes: ApiTokenEntity.DEFAULT_SCOPES,
@@ -45,21 +50,15 @@ export class ApiTokensService {
 		return { id, token, name: options.name, expiresAt };
 	}
 
-	async list(owner: OwnerId): Promise<readonly ApiTokenSummary[]> {
-		return (await this.repository.listLiveFor(owner)).map(
-			ApiTokenEntity.toSummary,
-		);
+	async list(): Promise<readonly ApiTokenSummary[]> {
+		return (await this.repository.listLive()).map(ApiTokenEntity.toSummary);
 	}
 
-	async revoke(owner: OwnerId, tokenId: string): Promise<boolean> {
-		const revoked = await this.repository.revoke(
-			owner,
-			tokenId,
-			this.clock.now(),
-		);
+	async revoke(tokenId: string): Promise<boolean> {
+		const revoked = await this.repository.revoke(tokenId, this.clock.now());
 
 		if (revoked) {
-			await this.auth.recordEvent("api-token-revoked", tokenId, owner);
+			await this.auth.recordEvent("api-token-revoked", tokenId, requireOwner());
 		}
 
 		return revoked;
@@ -71,7 +70,7 @@ export class ApiTokensService {
 		}
 
 		const at = this.clock.now();
-		const entity = await this.repository.findLiveByHash(
+		const entity = await this.credentials.findLiveByHash(
 			ApiTokenEntity.hashOf(token),
 			at,
 		);
@@ -80,7 +79,7 @@ export class ApiTokensService {
 			return undefined;
 		}
 
-		await this.repository.touch(entity.id, at);
+		await this.credentials.touch(entity.id, at);
 
 		return ApiTokenEntity.toPrincipal(entity);
 	}

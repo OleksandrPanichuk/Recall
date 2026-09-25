@@ -101,6 +101,30 @@ describe("the app client", () => {
 
 		expect(JSON.parse(calls[0]?.body ?? "{}")).toEqual({ name: "mcp" });
 	});
+
+	test("a telegram id in a start command is dropped, not forwarded", async () => {
+		const { send, calls } = recording({
+			attemptId: "a1",
+			questionCount: 1,
+		});
+		const client = createAppClient({ baseUrl: "http://api.test", fetch: send });
+
+		await client.startQuizAttempt
+			.execute({ quizSetId: "q1", telegramUserId: 616161 } as never)
+			.catch(() => undefined);
+		await client.startPracticeSession
+			.execute({
+				quizSetId: "q1",
+				mode: "mistakes",
+				telegramUserId: 616161,
+			} as never)
+			.catch(() => undefined);
+
+		expect(calls.map((call) => JSON.parse(call.body))).toEqual([
+			{ quizSetId: "q1" },
+			{ quizSetId: "q1", mode: "mistakes" },
+		]);
+	});
 });
 
 describe("the bot client", () => {
@@ -133,5 +157,32 @@ describe("the bot client", () => {
 		expect(
 			(await client.issueLoginLink.execute({ telegramUserId: 42 })).url,
 		).toContain("token=");
+	});
+
+	test("cannot reach the routes only a session is served", () => {
+		const client = createBotClient({
+			baseUrl: "http://api.test/bot/",
+			token: "t".repeat(40),
+		});
+		const appOnly = [
+			"createQuizSet",
+			"listQuizSets",
+			"addQuestions",
+			"listVocabulary",
+			"addVocabulary",
+			"sharePage",
+			"unsharePage",
+		];
+
+		// @ts-expect-error
+		expect(client.createQuizSet).toBeUndefined();
+		// @ts-expect-error
+		expect(client.sharePage).toBeUndefined();
+
+		for (const name of appOnly) {
+			expect((client as unknown as Record<string, unknown>)[name]).toBe(
+				undefined,
+			);
+		}
 	});
 });

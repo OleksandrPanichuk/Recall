@@ -1,4 +1,6 @@
 export const CLIENT_IP_HEADER = "x-recall-client-ip";
+export const CLIENT_IP_SECRET_HEADER = "x-recall-client-ip-secret";
+export const FORWARDED_FOR_HEADER = "x-forwarded-for";
 
 export const MIN_PASSWORD_LENGTH = 10;
 

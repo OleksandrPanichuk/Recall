@@ -7,8 +7,12 @@ export {
 } from "./api-token.entity";
 export { ApiTokensModule } from "./api-tokens.module";
 export {
+	ApiTokenCredentials,
 	ApiTokensRepository,
 	type CreateApiTokenData,
 } from "./api-tokens.repository";
 export { ApiTokensService } from "./api-tokens.service";
-export { PostgresApiTokensRepository } from "./repositories/api-tokens.postgres.repository";
+export {
+	PostgresApiTokenCredentials,
+	PostgresApiTokensRepository,
+} from "./repositories/api-tokens.postgres.repository";

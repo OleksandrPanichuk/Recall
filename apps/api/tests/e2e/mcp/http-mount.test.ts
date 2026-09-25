@@ -156,6 +156,6 @@ describe.skipIf(!available)("the mcp surface mounted on the api", () => {
 
 	test("leaves the rest of the api alone", async () => {
 		expect((await fetch(`${origin}/health/live`)).status).toBe(200);
-		expect((await fetch(`${origin}/quizzes`)).status).toBe(200);
+		expect((await fetch(`${origin}/docs-json`)).status).toBe(200);
 	});
 });
