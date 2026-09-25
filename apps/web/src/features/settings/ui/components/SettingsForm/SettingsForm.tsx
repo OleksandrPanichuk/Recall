@@ -7,6 +7,7 @@ import { RetentionChoice } from "@/features/settings/ui/components/RetentionChoi
 import { SchedulerChoice } from "@/features/settings/ui/components/SchedulerChoice";
 import type { SaveState as State } from "@/shared/lib/save-state.types";
 import { SaveState } from "@/shared/ui/components/SaveState";
+import { SETTINGS_SOURCE } from "./SettingsForm.constants";
 
 interface Props {
 	readonly resolved: ResolvedQuizSettings;
@@ -14,12 +15,6 @@ interface Props {
 	readonly scoped?: boolean;
 	readonly onChange: (change: Record<string, unknown>) => void;
 }
-
-const source: Record<string, string> = {
-	set: "this quiz's own settings",
-	global: "the shared settings",
-	default: "the defaults",
-};
 
 export function SettingsForm({
 	resolved,
@@ -37,7 +32,7 @@ export function SettingsForm({
 		<div className="space-y-4">
 			<div className="flex items-center justify-between gap-3">
 				<p className="text-sm text-muted-foreground">
-					Using {source[resolved.source] ?? resolved.source}
+					Using {SETTINGS_SOURCE[resolved.source] ?? resolved.source}
 				</p>
 				<SaveState state={state} />
 			</div>

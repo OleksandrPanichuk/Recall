@@ -14,6 +14,14 @@ const stored = (): Theme | null => {
 	}
 };
 
+const remember = (theme: Theme): void => {
+	try {
+		globalThis.localStorage?.setItem(THEME_STORAGE_KEY, theme);
+	} catch {
+		return;
+	}
+};
+
 const applyTheme = (theme: Theme): void => {
 	document.documentElement.classList.toggle("dark", theme === "dark");
 };
@@ -28,12 +36,7 @@ export function useTheme() {
 	const choose = useCallback((next: Theme) => {
 		setTheme(next);
 		applyTheme(next);
-
-		try {
-			globalThis.localStorage?.setItem(THEME_STORAGE_KEY, next);
-		} catch {
-			// a browser that refuses storage still gets the theme for this visit
-		}
+		remember(next);
 	}, []);
 
 	return { theme, choose };

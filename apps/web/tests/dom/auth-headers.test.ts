@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-	authHeaders,
-	CLIENT_IP_HEADER,
-} from "@/features/auth/lib/auth.headers";
+import { authHeaders } from "@/features/auth/lib/auth.headers";
+import { CLIENT_IP_HEADER } from "@/shared/constants/headers";
 
 const WEB = "http://127.0.0.1:3000";
 

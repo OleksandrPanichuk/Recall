@@ -25,12 +25,12 @@ export function AttemptInProgress({ title, quizSetId, onAbandon }: Props) {
 			</div>
 			<div className="flex flex-wrap justify-center gap-2">
 				{quizSetId === null ? null : (
-					<Link to="/practice/$quizId" params={{ quizId: quizSetId }}>
-						<Button>
+					<Button asChild>
+						<Link to="/practice/$quizId" params={{ quizId: quizSetId }}>
 							<CirclePlay />
 							Carry on with that one
-						</Button>
-					</Link>
+						</Link>
+					</Button>
 				)}
 				<Button
 					variant="outline"

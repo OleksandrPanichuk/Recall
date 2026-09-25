@@ -4,7 +4,11 @@ import { ChevronRight, Clock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { days, questions } from "@/shared/lib/plural";
 
-export function DueList({ due }: { readonly due: readonly DueSet[] }) {
+interface Props {
+	readonly due: readonly DueSet[];
+}
+
+export function DueList({ due }: Props) {
 	if (due.length === 0) {
 		return (
 			<Card className="p-8 text-center text-sm text-muted-foreground">

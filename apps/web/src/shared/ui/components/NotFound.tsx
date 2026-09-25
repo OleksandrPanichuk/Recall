@@ -13,9 +13,9 @@ export function NotFound() {
 					It may have been deleted, or the link is stale.
 				</p>
 			</div>
-			<Link to="/">
-				<Button variant="outline">Back to library</Button>
-			</Link>
+			<Button asChild variant="outline">
+				<Link to="/">Back to library</Link>
+			</Button>
 		</Card>
 	);
 }

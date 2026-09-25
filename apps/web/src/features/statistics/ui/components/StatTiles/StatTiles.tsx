@@ -1,7 +1,11 @@
 import { Card } from "@/components/ui/Card";
 import type { Stat } from "@/features/statistics/lib/tiles.types";
 
-export function StatTiles({ stats }: { readonly stats: readonly Stat[] }) {
+interface Props {
+	readonly stats: readonly Stat[];
+}
+
+export function StatTiles({ stats }: Props) {
 	return (
 		<div className="grid gap-3 sm:grid-cols-3">
 			{stats.map((stat) => (

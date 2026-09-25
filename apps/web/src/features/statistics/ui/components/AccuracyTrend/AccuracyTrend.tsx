@@ -6,15 +6,17 @@ import {
 	CHART_WIDTH,
 	MIN_ANSWERS_PER_WEEK,
 } from "./AccuracyTrend.constants";
-import { pointsFor, trendBetween, weeklyAccuracy } from "./AccuracyTrend.lib";
+import {
+	percent,
+	pointsFor,
+	shortDay,
+	trendBetween,
+	weeklyAccuracy,
+} from "./AccuracyTrend.lib";
 
 interface Props {
 	readonly activity: readonly DailyActivity[];
 }
-
-const percent = (value: number): string => `${Math.round(value * 100)}%`;
-
-const shortDay = (day: string): string => day.slice(5).replace("-", ".");
 
 export function AccuracyTrend({ activity }: Props) {
 	const weeks = weeklyAccuracy(activity);

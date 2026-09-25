@@ -60,7 +60,7 @@ export function PageRow({
 				<button
 					type="button"
 					aria-label={`Drag ${node.name}`}
-					className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 focus-visible:opacity-100 group-hover:opacity-100 disabled:cursor-default"
+					className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 disabled:cursor-default"
 					disabled={busy}
 					{...attributes}
 					{...listeners}
@@ -73,6 +73,7 @@ export function PageRow({
 						aria-label={
 							collapsed ? `Expand ${node.name}` : `Collapse ${node.name}`
 						}
+						aria-expanded={!collapsed}
 						onClick={() => onToggle(node.id)}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent"
 					>
@@ -104,7 +105,7 @@ export function PageRow({
 						<span className="shrink-0 text-xs opacity-60">{node.setCount}</span>
 					)}
 				</Link>
-				<span className="flex shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+				<span className="flex shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
 					<button
 						type="button"
 						aria-label={`Move ${node.name} up`}

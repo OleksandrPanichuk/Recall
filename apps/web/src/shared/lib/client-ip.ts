@@ -1,5 +1,5 @@
 import { getRequestIP } from "@tanstack/react-start/server";
-import { CLIENT_IP_HEADER } from "@/features/auth/lib/auth.headers";
+import { CLIENT_IP_HEADER } from "@/shared/constants/headers";
 
 const trustsProxy = (): boolean => process.env.TRUST_PROXY === "on";
 

@@ -1,14 +1,12 @@
 import { Check, CircleAlert, LoaderCircle } from "lucide-react";
 import type { SaveState as State } from "@/shared/lib/save-state.types";
+import { SAVE_STATE_LABEL } from "./SaveState.constants";
 
-const label: Record<Exclude<State, "idle">, string> = {
-	pending: "Unsaved changes",
-	saving: "Saving…",
-	saved: "Saved",
-	failed: "Could not save",
-};
+interface Props {
+	readonly state: State;
+}
 
-export function SaveState({ state }: { readonly state: State }) {
+export function SaveState({ state }: Props) {
 	if (state === "idle") {
 		return null;
 	}
@@ -24,7 +22,7 @@ export function SaveState({ state }: { readonly state: State }) {
 			) : null}
 			{state === "saved" ? <Check className="size-3" /> : null}
 			{state === "failed" ? <CircleAlert className="size-3" /> : null}
-			{label[state]}
+			{SAVE_STATE_LABEL[state]}
 		</span>
 	);
 }

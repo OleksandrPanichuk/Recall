@@ -1,0 +1,1 @@
+export { PageEditorSlot } from "./PageEditorSlot";
