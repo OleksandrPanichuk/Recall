@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
+	bigint,
 	check,
 	index,
-	integer,
 	pgTable,
 	text,
 	timestamp,
@@ -22,7 +22,7 @@ export const attempts = pgTable(
 		quizId: uuid("quiz_id")
 			.notNull()
 			.references(() => quizzes.id, { onDelete: "cascade" }),
-		telegramUserId: integer("telegram_user_id"),
+		telegramUserId: bigint("telegram_user_id", { mode: "number" }),
 		mode: text("mode").notNull(),
 		status: text("status").notNull(),
 		startedAt: timestamp("started_at", { withTimezone: true }).notNull(),

@@ -34,7 +34,6 @@ export const studySettings = pgTable(
 	},
 	(table) => [
 		index("study_settings_owner_idx").on(table.ownerId),
-		index("review_states_owner_idx").on(table.ownerId),
 		check(
 			"study_settings_scope_check",
 			sql`${table.scopeType} in ('owner', 'page', 'quiz')`,

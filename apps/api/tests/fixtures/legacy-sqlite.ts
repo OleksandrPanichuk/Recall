@@ -161,7 +161,7 @@ export function seedLegacyDatabase(path: string): LegacyFixture {
 			`insert into quiz_attempts (
 				id, quiz_set_id, telegram_user_id, mode, status, question_ids,
 				started_at, updated_at, completed_at
-			) values (?, ?, 7, 'full', 'completed', ?, ?, ?, ?)`,
+			) values (?, ?, 8123456789, 'full', 'completed', ?, ?, ?, ?)`,
 			[
 				"attempt-one",
 				quizSetId,
@@ -189,7 +189,7 @@ export function seedLegacyDatabase(path: string): LegacyFixture {
 			`insert into question_repetition_schedules (
 				question_id, telegram_user_id, repetition_count, lapses,
 				last_completed_at, due_at, created_at, updated_at
-			) values (?, 7, 1, 0, ?, ?, ?, ?)`,
+			) values (?, 8123456789, 1, 0, ?, ?, ?, ?)`,
 			["question-replication", AT, AT, AT, AT],
 		);
 

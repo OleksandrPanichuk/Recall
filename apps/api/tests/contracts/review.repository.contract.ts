@@ -115,6 +115,23 @@ export function describeReviewRepository(
 				expect(found[0]?.repetitionCount).toBe(2);
 			});
 
+			test("keeps a Telegram id that does not fit in 32 bits", async () => {
+				await harness.unitOfWork.run(async ({ reviews }) => {
+					await reviews.saveSchedules([
+						{
+							...schedule(firstQuestion, 0, 1),
+							telegramUserId: 8_123_456_789,
+						},
+					]);
+				});
+
+				const found = await harness.scope.reviews.findSchedules([
+					toQuestionId(firstQuestion),
+				]);
+
+				expect(found[0]?.telegramUserId).toBe(8_123_456_789);
+			});
+
 			test("carries fsrs memory state back out, not just the due date", async () => {
 				await harness.unitOfWork.run(async ({ reviews }) => {
 					await reviews.saveSchedules([

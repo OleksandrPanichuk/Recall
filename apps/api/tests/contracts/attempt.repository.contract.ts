@@ -26,6 +26,7 @@ export interface AttemptRepositoryHarness {
 }
 
 export const USER = 797736131;
+export const WIDE_TELEGRAM_USER_ID = 8_123_456_789;
 
 const at = new Date("2026-08-01T10:00:00.000Z");
 const later = (minutes: number): Date =>
@@ -150,6 +151,21 @@ export function describeAttemptRepository(
 				]);
 				expect(stored?.telegramUserId).toBe(USER);
 				expect(stored?.responses).toEqual([]);
+			});
+
+			test("keeps a Telegram id that does not fit in 32 bits", async () => {
+				const attempt = {
+					...started(),
+					telegramUserId: WIDE_TELEGRAM_USER_ID,
+				};
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(attempt);
+				});
+
+				const stored = await harness.scope.attempts.findById(attempt.id);
+
+				expect(stored?.telegramUserId).toBe(WIDE_TELEGRAM_USER_ID);
 			});
 
 			test("treats an id that is not a uuid as missing, not as an error", async () => {

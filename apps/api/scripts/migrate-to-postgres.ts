@@ -69,7 +69,7 @@ try {
 		}
 	}
 
-	const issues = await verifyMigration({ sqlitePath, client });
+	const issues = await verifyMigration({ sqlitePath, client, owner });
 
 	if (issues.length > 0) {
 		console.error("\nverification FAILED");
