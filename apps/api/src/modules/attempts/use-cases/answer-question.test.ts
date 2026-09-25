@@ -101,6 +101,29 @@ describe("AnswerQuestionUseCase", () => {
 		expect(responseCount(context.store)).toBe(1);
 	});
 
+	test("two answers at once record the first and report its verdict to both", async () => {
+		const quizSetId = await seedPublishedSet();
+		await start.execute({ quizSetId, telegramUserId: USER });
+		context.clock.advance(60_000);
+		const questionId = await questionIdOf(quizSetId, 0);
+
+		const [first, second] = await Promise.all([
+			answer.execute({
+				questionId,
+				selectedOptionPositions: [await positionOf(quizSetId, 0, false)],
+			}),
+			answer.execute({
+				questionId,
+				selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
+			}),
+		]);
+
+		expect(first?.alreadyAnswered).toBe(false);
+		expect(second?.alreadyAnswered).toBe(true);
+		expect(second?.isCorrect).toBe(false);
+		expect(responseCount(context.store)).toBe(1);
+	});
+
 	test("a replay cannot turn a wrong answer into a right one", async () => {
 		const quizSetId = await seedPublishedSet();
 		await start.execute({ quizSetId, telegramUserId: USER });

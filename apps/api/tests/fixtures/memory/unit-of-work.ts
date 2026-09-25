@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { RepositoryScope } from "@tests/fixtures/repository-scope";
 import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
 import type { OwnerId } from "@/core/owner";
@@ -11,31 +12,75 @@ import { createMemoryReviewRepository } from "./review.repository";
 import { emptyStore, type MemoryStore, restoreInto, snapshotOf } from "./store";
 import { createMemoryTermPairRepository } from "./term-pair.repository";
 
-export class MemoryTransaction extends Transaction {
-	private depth = 0;
+class StoreLock {
+	private readonly holder = new AsyncLocalStorage<StoreLock>();
+	private tail: Promise<void> = Promise.resolve();
 
+	get held(): boolean {
+		return this.holder.getStore() === this;
+	}
+
+	async run<TResult>(operation: () => Promise<TResult>): Promise<TResult> {
+		if (this.held) {
+			return operation();
+		}
+
+		const previous = this.tail;
+		let release: () => void = () => {};
+
+		this.tail = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+
+		await previous;
+
+		try {
+			return await this.holder.run(this, operation);
+		} finally {
+			release();
+		}
+	}
+}
+
+const locks = new WeakMap<MemoryStore, StoreLock>();
+
+const lockOf = (store: MemoryStore): StoreLock => {
+	const existing = locks.get(store);
+
+	if (existing !== undefined) {
+		return existing;
+	}
+
+	const created = new StoreLock();
+
+	locks.set(store, created);
+
+	return created;
+};
+
+export class MemoryTransaction extends Transaction {
 	constructor(private readonly store: MemoryStore) {
 		super();
 	}
 
-	async run<TResult>(operation: () => Promise<TResult>): Promise<TResult> {
-		if (this.depth > 0) {
+	run<TResult>(operation: () => Promise<TResult>): Promise<TResult> {
+		const lock = lockOf(this.store);
+
+		if (lock.held) {
 			return operation();
 		}
 
-		const snapshot = snapshotOf(this.store);
+		return lock.run(async () => {
+			const snapshot = snapshotOf(this.store);
 
-		this.depth += 1;
+			try {
+				return await operation();
+			} catch (error) {
+				restoreInto(this.store, snapshot);
 
-		try {
-			return await operation();
-		} catch (error) {
-			restoreInto(this.store, snapshot);
-
-			throw error;
-		} finally {
-			this.depth -= 1;
-		}
+				throw error;
+			}
+		});
 	}
 }
 
@@ -88,17 +133,18 @@ export function createMemoryPersistence(store: MemoryStore): MemoryPersistence {
 		scope,
 		transaction: new MemoryTransaction(store),
 		unitOfWork: {
-			run: async (operation) => {
-				const snapshot = snapshotOf(store);
+			run: (operation) =>
+				lockOf(store).run(async () => {
+					const snapshot = snapshotOf(store);
 
-				try {
-					return await operation(scope);
-				} catch (error) {
-					restoreInto(store, snapshot);
+					try {
+						return await operation(scope);
+					} catch (error) {
+						restoreInto(store, snapshot);
 
-					throw error;
-				}
-			},
+						throw error;
+					}
+				}),
 		},
 	};
 }

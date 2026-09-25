@@ -4,6 +4,7 @@ import type { UnitOfWork } from "@tests/fixtures/unit-of-work";
 import {
 	AttemptEntity,
 	QuizAttemptMode,
+	QuizAttemptStatus,
 	toQuizAttemptId,
 } from "@/modules/attempts";
 import {
@@ -385,6 +386,176 @@ export function describeAttemptRepository(
 						toQuestionId(secondQuestion),
 					),
 				).toBe(0);
+			});
+
+			const racedWhileFound = async (
+				find: (
+					attempts: RepositoryScope["attempts"],
+				) => Promise<AttemptEntity | undefined>,
+			): Promise<readonly boolean[]> => {
+				let found: () => void = () => {};
+				const firstFound = new Promise<void>((resolve) => {
+					found = resolve;
+				});
+				const finishWith = async (
+					attempts: RepositoryScope["attempts"],
+					minutes: number,
+					pause: () => Promise<void>,
+				): Promise<boolean> => {
+					const attempt = await find(attempts);
+
+					await pause();
+
+					if (attempt?.status !== QuizAttemptStatus.Active) {
+						return false;
+					}
+
+					await attempts.save(AttemptEntity.complete(attempt, later(minutes)));
+
+					return true;
+				};
+
+				return Promise.all([
+					harness.unitOfWork.run(({ attempts }) =>
+						finishWith(attempts, 5, async () => {
+							found();
+							await Bun.sleep(50);
+						}),
+					),
+					harness.unitOfWork.run(async ({ attempts }) => {
+						await firstFound;
+
+						return finishWith(attempts, 6, async () => {});
+					}),
+				]);
+			};
+
+			test("holds the active attempt it found until the unit of work ends", async () => {
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(answered(true));
+				});
+
+				expect(
+					await racedWhileFound((attempts) => attempts.findActive()),
+				).toEqual([true, false]);
+			});
+
+			test("holds an attempt found by id until the unit of work ends", async () => {
+				const attempt = answered(true);
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(attempt);
+				});
+
+				expect(
+					await racedWhileFound((attempts) => attempts.findById(attempt.id)),
+				).toEqual([true, false]);
+			});
+
+			test("keeps every answer and rating across a run of saves", async () => {
+				const [first, second] = quiz.questions;
+
+				if (first === undefined || second === undefined) {
+					throw new Error("the fixture has two questions");
+				}
+
+				const once = AttemptEntity.recordResponse(started(), {
+					questionId: first.id,
+					selectedOptionIds: first.options.slice(0, 1).map(({ id }) => id),
+					isCorrect: true,
+					answeredAt: later(1),
+					skipped: false,
+					creditEarned: 1,
+					creditPossible: 1,
+				});
+				const twice = AttemptEntity.recordResponse(once, {
+					questionId: second.id,
+					selectedOptionIds: second.options.slice(1, 2).map(({ id }) => id),
+					isCorrect: false,
+					answeredAt: later(2),
+					typedAnswer: "a guess",
+					skipped: true,
+					creditEarned: 0,
+					creditPossible: 1,
+				});
+				const rated = AttemptEntity.rateResponse(
+					twice,
+					first.id,
+					RecallGrade.Easy,
+					later(3),
+				);
+				const finished = AttemptEntity.complete(rated, later(4));
+
+				for (const version of [once, twice, twice, rated, finished]) {
+					await harness.unitOfWork.run(async ({ attempts }) => {
+						await attempts.save(version);
+					});
+				}
+
+				const stored = await harness.scope.attempts.findById(once.id);
+				const plain = (attempt: AttemptEntity | undefined) =>
+					attempt?.responses.map((response) => ({
+						...response,
+						questionId: String(response.questionId),
+						selectedOptionIds: response.selectedOptionIds.map(String),
+					}));
+
+				expect(stored?.status).toBe(QuizAttemptStatus.Completed);
+				expect(stored?.completedAt?.toISOString()).toBe(later(4).toISOString());
+				expect(stored?.questionIds.map(String)).toEqual([
+					firstQuestion,
+					secondQuestion,
+				]);
+				expect(plain(stored)).toEqual(plain(finished));
+				expect(stored?.responses[0]?.recall).toBe(RecallGrade.Easy);
+			});
+
+			test("a new attempt saved with several answers keeps each one as it was", async () => {
+				const [first, second] = quiz.questions;
+
+				if (first === undefined || second === undefined) {
+					throw new Error("the fixture has two questions");
+				}
+
+				const attempt = AttemptEntity.recordResponse(
+					AttemptEntity.recordResponse(started(), {
+						questionId: first.id,
+						selectedOptionIds: first.options.slice(0, 1).map(({ id }) => id),
+						isCorrect: true,
+						answeredAt: later(1),
+						skipped: false,
+					}),
+					{
+						questionId: second.id,
+						selectedOptionIds: [],
+						isCorrect: false,
+						answeredAt: later(2),
+						typedAnswer: "a guess",
+						skipped: true,
+						creditEarned: 0,
+						creditPossible: 1,
+					},
+				);
+
+				await harness.unitOfWork.run(async ({ attempts }) => {
+					await attempts.save(attempt);
+				});
+
+				const stored = await harness.scope.attempts.findById(attempt.id);
+
+				expect(
+					stored?.responses.map((response) => ({
+						...response,
+						questionId: String(response.questionId),
+						selectedOptionIds: response.selectedOptionIds.map(String),
+					})),
+				).toEqual(
+					attempt.responses.map((response) => ({
+						...response,
+						questionId: String(response.questionId),
+						selectedOptionIds: response.selectedOptionIds.map(String),
+					})),
+				);
 			});
 
 			test("rolls a failed save back completely", async () => {
