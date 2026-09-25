@@ -5,8 +5,8 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { SENT_NOTICE } from "@/features/auth/constants/auth-messages";
 import { requestReset } from "@/features/auth/lib/auth.api";
-import { SENT_NOTICE } from "./auth-views.constants";
 
 export function ForgotPasswordView() {
 	const [sent, setSent] = useState(false);

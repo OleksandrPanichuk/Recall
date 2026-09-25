@@ -20,12 +20,12 @@ export function SignInPrompt({ reason }: Props) {
 					<Alert variant="destructive">{reason}</Alert>
 				)}
 				<div className="flex flex-wrap gap-2">
-					<Link to="/sign-in">
-						<Button>Sign in</Button>
-					</Link>
-					<Link to="/sign-up">
-						<Button variant="outline">Create account</Button>
-					</Link>
+					<Button asChild>
+						<Link to="/sign-in">Sign in</Link>
+					</Button>
+					<Button asChild variant="outline">
+						<Link to="/sign-up">Create account</Link>
+					</Button>
 				</div>
 				<p>
 					Or send the bot{" "}

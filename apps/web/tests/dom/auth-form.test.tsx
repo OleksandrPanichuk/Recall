@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Credentials } from "@/features/auth/lib/auth.types";
-import { failureText } from "@/features/auth/ui/views/auth-views.constants";
+import { failureText } from "@/features/auth/lib/failure-text";
 
 const { cleanup, fireEvent, render, screen, waitFor } = await import(
 	"@testing-library/react"

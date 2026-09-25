@@ -1,12 +1,8 @@
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { Suspense, useState } from "react";
 import { PageSummary } from "@/features/pages/ui/components/PageSummary";
 import { cn } from "@/shared/lib/utils";
-
-const NotionEditor = lazy(async () => ({
-	default: (await import("@/features/pages/ui/components/NotionEditor"))
-		.NotionEditor,
-}));
+import { LazyNotionEditor } from "./LazyNotionEditor";
 
 interface Props {
 	readonly markdown: string;
@@ -27,7 +23,7 @@ export function PageEditorSlot({ markdown, onEdit }: Props) {
 			>
 				<ClientOnly fallback={null}>
 					<Suspense fallback={null}>
-						<NotionEditor
+						<LazyNotionEditor
 							markdown={markdown}
 							onChange={onEdit}
 							onReady={() => setReady(true)}

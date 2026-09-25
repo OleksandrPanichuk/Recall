@@ -2,8 +2,8 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { signIn } from "@/features/auth/lib/auth.api";
+import { failureText } from "@/features/auth/lib/failure-text";
 import { CredentialsForm } from "@/features/auth/ui/components/CredentialsForm";
-import { failureText } from "./auth-views.constants";
 
 export function SignInView() {
 	const router = useRouter();

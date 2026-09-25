@@ -1,10 +1,10 @@
+import { CLIENT_IP_HEADER } from "@/shared/constants/headers";
+
 export interface AuthHeaderOptions {
 	readonly origin: string;
 	readonly cookie?: string;
 	readonly clientIp?: string;
 }
-
-export const CLIENT_IP_HEADER = "x-recall-client-ip";
 
 export function authHeaders(
 	options: AuthHeaderOptions,

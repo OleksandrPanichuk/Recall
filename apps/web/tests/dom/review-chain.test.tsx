@@ -130,10 +130,10 @@ describe("the finished screen in a review chain", () => {
 		expect(screen.queryByText("Retry the ones you missed")).not.toBeNull();
 		expect(screen.queryByText("Go through the answers")).not.toBeNull();
 
-		const buttons = screen.getAllByRole("button").map((b) => b.textContent);
+		const links = screen.getAllByRole("link").map((b) => b.textContent);
 
-		expect(buttons.indexOf("Next: Verbs (3 due)")).toBeLessThan(
-			buttons.indexOf("Retry the ones you missed"),
+		expect(links.indexOf("Next: Verbs (3 due)")).toBeLessThan(
+			links.indexOf("Retry the ones you missed"),
 		);
 	});
 

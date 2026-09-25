@@ -76,3 +76,7 @@ export function pointsFor(
 		y: padding + (1 - week.accuracy) * usableHeight,
 	}));
 }
+
+export const percent = (value: number): string => `${Math.round(value * 100)}%`;
+
+export const shortDay = (day: string): string => day.slice(5).replace("-", ".");

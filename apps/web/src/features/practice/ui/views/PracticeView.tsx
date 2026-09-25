@@ -169,12 +169,12 @@ export function PracticeView({
 			)}
 
 			<div className="flex items-center justify-between">
-				<Link to="/quizzes/$quizId" params={{ quizId }}>
-					<Button variant="ghost" size="sm">
+				<Button asChild variant="ghost" size="sm">
+					<Link to="/quizzes/$quizId" params={{ quizId }}>
 						<ArrowLeft />
 						back to quiz
-					</Button>
-				</Link>
+					</Link>
+				</Button>
 				<Button
 					variant="ghost"
 					size="sm"

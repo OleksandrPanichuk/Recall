@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { MIN_PASSWORD_LENGTH } from "@/features/auth/constants/passwords";
 import { changePassword } from "@/features/auth/lib/auth.api";
-import { failureText } from "@/features/auth/ui/views/auth-views.constants";
+import { failureText } from "@/features/auth/lib/failure-text";
 
 export function ChangePasswordForm() {
 	const [busy, setBusy] = useState(false);

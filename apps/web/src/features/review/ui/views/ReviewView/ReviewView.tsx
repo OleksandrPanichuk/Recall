@@ -26,13 +26,15 @@ export function ReviewView({ due, leeches, retired, signedIn }: Props) {
 		<div className="space-y-8">
 			<PageHeading title="Review" caption={reviewCaption(due)}>
 				{first === undefined ? null : (
-					<Link
-						to="/practice/$quizId"
-						params={{ quizId: first.quizSetId }}
-						search={{ mode: "due" }}
-					>
-						<Button>Start today's review</Button>
-					</Link>
+					<Button asChild>
+						<Link
+							to="/practice/$quizId"
+							params={{ quizId: first.quizSetId }}
+							search={{ mode: "due" }}
+						>
+							Start today's review
+						</Link>
+					</Button>
 				)}
 			</PageHeading>
 			<section className="space-y-3">

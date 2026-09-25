@@ -3,7 +3,11 @@ import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
-export function ErrorPanel({ error }: { readonly error: Error }) {
+interface Props {
+	readonly error: Error;
+}
+
+export function ErrorPanel({ error }: Props) {
 	return (
 		<Card className="space-y-4 p-8 text-center">
 			<TriangleAlert className="mx-auto size-8 text-muted-foreground" />
@@ -17,9 +21,9 @@ export function ErrorPanel({ error }: { readonly error: Error }) {
 				<Button variant="outline" onClick={() => window.location.reload()}>
 					Try again
 				</Button>
-				<Link to="/">
-					<Button variant="ghost">Back to library</Button>
-				</Link>
+				<Button asChild variant="ghost">
+					<Link to="/">Back to library</Link>
+				</Button>
 			</div>
 		</Card>
 	);

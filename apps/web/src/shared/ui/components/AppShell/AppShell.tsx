@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { ThemeToggle } from "../ThemeToggle";
-import { navLink } from "./AppShell.constants";
+import { NAVIGATION_ID, navLink } from "./AppShell.constants";
 
 interface Props {
 	readonly viewer: { readonly name: string } | null;
@@ -31,6 +31,8 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 				<button
 					type="button"
 					aria-label="Menu"
+					aria-expanded={open}
+					aria-controls={NAVIGATION_ID}
 					onClick={() => setOpenOn(open ? null : pathname)}
 					className="rounded-md p-1.5 hover:bg-accent"
 				>
@@ -46,6 +48,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 			</header>
 
 			<aside
+				id={NAVIGATION_ID}
 				className={`${open ? "block" : "hidden"} border-b border-border bg-card/40 px-3 py-4 lg:sticky lg:top-0 lg:block lg:h-dvh lg:w-72 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r`}
 			>
 				<div className="mb-4 hidden items-center justify-between lg:flex">
@@ -104,7 +107,7 @@ export function AppShell({ viewer, pages, account, children }: Props) {
 					Pages
 				</p>
 				{pages}
-				<div className="mt-6 hidden items-center justify-between gap-2 px-2 lg:flex">
+				<div className="mt-6 flex items-center justify-between gap-2 px-2">
 					<p className="min-w-0 truncate text-xs text-muted-foreground">
 						{viewer === null ? "not signed in" : viewer.name}
 					</p>

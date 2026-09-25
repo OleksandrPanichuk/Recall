@@ -30,16 +30,12 @@ export function AttemptReviewView({ attempt }: Props) {
 				))}
 			</div>
 
-			<Link
-				to="/quizzes/$quizId"
-				params={{ quizId: attempt.quizSetId }}
-				className="mt-6 inline-block"
-			>
-				<Button variant="ghost">
+			<Button asChild variant="ghost" className="mt-6">
+				<Link to="/quizzes/$quizId" params={{ quizId: attempt.quizSetId }}>
 					<ArrowLeft />
 					back to quiz
-				</Button>
-			</Link>
+				</Link>
+			</Button>
 		</>
 	);
 }

@@ -140,6 +140,34 @@ describe("the page tree", () => {
 		expect(screen.getByText("Physics")).toBeDefined();
 	});
 
+	test("a fold button says whether its branch is open", async () => {
+		routed(
+			<PageTree
+				nodes={[node("a", "Biology", 0), node("b", "Chapter 1", 1, "a")]}
+			/>,
+		);
+
+		const collapse = await screen.findByLabelText("Collapse Biology");
+
+		expect(collapse.getAttribute("aria-expanded")).toBe("true");
+
+		fireEvent.click(collapse);
+
+		expect(
+			screen.getByLabelText("Expand Biology").getAttribute("aria-expanded"),
+		).toBe("false");
+	});
+
+	test("the row controls stay visible where there is no hover", async () => {
+		routed(<PageTree nodes={[node("a", "Biology", 0)]} />);
+
+		const handle = await screen.findByLabelText("Drag Biology");
+		const moves = screen.getByLabelText("Move Biology up").parentElement;
+
+		expect(handle.className).toContain("pointer-coarse:opacity-100");
+		expect(moves?.className).toContain("pointer-coarse:opacity-100");
+	});
+
 	test("says so when there are no pages", async () => {
 		routed(<PageTree nodes={[]} />);
 

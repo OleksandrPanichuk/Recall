@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { MIN_PASSWORD_LENGTH } from "@/features/auth/constants/passwords";
 import { resetPassword } from "@/features/auth/lib/auth.api";
-import { failureText } from "./auth-views.constants";
+import { failureText } from "@/features/auth/lib/failure-text";
 
 interface Props {
 	readonly token: string | undefined;

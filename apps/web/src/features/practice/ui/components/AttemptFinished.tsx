@@ -47,40 +47,46 @@ export function AttemptFinished({ finished, quizId, mode }: Props) {
 					) : null}
 					<div className="flex flex-wrap gap-2">
 						{nextDue === null ? null : (
-							<Link
-								to="/practice/$quizId"
-								params={{ quizId: nextDue.quizSetId }}
-								search={{ mode: "due" }}
-							>
-								<Button>
+							<Button asChild>
+								<Link
+									to="/practice/$quizId"
+									params={{ quizId: nextDue.quizSetId }}
+									search={{ mode: "due" }}
+								>
 									Next: {nextDue.title} ({nextDue.dueCount} due)
-								</Button>
-							</Link>
+								</Link>
+							</Button>
 						)}
 						{missed ? (
-							<Link
-								to="/practice/$quizId"
-								params={{ quizId }}
-								search={{ mode: "mistakes" }}
-							>
-								<Button variant={nextDue === null ? "default" : "outline"}>
-									Retry the ones you missed
-								</Button>
-							</Link>
-						) : null}
-						<Link
-							to="/attempts/$attemptId"
-							params={{ attemptId: finished.attemptId }}
-						>
 							<Button
-								variant={missed || nextDue !== null ? "outline" : "default"}
+								asChild
+								variant={nextDue === null ? "default" : "outline"}
+							>
+								<Link
+									to="/practice/$quizId"
+									params={{ quizId }}
+									search={{ mode: "mistakes" }}
+								>
+									Retry the ones you missed
+								</Link>
+							</Button>
+						) : null}
+						<Button
+							asChild
+							variant={missed || nextDue !== null ? "outline" : "default"}
+						>
+							<Link
+								to="/attempts/$attemptId"
+								params={{ attemptId: finished.attemptId }}
 							>
 								Go through the answers
-							</Button>
-						</Link>
-						<Link to="/quizzes/$quizId" params={{ quizId }}>
-							<Button variant="ghost">Back to quiz</Button>
-						</Link>
+							</Link>
+						</Button>
+						<Button asChild variant="ghost">
+							<Link to="/quizzes/$quizId" params={{ quizId }}>
+								Back to quiz
+							</Link>
+						</Button>
 					</div>
 				</CardContent>
 			</Card>
