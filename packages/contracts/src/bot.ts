@@ -268,9 +268,11 @@ export const loginLinkSchema = z.object({
 	expiresAt: z.string(),
 });
 
+export const API_TOKEN_NAME_MAX_LENGTH = 80;
+
 export const issueApiTokenCommandSchema = z.object({
 	telegramUserId: z.number().int(),
-	name: z.string().trim().min(1).max(80),
+	name: z.string().trim().min(1).max(API_TOKEN_NAME_MAX_LENGTH),
 	expiresInDays: z.number().int().positive().max(3650).optional(),
 });
 

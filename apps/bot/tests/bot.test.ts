@@ -95,6 +95,13 @@ describe("navigation shell (§3.2)", () => {
 		expect(harness.lastText()).toContain("ще не налаштований");
 	});
 
+	test("a token name over the limit is refused with the limit, not a generic error", async () => {
+		await harness.send(`/token ${"n".repeat(81)}`);
+
+		expect(harness.lastText()).toContain("80");
+		expect(harness.lastText()).not.toContain("Сталася помилка");
+	});
+
 	test("an empty library says so instead of erroring", async () => {
 		await harness.send("/start");
 

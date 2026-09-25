@@ -1,6 +1,7 @@
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/api.factory";
+import { spendLoginLink } from "./login-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -89,11 +90,7 @@ export async function openAppSession(
 	const { url } = await bodyOf<{ url: string }>(
 		await bot("auth/login-link", { telegramUserId }),
 	);
-	const cookie = cookieOf(
-		await fetch(url.replace(/^https?:\/\/[^/]+/, origin), {
-			redirect: "manual",
-		}),
-	);
+	const cookie = cookieOf(await spendLoginLink(url, origin));
 
 	const as =
 		(who: string) =>

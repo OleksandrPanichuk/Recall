@@ -137,6 +137,56 @@ describe("daily reminder", () => {
 		expect(sent[0]?.markup?.inline_keyboard?.length ?? 0).toBeGreaterThan(1);
 	});
 
+	const fireWith = async (due: readonly unknown[]): Promise<void> => {
+		const target = context.clock.now().getTime();
+		const startedAt = Date.now();
+		const timer = startDailyReminder({
+			bot: fakeBot as never,
+			chatId: USER,
+			listDueRepetitions: { execute: async () => due } as never,
+			timezone: "UTC",
+			hour: new Date(target).getUTCHours(),
+			now: () => new Date(target - 5 + (Date.now() - startedAt)),
+			log: (error) => {
+				throw error;
+			},
+		});
+
+		await Bun.sleep(40);
+		timer.stop();
+	};
+
+	const dueSet = (index: number, title: string) => ({
+		quizSetId: `set-${index}`,
+		title,
+		dueCount: 3,
+		overdueDays: index,
+		dueQuestionIds: [],
+	});
+
+	test("many due sets are capped to a short list and a count of the rest", async () => {
+		await fireWith(
+			Array.from({ length: 200 }, (_value, index) =>
+				dueSet(index, `Набір ${index}`),
+			),
+		);
+
+		expect(sent).toHaveLength(1);
+		expect(sent[0]?.text).toContain("…і ще 192 набори");
+		expect(sent[0]?.markup?.inline_keyboard?.length ?? 0).toBeLessThan(12);
+	});
+
+	test("a reminder with enormous titles still fits one telegram message", async () => {
+		await fireWith(
+			Array.from({ length: 3 }, (_value, index) =>
+				dueSet(index, "Н".repeat(3000)),
+			),
+		);
+
+		expect(sent).toHaveLength(1);
+		expect(sent[0]?.text.length ?? 0).toBeLessThanOrEqual(4096);
+	});
+
 	test("stops cleanly", () => {
 		const timer = startDailyReminder({
 			bot: fakeBot as never,

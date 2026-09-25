@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
 import type { TelegramUseCases } from "../bot";
-import { finishPrompt, mainMenu, notice } from "../presenters/menu.presenter";
-import { questionScreen } from "../presenters/question.presenter";
+import { mainMenu, notice } from "../presenters/menu.presenter";
+import { currentQuestionScreen } from "../presenters/question.presenter";
 import { render } from "../screen";
 
 export function menuHandler(useCases: TelegramUseCases) {
@@ -31,12 +31,6 @@ export function resumeHandler(useCases: TelegramUseCases) {
 			return;
 		}
 
-		if (current.question === undefined) {
-			await render(ctx, finishPrompt());
-
-			return;
-		}
-
-		await render(ctx, questionScreen(current, current.question));
+		await render(ctx, currentQuestionScreen(current));
 	};
 }

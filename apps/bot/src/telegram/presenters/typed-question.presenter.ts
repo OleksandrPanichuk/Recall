@@ -3,6 +3,9 @@ import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { Screen } from "./screen.types";
 import { button } from "./utils/button";
 import { heading, hintLine } from "./utils/question-heading";
+import { shortenedTo, TELEGRAM_TEXT_LIMIT } from "./utils/text-limit";
+
+const DIVIDER = "\n\n———\n\n";
 
 export function typedQuestionScreen(
 	view: CurrentQuestionView,
@@ -32,8 +35,12 @@ export function typedQuestionScreen(
 }
 
 export function followedBy(feedback: Screen, next: Screen): Screen {
+	const room = TELEGRAM_TEXT_LIMIT - DIVIDER.length - next.text.length;
+
+	const kept = shortenedTo(feedback.text, room);
+
 	return {
-		text: `${feedback.text}\n\n———\n\n${next.text}`,
+		text: kept.length === 0 ? next.text : `${kept}${DIVIDER}${next.text}`,
 		keyboard: next.keyboard,
 	};
 }

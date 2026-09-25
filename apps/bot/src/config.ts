@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MIN_WEBHOOK_SECRET_LENGTH } from "./telegram/webhook.constants";
 
 export interface BotEnvironment {
 	readonly telegramBotKey: string;
@@ -26,7 +27,6 @@ export class BotEnvironmentError extends Error {
 }
 
 const MIN_TOKEN_LENGTH = 32;
-const MIN_WEBHOOK_SECRET_LENGTH = 16;
 const DEFAULT_API_URL = "http://127.0.0.1:8767";
 const DEFAULT_BOT_PORT = 8768;
 

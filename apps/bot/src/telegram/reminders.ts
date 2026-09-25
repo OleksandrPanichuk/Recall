@@ -2,6 +2,7 @@ import type { BotUseCases } from "@recall/contracts";
 import { type DailyTimer, startDailyTimer } from "@recall/kit";
 import type { Telegraf } from "telegraf";
 import { repetitionsScreen } from "./presenters/repetitions.presenter";
+import { messageFor } from "./screen";
 
 export interface ReminderOptions {
 	readonly bot: Telegraf;
@@ -26,13 +27,9 @@ export function startDailyReminder(options: ReminderOptions): DailyTimer {
 				return;
 			}
 
-			const screen = repetitionsScreen(due);
+			const { text, extra } = messageFor(repetitionsScreen(due));
 
-			await options.bot.telegram.sendMessage(options.chatId, screen.text, {
-				reply_markup: {
-					inline_keyboard: screen.keyboard.map((row) => [...row]),
-				},
-			});
+			await options.bot.telegram.sendMessage(options.chatId, text, extra);
 		},
 	});
 }

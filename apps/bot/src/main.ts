@@ -7,6 +7,7 @@ import {
 } from "./config";
 import { keepPolling } from "./lifecycle/keep-polling";
 import { onLaunchFailure } from "./lifecycle/launch-failure";
+import { registerWebhook } from "./lifecycle/register-webhook";
 import { createBot } from "./telegram/bot";
 import { startDailyReminder } from "./telegram/reminders";
 import { createWebhookHandler } from "./telegram/webhook";
@@ -127,18 +128,20 @@ function main(): void {
 		},
 	});
 
-	bot.telegram
-		.setWebhook(url.href, {
-			secret_token: secret,
-			drop_pending_updates: true,
-		})
-		.then(() => {
+	void registerWebhook({
+		setWebhook: (href, options) => bot.telegram.setWebhook(href, options),
+		url: url.href,
+		secret,
+		logger,
+		shutdown,
+		onFatal: fail,
+		onListening: () => {
 			logger.info("listening for telegram updates", {
 				url: url.href,
 				port,
 			});
-		})
-		.catch(fail);
+		},
+	});
 }
 
 main();

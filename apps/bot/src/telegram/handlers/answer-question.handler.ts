@@ -6,8 +6,11 @@ import type {
 	RevealCallback,
 	ToggleCallback,
 } from "../callbacks/callback-data.types";
-import { finishPrompt, notice } from "../presenters/menu.presenter";
-import { questionScreen } from "../presenters/question.presenter";
+import { notice } from "../presenters/menu.presenter";
+import {
+	currentQuestionScreen,
+	questionScreen,
+} from "../presenters/question.presenter";
 import { answerFeedback } from "../presenters/result.presenter";
 import type { Screen } from "../presenters/screen.types";
 import { followedBy } from "../presenters/typed-question.presenter";
@@ -61,12 +64,7 @@ async function afterAnswer(
 	const next = await useCases.getCurrentQuestion.execute({});
 
 	if (next?.examMode === true) {
-		await render(
-			ctx,
-			next.question === undefined
-				? finishPrompt()
-				: questionScreen(next, next.question),
-		);
+		await render(ctx, currentQuestionScreen(next));
 
 		return;
 	}

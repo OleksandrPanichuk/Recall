@@ -15,6 +15,7 @@ export function loginLinkScreen(url: string, expiresAt: Date): Screen {
 			`Воно одноразове і діє ${minutesUntil(expiresAt)} хв. Після входу браузер запамʼятає вас надовго.`,
 		].join("\n"),
 		keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
+		linkPreview: false,
 	};
 }
 

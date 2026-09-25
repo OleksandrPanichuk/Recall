@@ -1,4 +1,4 @@
-import type { ApiToken } from "@recall/contracts";
+import { API_TOKEN_NAME_MAX_LENGTH, type ApiToken } from "@recall/contracts";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import type { Screen } from "./screen.types";
 import { button } from "./utils/button";
@@ -15,6 +15,13 @@ export function issuedTokenScreen(name: string, token: string): Screen {
 			"Покладіть його в MCP_HTTP_TOKEN або BOT_API_TOKEN клієнта.",
 			"Якщо він втік — /tokens і відкликайте.",
 		].join("\n"),
+		keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
+	};
+}
+
+export function tokenNameTooLong(): Screen {
+	return {
+		text: `Назва токена задовга — не більше ${API_TOKEN_NAME_MAX_LENGTH} символів. Спробуйте /token <коротша назва>.`,
 		keyboard: [[button("« Меню", { action: CallbackAction.Menu })]],
 	};
 }

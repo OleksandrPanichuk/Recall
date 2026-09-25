@@ -6,10 +6,9 @@ import {
 } from "@recall/contracts";
 import type { Context } from "telegraf";
 import type { TelegramUseCases } from "../bot";
-import { finishPrompt } from "../presenters/menu.presenter";
 import { nothingToPractise } from "../presenters/practice.presenter";
-import { questionScreen } from "../presenters/question.presenter";
 import { render } from "../screen";
+import { showCurrentQuestion } from "./utils/show-current-question";
 
 export interface PracticeRequest {
 	readonly quizSetId: QuizSetId;
@@ -36,14 +35,6 @@ export function practiceHandler(useCases: TelegramUseCases) {
 			throw error;
 		}
 
-		const current = await useCases.getCurrentQuestion.execute({});
-
-		if (current === undefined || current.question === undefined) {
-			await render(ctx, finishPrompt());
-
-			return;
-		}
-
-		await render(ctx, questionScreen(current, current.question));
+		await showCurrentQuestion(ctx, useCases);
 	};
 }

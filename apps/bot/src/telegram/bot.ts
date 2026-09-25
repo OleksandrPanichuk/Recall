@@ -105,8 +105,6 @@ export function createBot(options: TelegramBotOptions): Telegraf {
 
 		await ctx.answerCbQuery().catch(() => {});
 
-		const _telegramUserId = ctx.from.id;
-
 		switch (callback.action) {
 			case CallbackAction.Menu:
 				await menuHandler(useCases)(ctx);
