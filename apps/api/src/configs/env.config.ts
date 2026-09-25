@@ -24,6 +24,7 @@ export interface ApiEnvironment {
 	readonly objectStoreAccessKey: string;
 	readonly objectStoreSecretKey: string;
 	readonly objectStoreBucket: string;
+	readonly uploadQuotaBytes: number;
 	readonly host: string;
 	readonly port: number;
 }
@@ -55,6 +56,11 @@ const schema = z.object({
 	OBJECT_STORE_ACCESS_KEY: z.string().trim().min(1).default("recall"),
 	OBJECT_STORE_SECRET_KEY: z.string().trim().min(1).default("recall-secret"),
 	OBJECT_STORE_BUCKET: z.string().trim().min(1).default("recall-uploads"),
+	UPLOAD_QUOTA_BYTES: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(200 * 1024 * 1024),
 	API_HOST: z.string().trim().min(1).default("127.0.0.1"),
 	API_PORT: z.coerce.number().int().positive().max(65535).default(8767),
 });
@@ -131,6 +137,7 @@ export function loadApiEnvironment(
 		objectStoreAccessKey: parsed.data.OBJECT_STORE_ACCESS_KEY,
 		objectStoreSecretKey: parsed.data.OBJECT_STORE_SECRET_KEY,
 		objectStoreBucket: parsed.data.OBJECT_STORE_BUCKET,
+		uploadQuotaBytes: parsed.data.UPLOAD_QUOTA_BYTES,
 		host: parsed.data.API_HOST,
 		port: parsed.data.API_PORT,
 	};

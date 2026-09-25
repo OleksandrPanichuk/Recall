@@ -15,5 +15,12 @@ export function createMemoryAttachmentRepository(
 		async findById(id: string): Promise<AttachmentEntity | undefined> {
 			return store.files.get(id);
 		},
+
+		async totalSize(): Promise<number> {
+			return [...store.files.values()].reduce(
+				(total, attachment) => total + attachment.size,
+				0,
+			);
+		},
 	};
 }

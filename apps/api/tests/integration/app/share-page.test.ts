@@ -128,9 +128,7 @@ describe.skipIf(!available)("sharing a page by link", () => {
 			body: form,
 		});
 
-		if (uploaded.status !== 201 && uploaded.status !== 200) {
-			return;
-		}
+		expect(uploaded.status).toBe(201);
 
 		const { id } = await json<{ id: string }>(uploaded);
 

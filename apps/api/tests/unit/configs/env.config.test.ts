@@ -19,6 +19,25 @@ const failureOf = (source: Record<string, string | undefined>): string => {
 };
 
 describe("the api configuration", () => {
+	test("gives every account a bounded upload quota unless told otherwise", () => {
+		expect(loadApiEnvironment(MINIMAL).uploadQuotaBytes).toBe(
+			200 * 1024 * 1024,
+		);
+		expect(
+			loadApiEnvironment({ ...MINIMAL, UPLOAD_QUOTA_BYTES: "1048576" })
+				.uploadQuotaBytes,
+		).toBe(1048576);
+	});
+
+	test("refuses an upload quota that is not a positive number of bytes", () => {
+		expect(failureOf({ ...MINIMAL, UPLOAD_QUOTA_BYTES: "0" })).toContain(
+			"UPLOAD_QUOTA_BYTES",
+		);
+		expect(failureOf({ ...MINIMAL, UPLOAD_QUOTA_BYTES: "lots" })).toContain(
+			"UPLOAD_QUOTA_BYTES",
+		);
+	});
+
 	test("leaves the mcp surface off when no token is given", () => {
 		const environment = loadApiEnvironment(MINIMAL);
 

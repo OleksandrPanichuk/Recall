@@ -16,6 +16,7 @@ import { AttachmentEntity } from "./attachment.entity";
 import { NoFileSentError } from "./attachments.errors";
 import type { UploadedImage } from "./attachments.types";
 import { ReadAttachmentUseCase, UploadImageUseCase } from "./use-cases";
+import { serveAttachment } from "./utils/serve-attachment";
 
 @ApiExcludeController()
 @UseGuards(SessionGuard)
@@ -40,7 +41,6 @@ export class AttachmentsController {
 		return this.uploadImage.execute({
 			body: file.buffer,
 			contentType: file.mimetype,
-			size: file.size,
 			originalName: file.originalname,
 		});
 	}
@@ -50,11 +50,10 @@ export class AttachmentsController {
 		@Param("id") id: string,
 		@Res() response: Response,
 	): Promise<void> {
-		const body = await this.readAttachment.execute({ id });
-
-		response.setHeader("content-type", body.contentType);
-		response.setHeader("content-length", String(body.size));
-		response.setHeader("cache-control", "private, max-age=31536000, immutable");
-		body.stream.pipe(response);
+		await serveAttachment(
+			response,
+			await this.readAttachment.execute({ id }),
+			"private, max-age=31536000, immutable",
+		);
 	}
 }

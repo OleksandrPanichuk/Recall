@@ -2,14 +2,15 @@ import { Injectable } from "@nestjs/common";
 import { UseCase } from "@/core/use-case";
 import { AttachmentNotFoundError } from "../attachments.errors";
 import { AttachmentsRepository } from "../attachments.repository";
-import { type ObjectBody, ObjectStore } from "../ports/object-store";
+import type { ServedAttachment } from "../attachments.types";
+import { ObjectStore } from "../ports/object-store";
 
 export interface ReadAttachmentUseCaseOptions {
 	readonly id: string;
 }
 
 type Options = ReadAttachmentUseCaseOptions;
-type Result = ObjectBody;
+type Result = ServedAttachment;
 
 @Injectable()
 export class ReadAttachmentUseCase extends UseCase<Options, Result> {
@@ -33,6 +34,11 @@ export class ReadAttachmentUseCase extends UseCase<Options, Result> {
 			throw new AttachmentNotFoundError(id);
 		}
 
-		return body;
+		return {
+			stream: body.stream,
+			contentType: attachment.contentType,
+			size: body.size,
+			originalName: attachment.originalName,
+		};
 	}
 }

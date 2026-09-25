@@ -5,9 +5,11 @@ export { AttachmentsRepository } from "./attachments.repository";
 export * from "./attachments.types";
 export * from "./ports";
 export { PostgresAttachmentsRepository } from "./repositories/attachments.postgres.repository";
+export { UploadQuota } from "./upload-quota";
 export {
 	ReadAttachmentUseCase,
 	type ReadAttachmentUseCaseOptions,
 	UploadImageUseCase,
 	type UploadImageUseCaseOptions,
 } from "./use-cases";
+export { serveAttachment } from "./utils/serve-attachment";
