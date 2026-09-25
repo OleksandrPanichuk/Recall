@@ -114,6 +114,7 @@ import {
 	loginLinkSchema,
 	type MovePageCommand,
 	movePageCommandSchema,
+	ownPracticeCommandSchema,
 	type PageMatch,
 	type PageRevision,
 	type PageTreeNode,
@@ -159,6 +160,8 @@ import {
 	type SetPageIconCommand,
 	type SharedPage,
 	type SharePageCommand,
+	type StartOwnPracticeSessionCommand,
+	type StartOwnQuizAttemptCommand,
 	type StartPracticeSessionCommand,
 	type StartPracticeSessionResult,
 	type StartQuizAttemptCommand,
@@ -170,6 +173,7 @@ import {
 	sharePageCommandSchema,
 	startAttemptCommandSchema,
 	startAttemptResultSchema,
+	startOwnAttemptCommandSchema,
 	statisticsCommandSchema,
 	summaryWrittenSchema,
 	type UnsharePageCommand,
@@ -314,7 +318,7 @@ export interface AuthoringUseCases {
 	>;
 }
 
-export interface PracticeUseCases extends AuthoringUseCases {
+export interface PracticeUseCases {
 	readonly browseFolder: UseCaseLike<BrowseFolderCommand, BrowseView>;
 	readonly writeSummary: UseCaseLike<WriteSummaryCommand, SummaryWritten>;
 	readonly searchPages: UseCaseLike<SearchPagesCommand, readonly PageMatch[]>;
@@ -329,8 +333,6 @@ export interface PracticeUseCases extends AuthoringUseCases {
 	readonly deletePage: UseCaseLike<DeletePageCommand, void>;
 	readonly movePage: UseCaseLike<MovePageCommand, void>;
 	readonly reorderPage: UseCaseLike<ReorderPageCommand, void>;
-	readonly sharePage: UseCaseLike<SharePageCommand, SharedPage>;
-	readonly unsharePage: UseCaseLike<UnsharePageCommand, void>;
 	readonly attachQuiz: UseCaseLike<AttachQuizCommand, AttachedQuiz>;
 	readonly detachQuiz: UseCaseLike<DetachQuizCommand, DetachedQuiz>;
 	readonly listRevisions: UseCaseLike<
@@ -351,14 +353,6 @@ export interface PracticeUseCases extends AuthoringUseCases {
 	readonly getAttemptDetail: UseCaseLike<
 		GetAttemptDetailCommand,
 		AttemptDetail
-	>;
-	readonly startQuizAttempt: UseCaseLike<
-		StartQuizAttemptCommand,
-		StartQuizAttemptResult
-	>;
-	readonly startPracticeSession: UseCaseLike<
-		StartPracticeSessionCommand,
-		StartPracticeSessionResult
 	>;
 	readonly getCurrentQuestion: UseCaseLike<
 		GetCurrentQuestionCommand,
@@ -391,7 +385,17 @@ export interface PracticeUseCases extends AuthoringUseCases {
 
 export const APP_ROUTE_PREFIX = "app";
 
-export interface AppUseCases extends PracticeUseCases {
+export interface AppUseCases extends PracticeUseCases, AuthoringUseCases {
+	readonly sharePage: UseCaseLike<SharePageCommand, SharedPage>;
+	readonly unsharePage: UseCaseLike<UnsharePageCommand, void>;
+	readonly startQuizAttempt: UseCaseLike<
+		StartOwnQuizAttemptCommand,
+		StartQuizAttemptResult
+	>;
+	readonly startPracticeSession: UseCaseLike<
+		StartOwnPracticeSessionCommand,
+		StartPracticeSessionResult
+	>;
 	readonly issueApiToken: UseCaseLike<IssueOwnApiTokenCommand, IssuedApiToken>;
 	readonly listApiTokens: UseCaseLike<
 		ListOwnApiTokensCommand,
@@ -404,6 +408,14 @@ export interface AppUseCases extends PracticeUseCases {
 }
 
 export interface BotUseCases extends PracticeUseCases {
+	readonly startQuizAttempt: UseCaseLike<
+		StartQuizAttemptCommand,
+		StartQuizAttemptResult
+	>;
+	readonly startPracticeSession: UseCaseLike<
+		StartPracticeSessionCommand,
+		StartPracticeSessionResult
+	>;
 	readonly issueLoginLink: UseCaseLike<IssueLoginLinkCommand, LoginLink>;
 	readonly issueApiToken: UseCaseLike<IssueApiTokenCommand, IssuedApiToken>;
 	readonly listApiTokens: UseCaseLike<
@@ -564,6 +576,150 @@ function createClient(options: RecallClientOptions) {
 	});
 
 	const practice: PracticeUseCases = {
+		browseFolder: operation(
+			BOT_ROUTES.browse,
+			browseCommandSchema,
+			browseViewSchema,
+		),
+		writeSummary: operation(
+			BOT_ROUTES.writeSummary,
+			writeSummaryCommandSchema,
+			summaryWrittenSchema,
+		),
+		searchPages: operation(
+			BOT_ROUTES.searchPages,
+			searchPagesCommandSchema,
+			pageMatchSchema.array().readonly(),
+		),
+		abandonQuizAttempt: operation(
+			BOT_ROUTES.abandon,
+			abandonAttemptCommandSchema,
+			abandonedAttemptSchema,
+		),
+		getInsights: operation(
+			BOT_ROUTES.insights,
+			insightsCommandSchema,
+			insightsSchema,
+		),
+		createPage: operation(
+			BOT_ROUTES.createPage,
+			createPageCommandSchema,
+			createdPageSchema,
+		),
+		renamePage: operation(
+			BOT_ROUTES.renamePage,
+			renamePageCommandSchema,
+			z.void(),
+		),
+		setPageIcon: operation(
+			BOT_ROUTES.setPageIcon,
+			setPageIconCommandSchema,
+			z.void(),
+		),
+		deletePage: operation(
+			BOT_ROUTES.deletePage,
+			deletePageCommandSchema,
+			z.void(),
+		),
+		movePage: operation(BOT_ROUTES.movePage, movePageCommandSchema, z.void()),
+		reorderPage: operation(
+			BOT_ROUTES.reorderPage,
+			reorderPageCommandSchema,
+			z.void(),
+		),
+		attachQuiz: operation(
+			BOT_ROUTES.attachQuiz,
+			attachQuizCommandSchema,
+			attachedQuizSchema,
+		),
+		detachQuiz: operation(
+			BOT_ROUTES.detachQuiz,
+			detachQuizCommandSchema,
+			detachedQuizSchema,
+		),
+		listRevisions: operation(
+			BOT_ROUTES.listRevisions,
+			listRevisionsCommandSchema,
+			pageRevisionSchema.array().readonly(),
+		),
+		listPageTree: operation(
+			BOT_ROUTES.pageTree,
+			z.object({}),
+			pageTreeNodeSchema.array().readonly(),
+		),
+		listDueRepetitions: operation(
+			BOT_ROUTES.dueRepetitions,
+			dueRepetitionsCommandSchema,
+			dueSetSchema.array().readonly(),
+		),
+		listLeeches: operation(
+			BOT_ROUTES.leeches,
+			leechesCommandSchema,
+			leechSchema.array().readonly(),
+		),
+		listRetired: operation(
+			BOT_ROUTES.retired,
+			retiredCommandSchema,
+			retiredViewSchema.array().readonly(),
+		),
+		retireQuestion: operation(
+			BOT_ROUTES.retireQuestion,
+			retireQuestionCommandSchema,
+			retiredQuestionSchema,
+		),
+		getAttemptDetail: operation(
+			BOT_ROUTES.attemptDetail,
+			attemptDetailCommandSchema,
+			attemptDetailSchema,
+		),
+		getCurrentQuestion: optionalOperation(
+			BOT_ROUTES.currentQuestion,
+			currentQuestionCommandSchema,
+			currentQuestionSchema,
+		),
+		answerQuestion: operation(
+			BOT_ROUTES.answer,
+			answerCommandSchema,
+			answerResultSchema,
+		),
+		finishQuizAttempt: operation(
+			BOT_ROUTES.finish,
+			finishCommandSchema,
+			finishResultSchema,
+		),
+		rateRecall: operation(
+			BOT_ROUTES.rateRecall,
+			rateRecallCommandSchema,
+			z.void(),
+		),
+		pauseQuizAttempt: operation(
+			BOT_ROUTES.pause,
+			pauseAttemptCommandSchema,
+			z.void(),
+		),
+		resumeQuizAttempt: operation(
+			BOT_ROUTES.resume,
+			pauseAttemptCommandSchema,
+			resumedAttemptSchema,
+		),
+		getQuizStatistics: operation(
+			BOT_ROUTES.statistics,
+			statisticsCommandSchema,
+			quizStatisticsSchema,
+		),
+		resolveQuizSettings: operation(
+			BOT_ROUTES.resolveSettings,
+			resolveSettingsCommandSchema,
+			resolvedSettingsSchema,
+		),
+		updateQuizSettings: operation(
+			BOT_ROUTES.updateSettings,
+			updateSettingsCommandSchema,
+			quizSettingsSchema,
+		),
+	};
+
+	const authoring: AuthoringUseCases = {
 		createQuizSet: operation(
 			BOT_ROUTES.createQuizSet,
 			createSetCommandSchema,
@@ -634,171 +790,45 @@ function createClient(options: RecallClientOptions) {
 			updateVocabularyCommandSchema,
 			updatedVocabularySchema,
 		),
-		browseFolder: operation(
-			BOT_ROUTES.browse,
-			browseCommandSchema,
-			browseViewSchema,
-		),
-		writeSummary: operation(
-			BOT_ROUTES.writeSummary,
-			writeSummaryCommandSchema,
-			summaryWrittenSchema,
-		),
-		searchPages: operation(
-			BOT_ROUTES.searchPages,
-			searchPagesCommandSchema,
-			pageMatchSchema.array().readonly(),
-		),
-		abandonQuizAttempt: operation(
-			BOT_ROUTES.abandon,
-			abandonAttemptCommandSchema,
-			abandonedAttemptSchema,
-		),
-		getInsights: operation(
-			BOT_ROUTES.insights,
-			insightsCommandSchema,
-			insightsSchema,
-		),
-		createPage: operation(
-			BOT_ROUTES.createPage,
-			createPageCommandSchema,
-			createdPageSchema,
-		),
-		renamePage: operation(
-			BOT_ROUTES.renamePage,
-			renamePageCommandSchema,
-			z.void(),
-		),
-		setPageIcon: operation(
-			BOT_ROUTES.setPageIcon,
-			setPageIconCommandSchema,
-			z.void(),
-		),
-		deletePage: operation(
-			BOT_ROUTES.deletePage,
-			deletePageCommandSchema,
-			z.void(),
-		),
-		movePage: operation(BOT_ROUTES.movePage, movePageCommandSchema, z.void()),
-		reorderPage: operation(
-			BOT_ROUTES.reorderPage,
-			reorderPageCommandSchema,
-			z.void(),
-		),
-		sharePage: operation(
-			BOT_ROUTES.sharePage,
-			sharePageCommandSchema,
-			sharedPageSchema,
-		),
-		unsharePage: operation(
-			BOT_ROUTES.unsharePage,
-			unsharePageCommandSchema,
-			z.void(),
-		),
-		attachQuiz: operation(
-			BOT_ROUTES.attachQuiz,
-			attachQuizCommandSchema,
-			attachedQuizSchema,
-		),
-		detachQuiz: operation(
-			BOT_ROUTES.detachQuiz,
-			detachQuizCommandSchema,
-			detachedQuizSchema,
-		),
-		listRevisions: operation(
-			BOT_ROUTES.listRevisions,
-			listRevisionsCommandSchema,
-			pageRevisionSchema.array().readonly(),
-		),
-		listPageTree: operation(
-			BOT_ROUTES.pageTree,
-			z.object({}),
-			pageTreeNodeSchema.array().readonly(),
-		),
-		listDueRepetitions: operation(
-			BOT_ROUTES.dueRepetitions,
-			dueRepetitionsCommandSchema,
-			dueSetSchema.array().readonly(),
-		),
-		listLeeches: operation(
-			BOT_ROUTES.leeches,
-			leechesCommandSchema,
-			leechSchema.array().readonly(),
-		),
-		listRetired: operation(
-			BOT_ROUTES.retired,
-			retiredCommandSchema,
-			retiredViewSchema.array().readonly(),
-		),
-		retireQuestion: operation(
-			BOT_ROUTES.retireQuestion,
-			retireQuestionCommandSchema,
-			retiredQuestionSchema,
-		),
-		getAttemptDetail: operation(
-			BOT_ROUTES.attemptDetail,
-			attemptDetailCommandSchema,
-			attemptDetailSchema,
-		),
-		startQuizAttempt: operation(
-			BOT_ROUTES.startAttempt,
-			startAttemptCommandSchema,
-			startAttemptResultSchema,
-		),
-		startPracticeSession: operation(
-			BOT_ROUTES.practice,
-			practiceCommandSchema,
-			practiceResultSchema,
-		),
-		getCurrentQuestion: optionalOperation(
-			BOT_ROUTES.currentQuestion,
-			currentQuestionCommandSchema,
-			currentQuestionSchema,
-		),
-		answerQuestion: operation(
-			BOT_ROUTES.answer,
-			answerCommandSchema,
-			answerResultSchema,
-		),
-		finishQuizAttempt: operation(
-			BOT_ROUTES.finish,
-			finishCommandSchema,
-			finishResultSchema,
-		),
-		rateRecall: operation(
-			BOT_ROUTES.rateRecall,
-			rateRecallCommandSchema,
-			z.void(),
-		),
-		pauseQuizAttempt: operation(
-			BOT_ROUTES.pause,
-			pauseAttemptCommandSchema,
-			z.void(),
-		),
-		resumeQuizAttempt: operation(
-			BOT_ROUTES.resume,
-			pauseAttemptCommandSchema,
-			resumedAttemptSchema,
-		),
-		getQuizStatistics: operation(
-			BOT_ROUTES.statistics,
-			statisticsCommandSchema,
-			quizStatisticsSchema,
-		),
-		resolveQuizSettings: operation(
-			BOT_ROUTES.resolveSettings,
-			resolveSettingsCommandSchema,
-			resolvedSettingsSchema,
-		),
-		updateQuizSettings: operation(
-			BOT_ROUTES.updateSettings,
-			updateSettingsCommandSchema,
-			quizSettingsSchema,
-		),
 	};
 
 	return {
 		practice,
+		authoring,
+		appOnly: {
+			sharePage: operation(
+				BOT_ROUTES.sharePage,
+				sharePageCommandSchema,
+				sharedPageSchema,
+			),
+			unsharePage: operation(
+				BOT_ROUTES.unsharePage,
+				unsharePageCommandSchema,
+				z.void(),
+			),
+			startQuizAttempt: operation(
+				BOT_ROUTES.startAttempt,
+				startOwnAttemptCommandSchema,
+				startAttemptResultSchema,
+			),
+			startPracticeSession: operation(
+				BOT_ROUTES.practice,
+				ownPracticeCommandSchema,
+				practiceResultSchema,
+			),
+		},
+		botPractice: {
+			startQuizAttempt: operation(
+				BOT_ROUTES.startAttempt,
+				startAttemptCommandSchema,
+				startAttemptResultSchema,
+			),
+			startPracticeSession: operation(
+				BOT_ROUTES.practice,
+				practiceCommandSchema,
+				practiceResultSchema,
+			),
+		},
 		ownCredentials: {
 			issueApiToken: operation(
 				BOT_ROUTES.issueApiToken,
@@ -847,7 +877,11 @@ export function createBotClient(options: BotApiOptions): BotUseCases {
 		headers: { authorization: `Bearer ${options.token}` },
 	});
 
-	return { ...client.practice, ...client.credentials };
+	return {
+		...client.practice,
+		...client.botPractice,
+		...client.credentials,
+	};
 }
 
 export function createAppClient(options: AppApiOptions): AppUseCases {
@@ -857,5 +891,10 @@ export function createAppClient(options: AppApiOptions): AppUseCases {
 		headers: options.cookie === undefined ? {} : { cookie: options.cookie },
 	});
 
-	return { ...client.practice, ...client.ownCredentials };
+	return {
+		...client.practice,
+		...client.authoring,
+		...client.appOnly,
+		...client.ownCredentials,
+	};
 }

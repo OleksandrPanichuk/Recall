@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/api.factory";
-import { CLIENT_IP_HEADER } from "@/modules/auth";
+import { CLIENT_IP_HEADER, CLIENT_IP_SECRET_HEADER } from "@/modules/auth";
 import { spendLoginLink } from "../../fixtures/login-link";
 import {
 	applyMigration,
@@ -15,6 +15,7 @@ const available = await postgresAvailable();
 const BOT_TOKEN = "r".repeat(40);
 const TELEGRAM_ID = 636363;
 const SIGN_IN_MAX = 10;
+const CLIENT_IP_SECRET = "c".repeat(40);
 
 const overrides: { name: string; previous: string | undefined }[] = [];
 
@@ -36,14 +37,20 @@ const getSession = (ip?: string): Promise<Response> =>
 		},
 	});
 
-const signIn = (ip: string): Promise<Response> =>
+const signInWith = (headers: Record<string, string>): Promise<Response> =>
 	fetch(`${origin}/api/auth/sign-in/email`, {
 		method: "POST",
-		headers: { "content-type": "application/json", [CLIENT_IP_HEADER]: ip },
+		headers: { "content-type": "application/json", ...headers },
 		body: JSON.stringify({
 			email: "nobody@example.com",
 			password: "not the password",
 		}),
+	});
+
+const signIn = (ip: string): Promise<Response> =>
+	signInWith({
+		[CLIENT_IP_HEADER]: ip,
+		[CLIENT_IP_SECRET_HEADER]: CLIENT_IP_SECRET,
 	});
 
 const statuses = async (
@@ -72,6 +79,7 @@ beforeAll(async () => {
 	override("BETTER_AUTH_SECRET", "s".repeat(40));
 	override("ALLOWED_TELEGRAM_USER_ID", String(TELEGRAM_ID));
 	override("AUTH_RATE_LIMIT", "on");
+	override("AUTH_CLIENT_IP_SECRET", CLIENT_IP_SECRET);
 
 	app = await createApiApp();
 	await app.listen(0, "127.0.0.1");
@@ -137,5 +145,32 @@ describe.skipIf(!available)("what the auth rate limit may refuse", () => {
 
 		expect(refused.status).toBe(429);
 		expect((await getSession()).status).toBe(200);
+	});
+
+	test("a caller without the secret cannot pick a fresh bucket per request", async () => {
+		let address = 0;
+		const seen = await statuses(SIGN_IN_MAX + 2, () => {
+			address += 1;
+
+			return signInWith({ [CLIENT_IP_HEADER]: `192.0.2.${address}` });
+		});
+
+		expect(seen.at(-1)).toBe(429);
+	});
+
+	test("nor with a wrong secret, nor through x-forwarded-for", async () => {
+		let address = 0;
+		const seen = await statuses(SIGN_IN_MAX + 2, () => {
+			address += 1;
+
+			return address % 2 === 0
+				? signInWith({ "x-forwarded-for": `192.0.2.${100 + address}` })
+				: signInWith({
+						[CLIENT_IP_HEADER]: `192.0.2.${100 + address}`,
+						[CLIENT_IP_SECRET_HEADER]: "w".repeat(40),
+					});
+		});
+
+		expect(seen.at(-1)).toBe(429);
 	});
 });

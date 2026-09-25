@@ -1,16 +1,23 @@
 import { Module } from "@nestjs/common";
 import { ApiTokensAppController } from "./api-tokens.app.controller";
 import { ApiTokensBotController } from "./api-tokens.bot.controller";
-import { ApiTokensRepository } from "./api-tokens.repository";
+import {
+	ApiTokenCredentials,
+	ApiTokensRepository,
+} from "./api-tokens.repository";
 import { ApiTokensService } from "./api-tokens.service";
-import { PostgresApiTokensRepository } from "./repositories/api-tokens.postgres.repository";
+import {
+	PostgresApiTokenCredentials,
+	PostgresApiTokensRepository,
+} from "./repositories/api-tokens.postgres.repository";
 
 @Module({
 	controllers: [ApiTokensAppController, ApiTokensBotController],
 	providers: [
 		{ provide: ApiTokensRepository, useClass: PostgresApiTokensRepository },
+		{ provide: ApiTokenCredentials, useClass: PostgresApiTokenCredentials },
 		ApiTokensService,
 	],
-	exports: [ApiTokensService, ApiTokensRepository],
+	exports: [ApiTokensService],
 })
 export class ApiTokensModule {}

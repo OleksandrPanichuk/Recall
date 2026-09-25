@@ -10,6 +10,7 @@ import { ApiExcludeController } from "@nestjs/swagger";
 import { BOT_ROUTES } from "@recall/contracts";
 import { BotTokenGuard } from "@/modules/auth";
 import { parseBody } from "@/shared/http/parse-body";
+import { runAs } from "@/shared/request-context";
 import { ApiTokensService } from "./api-tokens.service";
 import { issueApiTokenDto, listApiTokensDto, revokeApiTokenDto } from "./dto";
 
@@ -19,13 +20,24 @@ import { issueApiTokenDto, listApiTokensDto, revokeApiTokenDto } from "./dto";
 export class ApiTokensBotController {
 	constructor(private readonly tokens: ApiTokensService) {}
 
+	private async asOwnerOf<TResult>(
+		telegramUserId: number,
+		operation: () => Promise<TResult>,
+	): Promise<TResult> {
+		const owner = await this.tokens.ownerForTelegram(telegramUserId);
+
+		return runAs({ kind: "instance", owner }, operation);
+	}
+
 	@Post(BOT_ROUTES.issueApiToken)
 	@HttpCode(HttpStatus.OK)
 	async issue(@Body() body: unknown) {
 		const command = parseBody(issueApiTokenDto, body);
-		const issued = await this.tokens.issue(
-			await this.tokens.ownerForTelegram(command.telegramUserId),
-			{ name: command.name, expiresInDays: command.expiresInDays },
+		const issued = await this.asOwnerOf(command.telegramUserId, () =>
+			this.tokens.issue({
+				name: command.name,
+				expiresInDays: command.expiresInDays,
+			}),
 		);
 
 		return {
@@ -40,8 +52,8 @@ export class ApiTokensBotController {
 	@HttpCode(HttpStatus.OK)
 	async list(@Body() body: unknown) {
 		const command = parseBody(listApiTokensDto, body);
-		const tokens = await this.tokens.list(
-			await this.tokens.ownerForTelegram(command.telegramUserId),
+		const tokens = await this.asOwnerOf(command.telegramUserId, () =>
+			this.tokens.list(),
 		);
 
 		return tokens.map((token) => ({
@@ -60,9 +72,8 @@ export class ApiTokensBotController {
 		const command = parseBody(revokeApiTokenDto, body);
 
 		return {
-			revoked: await this.tokens.revoke(
-				await this.tokens.ownerForTelegram(command.telegramUserId),
-				command.tokenId,
+			revoked: await this.asOwnerOf(command.telegramUserId, () =>
+				this.tokens.revoke(command.tokenId),
 			),
 		};
 	}

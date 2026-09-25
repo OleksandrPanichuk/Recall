@@ -102,39 +102,15 @@ describe.skipIf(!available)("the api", () => {
 		expect(await response.json()).toEqual({ status: "ok" });
 	});
 
-	test("lists the published quizzes", async () => {
-		const response = await fetch(`${origin}/quizzes`);
-		const body = (await response.json()) as readonly {
-			id: string;
-			title: string;
-			questionCount: number;
-		}[];
+	test("serves no quiz to a caller that brings no credential", async () => {
+		const list = await fetch(`${origin}/quizzes?includeUnpublished=true`);
+		const detail = await fetch(`${origin}/quizzes/${quizSetId}`);
 
-		expect(response.status).toBe(200);
-		expect(body).toHaveLength(1);
-		expect(body[0]?.title).toBe("Designing Data-Intensive Applications");
-		expect(body[0]?.questionCount).toBe(1);
-	});
-
-	test("serves one quiz by id", async () => {
-		const response = await fetch(`${origin}/quizzes/${quizSetId}`);
-
-		expect(response.status).toBe(200);
-		expect(await response.json()).toMatchObject({
-			id: quizSetId,
-			language: "en",
-			status: "published",
-		});
-	});
-
-	test("maps a missing quiz to 404 rather than 500", async () => {
-		const response = await fetch(`${origin}/quizzes/does-not-exist`);
-
-		expect(response.status).toBe(404);
-		expect(await response.json()).toMatchObject({
-			statusCode: 404,
-			error: "QuizSetNotFoundError",
-		});
+		expect(list.status).toBe(404);
+		expect(detail.status).toBe(404);
+		expect(JSON.stringify(await detail.json())).not.toContain(
+			"Designing Data-Intensive Applications",
+		);
 	});
 
 	test("publishes an OpenAPI document", async () => {
@@ -146,6 +122,7 @@ describe.skipIf(!available)("the api", () => {
 
 		expect(response.status).toBe(200);
 		expect(document.openapi).toStartWith("3.");
-		expect(Object.keys(document.paths)).toContain("/quizzes");
+		expect(Object.keys(document.paths)).toContain("/health/live");
+		expect(Object.keys(document.paths)).not.toContain("/quizzes");
 	});
 });

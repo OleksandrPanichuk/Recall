@@ -74,6 +74,6 @@ describe.skipIf(!available)("the api without an mcp token", () => {
 
 	test("still serves everything else", async () => {
 		expect((await fetch(`${origin}/health/live`)).status).toBe(200);
-		expect((await fetch(`${origin}/quizzes`)).status).toBe(200);
+		expect((await fetch(`${origin}/docs-json`)).status).toBe(200);
 	});
 });

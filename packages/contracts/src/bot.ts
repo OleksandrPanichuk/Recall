@@ -487,6 +487,10 @@ export const startAttemptCommandSchema = z.object({
 	onlyDue: z.boolean().optional(),
 });
 
+export const startOwnAttemptCommandSchema = startAttemptCommandSchema.omit({
+	telegramUserId: true,
+});
+
 export const PracticeMode = {
 	Mistakes: QuizAttemptMode.Mistakes,
 	WeakTopics: QuizAttemptMode.WeakTopics,
@@ -494,22 +498,33 @@ export const PracticeMode = {
 } as const;
 export type PracticeMode = (typeof PracticeMode)[keyof typeof PracticeMode];
 
-export const practiceCommandSchema = z
-	.object({
-		quizSetId: id,
-		telegramUserId: telegramUserIdSchema.optional(),
-		mode: z.enum(PracticeMode),
-		questionIds: z.array(id).optional(),
-	})
-	.refine(
-		(command) =>
-			command.mode !== PracticeMode.Selected ||
-			(command.questionIds !== undefined && command.questionIds.length > 0),
-		{
-			message: "selected mode needs at least one questionId",
-			path: ["questionIds"],
-		},
-	);
+const practiceCommandFields = z.object({
+	quizSetId: id,
+	telegramUserId: telegramUserIdSchema.optional(),
+	mode: z.enum(PracticeMode),
+	questionIds: z.array(id).optional(),
+});
+
+const selectedNeedsQuestions = (command: {
+	readonly mode: PracticeMode;
+	readonly questionIds?: readonly string[];
+}): boolean =>
+	command.mode !== PracticeMode.Selected ||
+	(command.questionIds !== undefined && command.questionIds.length > 0);
+
+const SELECTED_NEEDS_QUESTIONS = {
+	message: "selected mode needs at least one questionId",
+	path: ["questionIds"],
+};
+
+export const practiceCommandSchema = practiceCommandFields.refine(
+	selectedNeedsQuestions,
+	SELECTED_NEEDS_QUESTIONS,
+);
+
+export const ownPracticeCommandSchema = practiceCommandFields
+	.omit({ telegramUserId: true })
+	.refine(selectedNeedsQuestions, SELECTED_NEEDS_QUESTIONS);
 
 export const currentQuestionCommandSchema = z.object({});
 
@@ -623,6 +638,12 @@ export type DueForecastDay = z.infer<typeof dueForecastDaySchema>;
 export type QuestionStat = z.infer<typeof questionStatSchema>;
 export type StartQuizAttemptCommand = z.infer<typeof startAttemptCommandSchema>;
 export type StartPracticeSessionCommand = z.infer<typeof practiceCommandSchema>;
+export type StartOwnQuizAttemptCommand = z.infer<
+	typeof startOwnAttemptCommandSchema
+>;
+export type StartOwnPracticeSessionCommand = z.infer<
+	typeof ownPracticeCommandSchema
+>;
 export type GetCurrentQuestionCommand = z.infer<
 	typeof currentQuestionCommandSchema
 >;

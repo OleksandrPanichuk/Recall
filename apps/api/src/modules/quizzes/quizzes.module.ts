@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { PagesModule } from "@/modules/pages";
-import { QuizzesPublicController } from "./quizzes.public.controller";
 import { QuizzesRepository } from "./quizzes.repository";
 import { QuizzesSurfaceController } from "./quizzes.surface.controller";
 import { PostgresQuizzesRepository } from "./repositories/quizzes.postgres.repository";
@@ -33,7 +32,7 @@ const useCases = [
 ];
 
 @Module({
-	controllers: [QuizzesPublicController, QuizzesSurfaceController],
+	controllers: [QuizzesSurfaceController],
 	imports: [PagesModule],
 	providers: [
 		{ provide: QuizzesRepository, useClass: PostgresQuizzesRepository },

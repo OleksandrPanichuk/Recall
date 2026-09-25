@@ -74,7 +74,7 @@ export class AuthFactory {
 			},
 			advanced: {
 				useSecureCookies: options.baseUrl.startsWith("https://"),
-				ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER, "x-forwarded-for"] },
+				ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
 			},
 			plugins: [...options.plugins],
 		});

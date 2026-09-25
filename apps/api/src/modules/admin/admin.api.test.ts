@@ -3,7 +3,10 @@ import {
 	createMemoryApplication,
 	type MemoryApplication,
 } from "@tests/fixtures/application.fixture";
-import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
+import {
+	createRecordingLogger,
+	type RecordingLogger,
+} from "@tests/fixtures/logger.fixture";
 import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
 import { createAdminApi } from "./admin.api";
 import { BASE_DELAY_MS, FREE_ATTEMPTS } from "./admin.throttle";
@@ -11,6 +14,7 @@ import { BASE_DELAY_MS, FREE_ATTEMPTS } from "./admin.throttle";
 const PASSPHRASE = "correct horse battery staple";
 
 let application: MemoryApplication;
+let logger: RecordingLogger;
 let server: ReturnType<typeof Bun.serve>;
 let origin: string;
 let cookie: string;
@@ -114,11 +118,12 @@ beforeEach(async () => {
 	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("a"),
 	});
+	logger = createRecordingLogger();
 	server = Bun.serve({
 		port: 0,
 		routes: createAdminApi({
 			application,
-			logger: createRecordingLogger(),
+			logger,
 			passphrase: PASSPHRASE,
 			now: () => new Date(),
 		}),
@@ -206,6 +211,14 @@ describe("the session", () => {
 
 		expect(response.status).toBe(204);
 		expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+	});
+
+	test("and a copy of the cookie kept past sign-out no longer opens anything", async () => {
+		expect((await call("/api/sets")).status).toBe(200);
+		expect((await call("/api/session", { method: "DELETE" })).status).toBe(204);
+
+		expect((await call("/api/sets")).status).toBe(401);
+		expect((await call("/api/session")).status).toBe(401);
 	});
 });
 
@@ -404,6 +417,31 @@ describe("questions across every set", () => {
 
 	test("reports a missing question as a client error", async () => {
 		expect((await call("/api/questions/missing")).status).toBe(400);
+	});
+
+	test("answers a body that is not json as the client's mistake", async () => {
+		const response = await call("/api/sets", {
+			method: "POST",
+			body: "{not json",
+		});
+
+		expect(response.status).toBe(400);
+	});
+
+	test("hides an unexpected failure behind a 500 and logs it instead", async () => {
+		const leak =
+			'duplicate key value violates unique constraint "quizzes_owner_id_title_key"';
+
+		(
+			application.listQuizSets as { execute: (command: unknown) => unknown }
+		).execute = () => Promise.reject(new Error(leak));
+
+		const response = await call("/api/sets");
+		const text = await response.text();
+
+		expect(response.status).toBe(500);
+		expect(text).not.toContain("duplicate key");
+		expect(logger.of("an admin request failed")[0]?.error).toBe(leak);
 	});
 });
 

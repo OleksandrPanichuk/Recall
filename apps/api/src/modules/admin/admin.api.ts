@@ -1,4 +1,5 @@
 import type { Logger } from "@recall/kit";
+import { InvalidIdentifierError } from "@/core/errors";
 import { toPageId } from "@/modules/pages";
 import {
 	Difficulty,
@@ -6,7 +7,9 @@ import {
 	toQuestionId,
 	toQuizSetId,
 } from "@/modules/quizzes";
+import { ModuleErrorFilter } from "@/shared/http/module-error.filter";
 import { matchesToken } from "../mcp/http/bearer";
+import { AdminRequestError } from "./admin.errors";
 import { listPage, listQueryOf } from "./admin.query";
 import {
 	FOLDER_SHAPE,
@@ -19,7 +22,7 @@ import {
 	VOCABULARY_SHAPE,
 	vocabularyRecordOf,
 } from "./admin.records";
-import { clearSession, issueSession, readSession } from "./admin.session";
+import { AdminSessions } from "./admin.session";
 import { createSignInThrottle } from "./admin.throttle";
 import type { AdminUseCases } from "./admin.use-cases";
 
@@ -40,12 +43,37 @@ const page = (rows: readonly unknown[], total: number): Response =>
 		headers: { "x-total-count": String(total) },
 	});
 
-const failed = (error: unknown): Response => {
-	const message =
-		error instanceof Error ? error.message : "Something went wrong";
+const UNEXPECTED = "Something went wrong";
 
-	return json({ message, error: message }, 400);
-};
+const UNMAPPED_REFUSALS: ReadonlySet<string> = new Set([
+	"DuplicateQuestionError",
+	"DuplicateQuestionIdError",
+	"DuplicateResponseError",
+	"EmptyQuizAttemptError",
+	"QuizAttemptTransitionError",
+	"QuizVersionConflictError",
+]);
+
+const isRefusal = (error: unknown): error is Error =>
+	error instanceof AdminRequestError ||
+	error instanceof InvalidIdentifierError ||
+	(error instanceof Error && UNMAPPED_REFUSALS.has(error.name)) ||
+	ModuleErrorFilter.refusalFor(error) !== undefined;
+
+const failedWith =
+	(logger: Logger) =>
+	(error: unknown): Response => {
+		if (isRefusal(error)) {
+			return json({ message: error.message, error: error.message }, 400);
+		}
+
+		logger.error("an admin request failed", {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+
+		return json({ message: UNEXPECTED, error: UNEXPECTED }, 500);
+	};
 
 const waitFor = (milliseconds: number): Promise<void> =>
 	new Promise((resolve) => {
@@ -66,8 +94,13 @@ const paramOf = (request: Request, name: string): string =>
 			"",
 	);
 
-const bodyOf = async <TBody>(request: Request): Promise<TBody> =>
-	(await request.json()) as TBody;
+const bodyOf = async <TBody>(request: Request): Promise<TBody> => {
+	try {
+		return (await request.json()) as TBody;
+	} catch {
+		throw new AdminRequestError("The request body is not valid JSON");
+	}
+};
 
 const given = (
 	body: Record<string, unknown>,
@@ -129,17 +162,13 @@ const optionsOf = (value: unknown) =>
 
 export function createAdminApi(dependencies: AdminApiDependencies) {
 	const { application, logger, passphrase, now } = dependencies;
+	const sessions = new AdminSessions(passphrase);
+	const failed = failedWith(logger);
 
 	const guarded =
 		(handler: Handler): Handler =>
 		async (request) => {
-			if (
-				!readSession(
-					request.headers.get("cookie") ?? undefined,
-					passphrase,
-					now(),
-				)
-			) {
+			if (!sessions.read(request.headers.get("cookie") ?? undefined, now())) {
 				return json({ message: "Not signed in" }, 401);
 			}
 
@@ -232,7 +261,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 		const found = rows.find((row) => String(row.question.id) === questionId);
 
 		if (found === undefined) {
-			throw new Error(`Question ${questionId} does not exist`);
+			throw new AdminRequestError(`Question ${questionId} does not exist`);
 		}
 
 		return found;
@@ -271,19 +300,20 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 					status: 200,
 					headers: {
 						"content-type": "application/json",
-						"set-cookie": issueSession(
-							passphrase,
-							now(),
-							secureCookies(request),
-						),
+						"set-cookie": sessions.issue(now(), secureCookies(request)),
 					},
 				});
 			},
-			DELETE: (request: Request) =>
-				new Response(null, {
+			DELETE: (request: Request) => {
+				sessions.end(request.headers.get("cookie") ?? undefined);
+
+				return new Response(null, {
 					status: 204,
-					headers: { "set-cookie": clearSession(secureCookies(request)) },
-				}),
+					headers: {
+						"set-cookie": AdminSessions.cleared(secureCookies(request)),
+					},
+				});
+			},
 			GET: guarded(() => json({ signedIn: true })),
 		},
 
@@ -360,7 +390,7 @@ export function createAdminApi(dependencies: AdminApiDependencies) {
 					} else if (status === "archived") {
 						await application.archiveQuizSet.execute({ quizSetId });
 					} else {
-						throw new Error(
+						throw new AdminRequestError(
 							`A ${current.status} quiz set cannot go back to ${status}`,
 						);
 					}

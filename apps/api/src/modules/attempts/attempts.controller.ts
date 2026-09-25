@@ -10,7 +10,7 @@ import {
 import { ApiExcludeController } from "@nestjs/swagger";
 import { BOT_ROUTES } from "@recall/contracts";
 import type { Response } from "express";
-import { SurfaceGuard } from "@/modules/auth";
+import { callerIsBot, SurfaceGuard } from "@/modules/auth";
 import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import { parseBody } from "@/shared/http/parse-body";
 import { toQuizAttemptId } from "./attempt.entity";
@@ -29,6 +29,7 @@ import {
 	pauseAttemptDto,
 	rateRecallDto,
 	startAttemptDto,
+	startOwnAttemptDto,
 } from "./dto";
 import {
 	AbandonQuizAttemptUseCase,
@@ -59,7 +60,10 @@ export class AttemptsController {
 	@Post(BOT_ROUTES.startAttempt)
 	@HttpCode(HttpStatus.OK)
 	async start(@Body() body: unknown) {
-		const command = parseBody(startAttemptDto, body);
+		const command = parseBody(
+			callerIsBot() ? startAttemptDto : startOwnAttemptDto,
+			body,
+		);
 
 		return startResultToWire(
 			await this.startQuizAttempt.execute({

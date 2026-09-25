@@ -8,10 +8,10 @@ import {
 } from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
 import { BOT_ROUTES } from "@recall/contracts";
-import { SurfaceGuard } from "@/modules/auth";
+import { callerIsBot, SurfaceGuard } from "@/modules/auth";
 import { toQuestionId, toQuizSetId } from "@/modules/quizzes";
 import { parseBody } from "@/shared/http/parse-body";
-import { startPracticeDto } from "./dto";
+import { startOwnPracticeDto, startPracticeDto } from "./dto";
 import { practiceResultToWire } from "./practice.model";
 import { StartPracticeSessionUseCase } from "./use-cases";
 
@@ -26,7 +26,10 @@ export class PracticeController {
 	@Post(BOT_ROUTES.practice)
 	@HttpCode(HttpStatus.OK)
 	async practice(@Body() body: unknown) {
-		const command = parseBody(startPracticeDto, body);
+		const command = parseBody(
+			callerIsBot() ? startPracticeDto : startOwnPracticeDto,
+			body,
+		);
 
 		return practiceResultToWire(
 			await this.startPracticeSession.execute({
