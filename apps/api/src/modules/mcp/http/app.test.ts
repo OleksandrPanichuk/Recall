@@ -7,14 +7,18 @@ import {
 import { createRecordingLogger } from "@tests/fixtures/logger.fixture";
 import { createSequentialIdGenerator } from "@tests/fixtures/memory.fixture";
 import { createMemoryOAuthStore } from "@tests/fixtures/memory-oauth.store";
+import express from "express";
 import { createMcpHttpApp } from "./app";
-import { createOAuthProvider } from "./oauth/provider";
+import { createOAuthProvider, type RecallOAuth } from "./oauth/provider";
 
 const STATIC_TOKEN = "s".repeat(40);
 const OWNER = "the-owner";
 const PASSPHRASE = "correct horse battery staple";
+const SIGNED_IN = "session=alice";
+const ISSUER_ORIGIN = "http://127.0.0.1";
 
 let application: MemoryApplication;
+let oauth: RecallOAuth;
 let listener: Server;
 let origin: string;
 
@@ -36,19 +40,36 @@ beforeEach(async () => {
 	application = createMemoryApplication({
 		idGenerator: createSequentialIdGenerator("q"),
 	});
-	const oauth = createOAuthProvider({
+	oauth = createOAuthProvider({
 		store: createMemoryOAuthStore(() => new Date()),
 		staticToken: STATIC_TOKEN,
 		instanceOwner: async () => OWNER,
 		now: () => new Date(),
 	});
-	const app = createMcpHttpApp({
+	const mcp = createMcpHttpApp({
 		useCases: application,
 		logger: createRecordingLogger(),
 		oauth,
 		allowedHosts: [],
 		issuer: new URL("http://127.0.0.1/"),
 		passphrase: PASSPHRASE,
+		sessionOwner: async (request) =>
+			request.headers.cookie === SIGNED_IN ? ("alice" as never) : undefined,
+	});
+	const app = express();
+
+	app.use(mcp);
+	app.post("/elsewhere", async (request, response) => {
+		const chunks: Buffer[] = [];
+
+		for await (const chunk of request) {
+			chunks.push(chunk as Buffer);
+		}
+
+		response.json({
+			parsed: request.body !== undefined,
+			raw: Buffer.concat(chunks).toString("utf8"),
+		});
 	});
 
 	await new Promise<void>((resolve) => {
@@ -202,6 +223,153 @@ describe("the whole grant, as a client would walk it", () => {
 		);
 	});
 
+	const consentWith = (
+		pending: string,
+		passphrase: string | undefined,
+		headers: Record<string, string> = {},
+	) =>
+		fetch(`${origin}/consent`, {
+			method: "POST",
+			headers: {
+				"content-type": "application/x-www-form-urlencoded",
+				...headers,
+			},
+			body: new URLSearchParams(
+				passphrase === undefined ? { pending } : { pending, passphrase },
+			),
+			redirect: "manual",
+		});
+
+	const pendingFor = async (clientId: string): Promise<string> =>
+		new URL(await consentUrlFor(clientId)).searchParams.get(
+			"pending",
+		) as string;
+
+	const ownerOfGrant = async (
+		clientId: string,
+		location: string,
+	): Promise<unknown> => {
+		const code = new URL(location).searchParams.get("code") as string;
+		const tokens = (await (
+			await fetch(`${origin}/token`, {
+				method: "POST",
+				headers: { "content-type": "application/x-www-form-urlencoded" },
+				body: new URLSearchParams({
+					grant_type: "authorization_code",
+					code,
+					client_id: clientId,
+					redirect_uri: "https://chatgpt.com/connector_platform_oauth_redirect",
+					code_verifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+				}),
+			})
+		).json()) as { access_token: string };
+
+		return (
+			(await oauth.provider.verifyAccessToken(tokens.access_token)).extra as {
+				ownerId?: unknown;
+			}
+		).ownerId;
+	};
+
+	test("cancels a pending request after five wrong passphrases", async () => {
+		const pending = await pendingFor(await register());
+
+		for (let attempt = 1; attempt < 5; attempt += 1) {
+			expect((await consentWith(pending, "wrong")).status).toBe(401);
+		}
+
+		expect((await consentWith(pending, "wrong")).status).toBe(403);
+		expect((await consentWith(pending, PASSPHRASE)).status).toBe(404);
+	});
+
+	test("stops listening to an address that keeps guessing", async () => {
+		const clientId = await register();
+
+		for (let attempt = 0; attempt < 10; attempt += 1) {
+			await consentWith(await pendingFor(clientId), "wrong");
+		}
+
+		const pending = await pendingFor(clientId);
+		const throttled = await consentWith(pending, PASSPHRASE);
+
+		expect(throttled.status).toBe(429);
+		expect(throttled.headers.get("location")).toBeNull();
+	});
+
+	test("a signed-in browser consents without the passphrase, and the grant is theirs", async () => {
+		const clientId = await register();
+		const pending = await pendingFor(clientId);
+		const page = await fetch(`${origin}/consent?pending=${pending}`, {
+			headers: { cookie: SIGNED_IN },
+		});
+
+		expect(await page.text()).not.toContain('name="passphrase"');
+
+		const approved = await consentWith(pending, undefined, {
+			cookie: SIGNED_IN,
+			origin: ISSUER_ORIGIN,
+		});
+
+		expect(approved.status).toBe(302);
+		expect(
+			await ownerOfGrant(clientId, approved.headers.get("location") as string),
+		).toBe("alice");
+	});
+
+	test("a throttled address does not stop a signed-in browser", async () => {
+		const clientId = await register();
+
+		for (let attempt = 0; attempt < 10; attempt += 1) {
+			await consentWith(await pendingFor(clientId), "wrong");
+		}
+
+		const approved = await consentWith(await pendingFor(clientId), undefined, {
+			cookie: SIGNED_IN,
+			origin: ISSUER_ORIGIN,
+		});
+
+		expect(approved.status).toBe(302);
+	});
+
+	test("the consent page names where access will be sent", async () => {
+		const pending = await pendingFor(await register());
+		const page = await (
+			await fetch(`${origin}/consent?pending=${pending}`)
+		).text();
+
+		expect(page).toContain("chatgpt.com");
+	});
+
+	test("a session posted from another origin still needs the passphrase", async () => {
+		const pending = await pendingFor(await register());
+
+		const refused = await consentWith(pending, undefined, {
+			cookie: SIGNED_IN,
+			origin: "https://evil.example",
+		});
+
+		expect(refused.status).toBe(401);
+		expect(refused.headers.get("location")).toBeNull();
+	});
+
+	test("a session with no origin header still needs the passphrase", async () => {
+		const pending = await pendingFor(await register());
+
+		expect(
+			(await consentWith(pending, undefined, { cookie: SIGNED_IN })).status,
+		).toBe(401);
+	});
+
+	test("the consent page refuses to be framed", async () => {
+		const pending = await pendingFor(await register());
+		const page = await fetch(`${origin}/consent?pending=${pending}`);
+
+		expect(page.headers.get("x-frame-options")).toBe("DENY");
+		expect(page.headers.get("content-security-policy")).toContain(
+			"frame-ancestors 'none'",
+		);
+	});
+
 	test("refuses the wrong passphrase and issues nothing", async () => {
 		const clientId = await register();
 		const consentUrl = await consentUrlFor(clientId);
@@ -284,5 +452,66 @@ describe("what an mcp client is told before it has a token", () => {
 		expect(
 			((await registered.json()) as { client_id?: string }).client_id,
 		).toBeDefined();
+	});
+});
+
+describe("body parsing", () => {
+	test("leaves a request for another route unread", async () => {
+		const response = await fetch(`${origin}/elsewhere`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ email: "someone@example.com" }),
+		});
+
+		expect(await response.json()).toEqual({
+			parsed: false,
+			raw: '{"email":"someone@example.com"}',
+		});
+	});
+
+	test("accepts a summary far longer than the default body limit", async () => {
+		const summary = `# Long\n\n${"Довгий абзац про щось важливе. ".repeat(5_000)}`;
+
+		expect(Buffer.byteLength(summary)).toBeGreaterThan(100 * 1024);
+
+		const response = await fetch(`${origin}/mcp`, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				accept: "application/json, text/event-stream",
+				authorization: `Bearer ${STATIC_TOKEN}`,
+			},
+			body: JSON.stringify({
+				jsonrpc: "2.0",
+				id: 1,
+				method: "tools/call",
+				params: {
+					name: "quiz_write_summary",
+					arguments: { path: ["Books"], summary },
+				},
+			}),
+		});
+
+		expect(response.status).toBe(200);
+
+		const answer = (await response.json()) as {
+			result?: { isError?: boolean };
+		};
+
+		expect(answer.result?.isError).not.toBe(true);
+	});
+
+	test("still refuses a body past its own limit", async () => {
+		const response = await fetch(`${origin}/mcp`, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				accept: "application/json, text/event-stream",
+				authorization: `Bearer ${STATIC_TOKEN}`,
+			},
+			body: JSON.stringify({ padding: "x".repeat(3 * 1024 * 1024) }),
+		});
+
+		expect(response.status).toBe(413);
 	});
 });

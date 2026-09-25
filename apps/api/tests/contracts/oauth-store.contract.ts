@@ -96,11 +96,40 @@ export function describeOAuthStore(
 					await harness.store.findToken(token, TokenKind.Refresh),
 				).toBeUndefined();
 
-				await harness.store.revokeToken(token);
+				await harness.store.revokeToken(token, "client-1");
 
 				expect(
 					await harness.store.findToken(token, TokenKind.Access),
 				).toBeUndefined();
+			});
+
+			test("a token is revoked once, and only by the client it was issued to", async () => {
+				const token = uuid();
+
+				await harness.store.saveToken(token, TokenKind.Refresh, {
+					clientId: "client-1",
+					scopes: ["offline_access"],
+					ownerId: harness.owner,
+				});
+
+				expect(await harness.store.revokeToken(token, "client-2")).toBe(false);
+				expect(
+					await harness.store.findToken(token, TokenKind.Refresh),
+				).toBeDefined();
+
+				const [first, second] = await Promise.all([
+					harness.store.revokeToken(token, "client-1"),
+					harness.store.revokeToken(token, "client-1"),
+				]);
+
+				expect([first, second].sort()).toEqual([false, true]);
+				expect(
+					await harness.store.findToken(token, TokenKind.Refresh),
+				).toBeUndefined();
+			});
+
+			test("revoking a token nobody issued revokes nothing", async () => {
+				expect(await harness.store.revokeToken(uuid(), "client-1")).toBe(false);
 			});
 
 			test("a refresh token without an expiry stays valid", async () => {
