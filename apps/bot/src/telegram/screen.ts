@@ -1,26 +1,40 @@
 import type { Context } from "telegraf";
-import type { Screen } from "./presenters/screen.types";
+import type { InlineButton, Screen } from "./presenters/screen.types";
+import { clamped } from "./presenters/utils/text-limit";
 
-export const TELEGRAM_TEXT_LIMIT = 4096;
-const SAFE_LIMIT = 4000;
+export interface Message {
+	readonly text: string;
+	readonly extra: {
+		readonly reply_markup: { inline_keyboard: InlineButton[][] };
+		readonly link_preview_options?: { is_disabled: boolean };
+	};
+}
 
-const clamp = (text: string): string =>
-	text.length <= TELEGRAM_TEXT_LIMIT
-		? text
-		: `${text.slice(0, SAFE_LIMIT)}\n\n…(скорочено)`;
+export function messageFor(screen: Screen): Message {
+	return {
+		text: clamped(screen.text),
+		extra: {
+			reply_markup: {
+				inline_keyboard: screen.keyboard.map((row) => [...row]),
+			},
+			...(screen.linkPreview === false
+				? { link_preview_options: { is_disabled: true } }
+				: {}),
+		},
+	};
+}
 
 export async function render(ctx: Context, screen: Screen): Promise<void> {
-	const markup = { inline_keyboard: screen.keyboard.map((row) => [...row]) };
-	const text = clamp(screen.text);
+	const { text, extra } = messageFor(screen);
 
 	if (ctx.callbackQuery === undefined) {
-		await ctx.reply(text, { reply_markup: markup });
+		await ctx.reply(text, extra);
 
 		return;
 	}
 
 	try {
-		await ctx.editMessageText(text, { reply_markup: markup });
+		await ctx.editMessageText(text, extra);
 	} catch (error) {
 		if (isUnchangedMessage(error)) {
 			return;
@@ -30,7 +44,7 @@ export async function render(ctx: Context, screen: Screen): Promise<void> {
 			throw error;
 		}
 
-		await ctx.reply(text, { reply_markup: markup });
+		await ctx.reply(text, extra);
 	}
 }
 

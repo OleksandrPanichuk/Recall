@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/api.factory";
 import { CLIENT_IP_HEADER } from "@/modules/auth";
+import { spendLoginLink } from "../../fixtures/login-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -90,9 +91,7 @@ beforeAll(async () => {
 			body: JSON.stringify({ telegramUserId: TELEGRAM_ID }),
 		})
 	).json()) as { url: string };
-	const verified = await fetch(url.replace(/^https?:\/\/[^/]+/, origin), {
-		redirect: "manual",
-	});
+	const verified = await spendLoginLink(url, origin);
 
 	cookie = (verified.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
 });

@@ -3,6 +3,7 @@ import { expectsTypedAnswer, QuestionType } from "@recall/contracts";
 import { shuffled } from "@recall/kit";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import { matchingQuestionScreen } from "./matching-question.presenter";
+import { finishPrompt } from "./menu.presenter";
 import { orderingQuestionScreen } from "./ordering-question.presenter";
 import type { InlineButton, Screen } from "./screen.types";
 import { typedQuestionScreen } from "./typed-question.presenter";
@@ -123,4 +124,12 @@ export function questionScreen(
 			[button("« Меню", { action: CallbackAction.Menu })],
 		],
 	};
+}
+
+export function currentQuestionScreen(
+	view: CurrentQuestionView | undefined,
+): Screen {
+	return view?.question === undefined
+		? finishPrompt()
+		: questionScreen(view, view.question);
 }

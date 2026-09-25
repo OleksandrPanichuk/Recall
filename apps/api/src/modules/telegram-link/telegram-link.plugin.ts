@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { BetterAuthPlugin } from "better-auth";
-import { createAuthEndpoint } from "better-auth/api";
+import { createAuthEndpoint, formCsrfMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
+import { CONFIRM_PAGE_HEADERS, confirmPage } from "./confirm-page";
 
 export const LOGIN_IDENTIFIER_PREFIX = "telegram-login:";
 export const DEFAULT_LINK_TTL_SECONDS = 300;
@@ -25,14 +26,33 @@ export interface TelegramLinkOptions {
 }
 
 const verifyQuery = z.object({ token: z.string().min(1) });
+const verifyBody = z.object({ token: z.string().min(1) });
+
+const VERIFY_PATH = "/telegram/verify";
 
 export const telegramLink = (options: TelegramLinkOptions) => {
 	return {
 		id: "telegram-link",
 		endpoints: {
+			showTelegramLogin: createAuthEndpoint(
+				VERIFY_PATH,
+				{ method: "GET", query: verifyQuery },
+				async (ctx) =>
+					new Response(confirmPage(ctx.query.token), {
+						headers: CONFIRM_PAGE_HEADERS,
+					}),
+			),
 			verifyTelegramLogin: createAuthEndpoint(
-				"/telegram/verify",
-				{ method: "GET", query: verifyQuery, requireHeaders: true },
+				VERIFY_PATH,
+				{
+					method: "POST",
+					body: verifyBody,
+					requireHeaders: true,
+					use: [formCsrfMiddleware],
+					metadata: {
+						allowedMediaTypes: ["application/x-www-form-urlencoded"],
+					},
+				},
 				async (ctx) => {
 					const failed = (reason: string): URL => {
 						const url = new URL(options.failureUrl ?? options.successUrl);
@@ -43,7 +63,7 @@ export const telegramLink = (options: TelegramLinkOptions) => {
 					};
 					const stored =
 						await ctx.context.internalAdapter.consumeVerificationValue(
-							LoginToken.identifierFor(ctx.query.token),
+							LoginToken.identifierFor(ctx.body.token),
 						);
 
 					if (stored === null || stored === undefined) {
@@ -74,9 +94,9 @@ export const telegramLink = (options: TelegramLinkOptions) => {
 		},
 		rateLimit: [
 			{
-				pathMatcher: (path: string) => path.startsWith("/telegram/verify"),
+				pathMatcher: (path: string) => path.startsWith(VERIFY_PATH),
 				window: 60,
-				max: 10,
+				max: 20,
 			},
 		],
 	} satisfies BetterAuthPlugin;

@@ -10,6 +10,21 @@ export function delayFor(failures: number): number {
 	return Math.min(FIRST_DELAY_MS * 2 ** (failures - 1), MAX_DELAY_MS);
 }
 
+export type Wait = (
+	ms: number,
+	interruptible: (stop: () => void) => void,
+) => Promise<void>;
+
+export const interruptibleWait: Wait = (ms, interruptible) =>
+	new Promise((resolve) => {
+		const timer = setTimeout(resolve, ms);
+
+		interruptible(() => {
+			clearTimeout(timer);
+			resolve();
+		});
+	});
+
 interface KeepPollingOptions {
 	readonly launch: (options: {
 		readonly dropPendingUpdates: boolean;
@@ -18,10 +33,7 @@ interface KeepPollingOptions {
 	readonly shutdown: Shutdown;
 	readonly onFatal: (error: unknown) => void;
 	readonly now?: () => number;
-	readonly wait?: (
-		ms: number,
-		interruptible: (stop: () => void) => void,
-	) => Promise<void>;
+	readonly wait?: Wait;
 }
 
 export async function keepPolling({
@@ -30,15 +42,7 @@ export async function keepPolling({
 	shutdown,
 	onFatal,
 	now = () => Date.now(),
-	wait = (ms, interruptible) =>
-		new Promise((resolve) => {
-			const timer = setTimeout(resolve, ms);
-
-			interruptible(() => {
-				clearTimeout(timer);
-				resolve();
-			});
-		}),
+	wait = interruptibleWait,
 }: KeepPollingOptions): Promise<void> {
 	let failures = 0;
 	let dropPendingUpdates = true;

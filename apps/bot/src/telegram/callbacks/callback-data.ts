@@ -3,10 +3,13 @@ import type { Callback } from "./callback-data.types";
 
 export const CALLBACK_DATA_LIMIT = 64;
 
+const byteLength = (data: string): number =>
+	new TextEncoder().encode(data).length;
+
 export class CallbackTooLongError extends Error {
 	constructor(data: string) {
 		super(
-			`Callback data is ${data.length} bytes, over the ${CALLBACK_DATA_LIMIT}-byte Telegram limit: ${data}`,
+			`Callback data is ${byteLength(data)} bytes, over the ${CALLBACK_DATA_LIMIT}-byte Telegram limit: ${data}`,
 		);
 		this.name = "CallbackTooLongError";
 	}
@@ -20,7 +23,7 @@ const isSettingsChange = (value: string): value is SettingsChange =>
 export function encodeCallback(callback: Callback): string {
 	const data = serialise(callback);
 
-	if (data.length > CALLBACK_DATA_LIMIT) {
+	if (byteLength(data) > CALLBACK_DATA_LIMIT) {
 		throw new CallbackTooLongError(data);
 	}
 

@@ -6,4 +6,5 @@ export interface InlineButton {
 export interface Screen {
 	readonly text: string;
 	readonly keyboard: readonly (readonly InlineButton[])[];
+	readonly linkPreview?: false;
 }

@@ -5,6 +5,7 @@ import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/api.factory";
 import { verification } from "@/db/schema";
 import { LoginToken } from "@/modules/telegram-link";
+import { spendLoginLink } from "../../fixtures/login-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -50,8 +51,16 @@ const linkFor = async (telegramUserId: number): Promise<string> => {
 	return body.url;
 };
 
-const follow = (url: string): Promise<Response> =>
+const open = (url: string): Promise<Response> =>
 	fetch(url, { redirect: "manual" });
+
+const confirm = (url: string): Promise<Response> => spendLoginLink(url);
+
+const follow = async (url: string): Promise<Response> => {
+	await open(url);
+
+	return confirm(url);
+};
 
 const cookieOf = (response: Response): string =>
 	response.headers
@@ -170,6 +179,60 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 		expect(cookie).toContain("SameSite=Lax");
 	});
 
+	test("opening the link spends nothing and asks the person to continue", async () => {
+		const link = await linkFor(OWNER_TELEGRAM_ID);
+
+		for (let preview = 0; preview < 3; preview += 1) {
+			const response = await open(link);
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get("content-type")).toContain("text/html");
+			expect(response.headers.getSetCookie()).toEqual([]);
+			expect(await response.text()).toContain('method="post"');
+		}
+
+		const login = await confirm(link);
+
+		expect(login.status).toBe(302);
+		expect(login.headers.get("location")).toBe(SUCCESS_URL);
+		expect(login.headers.getSetCookie().join("; ")).toContain(
+			"better-auth.session_token=",
+		);
+	});
+
+	test("the confirmation page cannot be framed or cached", async () => {
+		const response = await open(await linkFor(OWNER_TELEGRAM_ID));
+
+		expect(response.headers.get("cache-control")).toContain("no-store");
+		expect(response.headers.get("x-frame-options")).toBe("DENY");
+	});
+
+	test("the token is escaped into the confirmation page", async () => {
+		const response = await open(
+			`${origin}/api/auth/telegram/verify?token=${encodeURIComponent('"><script>x</script>')}`,
+		);
+
+		const page = await response.text();
+
+		expect(page).not.toContain("<script>x</script>");
+		expect(page).toContain("&quot;&gt;&lt;script&gt;");
+	});
+
+	test("confirming a spent link is refused", async () => {
+		const link = await linkFor(OWNER_TELEGRAM_ID);
+
+		expect((await confirm(link)).headers.get("location")).toBe(SUCCESS_URL);
+
+		const replay = await confirm(link);
+
+		expect(replay.headers.get("location")).toBe(
+			new URL("/?error=invalid_token", SUCCESS_URL).href,
+		);
+		expect(replay.headers.getSetCookie().join("; ")).not.toContain(
+			"better-auth.session_token=",
+		);
+	});
+
 	test("the cookie identifies the user to the api", async () => {
 		const link = await linkFor(OWNER_TELEGRAM_ID);
 		const login = await follow(link);
@@ -208,7 +271,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 			expiresAt: new Date(Date.now() - 60_000),
 		});
 
-		const response = await follow(
+		const response = await confirm(
 			`${origin}/api/auth/telegram/verify?token=${token}`,
 		);
 
@@ -218,7 +281,7 @@ describe.skipIf(!available)("logging in from the telegram bot", () => {
 	});
 
 	test("a made-up token is refused", async () => {
-		const response = await follow(
+		const response = await confirm(
 			`${origin}/api/auth/telegram/verify?token=nothing-like-a-real-token`,
 		);
 

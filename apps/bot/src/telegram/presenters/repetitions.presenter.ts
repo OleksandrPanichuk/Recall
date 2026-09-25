@@ -5,6 +5,7 @@ import { button } from "./utils/button";
 import { truncated } from "./utils/truncate";
 
 export const LISTED_QUESTIONS = 8;
+export const LISTED_SETS = 8;
 
 export const overdueLabel = (overdueDays: number): string => {
 	if (overdueDays === 0) {
@@ -28,6 +29,21 @@ const leechLines = (leeches: readonly LeechView[]): readonly string[] =>
 					.slice(0, 5)
 					.map((leech) => `• ${leech.prompt} — забуто ${leech.lapses} р.`),
 			];
+
+const setsWord = (count: number): string => {
+	const lastTwo = count % 100;
+	const last = count % 10;
+
+	if (last === 1 && lastTwo !== 11) {
+		return `${count} набір`;
+	}
+
+	if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+		return `${count} набори`;
+	}
+
+	return `${count} наборів`;
+};
 
 type InlineRow = Screen["keyboard"][number];
 
@@ -61,18 +77,23 @@ export function repetitionsScreen(
 		};
 	}
 
+	const listed = due.slice(0, LISTED_SETS);
+
 	return {
 		text: [
 			`🔁 На повторення: ${due.length}`,
 			"",
-			...due.map(
+			...listed.map(
 				(entry) =>
 					`• ${entry.title} — ${entry.dueCount} сл., ${overdueLabel(entry.overdueDays)}`,
 			),
+			...(due.length > listed.length
+				? [`…і ще ${setsWord(due.length - listed.length)}`]
+				: []),
 			...leechLines(leeches),
 		].join("\n"),
 		keyboard: [
-			...due.map((entry) => [
+			...listed.map((entry) => [
 				button(truncated(`🔁 ${entry.title} (${entry.dueCount})`), {
 					action: CallbackAction.StartDue,
 					quizSetId: entry.quizSetId,

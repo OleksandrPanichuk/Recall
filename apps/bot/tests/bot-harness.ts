@@ -207,9 +207,11 @@ function assertWithinTelegramLimits(
 		for (const button of row) {
 			const data = button.callback_data ?? "";
 
-			if (data.length > CALLBACK_DATA_LIMIT) {
+			const bytes = new TextEncoder().encode(data).length;
+
+			if (bytes > CALLBACK_DATA_LIMIT) {
 				throw new Error(
-					`400: Bad Request: BUTTON_DATA_INVALID (${data.length} > ${CALLBACK_DATA_LIMIT}) in ${method}`,
+					`400: Bad Request: BUTTON_DATA_INVALID (${bytes} > ${CALLBACK_DATA_LIMIT}) in ${method}`,
 				);
 			}
 		}
@@ -320,7 +322,13 @@ export async function createBotHarness(
 					from: from(userId),
 					text,
 					entities: text.startsWith("/")
-						? [{ type: "bot_command", offset: 0, length: text.length }]
+						? [
+								{
+									type: "bot_command",
+									offset: 0,
+									length: text.split(" ")[0]?.length ?? text.length,
+								},
+							]
 						: undefined,
 				},
 			} as never);

@@ -13,6 +13,7 @@ import { toOwnerId } from "@/core/owner";
 import * as schema from "@/db/schema";
 import { verification } from "@/db/schema";
 import { LoginToken } from "@/modules/telegram-link";
+import { spendLoginLink } from "../../fixtures/login-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -56,9 +57,8 @@ const signIn = async (owner: string): Promise<string> => {
 		expiresAt: new Date(Date.now() + 60_000),
 	});
 
-	const response = await fetch(
+	const response = await spendLoginLink(
 		`${origin}/api/auth/telegram/verify?token=${token}`,
-		{ redirect: "manual" },
 	);
 
 	return response.headers

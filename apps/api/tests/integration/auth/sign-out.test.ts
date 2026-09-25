@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { createApiApp } from "@/api.factory";
+import { spendLoginLink } from "../../fixtures/login-link";
 import {
 	applyMigration,
 	openPostgres,
@@ -47,9 +48,7 @@ const mint = async (): Promise<string> => {
 			body: JSON.stringify({ telegramUserId: TELEGRAM_ID }),
 		})
 	).json()) as { url: string };
-	const verified = await fetch(url.replace(/^https?:\/\/[^/]+/, origin), {
-		redirect: "manual",
-	});
+	const verified = await spendLoginLink(url, origin);
 
 	return (verified.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
 };
@@ -146,9 +145,8 @@ describe.skipIf(!available)("signing out from the web", () => {
 				body: JSON.stringify({ telegramUserId: TELEGRAM_ID }),
 			})
 		).json()) as { url: string };
-		const local = url.replace(/^https?:\/\/[^/]+/, origin);
-		const first = await fetch(local, { redirect: "manual" });
-		const second = await fetch(local, { redirect: "manual" });
+		const first = await spendLoginLink(url, origin);
+		const second = await spendLoginLink(url, origin);
 
 		expect(first.headers.get("set-cookie")).toBeTruthy();
 		expect(second.headers.get("set-cookie")).toBeFalsy();
