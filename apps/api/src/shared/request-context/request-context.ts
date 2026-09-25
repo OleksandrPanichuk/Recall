@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { HttpStatus } from "@nestjs/common";
+import { ModuleError } from "@/core/errors";
 import type { OwnerId } from "@/core/owner";
 import type { Principal } from "@/core/principal";
 
@@ -15,10 +17,12 @@ export class MissingRequestContextError extends Error {
 	}
 }
 
-export class UnauthenticatedError extends Error {
+export class UnauthenticatedError extends ModuleError {
+	readonly status = HttpStatus.UNAUTHORIZED;
+	readonly code = "UNAUTHENTICATED";
+
 	constructor() {
 		super("this request carries no principal, so it has no owner");
-		this.name = "UnauthenticatedError";
 	}
 }
 

@@ -12,9 +12,11 @@ export abstract class ModuleError extends Error {
 	}
 }
 
-export class InvalidIdentifierError extends Error {
+export class InvalidIdentifierError extends ModuleError {
+	readonly status = 400;
+	readonly code = "INVALID_IDENTIFIER";
+
 	constructor(label: string) {
 		super(`${label} must be a non-empty identifier`);
-		this.name = "InvalidIdentifierError";
 	}
 }

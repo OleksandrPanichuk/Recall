@@ -1,3 +1,5 @@
+import { HttpStatus } from "@nestjs/common";
+import { ModuleError } from "@/core/errors";
 import type { QuestionId } from "./question.entity.types";
 import type { QuizSetStatus } from "./quiz-set.constants";
 import type { QuizSetId } from "./quiz-set.entity.types";
@@ -33,7 +35,9 @@ export class QuizSetTransitionError extends Error {
 	}
 }
 
-export class DuplicateQuestionError extends Error {
+export class DuplicateQuestionError extends ModuleError {
+	readonly status = HttpStatus.CONFLICT;
+	readonly code = "QUESTION_DUPLICATE";
 	readonly fingerprints: readonly string[];
 
 	constructor(fingerprints: readonly string[]) {
@@ -42,12 +46,13 @@ export class DuplicateQuestionError extends Error {
 				.map((fingerprint) => `- ${fingerprint}`)
 				.join("\n")}`,
 		);
-		this.name = "DuplicateQuestionError";
 		this.fingerprints = fingerprints;
 	}
 }
 
-export class DuplicateQuestionIdError extends Error {
+export class DuplicateQuestionIdError extends ModuleError {
+	readonly status = HttpStatus.CONFLICT;
+	readonly code = "QUESTION_ID_DUPLICATE";
 	readonly questionIds: readonly QuestionId[];
 
 	constructor(questionIds: readonly QuestionId[]) {
@@ -56,7 +61,6 @@ export class DuplicateQuestionIdError extends Error {
 				.map((questionId) => `- ${questionId}`)
 				.join("\n")}`,
 		);
-		this.name = "DuplicateQuestionIdError";
 		this.questionIds = questionIds;
 	}
 }
@@ -68,15 +72,20 @@ export class EmptyQuizSetError extends Error {
 	}
 }
 
-export class QuizVersionConflictError extends Error {
+export class QuizVersionConflictError extends ModuleError {
+	readonly status = HttpStatus.CONFLICT;
+	readonly code = "QUIZ_VERSION_CONFLICT";
 	readonly quizId: QuizSetId;
 
 	constructor(quizId: QuizSetId) {
 		super(
 			`Quiz ${quizId} changed since it was read; re-read it and apply the change again`,
 		);
-		this.name = "QuizVersionConflictError";
 		this.quizId = quizId;
+	}
+
+	override details(): Readonly<Record<string, string>> {
+		return { quizSetId: String(this.quizId) };
 	}
 }
 

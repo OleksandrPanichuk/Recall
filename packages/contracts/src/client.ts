@@ -253,6 +253,9 @@ export const ApiErrorName = {
 	NothingDue: "NothingDueError",
 	QuestionNotFound: "QuestionNotFoundError",
 	UploadQuotaExceeded: "UploadQuotaExceededError",
+	QuizAttemptTransition: "QuizAttemptTransitionError",
+	DuplicateResponse: "DuplicateResponseError",
+	Unauthenticated: "UnauthenticatedError",
 } as const;
 export type ApiErrorName = (typeof ApiErrorName)[keyof typeof ApiErrorName];
 

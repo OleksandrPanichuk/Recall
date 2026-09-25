@@ -126,6 +126,21 @@ afterAll(async () => {
 });
 
 describe.skipIf(!available)("logging in from the telegram bot", () => {
+	test("a practice call before anyone linked is refused by name, not a 500", async () => {
+		const response = await fetch(`${origin}/bot/attempts/current`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${BOT_TOKEN}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ telegramUserId: OWNER_TELEGRAM_ID }),
+		});
+		const body = (await response.json()) as { error?: string };
+
+		expect(response.status).toBe(401);
+		expect(body.error).toBe("UnauthenticatedError");
+	});
+
 	test("the api has an owner once the first link is followed", async () => {
 		await follow(await linkFor(OWNER_TELEGRAM_ID));
 

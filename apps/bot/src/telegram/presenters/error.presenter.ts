@@ -1,4 +1,8 @@
-import { ApiErrorName, isApiError } from "@recall/contracts";
+import {
+	ApiErrorName,
+	BotApiUnreachableError,
+	isApiError,
+} from "@recall/contracts";
 import { CallbackAction } from "../callbacks/callback-data.constants";
 import { notice } from "./menu.presenter";
 import type { Screen } from "./screen.types";
@@ -14,9 +18,24 @@ const messages: Readonly<Record<string, string>> = {
 	[ApiErrorName.QuestionNotInAttempt]: "Це питання вже позаду. Оновіть екран.",
 	[ApiErrorName.QuizSetNotPublished]: "Цей набір ще не опубліковано.",
 	[ApiErrorName.QuizSetNotFound]: "Набір не знайдено.",
+	[ApiErrorName.NothingDue]: "У цьому наборі зараз нічого повторювати.",
+	[ApiErrorName.QuestionNotFound]:
+		"Питання не знайдено — можливо, його видалили. Оновіть екран.",
+	[ApiErrorName.AttemptAlreadyFinished]:
+		"Цю спробу вже завершено. Оберіть набір у меню.",
+	[ApiErrorName.QuizAttemptTransition]:
+		"Спроба вже завершена або призупинена. Оновіть екран.",
+	[ApiErrorName.DuplicateResponse]: "Відповідь на це питання вже зараховано.",
+	[ApiErrorName.Unauthenticated]: "Спершу увійдіть: надішліть /login.",
 };
 
+const UNAVAILABLE = "Сервер зараз недоступний. Спробуйте трохи пізніше.";
+
 export function userMessageFor(error: unknown): string {
+	if (error instanceof BotApiUnreachableError) {
+		return UNAVAILABLE;
+	}
+
 	if (isApiError(error)) {
 		return messages[error.errorName] ?? "Сталася помилка. Спробуйте ще раз.";
 	}

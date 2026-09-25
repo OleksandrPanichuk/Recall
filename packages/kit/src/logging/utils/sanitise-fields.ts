@@ -4,6 +4,12 @@ export const REDACTED = "[redacted]";
 
 export const MAX_FIELD_LENGTH = 80;
 
+export const MAX_ERROR_MESSAGE_LENGTH = 500;
+
+export const MAX_ERROR_DEPTH = 3;
+
+const ERROR_TAGS = ["code", "status", "errorName"] as const;
+
 const SENSITIVE_SUBSTRINGS = [
 	"token",
 	"secret",
@@ -21,10 +27,41 @@ function isSensitiveKey(key: string): boolean {
 	);
 }
 
-export const clip = (value: string): string =>
-	value.length <= MAX_FIELD_LENGTH
+export const clip = (value: string, limit = MAX_FIELD_LENGTH): string =>
+	value.length <= limit
 		? value
-		: `${value.slice(0, MAX_FIELD_LENGTH)}…(+${value.length - MAX_FIELD_LENGTH})`;
+		: `${value.slice(0, limit)}…(+${value.length - limit})`;
+
+function sanitiseError(error: Error, depth: number): unknown {
+	if (depth <= 0) {
+		return "[nested]";
+	}
+
+	const output: Record<string, unknown> = {
+		name: error.name,
+		message: clip(error.message, MAX_ERROR_MESSAGE_LENGTH),
+	};
+	const carrier = error as unknown as Record<string, unknown>;
+
+	for (const tag of ERROR_TAGS) {
+		const value = carrier[tag];
+
+		if (typeof value === "string") {
+			output[tag] = clip(value);
+		} else if (typeof value === "number") {
+			output[tag] = value;
+		}
+	}
+
+	if (error.cause !== undefined) {
+		output.cause =
+			error.cause instanceof Error
+				? sanitiseError(error.cause, depth - 1)
+				: sanitiseValue(error.cause, Math.min(depth - 1, 2));
+	}
+
+	return output;
+}
 
 function sanitiseValue(value: unknown, depth: number): unknown {
 	if (value === null || value === undefined) {
@@ -48,7 +85,7 @@ function sanitiseValue(value: unknown, depth: number): unknown {
 	}
 
 	if (value instanceof Error) {
-		return { name: value.name, message: clip(value.message) };
+		return sanitiseError(value, MAX_ERROR_DEPTH + 1);
 	}
 
 	if (Array.isArray(value)) {

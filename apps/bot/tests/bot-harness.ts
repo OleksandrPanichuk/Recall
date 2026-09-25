@@ -6,7 +6,11 @@ import { Database, DatabaseConnection } from "@api/db/connection";
 import { ApiTokensModule } from "@api/modules/api-tokens";
 import { AttachmentsRepository } from "@api/modules/attachments";
 import { AttemptsModule, AttemptsRepository } from "@api/modules/attempts";
-import { AuthModule } from "@api/modules/auth";
+import {
+	AuthModule,
+	AuthService,
+	InstanceHasNoOwnerError,
+} from "@api/modules/auth";
 import { AnalyticsRepository, InsightsModule } from "@api/modules/insights";
 import { PagesModule, PagesRepository } from "@api/modules/pages";
 import { PracticeModule } from "@api/modules/practice";
@@ -149,6 +153,10 @@ async function startApi(
 			.compile()
 	).createNestApplication({ logger: false, abortOnError: false });
 
+	app.get(AuthService).instanceOwner = () =>
+		Promise.reject(
+			new InstanceHasNoOwnerError("this harness has no linked owner"),
+		);
 	app.useGlobalFilters(new ModuleErrorFilter());
 
 	await app.init();

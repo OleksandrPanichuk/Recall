@@ -1,3 +1,5 @@
+import { HttpStatus } from "@nestjs/common";
+import { ModuleError } from "@/core/errors";
 import type { QuizAttemptStatus } from "./attempts.constants";
 
 export class QuizAttemptValidationError extends Error {
@@ -12,17 +14,21 @@ export class QuizAttemptValidationError extends Error {
 	}
 }
 
-export class QuizAttemptTransitionError extends Error {
+export class QuizAttemptTransitionError extends ModuleError {
+	readonly status = HttpStatus.CONFLICT;
+	readonly code = "ATTEMPT_TRANSITION";
+
 	constructor(from: QuizAttemptStatus, action: string) {
 		super(`A ${from} attempt cannot be ${action}`);
-		this.name = "QuizAttemptTransitionError";
 	}
 }
 
-export class EmptyQuizAttemptError extends Error {
+export class EmptyQuizAttemptError extends ModuleError {
+	readonly status = HttpStatus.BAD_REQUEST;
+	readonly code = "ATTEMPT_EMPTY";
+
 	constructor() {
 		super("An attempt requires at least one question");
-		this.name = "EmptyQuizAttemptError";
 	}
 }
 
@@ -33,9 +39,11 @@ export class QuestionNotInAttemptError extends Error {
 	}
 }
 
-export class DuplicateResponseError extends Error {
+export class DuplicateResponseError extends ModuleError {
+	readonly status = HttpStatus.CONFLICT;
+	readonly code = "RESPONSE_DUPLICATE";
+
 	constructor() {
 		super("An attempt cannot answer the same question twice");
-		this.name = "DuplicateResponseError";
 	}
 }

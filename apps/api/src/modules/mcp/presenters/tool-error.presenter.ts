@@ -9,6 +9,7 @@ import {
 } from "@/modules/pages";
 import {
 	DuplicateQuestionError,
+	DuplicateQuestionIdError,
 	EmptyQuestionBatchError,
 	EmptyQuizSetError,
 	QuestionBatchTooLargeError,
@@ -16,6 +17,7 @@ import {
 	QuizSetNotFoundError,
 	QuizSetTransitionError,
 	QuizSetValidationError,
+	QuizVersionConflictError,
 } from "@/modules/quizzes";
 import {
 	VocabularyItemNotFoundError,
@@ -41,6 +43,14 @@ export function describeError(error: unknown): string {
 
 	if (error instanceof DuplicateQuestionError) {
 		return "This batch repeats a question the set already contains. Re-read the set with quiz_get_set and send only the new questions.";
+	}
+
+	if (error instanceof DuplicateQuestionIdError) {
+		return `This batch repeats question ids: ${error.questionIds.join(", ")}. Send each question once.`;
+	}
+
+	if (error instanceof QuizVersionConflictError) {
+		return `Quiz set ${error.quizId} changed while this call was writing it. Re-read it with quiz_get_set and apply the change again.`;
 	}
 
 	if (error instanceof EmptyQuizSetError) {

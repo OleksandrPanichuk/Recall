@@ -1,4 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import {
+	type ArgumentsHost,
+	InternalServerErrorException,
+	NotFoundException,
+} from "@nestjs/common";
+import { type LogFields, type Logger, silentLogger } from "@recall/kit";
 import { ModuleError } from "@/core/errors";
 import { ModuleErrorFilter } from "./module-error.filter";
 
@@ -12,6 +18,15 @@ class QuizSetArchivedError extends ModuleError {
 
 	override details(): Readonly<Record<string, string>> {
 		return { quizSetId: this.quizSetId };
+	}
+}
+
+class ServiceDownError extends ModuleError {
+	readonly status = 503;
+	readonly code = "SERVICE_DOWN";
+
+	constructor() {
+		super("the service is down");
 	}
 }
 
@@ -71,5 +86,122 @@ describe("ModuleErrorFilter.refusalFor", () => {
 		expect(
 			ModuleErrorFilter.refusalFor(new QuizSetArchivedError("q1"))?.status,
 		).toBe(409);
+	});
+});
+
+const hostFor = (response: object, request: object = {}): ArgumentsHost =>
+	({
+		switchToHttp: () => ({
+			getResponse: () => response,
+			getRequest: () => request,
+		}),
+	}) as unknown as ArgumentsHost;
+
+const recordingResponse = () => {
+	const sent: { status?: number; body?: unknown } = {};
+	const response = {
+		status(code: number) {
+			sent.status = code;
+
+			return response;
+		},
+		json(body: unknown) {
+			sent.body = body;
+
+			return response;
+		},
+	};
+
+	return { response, sent };
+};
+
+const recordingLogger = () => {
+	const errors: { message: string; fields?: LogFields }[] = [];
+	const logger: Logger = {
+		...silentLogger,
+		error: (message, fields) => {
+			errors.push({ message, fields });
+		},
+	};
+
+	return { logger, errors };
+};
+
+describe("ModuleErrorFilter.catch", () => {
+	test("logs an exception it does not recognise before answering 500", () => {
+		const { logger, errors } = recordingLogger();
+		const { response, sent } = recordingResponse();
+		const failure = new Error("pool exhausted", {
+			cause: new Error("connect ECONNREFUSED"),
+		});
+
+		new ModuleErrorFilter(logger).catch(
+			failure,
+			hostFor(response, { method: "POST", route: { path: "/bot/answer" } }),
+		);
+
+		expect(sent.status).toBe(500);
+		expect(sent.body).toEqual({
+			statusCode: 500,
+			message: "Something went wrong",
+		});
+		expect(errors).toHaveLength(1);
+		expect(errors[0]?.fields).toMatchObject({
+			method: "POST",
+			route: "/bot/answer",
+			error: failure,
+		});
+	});
+
+	test("logs a thrown value that is not an error", () => {
+		const { logger, errors } = recordingLogger();
+		const { response, sent } = recordingResponse();
+
+		new ModuleErrorFilter(logger).catch("a thrown string", hostFor(response));
+
+		expect(sent.status).toBe(500);
+		expect(errors[0]?.fields).toMatchObject({ error: "a thrown string" });
+	});
+
+	test("logs a refusal that is the server's own failure", () => {
+		const { logger, errors } = recordingLogger();
+		const { response, sent } = recordingResponse();
+
+		new ModuleErrorFilter(logger).catch(
+			new ServiceDownError(),
+			hostFor(response),
+		);
+
+		expect(sent.status).toBe(503);
+		expect(sent.body).toMatchObject({ error: "ServiceDownError" });
+		expect(errors).toHaveLength(1);
+	});
+
+	test("logs a 5xx http exception, not a 4xx one", () => {
+		const { logger, errors } = recordingLogger();
+
+		new ModuleErrorFilter(logger).catch(
+			new NotFoundException(),
+			hostFor(recordingResponse().response),
+		);
+		new ModuleErrorFilter(logger).catch(
+			new InternalServerErrorException(),
+			hostFor(recordingResponse().response),
+		);
+
+		expect(errors).toHaveLength(1);
+	});
+
+	test("does not log a refusal it answers on purpose", () => {
+		const { logger, errors } = recordingLogger();
+		const { response, sent } = recordingResponse();
+
+		new ModuleErrorFilter(logger).catch(
+			new QuizSetArchivedError("q1"),
+			hostFor(response),
+		);
+
+		expect(sent.status).toBe(409);
+		expect(errors).toEqual([]);
 	});
 });
