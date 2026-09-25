@@ -1,4 +1,5 @@
 import {
+	bigint,
 	index,
 	integer,
 	numeric,
@@ -17,7 +18,7 @@ export const reviewStates = pgTable(
 		questionId: uuid("question_id")
 			.primaryKey()
 			.references(() => questions.id, { onDelete: "cascade" }),
-		telegramUserId: integer("telegram_user_id"),
+		telegramUserId: bigint("telegram_user_id", { mode: "number" }),
 		repetitionCount: integer("repetition_count").notNull().default(0),
 		lapses: integer("lapses").notNull().default(0),
 		intervalDays: integer("interval_days"),
@@ -29,5 +30,8 @@ export const reviewStates = pgTable(
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),
 	},
-	(table) => [index("review_states_due_idx").on(table.dueAt)],
+	(table) => [
+		index("review_states_due_idx").on(table.dueAt),
+		index("review_states_owner_due_idx").on(table.ownerId, table.dueAt),
+	],
 );

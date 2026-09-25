@@ -10,9 +10,13 @@ export interface EtlReport {
 
 const NAMESPACE = "recall-v2";
 
-export function uuidFor(kind: string, legacyId: string): string {
+export function uuidFor(
+	owner: OwnerId,
+	kind: string,
+	legacyId: string,
+): string {
 	const digest = new Bun.CryptoHasher("sha256")
-		.update(`${NAMESPACE}:${kind}:${legacyId}`)
+		.update(`${NAMESPACE}:${owner}:${kind}:${legacyId}`)
 		.digest();
 	const bytes = new Uint8Array(digest).slice(0, 16);
 
@@ -255,10 +259,10 @@ export async function migrateSqliteToPostgres(options: {
 			await client`
 				insert into pages (id, owner_id, legacy_id, parent_id, title, slug, created_at, updated_at)
 				values (
-					${uuidFor("page", folder.id)}::uuid,
+					${uuidFor(owner, "page", folder.id)}::uuid,
 					${owner}::text,
 					${folder.id}::text,
-					${folder.parent_id === null ? null : uuidFor("page", folder.parent_id)}::uuid,
+					(select id from pages where owner_id = ${owner}::text and legacy_id = ${folder.parent_id}::text),
 					${folder.name}::text,
 					${slugOf(folder)}::text,
 					${date(folder.created_at)}::timestamptz,
@@ -280,8 +284,8 @@ export async function migrateSqliteToPostgres(options: {
 					source_chapters, tags, status, created_at, updated_at,
 					published_at, archived_at
 				) values (
-					${uuidFor("quiz", id)}::uuid, ${owner}::text, ${id}::text,
-					${quiz.folder_id === null ? null : uuidFor("page", quiz.folder_id)}::uuid,
+					${uuidFor(owner, "quiz", id)}::uuid, ${owner}::text, ${id}::text,
+					(select id from pages where owner_id = ${owner}::text and legacy_id = ${quiz.folder_id}::text),
 					${quiz.title}::text, ${quiz.description}::text, ${quiz.language}::text, ${quiz.source}::text,
 					${quiz.source_chapters}::text, ${strings(quiz.tags)}::text[], ${quiz.status}::text,
 					${date(quiz.created_at)}::timestamptz, ${date(quiz.updated_at)}::timestamptz,
@@ -308,8 +312,8 @@ export async function migrateSqliteToPostgres(options: {
 					id, owner_id, legacy_id, quiz_id, terms, translations, transcription,
 					example, topic, created_at, updated_at
 				) values (
-					${uuidFor("term_pair", id)}::uuid, ${owner}::text, ${id}::text,
-					${uuidFor("quiz", pair.quiz_set_id)}::uuid,
+					${uuidFor(owner, "term_pair", id)}::uuid, ${owner}::text, ${id}::text,
+					(select id from quizzes where owner_id = ${owner}::text and legacy_id = ${pair.quiz_set_id}::text),
 					${terms}::text[], ${strings(pair.translations)}::text[], ${pair.transcription}::text,
 					${pair.example}::text, ${pair.topic}::text,
 					${date(pair.created_at)}::timestamptz, ${date(pair.updated_at)}::timestamptz
@@ -333,8 +337,8 @@ export async function migrateSqliteToPostgres(options: {
 					id, owner_id, legacy_id, quiz_id, type, prompt, explanation,
 					source_reference, topic, difficulty, hint, position, fingerprint
 				) values (
-					${uuidFor("question", id)}::uuid, ${owner}::text, ${id}::text,
-					${uuidFor("quiz", question.quiz_set_id)}::uuid,
+					${uuidFor(owner, "question", id)}::uuid, ${owner}::text, ${id}::text,
+					(select id from quizzes where owner_id = ${owner}::text and legacy_id = ${question.quiz_set_id}::text),
 					${question.type}::text, ${question.prompt}::text, ${question.explanation}::text,
 					${question.source_reference}::text, ${question.topic}::text, ${question.difficulty}::text,
 					${question.hint}::text, ${question.position}::int, ${question.fingerprint}::text
@@ -354,8 +358,8 @@ export async function migrateSqliteToPostgres(options: {
 				await client`
 					insert into question_sources (question_id, term_pair_id, direction)
 					values (
-						${uuidFor("question", id)}::uuid,
-						${uuidFor("term_pair", pairId)}::uuid,
+						(select id from questions where owner_id = ${owner}::text and legacy_id = ${id}::text),
+						(select id from term_pairs where owner_id = ${owner}::text and legacy_id = ${pairId}::text),
 						${asksTerm ? "term_to_translation" : "translation_to_term"}::text
 					)
 					on conflict (question_id) do nothing
@@ -381,12 +385,12 @@ export async function migrateSqliteToPostgres(options: {
 				insert into question_options (
 					id, legacy_id, question_id, text, is_correct, match_key, position
 				) values (
-					${uuidFor("option", id)}::uuid, ${id}::text,
-					${uuidFor("question", option.question_id)}::uuid,
+					${uuidFor(owner, "option", id)}::uuid, ${id}::text,
+					(select id from questions where owner_id = ${owner}::text and legacy_id = ${option.question_id}::text),
 					${option.text}::text, ${option.is_correct === 1}::boolean,
 					${option.match_key}::text, ${option.position}::int
 				)
-				on conflict (legacy_id) do nothing
+				on conflict (question_id, legacy_id) do nothing
 			`;
 			count("question_options", 1);
 		}
@@ -405,9 +409,9 @@ export async function migrateSqliteToPostgres(options: {
 					id, owner_id, legacy_id, quiz_id, telegram_user_id, mode, status,
 					started_at, updated_at, completed_at
 				) values (
-					${uuidFor("attempt", id)}::uuid, ${owner}::text, ${id}::text,
-					${uuidFor("quiz", attempt.quiz_set_id)}::uuid,
-					${attempt.telegram_user_id}::int,
+					${uuidFor(owner, "attempt", id)}::uuid, ${owner}::text, ${id}::text,
+					(select id from quizzes where owner_id = ${owner}::text and legacy_id = ${attempt.quiz_set_id}::text),
+					${attempt.telegram_user_id}::bigint,
 					${attempt.mode}::text, ${attempt.status}::text,
 					${date(attempt.started_at)}::timestamptz,
 					${date(attempt.updated_at)}::timestamptz,
@@ -430,8 +434,9 @@ export async function migrateSqliteToPostgres(options: {
 				await client`
 					insert into attempt_questions (attempt_id, position, question_id)
 					values (
-						${uuidFor("attempt", id)}::uuid, ${position}::int,
-						${uuidFor("question", questionId)}::uuid
+						(select id from attempts where owner_id = ${owner}::text and legacy_id = ${id}::text),
+						${position}::int,
+						(select id from questions where owner_id = ${owner}::text and legacy_id = ${questionId}::text)
 					)
 					on conflict (attempt_id, position) do nothing
 				`;
@@ -452,18 +457,23 @@ export async function migrateSqliteToPostgres(options: {
 				continue;
 			}
 
-			const selected = strings(response.selected_option_ids).map((legacy) =>
-				uuidFor("option", legacy),
-			);
+			const selected = strings(response.selected_option_ids);
 
 			await client`
 				insert into responses (
 					attempt_id, question_id, selected_option_ids, is_correct,
 					typed_answer, skipped, credit_earned, credit_possible, answered_at
 				) values (
-					${uuidFor("attempt", response.attempt_id)}::uuid,
-					${uuidFor("question", questionId)}::uuid,
-					${selected}::uuid[]::uuid[], ${response.is_correct === 1}::boolean,
+					(select id from attempts where owner_id = ${owner}::text and legacy_id = ${response.attempt_id}::text),
+					(select id from questions where owner_id = ${owner}::text and legacy_id = ${questionId}::text),
+					array(
+						select o.id
+						from unnest(${selected}::text[]) with ordinality as chosen(legacy_id, n)
+						join question_options o on o.legacy_id = chosen.legacy_id
+						where o.question_id = (select id from questions where owner_id = ${owner}::text and legacy_id = ${questionId}::text)
+						order by chosen.n
+					),
+					${response.is_correct === 1}::boolean,
 					${response.typed_answer}::text, ${response.skipped === 1}::boolean,
 					${response.credit_earned}::int, ${response.credit_possible}::int,
 					${date(response.answered_at)}::timestamptz
@@ -490,9 +500,9 @@ export async function migrateSqliteToPostgres(options: {
 					question_id, owner_id, telegram_user_id, repetition_count, lapses,
 					last_reviewed_at, due_at, created_at, updated_at
 				) values (
-					${uuidFor("question", questionId)}::uuid,
+					(select id from questions where owner_id = ${owner}::text and legacy_id = ${questionId}::text),
 					${owner}::text,
-					${schedule.telegram_user_id}::int,
+					${schedule.telegram_user_id}::bigint,
 					${schedule.repetition_count}::int, ${schedule.lapses}::int,
 					${date(schedule.last_completed_at)}::timestamptz,
 					${date(schedule.due_at)}::timestamptz,
@@ -514,7 +524,7 @@ export async function migrateSqliteToPostgres(options: {
 					id, owner_id, scope_type, scope_id, intervals_days, max_interval_days,
 					max_repetitions, shuffle_options, shuffle_questions, exam_mode, updated_at
 				) values (
-					${uuidFor("settings", "owner")}::uuid,
+					${uuidFor(owner, "settings", "owner")}::uuid,
 					${owner}::text,
 					'owner'::text,
 					null::uuid,
@@ -543,10 +553,10 @@ export async function migrateSqliteToPostgres(options: {
 					id, owner_id, scope_type, scope_id, intervals_days, max_interval_days,
 					max_repetitions, shuffle_options, shuffle_questions, exam_mode, updated_at
 				) values (
-					${uuidFor("settings", quizId)}::uuid,
+					${uuidFor(owner, "settings", quizId)}::uuid,
 					${owner}::text,
 					'quiz'::text,
-					${uuidFor("quiz", quizId)}::uuid,
+					(select id from quizzes where owner_id = ${owner}::text and legacy_id = ${quizId}::text),
 					${numbers(settings.intervals_days)}::integer[],
 					${settings.max_interval_days}::int,
 					${settings.max_repetitions}::int,
@@ -582,8 +592,14 @@ export interface VerificationIssue {
 	readonly actual: number | string;
 }
 
-const single = async (client: postgres.Sql, query: string): Promise<number> => {
-	const rows = await client.unsafe<{ n: number | string }[]>(query);
+const single = async (
+	client: postgres.Sql,
+	query: string,
+	parameters: readonly string[] = [],
+): Promise<number> => {
+	const rows = await client.unsafe<{ n: number | string }[]>(query, [
+		...parameters,
+	]);
 
 	return Number(rows[0]?.n ?? -1);
 };
@@ -591,7 +607,9 @@ const single = async (client: postgres.Sql, query: string): Promise<number> => {
 export async function verifyMigration(options: {
 	readonly sqlitePath: string;
 	readonly client: postgres.Sql;
+	readonly owner: OwnerId;
 }): Promise<readonly VerificationIssue[]> {
+	const owned = [String(options.owner)];
 	const source = new Database(options.sqlitePath, { readonly: true });
 	const issues: VerificationIssue[] = [];
 
@@ -601,22 +619,35 @@ export async function verifyMigration(options: {
 			.get()?.n ?? -1;
 
 	try {
-		const pairs: readonly [string, string][] = [
-			["folders", "pages"],
-			["quiz_sets", "quizzes"],
-			["vocabulary_items", "term_pairs"],
-			["questions", "questions"],
-			["question_options", "question_options"],
-			["quiz_attempts", "attempts"],
-			["question_responses", "responses"],
-			["question_repetition_schedules", "review_states"],
+		const pairs: readonly [string, string, string][] = [
+			["folders", "pages", "pages where owner_id = $1"],
+			["quiz_sets", "quizzes", "quizzes where owner_id = $1"],
+			["vocabulary_items", "term_pairs", "term_pairs where owner_id = $1"],
+			["questions", "questions", "questions where owner_id = $1"],
+			[
+				"question_options",
+				"question_options",
+				"question_options o join questions q on q.id = o.question_id where q.owner_id = $1",
+			],
+			["quiz_attempts", "attempts", "attempts where owner_id = $1"],
+			[
+				"question_responses",
+				"responses",
+				"responses r join attempts a on a.id = r.attempt_id where a.owner_id = $1",
+			],
+			[
+				"question_repetition_schedules",
+				"review_states",
+				"review_states where owner_id = $1",
+			],
 		];
 
-		for (const [from, to] of pairs) {
+		for (const [from, to, rows] of pairs) {
 			const expected = sqliteCount(from);
 			const actual = await single(
 				options.client,
-				`select count(*) as n from "${to}"`,
+				`select count(*) as n from ${rows}`,
+				owned,
 			);
 
 			if (expected !== actual) {
@@ -628,7 +659,8 @@ export async function verifyMigration(options: {
 			sqliteCount("repetition_settings") + sqliteCount("repetition_defaults");
 		const actualSettings = await single(
 			options.client,
-			"select count(*) as n from study_settings",
+			"select count(*) as n from study_settings where owner_id = $1",
+			owned,
 		);
 
 		if (expectedSettings !== actualSettings) {
@@ -647,7 +679,10 @@ export async function verifyMigration(options: {
 				.get()?.n ?? 0;
 		const actualCorrect = await single(
 			options.client,
-			"select count(*) as n from responses where is_correct",
+			`select count(*) as n from responses r
+			 join attempts a on a.id = r.attempt_id
+			 where r.is_correct and a.owner_id = $1`,
+			owned,
 		);
 
 		if (expectedCorrect !== actualCorrect) {
@@ -660,7 +695,8 @@ export async function verifyMigration(options: {
 
 		const attemptsWithoutUser = await single(
 			options.client,
-			"select count(*) as n from attempts where telegram_user_id is null",
+			"select count(*) as n from attempts where telegram_user_id is null and owner_id = $1",
+			owned,
 		);
 
 		if (attemptsWithoutUser !== 0) {
@@ -687,7 +723,8 @@ export async function verifyMigration(options: {
 
 		const nullTimestamps = await single(
 			options.client,
-			`select count(*) as n from attempts where started_at is null`,
+			"select count(*) as n from attempts where started_at is null and owner_id = $1",
+			owned,
 		);
 
 		if (nullTimestamps !== 0) {
@@ -700,7 +737,8 @@ export async function verifyMigration(options: {
 
 		const rootPages = await single(
 			options.client,
-			"select count(*) as n from pages where parent_id is null",
+			"select count(*) as n from pages where parent_id is null and owner_id = $1",
+			owned,
 		);
 		const expectedRoots =
 			source

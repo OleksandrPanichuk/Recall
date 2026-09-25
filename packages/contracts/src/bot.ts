@@ -43,6 +43,12 @@ const id = z.string().min(1);
 const optionalId = id.optional();
 const count = z.number().int().nonnegative();
 
+export const telegramUserIdSchema = z
+	.number()
+	.int()
+	.positive()
+	.max(Number.MAX_SAFE_INTEGER);
+
 export const RecallGrade = {
 	Again: "again",
 	Hard: "hard",
@@ -259,7 +265,7 @@ export const resolvedSettingsSchema = z.object({
 });
 
 export const loginLinkCommandSchema = z.object({
-	telegramUserId: z.number().int(),
+	telegramUserId: telegramUserIdSchema,
 	displayName: z.string().trim().min(1).optional(),
 });
 
@@ -271,7 +277,7 @@ export const loginLinkSchema = z.object({
 export const API_TOKEN_NAME_MAX_LENGTH = 80;
 
 export const issueApiTokenCommandSchema = z.object({
-	telegramUserId: z.number().int(),
+	telegramUserId: telegramUserIdSchema,
 	name: z.string().trim().min(1).max(API_TOKEN_NAME_MAX_LENGTH),
 	expiresInDays: z.number().int().positive().max(3650).optional(),
 });
@@ -284,7 +290,7 @@ export const issuedApiTokenSchema = z.object({
 });
 
 export const listApiTokensCommandSchema = z.object({
-	telegramUserId: z.number().int(),
+	telegramUserId: telegramUserIdSchema,
 });
 
 export const apiTokenSchema = z.object({
@@ -297,7 +303,7 @@ export const apiTokenSchema = z.object({
 });
 
 export const revokeApiTokenCommandSchema = z.object({
-	telegramUserId: z.number().int(),
+	telegramUserId: telegramUserIdSchema,
 	tokenId: id,
 });
 
@@ -477,7 +483,7 @@ export const summaryWrittenSchema = z.object({
 
 export const startAttemptCommandSchema = z.object({
 	quizSetId: id,
-	telegramUserId: z.number().int().optional(),
+	telegramUserId: telegramUserIdSchema.optional(),
 	onlyDue: z.boolean().optional(),
 });
 
@@ -491,7 +497,7 @@ export type PracticeMode = (typeof PracticeMode)[keyof typeof PracticeMode];
 export const practiceCommandSchema = z
 	.object({
 		quizSetId: id,
-		telegramUserId: z.number().int().optional(),
+		telegramUserId: telegramUserIdSchema.optional(),
 		mode: z.enum(PracticeMode),
 		questionIds: z.array(id).optional(),
 	})

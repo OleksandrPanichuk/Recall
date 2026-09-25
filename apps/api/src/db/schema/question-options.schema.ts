@@ -22,7 +22,10 @@ export const questionOptions = pgTable(
 		position: integer("position").notNull(),
 	},
 	(table) => [
-		unique("question_options_legacy_unique").on(table.legacyId),
+		unique("question_options_legacy_unique").on(
+			table.questionId,
+			table.legacyId,
+		),
 		unique("question_options_question_position_unique").on(
 			table.questionId,
 			table.position,
