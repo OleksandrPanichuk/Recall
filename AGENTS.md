@@ -63,7 +63,7 @@ ports implemented over infrastructure), `shared/` (request context, http helpers
 core           → nothing in src/
 configs        → core
 db             → core, configs
-infrastructure → configs, shared/utils
+infrastructure → configs, shared/utils (infrastructure/lifecycle is exempt)
 adapters       → infrastructure, configs, core, and the one module port file it implements
 shared         → core, configs, db
 modules/<m>    → core, configs, shared, db (except db/migrations), other modules' barrels
@@ -103,7 +103,8 @@ modules/quizzes/
 - **No bare names inside a module.** A root file is `<module>.<role>.ts` (or
   `<noun>.entity.ts`, `<noun>.model.ts`); anything else lives in a subfolder that names its
   role (`dto/`, `use-cases/`, `repositories/`, `ports/`, `helpers/`). Files are kebab-case,
-  types PascalCase, no `I` prefix, no `*.use-case.ts` suffix.
+  types PascalCase, no `I` prefix, no `*.use-case.ts` suffix. Some older files at a module
+  root (for example in `modules/quizzes/`) predate the rule; new files follow it.
 - **Each layer owns its shape:** `<Verb><Noun>Input` (dto) → `<UseCase>Options` (declared in
   the use case file) → `<Verb><Noun>Data` (beside the port, only when it really differs) →
   `<Noun>Entity` → `<Noun>Model`, built by a static on the entity. Keep them distinct even

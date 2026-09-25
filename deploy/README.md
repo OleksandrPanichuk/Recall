@@ -135,6 +135,11 @@ deploy/stack up -d --build --wait
 With no `SMTP_URL` the api only logs password-reset letters; set it to a real
 provider, or start Mailpit from the `tools` profile (see `deploy/env.example`).
 
+**Upgrading a server whose `.env.deploy` predates the `tools` profile:** that file
+still says `SMTP_URL=smtp://mailpit:1025`, and Mailpit no longer starts with the
+stack, so reset mail would go to a host that is not there. Delete that line, point
+it at a real provider, or run `deploy/stack --profile tools up -d mailpit`.
+
 `--wait` returns only once nginx is healthy, which means the api answered
 `/health/ready`, the web app rendered a page and the migrations succeeded. If it
 does not return, `deploy/stack ps` names the service that is unhealthy and
@@ -395,7 +400,7 @@ running on your Mac:
 | `127.0.0.1:15432` | postgres | TablePlus, DataGrip, `psql`, `bun run db:migrate` |
 | `127.0.0.1:15090` | minio s3 api | `mc`, an S3 client |
 | `http://127.0.0.1:15091` | minio console | browsing uploaded images |
-| `http://127.0.0.1:15026` | mailpit | reading password-reset mail, once started with `deploy/stack --profile tools up -d mailpit` (stop it with `deploy/stack --profile tools down`) |
+| `http://127.0.0.1:15026` | mailpit | reading password-reset mail, once started with `deploy/stack --profile tools up -d mailpit` (stop only it with `deploy/stack stop mailpit`; `--profile tools down` would take the whole stack down) |
 | `http://127.0.0.1:14040` | ngrok inspector | seeing the exact headers the tunnel sends |
 | `http://127.0.0.1:18080` | nginx | hitting the stack without the tunnel |
 
@@ -481,7 +486,8 @@ exactly, and for `/app/uploads/<id>` paths already stored inside saved markdown.
 | `migrate` | the build stage | `drizzle-kit migrate`, once, before the api starts. |
 
 MinIO is `pgsty/minio`, pinned to a release tag. MinIO stopped publishing public
-images — both `quay.io/minio/minio` and `minio/minio` now refuse anonymous pulls
+images — `quay.io/minio/minio` answers 401 and Docker Hub's `minio/minio` "pull
+access denied" to an anonymous `docker pull`
 — and this community build of the same server ships `mc`, which the healthcheck needs.
 
 The api is the only image that needs `node_modules`, because there is no

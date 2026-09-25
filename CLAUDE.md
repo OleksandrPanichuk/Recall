@@ -142,9 +142,9 @@ becomes a session, and it is unaffected by open registration.
 
 **Ownership lives in the repository scope, not in the use cases.** Seven tables carry
 `owner_id` (`pages`, `quizzes`, `questions`, `attempts`, `term_pairs`, `review_states`,
-`study_settings`); their children are reached only through an owned parent. `scopeFor(executor,
-owner)` builds every repository against one owner, so a use case cannot name another owner's
-rows — it never holds anything that could. **Never add a repository method that takes an owner
+`study_settings`); their children are reached only through an owned parent. Every owner-scoped
+repository reads the owner from `OwnerContext` on each call and fails closed when there is none,
+so a use case cannot name another owner's rows — it never holds anything that could. **Never add a repository method that takes an owner
 as an argument**; that would put the decision back in the caller. The in-memory double gives each
 owner its own store, which is the same isolation expressed as a partition. `tests/contracts/
 ownership.contract.ts` runs against both engines and is the proof.
@@ -192,7 +192,7 @@ send a message, not who is asking.
 **The api decides who the caller is; the caller never says.** `BotTokenGuard` refuses any body
 naming a `telegramUserId` other than `ALLOWED_TELEGRAM_USER_ID`, so holding the bot token does not
 let anyone read another account's data. The owner itself is resolved from the linked Telegram
-account (`instanceOwnerResolver`), cached, and read from the request context — which is what
+account (`AuthService.instanceOwner`), cached, and read from the request context — which is what
 lets the http surfaces be built at boot, before anyone has linked. `AuthService.ensureOwnerForTelegram` /
 `findOwnerForTelegram` are the *only* place that maps a Telegram
 id to an owner; the ETL and the login flow both go through them, so an import cannot land under a
@@ -322,7 +322,8 @@ suite deciding Postgres is unreachable — and skipping, green.
 Postgres an unawaited write inside a `db.transaction(...)` callback survives when that
 transaction rolls back — 8/8 runs. It commits on its own connection while the boundary is
 discarded. `apps/api/tests/integration/postgres/transaction-semantics.test.ts` pins this.
-Repositories are reached through the `UnitOfWork` scope so the mistake is hard to express;
+Use cases open the boundary with `this.transaction.run(...)` and repositories resolve their
+executor per query, so the mistake is hard to express;
 there is no lint rule covering it (Biome's `noFloatingPromises` is inert here).
 
 One hard rule that outranks convenience: **only `apps/api` talks to the database.**

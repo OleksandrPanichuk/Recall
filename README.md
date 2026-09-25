@@ -128,13 +128,13 @@ ETL читає старий `bun:sqlite` файл напряму і пише в 
 цілісність foreign keys:
 
 ```bash
-APPLY_SCHEMA=1 bun run ./apps/api/scripts/migrate-to-postgres.ts \
-  data/quiz.before-postgres-20260823-170412.sqlite \
+bun run db:migrate
+bun run etl -- data/quiz.before-postgres-20260823-170412.sqlite \
   postgres://recall:recall@127.0.0.1:55432/recall
 ```
 
-`APPLY_SCHEMA=1` спершу накладає schema на порожню базу. Без нього ETL очікує,
-що migrations уже застосовані. Ids детерміновані (`uuidFor(kind, legacyId)`),
+ETL очікує, що migrations уже застосовані, і відмовляється працювати з
+порожньою базою. Ids детерміновані (`uuidFor(kind, legacyId)`),
 тому повторний запуск нічого не дублює. Старий SQLite файл залишається
 read-only escape hatch — не видаляйте його. `data/` ігнорується git-ом: дампи й SQLite-файли з реальними даними не комітяться.
 
