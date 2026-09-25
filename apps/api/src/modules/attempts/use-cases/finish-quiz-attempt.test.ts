@@ -152,6 +152,33 @@ describe("what finishing writes into the review schedule", () => {
 
 		expect(schedule?.lapses).toBe(1);
 	});
+
+	test("finishing twice at once schedules once and refuses the other", async () => {
+		const quizSetId = await seedPublishedSet(["One"]);
+
+		await start.execute({ quizSetId });
+		await answer.execute({
+			questionId: await questionIdOf(quizSetId, 0),
+			selectedOptionPositions: [await positionOf(quizSetId, 0, true)],
+		});
+
+		const outcomes = await Promise.allSettled([
+			finish.execute({}),
+			finish.execute({}),
+		]);
+		const [schedule] = await context.scope.reviews.findSchedules([
+			await questionIdOf(quizSetId, 0),
+		]);
+
+		expect(outcomes.map((outcome) => outcome.status)).toEqual([
+			"fulfilled",
+			"rejected",
+		]);
+		expect(
+			outcomes[1]?.status === "rejected" ? outcomes[1].reason : undefined,
+		).toBeInstanceOf(NoActiveAttemptError);
+		expect(schedule?.repetitionCount).toBe(1);
+	});
 });
 
 describe("what finishing tells the learner about the schedule", () => {

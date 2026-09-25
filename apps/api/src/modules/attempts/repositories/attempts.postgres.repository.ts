@@ -7,7 +7,9 @@ import {
 	eq,
 	gt,
 	inArray,
+	lte,
 	notExists,
+	type SQL,
 	sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -38,6 +40,13 @@ import {
 } from "../attempts.repository";
 
 type AttemptRow = typeof attempts.$inferSelect;
+
+const sameOrder = (
+	left: readonly string[],
+	right: readonly string[],
+): boolean =>
+	left.length === right.length &&
+	left.every((entry, index) => entry === right[index]);
 
 export class CorruptedAttemptRowError extends Error {
 	constructor(id: string, issue: string) {
@@ -134,55 +143,124 @@ export class PostgresAttemptsRepository extends AttemptsRepository {
 			completedAt: attempt.completedAt ?? null,
 		};
 
-		const [stored] = await this.executor
-			.select({ updatedAt: attempts.updatedAt })
-			.from(attempts)
-			.where(and(this.mine, eq(attempts.id, id)))
-			.limit(1);
+		const [written] = await this.executor
+			.insert(attempts)
+			.values(row)
+			.onConflictDoUpdate({
+				target: attempts.id,
+				set: row,
+				setWhere: and(
+					this.mine,
+					lte(attempts.updatedAt, sql`excluded.updated_at`),
+				),
+			})
+			.returning({ inserted: sql<boolean>`(xmax = 0)` });
 
-		if (stored !== undefined && stored.updatedAt > row.updatedAt) {
+		if (written === undefined) {
 			return;
 		}
 
-		await this.executor
-			.insert(attempts)
-			.values(row)
-			.onConflictDoUpdate({ target: attempts.id, set: row });
+		const stored = written.inserted
+			? { plan: [], recalls: new Map<string, string | null>() }
+			: await this.storedChildrenOf(id);
+		const plan = attempt.questionIds.map(String);
 
-		await this.executor
-			.delete(attemptQuestions)
-			.where(eq(attemptQuestions.attemptId, id));
+		if (!sameOrder(stored.plan, plan)) {
+			await this.replacePlan(id, stored.plan.length > 0, plan);
+		}
 
-		await this.executor.insert(attemptQuestions).values(
-			attempt.questionIds.map((questionId, position) => ({
-				attemptId: id,
-				position,
-				questionId: String(questionId),
-			})),
+		const fresh = attempt.responses.filter(
+			(answer) => !stored.recalls.has(String(answer.questionId)),
 		);
 
-		for (const answer of attempt.responses) {
-			const answerRow = {
-				attemptId: id,
-				questionId: String(answer.questionId),
-				selectedOptionIds: answer.selectedOptionIds.map(String),
-				isCorrect: answer.isCorrect,
-				typedAnswer: answer.typedAnswer ?? null,
-				skipped: answer.skipped ?? false,
-				creditEarned: answer.creditEarned ?? null,
-				creditPossible: answer.creditPossible ?? null,
-				recall: answer.recall ?? null,
-				answeredAt: answer.answeredAt,
-			};
-
+		if (fresh.length > 0) {
 			await this.executor
 				.insert(responses)
-				.values(answerRow)
-				.onConflictDoUpdate({
-					target: [responses.attemptId, responses.questionId],
-					set: { recall: answerRow.recall },
-				});
+				.values(fresh.map((answer) => this.responseRowOf(id, answer)))
+				.onConflictDoNothing();
 		}
+
+		for (const answer of attempt.responses) {
+			const questionId = String(answer.questionId);
+			const recall = answer.recall ?? null;
+
+			if (
+				!stored.recalls.has(questionId) ||
+				stored.recalls.get(questionId) === recall
+			) {
+				continue;
+			}
+
+			await this.executor
+				.update(responses)
+				.set({ recall })
+				.where(
+					and(
+						eq(responses.attemptId, id),
+						eq(responses.questionId, questionId),
+					),
+				);
+		}
+	}
+
+	private async storedChildrenOf(id: string): Promise<{
+		readonly plan: readonly string[];
+		readonly recalls: ReadonlyMap<string, string | null>;
+	}> {
+		const plan = await this.executor
+			.select({ questionId: attemptQuestions.questionId })
+			.from(attemptQuestions)
+			.where(eq(attemptQuestions.attemptId, id))
+			.orderBy(asc(attemptQuestions.position));
+		const answers = await this.executor
+			.select({ questionId: responses.questionId, recall: responses.recall })
+			.from(responses)
+			.where(eq(responses.attemptId, id));
+
+		return {
+			plan: plan.map((entry) => entry.questionId),
+			recalls: new Map(
+				answers.map((answer) => [answer.questionId, answer.recall]),
+			),
+		};
+	}
+
+	private async replacePlan(
+		id: string,
+		existed: boolean,
+		plan: readonly string[],
+	): Promise<void> {
+		if (existed) {
+			await this.executor
+				.delete(attemptQuestions)
+				.where(eq(attemptQuestions.attemptId, id));
+		}
+
+		await this.executor.insert(attemptQuestions).values(
+			plan.map((questionId, position) => ({
+				attemptId: id,
+				position,
+				questionId,
+			})),
+		);
+	}
+
+	private responseRowOf(
+		id: string,
+		answer: AttemptEntity["responses"][number],
+	) {
+		return {
+			attemptId: id,
+			questionId: String(answer.questionId),
+			selectedOptionIds: answer.selectedOptionIds.map(String),
+			isCorrect: answer.isCorrect,
+			typedAnswer: answer.typedAnswer ?? null,
+			skipped: answer.skipped ?? false,
+			creditEarned: answer.creditEarned ?? null,
+			creditPossible: answer.creditPossible ?? null,
+			recall: answer.recall ?? null,
+			answeredAt: answer.answeredAt,
+		};
 	}
 
 	async findById(id: QuizAttemptId): Promise<AttemptEntity | undefined> {
@@ -190,31 +268,28 @@ export class PostgresAttemptsRepository extends AttemptsRepository {
 			return undefined;
 		}
 
-		return this.first(
-			await this.executor
-				.select()
-				.from(attempts)
-				.where(and(this.mine, eq(attempts.id, String(id))))
-				.limit(1),
-		);
+		return this.heldOne(eq(attempts.id, String(id)));
 	}
 
 	async findActive(): Promise<AttemptEntity | undefined> {
+		return this.heldOne(
+			inArray(attempts.status, [
+				QuizAttemptStatus.Active,
+				QuizAttemptStatus.Paused,
+			]),
+		);
+	}
+
+	private async heldOne(condition: SQL): Promise<AttemptEntity | undefined> {
+		const query = this.executor
+			.select()
+			.from(attempts)
+			.where(and(this.mine, condition))
+			.orderBy(asc(attempts.startedAt))
+			.$dynamic();
+
 		return this.first(
-			await this.executor
-				.select()
-				.from(attempts)
-				.where(
-					and(
-						this.mine,
-						inArray(attempts.status, [
-							QuizAttemptStatus.Active,
-							QuizAttemptStatus.Paused,
-						]),
-					),
-				)
-				.orderBy(asc(attempts.startedAt))
-				.limit(1),
+			await (DatabaseExecutor.isOpen() ? query.for("update") : query),
 		);
 	}
 
