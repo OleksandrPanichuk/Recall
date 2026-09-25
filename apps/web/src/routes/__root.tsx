@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
+import type { QueryClient } from "@tanstack/react-query";
 import {
-	createRootRoute,
+	createRootRouteWithContext,
 	HeadContent,
 	Outlet,
 	Scripts,
@@ -20,7 +21,9 @@ import { ErrorPanel } from "@/shared/ui/components/ErrorPanel";
 import { NotFound } from "@/shared/ui/components/NotFound";
 import appCss from "@/styles/app.css?url";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{
+	queryClient: QueryClient;
+}>()({
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
