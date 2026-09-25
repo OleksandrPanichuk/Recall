@@ -190,6 +190,109 @@ describe("refreshing", () => {
 		).rejects.toThrow();
 	});
 
+	test("lets only one of two concurrent refreshes of the same token through", async () => {
+		const client = await clientOf();
+		const first = await oauth.provider.exchangeAuthorizationCode(
+			client as never,
+			await codeFor(client),
+		);
+
+		const outcomes = await Promise.allSettled([
+			oauth.provider.exchangeRefreshToken(
+				client as never,
+				first.refresh_token as string,
+			),
+			oauth.provider.exchangeRefreshToken(
+				client as never,
+				first.refresh_token as string,
+			),
+		]);
+
+		expect(outcomes.map((outcome) => outcome.status).sort()).toEqual([
+			"fulfilled",
+			"rejected",
+		]);
+	});
+
+	test("refuses a refresh that asks for a scope the grant never had", async () => {
+		const client = await clientOf();
+		const first = await oauth.provider.exchangeAuthorizationCode(
+			client as never,
+			await codeFor(client),
+		);
+
+		await expect(
+			oauth.provider.exchangeRefreshToken(
+				client as never,
+				first.refresh_token as string,
+				["offline_access", "admin"],
+			),
+		).rejects.toThrow();
+
+		const kept = await oauth.provider.exchangeRefreshToken(
+			client as never,
+			first.refresh_token as string,
+		);
+
+		expect(kept.scope).toBe("offline_access");
+	});
+
+	test("lets a refresh keep a subset of the granted scopes", async () => {
+		const client = await clientOf();
+		const first = await oauth.provider.exchangeAuthorizationCode(
+			client as never,
+			await codeFor(client),
+		);
+
+		const narrowed = await oauth.provider.exchangeRefreshToken(
+			client as never,
+			first.refresh_token as string,
+			["offline_access"],
+		);
+
+		expect(narrowed.scope).toBe("offline_access");
+	});
+
+	test("refuses a refresh token that lay unused past its lifetime", async () => {
+		const client = await clientOf();
+		const first = await oauth.provider.exchangeAuthorizationCode(
+			client as never,
+			await codeFor(client),
+		);
+		now = new Date("2026-09-19T10:00:01.000Z");
+
+		await expect(
+			oauth.provider.exchangeRefreshToken(
+				client as never,
+				first.refresh_token as string,
+			),
+		).rejects.toThrow();
+	});
+
+	test("a refresh gives the new refresh token a fresh lifetime", async () => {
+		const client = await clientOf();
+		const first = await oauth.provider.exchangeAuthorizationCode(
+			client as never,
+			await codeFor(client),
+		);
+		now = new Date("2026-09-10T10:00:00.000Z");
+
+		const second = await oauth.provider.exchangeRefreshToken(
+			client as never,
+			first.refresh_token as string,
+		);
+		now = new Date("2026-09-30T10:00:00.000Z");
+
+		expect(
+			(
+				await oauth.provider.exchangeRefreshToken(
+					client as never,
+					second.refresh_token as string,
+				)
+			).access_token,
+		).toBeTruthy();
+	});
+
 	test("refuses an unknown refresh token", async () => {
 		const client = await clientOf();
 
@@ -238,6 +341,23 @@ describe("verifying an access token", () => {
 		).rejects.toThrow();
 	});
 
+	test("a client cannot revoke a token issued to another client", async () => {
+		const client = await clientOf();
+		const stranger = await clientOf();
+		const tokens = await oauth.provider.exchangeAuthorizationCode(
+			client as never,
+			await codeFor(client),
+		);
+
+		await oauth.provider.revokeToken?.(stranger as never, {
+			token: tokens.access_token,
+		});
+
+		expect(
+			(await oauth.provider.verifyAccessToken(tokens.access_token)).clientId,
+		).toBe(client.client_id);
+	});
+
 	test("refuses a revoked access token", async () => {
 		const client = await clientOf();
 		const tokens = await oauth.provider.exchangeAuthorizationCode(
@@ -252,5 +372,50 @@ describe("verifying an access token", () => {
 		await expect(
 			oauth.provider.verifyAccessToken(tokens.access_token),
 		).rejects.toThrow();
+	});
+});
+
+describe("the consent gate under repeated wrong passphrases", () => {
+	test("keeps a pending request open for a few refusals, then cancels it", async () => {
+		const pending = pendingIdOf(await redirectFrom(await clientOf()));
+
+		for (let attempt = 1; attempt < 5; attempt += 1) {
+			expect(oauth.consent.refuse(pending, "198.51.100.7")).toBe(true);
+		}
+
+		expect(oauth.consent.refuse(pending, "198.51.100.7")).toBe(false);
+		expect(oauth.consent.pending(pending)).toBeUndefined();
+		expect(await oauth.consent.approve(pending, OWNER)).toBeUndefined();
+	});
+
+	test("throttles an address that keeps failing, across pending requests", async () => {
+		const client = await clientOf();
+
+		for (let attempt = 0; attempt < 10; attempt += 1) {
+			const pending = pendingIdOf(await redirectFrom(client));
+
+			expect(oauth.consent.throttled("198.51.100.7")).toBe(false);
+			oauth.consent.refuse(pending, "198.51.100.7");
+		}
+
+		expect(oauth.consent.throttled("198.51.100.7")).toBe(true);
+		expect(oauth.consent.throttled("203.0.113.9")).toBe(false);
+
+		now = new Date(now.getTime() + 15 * 60 * 1000 + 1);
+
+		expect(oauth.consent.throttled("198.51.100.7")).toBe(false);
+	});
+
+	test("stops listening to everyone once failures pile up across many addresses", async () => {
+		const client = await clientOf();
+
+		for (let attempt = 0; attempt < 50; attempt += 1) {
+			oauth.consent.refuse(
+				pendingIdOf(await redirectFrom(client)),
+				`198.51.100.${attempt}`,
+			);
+		}
+
+		expect(oauth.consent.throttled("203.0.113.9")).toBe(true);
 	});
 });

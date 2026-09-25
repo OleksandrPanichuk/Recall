@@ -40,6 +40,28 @@ async function main(): Promise<void> {
 		});
 	};
 
+	const inFlight = new Set<Promise<void>>();
+
+	const dispatch = (line: string): void => {
+		const trimmed = line.trim();
+
+		if (trimmed.length === 0) {
+			return;
+		}
+
+		const handled = bridge.handle(trimmed).then((answer) => {
+			if (answer !== undefined) {
+				respond(answer);
+			}
+		});
+		const settle = (): void => {
+			inFlight.delete(handled);
+		};
+
+		inFlight.add(handled);
+		handled.then(settle, settle);
+	};
+
 	const decoder = new TextDecoder();
 	let pending = "";
 
@@ -51,20 +73,13 @@ async function main(): Promise<void> {
 		pending = lines.pop() ?? "";
 
 		for (const line of lines) {
-			const trimmed = line.trim();
-
-			if (trimmed.length === 0) {
-				continue;
-			}
-
-			void bridge.handle(trimmed).then((answer) => {
-				if (answer !== undefined) {
-					respond(answer);
-				}
-			});
+			dispatch(line);
 		}
 	}
 
+	dispatch(pending + decoder.decode());
+
+	await Promise.allSettled([...inFlight]);
 	await writes;
 }
 

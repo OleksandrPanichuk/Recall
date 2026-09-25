@@ -7,11 +7,17 @@ const escaped = (value: string): string =>
 		.replaceAll(">", "&gt;")
 		.replaceAll('"', "&quot;");
 
+export interface ConsentPageOptions {
+	readonly failed?: boolean;
+	readonly signedIn?: boolean;
+}
+
 export function consentPage(
 	pendingId: string,
 	pending: PendingAuthorization,
-	failed = false,
+	options: ConsentPageOptions = {},
 ): string {
+	const { failed = false, signedIn = false } = options;
 	const client = escaped(pending.clientName ?? pending.clientId);
 
 	return `<!doctype html>
@@ -34,11 +40,15 @@ button{margin-top:1rem;width:100%;padding:.7rem;font-size:1rem;border:0;border-r
 <body>
 <main>
 <h1>Give access to your library?</h1>
-<p><strong>${client}</strong> is asking to read and write your quizzes and pages.</p>
+<p><strong>${client}</strong> is asking to read and write your quizzes and pages. The name is the client's own; access will be sent to <strong>${escaped(new URL(pending.redirectUri).host)}</strong>.</p>
 <form method="post" action="/consent">
 <input type="hidden" name="pending" value="${escaped(pendingId)}">
-<label for="passphrase">Passphrase</label>
-<input id="passphrase" name="passphrase" type="password" autocomplete="current-password" autofocus required>
+${
+	signedIn
+		? "<p>You are signed in, so access will be tied to your account.</p>"
+		: `<label for="passphrase">Passphrase</label>
+<input id="passphrase" name="passphrase" type="password" autocomplete="current-password" autofocus required>`
+}
 ${failed ? '<div class="bad">That passphrase does not match.</div>' : ""}
 <button type="submit">Give access</button>
 </form>

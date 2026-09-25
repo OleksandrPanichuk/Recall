@@ -65,12 +65,20 @@ export function createMemoryOAuthStore(now: () => Date): OAuthRepository {
 
 			return held.token;
 		},
-		revokeToken: async (token) => {
+		revokeToken: async (token, clientId) => {
 			const held = tokens.get(token);
 
-			if (held !== undefined) {
-				held.revoked = true;
+			if (
+				held === undefined ||
+				held.revoked ||
+				held.token.clientId !== clientId
+			) {
+				return false;
 			}
+
+			held.revoked = true;
+
+			return true;
 		},
 	};
 }

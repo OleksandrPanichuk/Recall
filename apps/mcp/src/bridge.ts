@@ -19,8 +19,82 @@ interface Envelope {
 const PARSE_ERROR = -32700;
 const INTERNAL_ERROR = -32603;
 
+const errorOf = (id: unknown, code: number, message: string) => ({
+	jsonrpc: "2.0",
+	id: id ?? null,
+	error: { code, message },
+});
+
 const errorFor = (id: unknown, code: number, message: string): string =>
-	JSON.stringify({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
+	JSON.stringify(errorOf(id, code, message));
+
+const errorsFor = (
+	payload: unknown,
+	ids: readonly unknown[],
+	message: string,
+): string | undefined => {
+	if (ids.length === 0) {
+		return undefined;
+	}
+
+	return Array.isArray(payload)
+		? JSON.stringify(ids.map((id) => errorOf(id, INTERNAL_ERROR, message)))
+		: errorFor(ids[0], INTERNAL_ERROR, message);
+};
+
+interface Answer {
+	readonly jsonrpc?: unknown;
+	readonly id?: unknown;
+	readonly error?: { readonly message?: unknown };
+	readonly result?: unknown;
+}
+
+const isAnswer = (value: unknown): value is Answer =>
+	typeof value === "object" &&
+	value !== null &&
+	!Array.isArray(value) &&
+	(value as Answer).jsonrpc === "2.0" &&
+	("error" in value || "result" in value);
+
+const answersEvery = (
+	answers: readonly Answer[],
+	ids: readonly unknown[],
+): boolean =>
+	answers.length === ids.length &&
+	ids.every((id) => answers.some((answer) => answer.id === id));
+
+const refusalFrom = (
+	payload: unknown,
+	ids: readonly unknown[],
+	body: string,
+	fallback: string,
+): string | undefined => {
+	let parsed: unknown;
+
+	try {
+		parsed = JSON.parse(body);
+	} catch {
+		return errorsFor(payload, ids, fallback);
+	}
+
+	const answers = Array.isArray(parsed) ? parsed : [parsed];
+
+	if (
+		answers.every(isAnswer) &&
+		Array.isArray(parsed) === Array.isArray(payload) &&
+		answersEvery(answers, ids)
+	) {
+		return body;
+	}
+
+	const message = answers.find(isAnswer)?.error?.message;
+
+	return errorsFor(
+		payload,
+		ids,
+		typeof message === "string" ? `${fallback}: ${message}` : fallback,
+	);
+};
 
 const idsOf = (payload: unknown): unknown[] => {
 	const envelopes: Envelope[] = Array.isArray(payload)
@@ -83,9 +157,7 @@ export function createBridge(dependencies: BridgeDependencies) {
 
 				onWarning?.(message);
 
-				return ids.length === 0
-					? undefined
-					: errorFor(ids[0], INTERNAL_ERROR, message);
+				return errorsFor(payload, ids, message);
 			}
 
 			if (response.status === 202 || response.status === 204) {
@@ -97,16 +169,37 @@ export function createBridge(dependencies: BridgeDependencies) {
 
 				onWarning?.(message);
 
-				return ids.length === 0
-					? undefined
-					: errorFor(ids[0], INTERNAL_ERROR, message);
+				if (ids.length === 0) {
+					return undefined;
+				}
+
+				try {
+					return refusalFrom(
+						payload,
+						ids,
+						(await response.text()).trim(),
+						message,
+					);
+				} catch {
+					return errorsFor(payload, ids, message);
+				}
 			}
 
 			const contentType = response.headers.get("content-type") ?? "";
 
-			const body = contentType.includes("text/event-stream")
-				? await readEventStream(response)
-				: (await response.text()).trim();
+			let body: string | undefined;
+
+			try {
+				body = contentType.includes("text/event-stream")
+					? await readEventStream(response)
+					: (await response.text()).trim();
+			} catch (error) {
+				const message = `the recall api's answer could not be read: ${error instanceof Error ? error.message : String(error)}`;
+
+				onWarning?.(message);
+
+				return errorsFor(payload, ids, message);
+			}
 
 			if (body === undefined || body.length === 0) {
 				return undefined;

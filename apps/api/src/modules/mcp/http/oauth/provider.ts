@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
 import {
 	InvalidGrantError,
+	InvalidScopeError,
 	InvalidTokenError,
 } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { OAuthServerProvider } from "@modelcontextprotocol/sdk/server/auth/provider.js";
@@ -17,6 +18,7 @@ import {
 	type OAuthRepository,
 	TokenKind,
 } from "@/modules/oauth";
+import { matchesToken } from "../bearer";
 
 export const CONSENT_PATH = "/consent";
 export const STATIC_CLIENT_ID = "static-token";
@@ -25,7 +27,13 @@ export const OFFLINE_ACCESS = "offline_access";
 
 const CODE_TTL_MS = 60_000;
 const ACCESS_TTL_MS = 60 * 60 * 1000;
+const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PENDING_TTL_MS = 10 * 60 * 1000;
+const REFUSALS_PER_PENDING = 5;
+const REFUSALS_PER_ADDRESS = 10;
+const REFUSALS_OVERALL = 50;
+const EVERY_ADDRESS = "*";
+const REFUSAL_WINDOW_MS = 15 * 60 * 1000;
 
 export interface PendingAuthorization {
 	readonly clientId: string;
@@ -40,6 +48,8 @@ export interface PendingAuthorization {
 
 export interface ConsentGate {
 	pending(id: string): PendingAuthorization | undefined;
+	throttled(address: string): boolean;
+	refuse(id: string, address: string): boolean;
 	approve(id: string, ownerId: string | undefined): Promise<string | undefined>;
 }
 
@@ -73,13 +83,32 @@ export function createOAuthProvider(
 	const { store, staticToken, instanceOwner, personalToken, now } =
 		dependencies;
 	const pendings = new Map<string, PendingAuthorization>();
+	const refusalsByPending = new Map<string, number>();
+	const refusalsByAddress = new Map<string, number[]>();
 
 	const forget = (): void => {
 		for (const [id, pending] of pendings) {
 			if (pending.expiresAt <= now().getTime()) {
 				pendings.delete(id);
+				refusalsByPending.delete(id);
 			}
 		}
+	};
+
+	const recentRefusalsOf = (address: string): number[] => {
+		const since = now().getTime() - REFUSAL_WINDOW_MS;
+
+		for (const [known, times] of refusalsByAddress) {
+			const recent = times.filter((time) => time > since);
+
+			if (recent.length === 0) {
+				refusalsByAddress.delete(known);
+			} else {
+				refusalsByAddress.set(known, recent);
+			}
+		}
+
+		return refusalsByAddress.get(address) ?? [];
 	};
 
 	const ownerFor = async (
@@ -108,6 +137,7 @@ export function createOAuthProvider(
 			clientId,
 			scopes,
 			ownerId,
+			expiresAt: new Date(now().getTime() + REFRESH_TTL_MS),
 		});
 
 		return {
@@ -214,13 +244,23 @@ export function createOAuthProvider(
 				throw new InvalidGrantError("Unknown or expired refresh token");
 			}
 
-			await store.revokeToken(refreshToken);
+			const granted = scopes ?? stored.scopes;
 
-			return issue(client.client_id, scopes ?? stored.scopes, stored.ownerId);
+			if (granted.some((scope) => !stored.scopes.includes(scope))) {
+				throw new InvalidScopeError(
+					"A refresh cannot ask for more than the grant allowed",
+				);
+			}
+
+			if (!(await store.revokeToken(refreshToken, client.client_id))) {
+				throw new InvalidGrantError("Refresh token was already used");
+			}
+
+			return issue(client.client_id, granted, stored.ownerId);
 		},
 
 		verifyAccessToken: async (token): Promise<AuthInfo> => {
-			if (staticToken !== undefined && token === staticToken) {
+			if (staticToken !== undefined && matchesToken(token, staticToken)) {
 				return {
 					token,
 					clientId: STATIC_CLIENT_ID,
@@ -267,10 +307,10 @@ export function createOAuthProvider(
 		},
 
 		revokeToken: async (
-			_client: OAuthClientInformationFull,
+			client: OAuthClientInformationFull,
 			request: OAuthTokenRevocationRequest,
 		) => {
-			await store.revokeToken(request.token);
+			await store.revokeToken(request.token, client.client_id);
 		},
 	};
 
@@ -279,6 +319,35 @@ export function createOAuthProvider(
 			forget();
 
 			return pendings.get(id);
+		},
+
+		throttled: (address) =>
+			recentRefusalsOf(address).length >= REFUSALS_PER_ADDRESS ||
+			recentRefusalsOf(EVERY_ADDRESS).length >= REFUSALS_OVERALL,
+
+		refuse: (id, address) => {
+			forget();
+
+			for (const key of [address, EVERY_ADDRESS]) {
+				refusalsByAddress.set(key, [...recentRefusalsOf(key), now().getTime()]);
+			}
+
+			if (!pendings.has(id)) {
+				return false;
+			}
+
+			const refusals = (refusalsByPending.get(id) ?? 0) + 1;
+
+			if (refusals >= REFUSALS_PER_PENDING) {
+				pendings.delete(id);
+				refusalsByPending.delete(id);
+
+				return false;
+			}
+
+			refusalsByPending.set(id, refusals);
+
+			return true;
 		},
 
 		approve: async (id, ownerId) => {
@@ -291,6 +360,7 @@ export function createOAuthProvider(
 			}
 
 			pendings.delete(id);
+			refusalsByPending.delete(id);
 
 			const code = secret();
 

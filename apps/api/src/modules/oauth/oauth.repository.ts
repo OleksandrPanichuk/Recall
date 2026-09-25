@@ -22,5 +22,5 @@ export abstract class OAuthRepository {
 		token: string,
 		kind: TokenKind,
 	): Promise<OAuthToken | undefined>;
-	abstract revokeToken(token: string): Promise<void>;
+	abstract revokeToken(token: string, clientId: string): Promise<boolean>;
 }

@@ -134,4 +134,129 @@ describe("the stdio bridge", () => {
 			'[{"jsonrpc":"2.0","id":1},{"jsonrpc":"2.0","id":2}]',
 		);
 	});
+
+	test("answers every request in a batch when the api cannot be reached", async () => {
+		const batch = JSON.stringify([
+			{ jsonrpc: "2.0", id: 1, method: "tools/list" },
+			{ jsonrpc: "2.0", method: "notifications/initialized" },
+			{ jsonrpc: "2.0", id: "two", method: "tools/list" },
+		]);
+		const bridge = bridgeOver(() => Promise.reject(new Error("down")));
+
+		const answer = JSON.parse((await bridge.handle(batch)) ?? "") as {
+			id: unknown;
+			error: { code: number };
+		}[];
+
+		expect(answer.map((entry) => entry.id)).toEqual([1, "two"]);
+		expect(answer.every((entry) => entry.error.code === -32603)).toBe(true);
+	});
+
+	test("answers every request in a batch the api refused", async () => {
+		const batch = JSON.stringify([
+			{ jsonrpc: "2.0", id: 1, method: "tools/list" },
+			{ jsonrpc: "2.0", id: 2, method: "tools/list" },
+		]);
+		const bridge = bridgeOver(() =>
+			Promise.resolve(new Response("Unauthorized", { status: 401 })),
+		);
+
+		const answer = JSON.parse((await bridge.handle(batch)) ?? "") as {
+			id: unknown;
+			error: { message: string };
+		}[];
+
+		expect(answer.map((entry) => entry.id)).toEqual([1, 2]);
+		expect(answer[1]?.error.message).toContain("401");
+	});
+
+	test("forwards the api's own jsonrpc error instead of replacing it", async () => {
+		const refusal =
+			'{"jsonrpc":"2.0","id":7,"error":{"code":-32600,"message":"Bad Request: the session is gone"}}';
+		const bridge = bridgeOver(() =>
+			Promise.resolve(
+				new Response(`${refusal}\n`, {
+					status: 400,
+					headers: { "content-type": "application/json" },
+				}),
+			),
+		);
+
+		expect(await bridge.handle(request)).toBe(refusal);
+	});
+
+	test("replaces a refusal that is json but not jsonrpc", async () => {
+		const bridge = bridgeOver(() =>
+			Promise.resolve(
+				Response.json(
+					{ error: "invalid_token", error_description: "expired" },
+					{ status: 401 },
+				),
+			),
+		);
+
+		expect(JSON.parse((await bridge.handle(request)) ?? "")).toMatchObject({
+			jsonrpc: "2.0",
+			id: 7,
+			error: { code: -32603, message: expect.stringContaining("401") },
+		});
+	});
+
+	test("puts an api error with no id against the ids the client asked with", async () => {
+		const batch = JSON.stringify([
+			{ jsonrpc: "2.0", id: 1, method: "tools/list" },
+			{ jsonrpc: "2.0", id: 2, method: "tools/list" },
+		]);
+		const bridge = bridgeOver(() =>
+			Promise.resolve(
+				Response.json(
+					{
+						jsonrpc: "2.0",
+						id: null,
+						error: { code: -32000, message: "Not Acceptable: nope" },
+					},
+					{ status: 406 },
+				),
+			),
+		);
+
+		const single = JSON.parse((await bridge.handle(request)) ?? "") as {
+			id: unknown;
+			error: { message: string };
+		};
+
+		expect(single.id).toBe(7);
+		expect(single.error.message).toContain("Not Acceptable: nope");
+
+		const answers = JSON.parse((await bridge.handle(batch)) ?? "") as {
+			id: unknown;
+			error: { message: string };
+		}[];
+
+		expect(answers.map((answer) => answer.id)).toEqual([1, 2]);
+		expect(answers[0]?.error.message).toContain("Not Acceptable: nope");
+	});
+
+	test("answers with an error when the api's answer cannot be read", async () => {
+		const bridge = bridgeOver(() =>
+			Promise.resolve(
+				new Response(
+					new ReadableStream({
+						start(controller) {
+							controller.error(new Error("socket closed"));
+						},
+					}),
+					{ headers: { "content-type": "application/json" } },
+				),
+			),
+		);
+
+		expect(JSON.parse((await bridge.handle(request)) ?? "")).toMatchObject({
+			id: 7,
+			error: {
+				code: -32603,
+				message: expect.stringContaining("socket closed"),
+			},
+		});
+	});
 });

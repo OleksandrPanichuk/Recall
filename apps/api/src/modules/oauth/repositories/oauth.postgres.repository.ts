@@ -154,10 +154,19 @@ export class PostgresOAuthRepository extends OAuthRepository {
 				};
 	}
 
-	async revokeToken(token: string): Promise<void> {
-		await this.executor
+	async revokeToken(token: string, clientId: string): Promise<boolean> {
+		const revoked = await this.executor
 			.update(oauthTokens)
 			.set({ revokedAt: this.clock.now() })
-			.where(eq(oauthTokens.tokenHash, OAuthSecret.hashOf(token)));
+			.where(
+				and(
+					eq(oauthTokens.tokenHash, OAuthSecret.hashOf(token)),
+					eq(oauthTokens.clientId, clientId),
+					isNull(oauthTokens.revokedAt),
+				),
+			)
+			.returning({ tokenHash: oauthTokens.tokenHash });
+
+		return revoked.length > 0;
 	}
 }

@@ -36,9 +36,12 @@ export function loadConfiguration(
 
 	const timeout = source.RECALL_MCP_TIMEOUT_MS?.trim();
 
-	if (timeout !== undefined && !/^\d+$/.test(timeout)) {
+	if (
+		timeout !== undefined &&
+		(!/^\d+$/.test(timeout) || Number(timeout) <= 0)
+	) {
 		problems.push(
-			"RECALL_MCP_TIMEOUT_MS must be a whole number of milliseconds",
+			"RECALL_MCP_TIMEOUT_MS must be a whole number of milliseconds, greater than zero",
 		);
 	}
 
