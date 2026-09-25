@@ -20,7 +20,7 @@ recall remote — drive the deployment on $target from this machine
   deploy/remote psql                   interactive psql on the deployment database
   deploy/remote sql "select 1;"        run one statement and print the result
   deploy/remote sql -f local.sql       run a local .sql file against the server
-  deploy/remote tunnel                 forward postgres, minio, mailpit, ngrok, nginx
+  deploy/remote tunnel                 forward postgres, minio, mailpit (tools profile), ngrok, nginx
   deploy/remote stack <args...>        run deploy/stack on the server
   deploy/remote ssh                    plain shell on the host
 
@@ -152,7 +152,7 @@ forwarding from $target — Ctrl+C to close
   postgres        127.0.0.1:15432   postgres://<user>@127.0.0.1:15432/<db>
   minio s3        127.0.0.1:15090
   minio console   http://127.0.0.1:15091
-  mailpit         http://127.0.0.1:15026
+  mailpit         http://127.0.0.1:15026  (only if started with --profile tools)
   ngrok inspector http://127.0.0.1:14040
   nginx           http://127.0.0.1:18080
 

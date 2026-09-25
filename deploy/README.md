@@ -1,6 +1,7 @@
 # Deploying Recall on one Linux box
 
-Six long-running containers behind one nginx, reachable through one ngrok tunnel.
+Seven long-running containers behind one nginx, reachable through one ngrok tunnel,
+plus an optional Mailpit in the `tools` profile.
 
 ```
                     ┌───────────────────────────────────────────────┐
@@ -9,7 +10,7 @@ Six long-running containers behind one nginx, reachable through one ngrok tunnel
      │  https        │   ┌───────┐  /api /app /public /mcp /docs     │
      └──▶ ngrok ────▶│──▶│ nginx │──┬──▶ api:8767 ──┬──▶ postgres    │
           (agent)   │   └───────┘  │               ├──▶ minio       │
-                    │              │               └──▶ mailpit     │
+                    │              │               └──▶ mailpit (opt)│
                     │              ├──▶ web:3000 ──────▶ api        │
                     │              └──▶ bot:8768  ──────▶ api       │
                     │                   /telegram/                  │
@@ -35,6 +36,7 @@ to Postgres or MinIO.
 | `deploy/init-env` | write `.env.deploy`: five secrets generated, four answers from you |
 | `deploy/remote` | the same stack, driven over SSH from another machine |
 | `deploy/recall.service` | systemd unit that reasserts the stack after a reboot |
+| `deploy/recall-backup.service`, `deploy/recall-backup.timer` | systemd timer that runs `deploy/backup` once a day |
 
 ## Setting up the server
 
@@ -130,6 +132,14 @@ $EDITOR .env.deploy                 # PUBLIC_HOST, NGROK_AUTHTOKEN, and every em
 deploy/stack up -d --build --wait
 ```
 
+With no `SMTP_URL` the api only logs password-reset letters; set it to a real
+provider, or start Mailpit from the `tools` profile (see `deploy/env.example`).
+
+**Upgrading a server whose `.env.deploy` predates the `tools` profile:** that file
+still says `SMTP_URL=smtp://mailpit:1025`, and Mailpit no longer starts with the
+stack, so reset mail would go to a host that is not there. Delete that line, point
+it at a real provider, or run `deploy/stack --profile tools up -d mailpit`.
+
 `--wait` returns only once nginx is healthy, which means the api answered
 `/health/ready`, the web app rendered a page and the migrations succeeded. If it
 does not return, `deploy/stack ps` names the service that is unhealthy and
@@ -207,6 +217,37 @@ container orchestration would address, so pull a copy to the MacBook regularly
 and test a restore at least once.
 
 `RECALL_BACKUP_DIR` sets where copies land (default `~/recall-backups`).
+
+### Daily backups on the server
+
+A timer runs `deploy/backup` every night at about 03:30, under the same lock a
+release takes, so a backup never lands mid-release. `bun run backup` keeps the
+seven newest stamps in `backups/` and prunes the rest.
+
+```sh
+for unit in recall-backup.service recall-backup.timer; do
+	sudo cp "deploy/$unit" /etc/systemd/system/
+	sudo sed -i "s|__DIR__|$PWD|g; s|__USER__|$USER|g; s|__HOME__|$HOME|g" "/etc/systemd/system/$unit"
+done
+sudo systemctl daemon-reload
+sudo systemctl enable --now recall-backup.timer
+systemctl list-timers recall-backup.timer    # when it runs next
+sudo systemctl start recall-backup.service   # run one now
+journalctl -u recall-backup.service          # what the last one said
+```
+
+`__HOME__` is there because `bun` lives in `~/.bun/bin`, which is not on a
+systemd unit's `PATH`. `Persistent=true` catches up on a run missed while the
+laptop was off. A run that finds a release holding the lock fails and says so in
+the journal; the next night's run takes it.
+
+**The timer only protects against mistakes, not against the disk.** Its backups
+sit on the same laptop disk as the data they copy. Keep an off-box copy too:
+run `deploy/remote backup` from the MacBook on a schedule of your own (a
+`launchd` job or a calendar reminder), or push `backups/` to storage the laptop
+does not own — `rclone sync backups/ remote:recall-backups` or `restic backup
+backups/` from a second timer. Whichever you pick, restore from the off-box copy
+once, into a throwaway stack, before you rely on it.
 
 `bun run backup` and `bun run restore` still work from the host. They drive
 `docker exec` / `docker cp` against the container names `recall-postgres` and
@@ -359,7 +400,7 @@ running on your Mac:
 | `127.0.0.1:15432` | postgres | TablePlus, DataGrip, `psql`, `bun run db:migrate` |
 | `127.0.0.1:15090` | minio s3 api | `mc`, an S3 client |
 | `http://127.0.0.1:15091` | minio console | browsing uploaded images |
-| `http://127.0.0.1:15026` | mailpit | reading password-reset mail |
+| `http://127.0.0.1:15026` | mailpit | reading password-reset mail, once started with `deploy/stack --profile tools up -d mailpit` (stop only it with `deploy/stack stop mailpit`; `--profile tools down` would take the whole stack down) |
 | `http://127.0.0.1:14040` | ngrok inspector | seeing the exact headers the tunnel sends |
 | `http://127.0.0.1:18080` | nginx | hitting the stack without the tunnel |
 
@@ -443,6 +484,11 @@ exactly, and for `/app/uploads/<id>` paths already stored inside saved markdown.
 | `bot` | `oven/bun:1.4.0-slim` | `bun run ./main.js`, a single bundled file from `bun build --target bun`. |
 | `mcp` | `oven/bun:1.4.0-slim` | The stdio bridge. Not started by `up` — see below. |
 | `migrate` | the build stage | `drizzle-kit migrate`, once, before the api starts. |
+
+MinIO is `pgsty/minio`, pinned to a release tag. MinIO stopped publishing public
+images — `quay.io/minio/minio` answers 401 and Docker Hub's `minio/minio` "pull
+access denied" to an anonymous `docker pull`
+— and this community build of the same server ships `mc`, which the healthcheck needs.
 
 The api is the only image that needs `node_modules`, because there is no
 bundler in its build — `tsc` output still imports `@recall/kit` and
@@ -604,6 +650,10 @@ Found while wiring it up, left alone because they need application changes:
 - **`/health/ready` is not readiness.** It returns `{status:"ok"}` without
   checking Postgres or MinIO, so it proves only that the process answers. The
   compose healthchecks on `postgres` and `minio` are what actually gate startup.
+- **A long-polling bot has nothing to probe.** Its healthcheck asks the webhook
+  server on `BOT_PORT` when `TELEGRAM_WEBHOOK_URL` is set; in polling mode the bot
+  listens on no port, so the check passes while the process is alive and
+  `restart: unless-stopped` is what catches a crash.
 - **A bot restart drops queued updates.** In webhook mode the bot calls
   `setWebhook(..., { drop_pending_updates: true })` on every start, so messages
   that arrive during a deploy are discarded.

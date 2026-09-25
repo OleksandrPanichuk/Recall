@@ -1,0 +1,15 @@
+[Unit]
+Description=Recall backup (Postgres and MinIO into backups/)
+Documentation=file://__DIR__/deploy/README.md
+Requires=docker.service
+After=docker.service recall.service
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__DIR__
+Environment=PATH=__HOME__/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=__DIR__/deploy/backup
+TimeoutStartSec=1800
+Nice=10
+IOSchedulingClass=idle

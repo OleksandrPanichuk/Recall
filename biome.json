@@ -98,7 +98,7 @@
 											"@/modules/**",
 											"@/shared/**"
 										],
-										"message": "core imports nothing from src (REWRITE_PLAN.md \u00a73.1)"
+										"message": "core imports nothing from src (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -124,7 +124,7 @@
 											"@/modules/**",
 											"@/shared/**"
 										],
-										"message": "configs may import core and nothing else (REWRITE_PLAN.md \u00a73.1)"
+										"message": "configs may import core and nothing else (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -149,7 +149,7 @@
 											"@/modules/**",
 											"@/shared/**"
 										],
-										"message": "db may import core and configs only; it knows tables, not the domain (REWRITE_PLAN.md \u00a73.1)"
+										"message": "db may import core and configs only; it knows tables, not the domain (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -179,7 +179,7 @@
 											"@/shared/http/**",
 											"@/shared/request-context/**"
 										],
-										"message": "infrastructure is a technology client: configs and shared/utils only, so it could be copied to another project unchanged (REWRITE_PLAN.md \u00a73.1)"
+										"message": "infrastructure is a technology client: configs and shared/utils only, so it could be copied to another project unchanged (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -199,11 +199,11 @@
 								"patterns": [
 									{
 										"group": ["@/db/**"],
-										"message": "an adapter implements one module port over infrastructure and never touches the database (REWRITE_PLAN.md \u00a73.1)"
+										"message": "an adapter implements one module port over infrastructure and never touches the database (AGENTS.md, api layout and import rules)"
 									},
 									{
 										"group": ["@/modules/*"],
-										"message": "an adapter imports the port file it implements, never the module barrel: the barrel exports the module class, which imports the adapter (REWRITE_PLAN.md \u00a73.1)"
+										"message": "an adapter imports the port file it implements, never the module barrel: the barrel exports the module class, which imports the adapter (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -227,7 +227,7 @@
 											"@/infrastructure/**",
 											"@/modules/**"
 										],
-										"message": "shared is below every module: core, configs and db only (REWRITE_PLAN.md \u00a73.1)"
+										"message": "shared is below every module: core, configs and db only (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -250,15 +250,15 @@
 								"patterns": [
 									{
 										"group": ["@/adapters/**", "@/infrastructure/**"],
-										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (REWRITE_PLAN.md \u00a73.1)"
+										"message": "only a module class may bind a port to an adapter; move the binding into <module>.module.ts (AGENTS.md, api layout and import rules)"
 									},
 									{
 										"group": ["@/db/migrations/**"],
-										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
+										"message": "migrations are drizzle-kit's, not a module's (AGENTS.md, api layout and import rules)"
 									},
 									{
 										"group": ["@/modules/*/**"],
-										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md \u00a73.1)"
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -281,11 +281,11 @@
 								"patterns": [
 									{
 										"group": ["@/db/migrations/**"],
-										"message": "migrations are drizzle-kit's, not a module's (REWRITE_PLAN.md \u00a73.1)"
+										"message": "migrations are drizzle-kit's, not a module's (AGENTS.md, api layout and import rules)"
 									},
 									{
 										"group": ["@/modules/*/**"],
-										"message": "import another module through its barrel (@/modules/<name>), never its internals (REWRITE_PLAN.md \u00a73.1)"
+										"message": "import another module through its barrel (@/modules/<name>), never its internals (AGENTS.md, api layout and import rules)"
 									}
 								]
 							}
@@ -305,7 +305,7 @@
 								"patterns": [
 									{
 										"group": ["@tests/**"],
-										"message": "production code may not reach into the test tree; move the helper into src or duplicate it (REWRITE_PLAN.md \u00a78)"
+										"message": "production code may not reach into the test tree; move the helper into src or duplicate it (AGENTS.md, api tests)"
 									}
 								]
 							}

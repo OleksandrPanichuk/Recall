@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Recall backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=recall-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -37,7 +37,7 @@ services:
       - postgres:/var/lib/postgresql/data
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: recall-minio
     restart: unless-stopped
     logging: *logging
@@ -59,6 +59,7 @@ services:
   mailpit:
     image: axllent/mailpit:v1.21
     container_name: recall-mailpit
+    profiles: ["tools"]
     restart: unless-stopped
     logging: *logging
     ports:
@@ -183,6 +184,18 @@ services:
       - TELEGRAM_API_ROOT
       - TELEGRAM_WEBHOOK_URL
       - TELEGRAM_WEBHOOK_SECRET
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "if (!process.env.TELEGRAM_WEBHOOK_URL) process.exit(0); fetch('http://127.0.0.1:' + (process.env.BOT_PORT ?? '8768') + '/').then(() => process.exit(0), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     depends_on:
       api:
         condition: service_healthy

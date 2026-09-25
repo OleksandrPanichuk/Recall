@@ -3,15 +3,14 @@ Default to using Bun instead of Node.js.
 
 ## The api is capability modules — know what that means before you add a file
 
-**`rewrite_v3` is the trunk while the api rewrite is in flight.** Branch off it, and open
-pull requests against it. `main` carries v2.
+**`main` is the trunk.** Branch off it and open pull requests against it.
 
-There is no v1-shaped code left under `apps/api/src`. `domain/`, `application/`,
-`composition/`, `persistence/` and `entrypoints/` are gone; every capability owns its own
-directory under `apps/api/src/modules`, and **`REWRITE_PLAN.md` is the binding document for
-everything inside `apps/api`**. `ARCHITECTURE.md` describes the v1 layering and is history —
-read it to understand why something used to be the way it was, never to decide where a new
-file goes.
+Every capability owns its own directory under `apps/api/src/modules`. The binding rules for
+everything inside `apps/api` — the layout, the import direction, what a module contains and
+what its files are called — are the **api layout and import rules** section of `AGENTS.md`.
+The planning documents that used to carry them (`REWRITE_PLAN.md`, `ARCHITECTURE.md`,
+`WORKFLOW.md`, `HANDOFF.md`, `DEVELOPMENT_PLAN.md`) have been deleted; `git show
+41f57e0^:<file>` recovers one when the history matters.
 
 What is left beside `modules/` is small and each part has one job: `core/` (ports and the
 use-case base class), `configs/`, `db/` (schema, client, executor, migrations), `shared/`
@@ -21,17 +20,13 @@ implementations that are not Postgres), `api.factory.ts` and `main.ts`.
 The dependency direction is **enforced, not just documented**: `biome.json` carries
 `noRestrictedImports` overrides that fail the build when a module reaches into another
 module's internals, binds an adapter outside its `*.module.ts`, or imports the test tree.
-Run `bun run lint` to see them fire. `DEVELOPMENT_PLAN.md` has been deleted — its role is
-taken by the Sequencing section of `REWRITE_PLAN.md`.
+Run `bun run lint` to see them fire.
 
-`HANDOFF.md` is a record of how the v2 rewrite was carried out, not current instructions.
-Read it for context; do not follow its branch table.
-
-Before planning or implementation, read `AGENTS.md`, `DESCRIPTION.md`, `REWRITE_PLAN.md`,
-and `WORKFLOW.md`. For planned implementation work, use the globally installed
-`run-reviewed-development` workflow when available: a fresh implementer handles one task, an
-independent read-only agent reviews it, findings return to the implementer, and every fix
-receives a scoped re-review before dependent work begins.
+Before planning or implementation, read `AGENTS.md` and `DESCRIPTION.md`. For planned
+implementation work, use the globally installed `run-reviewed-development` workflow when
+available: a fresh implementer handles one task, an independent read-only agent reviews it,
+findings return to the implementer, and every fix receives a scoped re-review before
+dependent work begins.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
 - Use `bun test` instead of `jest` or `vitest`
@@ -56,7 +51,7 @@ These rules hold everywhere **except** the two v2 exemptions below.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
 - Bun.$`ls` instead of execa.
 
-### v2 exemptions (owner-granted, `REWRITE_PLAN.md` §1)
+### v2 exemptions (owner-granted)
 
 Two apps are exempt because the owner chose frameworks that cannot honour the rules above.
 Both exemptions are **scoped to their directory** — do not let them spread.
@@ -114,7 +109,7 @@ the web forwards the client address as `x-recall-client-ip` (`TRUST_PROXY=on` to
 `x-forwarded-for` behind a proxy) so sign-in and sign-up limits are per client rather than global.
 
 **Better Auth refuses a state-changing call that carries a cookie and no `Origin`.** Sign-out and
-change-password were 403 from the web for exactly that reason — the user clicked «Вийти» and
+change-password were 403 from the web for exactly that reason — the user clicked "Sign out" and
 stayed signed in. `authHeaders` sends the web app's own origin, which is in `trustedOrigins`.
 Signing *in* was unaffected because the check only runs when the request already has a cookie.
 
@@ -147,9 +142,9 @@ becomes a session, and it is unaffected by open registration.
 
 **Ownership lives in the repository scope, not in the use cases.** Seven tables carry
 `owner_id` (`pages`, `quizzes`, `questions`, `attempts`, `term_pairs`, `review_states`,
-`study_settings`); their children are reached only through an owned parent. `scopeFor(executor,
-owner)` builds every repository against one owner, so a use case cannot name another owner's
-rows — it never holds anything that could. **Never add a repository method that takes an owner
+`study_settings`); their children are reached only through an owned parent. Every owner-scoped
+repository reads the owner from `OwnerContext` on each call and fails closed when there is none,
+so a use case cannot name another owner's rows — it never holds anything that could. **Never add a repository method that takes an owner
 as an argument**; that would put the decision back in the caller. The in-memory double gives each
 owner its own store, which is the same isolation expressed as a partition. `tests/contracts/
 ownership.contract.ts` runs against both engines and is the proof.
@@ -197,7 +192,7 @@ send a message, not who is asking.
 **The api decides who the caller is; the caller never says.** `BotTokenGuard` refuses any body
 naming a `telegramUserId` other than `ALLOWED_TELEGRAM_USER_ID`, so holding the bot token does not
 let anyone read another account's data. The owner itself is resolved from the linked Telegram
-account (`instanceOwnerResolver`), cached, and read from the request context — which is what
+account (`AuthService.instanceOwner`), cached, and read from the request context — which is what
 lets the http surfaces be built at boot, before anyone has linked. `AuthService.ensureOwnerForTelegram` /
 `findOwnerForTelegram` are the *only* place that maps a Telegram
 id to an owner; the ETL and the login flow both go through them, so an import cannot land under a
@@ -327,7 +322,8 @@ suite deciding Postgres is unreachable — and skipping, green.
 Postgres an unawaited write inside a `db.transaction(...)` callback survives when that
 transaction rolls back — 8/8 runs. It commits on its own connection while the boundary is
 discarded. `apps/api/tests/integration/postgres/transaction-semantics.test.ts` pins this.
-Repositories are reached through the `UnitOfWork` scope so the mistake is hard to express;
+Use cases open the boundary with `this.transaction.run(...)` and repositories resolve their
+executor per query, so the mistake is hard to express;
 there is no lint rule covering it (Biome's `noFloatingPromises` is inert here).
 
 One hard rule that outranks convenience: **only `apps/api` talks to the database.**
@@ -424,7 +420,7 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 ## Naming
 
-Beyond the conventions in `REWRITE_PLAN.md` §4:
+Beyond the conventions in `AGENTS.md` (api layout and import rules):
 
 - Application use cases carry their role in the **class** name: `AnswerQuestionUseCase`, not
   `AnswerQuestion`. The class name is its NestJS injection token, so it is read out of
@@ -654,10 +650,15 @@ order is not the authored one. The property that shuffling reorders at all belon
 **`bun run verify` proves less than it looks like, and CI makes up the difference.**
 Every suite that needs Postgres skips when it is unreachable, which is most of `apps/api/tests`
 outside `unit/`. The `postgres` job in CI is what actually runs them — `integration/postgres`,
-`integration/app`, `integration/auth` and `e2e` — and it starts MinIO from this repo's own
-compose file, because the uploads path is real in some of them. For a long time that job ran only
+`integration/app`, `integration/auth`, `e2e`, `apps/admin/src`, `apps/mcp/tests` and
+`scripts/backup.roundtrip.test.ts` — and it starts Postgres and MinIO from this repo's own
+compose file, because the uploads path is real in some of them and the backup round trip
+`docker exec`s into `recall-postgres` by name. For a long time that job ran only
 `integration/postgres`, and 190 tests never ran anywhere. If you add a suite that calls
 `postgresAvailable()`, put its directory in that job or it is decoration.
+
+CI also regenerates the drizzle migrations and fails if that produces a file (a schema change
+with no migration), and builds every `deploy/Dockerfile` target without pushing.
 
 **An `/app/*` integration test opens with `openAppSession`, not ninety lines of its own.**
 `apps/api/tests/fixtures/app-session.ts` gives a signed-in owner, `app` and `bot` callers,

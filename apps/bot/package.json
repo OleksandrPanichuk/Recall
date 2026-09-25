@@ -12,11 +12,11 @@
 		"@recall/contracts": "workspace:*",
 		"@recall/kit": "workspace:*",
 		"telegraf": "^4.16.3",
-		"zod": "^4.1.13"
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@nestjs/common": "^11.1.6",
-		"@nestjs/core": "^11.1.6",
+		"@nestjs/common": "^11.2.1",
+		"@nestjs/core": "^11.2.1",
 		"@nestjs/testing": "^11"
 	}
 }

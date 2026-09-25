@@ -1,6 +1,6 @@
 # Personal Learning Quiz Bot
 
-Покроковий порядок реалізації та release gates описані в [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md). Процес розробки через незалежних implementer/reviewer agents описаний у [WORKFLOW.md](WORKFLOW.md).
+Правила архітектури `apps/api` і процес розробки описані в [AGENTS.md](AGENTS.md) та [CLAUDE.md](CLAUDE.md).
 
 ## Ідея
 

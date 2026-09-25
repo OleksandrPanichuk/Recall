@@ -3,7 +3,7 @@ name: verify
 on:
   pull_request:
   push:
-    branches: [main, rewrite]
+    branches: [main]
 
 concurrency:
   group: verify-${{ github.ref }}
@@ -21,25 +21,16 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - run: bun run verify
 
   postgres:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: recall
-          POSTGRES_PASSWORD: recall
-          POSTGRES_DB: recall
-        ports:
-          - 55432:5432
-        options: >-
-          --health-cmd "pg_isready -U recall -d recall"
-          --health-interval 2s
-          --health-timeout 3s
-          --health-retries 30
     env:
       TEST_DATABASE_URL: postgres://recall:recall@127.0.0.1:55432/recall
       OBJECT_STORE_URL: http://127.0.0.1:55090
@@ -51,11 +42,62 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
-      - run: docker compose up -d --wait minio
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: docker compose up -d --wait postgres minio
       - run: bun install --frozen-lockfile
       - run: >-
-          bun test
+          bun test --env-file=/dev/null
           apps/api/tests/integration/postgres
           apps/api/tests/integration/app
           apps/api/tests/integration/auth
           apps/api/tests/e2e
+          apps/admin/src
+          apps/mcp/tests
+          scripts/backup.roundtrip.test.ts
+
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter '@recall/api' db:generate:pg
+      - name: schema and migrations agree
+        run: |
+          drift=$(git status --porcelain -- apps/api/src/db/migrations)
+          if [ -n "$drift" ]; then
+            echo "The drizzle schema has changes no migration records. Run bun run db:generate and commit the result:"
+            echo "$drift"
+            exit 1
+          fi
+
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [api, web, bot, mcp, migrate]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          target: ${{ matrix.target }}
+          build-args: VITE_API_ORIGIN=
+          push: false
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
