@@ -7,6 +7,7 @@ import { setPrincipal } from "@/shared/request-context";
 import {
 	BotTokenNotConfiguredError,
 	ForeignTelegramAccountError,
+	InstanceHasNoOwnerError,
 	WrongBotTokenError,
 } from "./auth.errors";
 import { AuthService } from "./auth.service";
@@ -37,7 +38,13 @@ export class BotTokenGuard implements CanActivate {
 			throw new ForeignTelegramAccountError();
 		}
 
-		const owner = await this.auth.instanceOwner().catch(() => undefined);
+		const owner = await this.auth.instanceOwner().catch((error: unknown) => {
+			if (error instanceof InstanceHasNoOwnerError) {
+				return undefined;
+			}
+
+			throw error;
+		});
 
 		if (owner !== undefined) {
 			setPrincipal({ kind: "instance", owner });
