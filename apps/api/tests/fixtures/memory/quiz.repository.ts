@@ -1,5 +1,11 @@
 import type { QuizRepository } from "@tests/fixtures/quiz-repository.alias";
-import type { QuizListFilter, QuizSummary } from "@/modules/quizzes";
+import type {
+	ListedQuestion,
+	QuestionListFilter,
+	QuestionLocation,
+	QuizListFilter,
+	QuizSummary,
+} from "@/modules/quizzes";
 import {
 	type QuestionId,
 	QuizSetEntity,
@@ -90,6 +96,70 @@ export function createMemoryQuizRepository(store: MemoryStore): QuizRepository {
 					questionCount: quiz.questions.length,
 					updatedAt: quiz.updatedAt,
 				}));
+		},
+
+		async answerCounts(
+			questionIds: readonly QuestionId[],
+		): Promise<ReadonlyMap<QuestionId, number>> {
+			const wanted = new Set(questionIds.map(String));
+			const counts = new Map<QuestionId, number>();
+
+			for (const attempt of store.attempts.values()) {
+				for (const answer of attempt.responses) {
+					if (wanted.has(String(answer.questionId))) {
+						counts.set(
+							answer.questionId,
+							(counts.get(answer.questionId) ?? 0) + 1,
+						);
+					}
+				}
+			}
+
+			return counts;
+		},
+
+		async locateQuestions(
+			questionIds: readonly QuestionId[],
+		): Promise<readonly QuestionLocation[]> {
+			const wanted = new Set(questionIds.map(String));
+
+			return [...store.quizAggregates.values()].flatMap((quiz) =>
+				quiz.questions
+					.filter((question) => wanted.has(String(question.id)))
+					.map((question) => ({
+						questionId: question.id,
+						quizSetId: quiz.id,
+						quizSetTitle: quiz.title,
+						quizSetStatus: quiz.status,
+						prompt: question.prompt,
+					})),
+			);
+		},
+
+		async listQuestions(
+			filter?: QuestionListFilter,
+		): Promise<readonly ListedQuestion[]> {
+			return [...store.quizAggregates.values()]
+				.filter(
+					(quiz) =>
+						filter?.quizSetId === undefined ||
+						String(quiz.id) === String(filter.quizSetId),
+				)
+				.sort((left, right) =>
+					left.title === right.title
+						? String(left.id).localeCompare(String(right.id))
+						: left.title.localeCompare(right.title),
+				)
+				.flatMap((quiz) =>
+					quiz.questions
+						.toSorted((left, right) => left.position - right.position)
+						.map((question) => ({
+							question,
+							quizSetId: quiz.id,
+							setTitle: quiz.title,
+							setStatus: quiz.status,
+						})),
+				);
 		},
 
 		async answerCount(questionId: QuestionId): Promise<number> {

@@ -178,6 +178,73 @@ export function describePageRepository(
 				).toBe(1);
 			});
 
+			test("counts the contents of every page in one answer", async () => {
+				const root = uuid();
+				const shelves = Array.from({ length: 30 }, () => uuid());
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(root, "Library"));
+
+					for (const [index, shelf] of shelves.entries()) {
+						await pages.save(page(shelf, `Shelf ${index}`, root, index));
+					}
+				});
+
+				for (const [index, shelf] of shelves.entries()) {
+					for (let published = 0; published < index % 3; published += 1) {
+						await harness.seedQuiz(shelf, "published");
+					}
+
+					if (index % 2 === 0) {
+						await harness.seedQuiz(shelf, "draft");
+					}
+				}
+
+				const counts = await harness.scope.pages.contentCounts();
+
+				expect(counts.size).toBe(31);
+				expect(counts.get(toPageId(root))).toEqual({
+					quizzes: 0,
+					publishedQuizzes: 0,
+					childPages: 30,
+				});
+
+				for (const [index, shelf] of shelves.entries()) {
+					expect(counts.get(toPageId(shelf))).toEqual({
+						quizzes: (index % 3) + (index % 2 === 0 ? 1 : 0),
+						publishedQuizzes: index % 3,
+						childPages: 0,
+					});
+				}
+			});
+
+			test("counts only the pages it is asked about", async () => {
+				const first = uuid();
+				const second = uuid();
+
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(first, "First"));
+					await pages.save(page(second, "Second"));
+					await pages.save(page(uuid(), "Inside", first));
+				});
+
+				await harness.seedQuiz(second, "published");
+
+				const counts = await harness.scope.pages.contentCounts([
+					toPageId(first),
+					toPageId("not-a-uuid"),
+					toPageId(uuid()),
+				]);
+
+				expect([...counts.keys()]).toEqual([toPageId(first)]);
+				expect(counts.get(toPageId(first))).toEqual({
+					quizzes: 0,
+					publishedQuizzes: 0,
+					childPages: 1,
+				});
+				expect((await harness.scope.pages.contentCounts([])).size).toBe(0);
+			});
+
 			test("rolls the whole boundary back when the operation throws", async () => {
 				const first = uuid();
 
@@ -374,6 +441,27 @@ export function describePageRepository(
 				expect(await harness.scope.pages.search("replication", 1)).toHaveLength(
 					1,
 				);
+			});
+
+			test("searches for wildcard characters as the characters themselves", async () => {
+				await harness.unitOfWork.run(async ({ pages }) => {
+					await pages.save(page(uuid(), "abc"));
+					await pages.save(page(uuid(), "a_c"));
+					await pages.save(page(uuid(), "1000 words"));
+					await pages.save(page(uuid(), "100% sure"));
+					await pages.save(page(uuid(), "C:\\temp"));
+					await pages.save(page(uuid(), "Ctemp"));
+				});
+
+				const names = async (query: string) =>
+					(await harness.scope.pages.search(query))
+						.map((match) => match.name)
+						.sort();
+
+				expect(await names("a_c")).toEqual(["a_c"]);
+				expect(await names("100%")).toEqual(["100% sure"]);
+				expect(await names("%")).toEqual(["100% sure"]);
+				expect(await names(":\\t")).toEqual(["C:\\temp"]);
 			});
 
 			test("a page is not shared until it is", async () => {

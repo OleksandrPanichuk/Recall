@@ -8,7 +8,7 @@ import {
 	quizAttachments,
 	quizzes,
 } from "@/db/schema";
-import { isUuid } from "@/db/uuid";
+import { isAnyUuidOf, isUuid } from "@/db/uuid";
 import { PageEntity, type PageId, toPageId } from "../page.entity";
 import {
 	type LinkedQuizFilter,
@@ -53,6 +53,8 @@ export const excerptAround = (
 	return `${start === 0 ? "" : "…"}${excerpt}${start + EXCERPT_RADIUS * 2 >= content.length ? "" : "…"}`;
 };
 
+const escapeLike = (value: string): string => value.replace(/[\\%_]/g, "\\$&");
+
 export const slugOf = (name: string): string => {
 	const slug = name
 		.normalize("NFKD")
@@ -67,6 +69,7 @@ import { OwnerContext } from "@/core/owner-context";
 import { Database } from "@/db/connection";
 import { DatabaseExecutor } from "@/db/executor";
 import type {
+	PageContentCounts,
 	PageMatch,
 	PageRevision,
 	PageShare,
@@ -262,6 +265,54 @@ export class PostgresPagesRepository extends PagesRepository {
 		return Number(row?.total ?? 0);
 	}
 
+	async contentCounts(
+		ids?: readonly PageId[],
+	): Promise<ReadonlyMap<PageId, PageContentCounts>> {
+		const wanted = ids?.map(String).filter(isUuid);
+
+		if (wanted !== undefined && wanted.length === 0) {
+			return new Map();
+		}
+
+		const owner = String(this.owner);
+		const published = sql.join(
+			PUBLISHED.map((status) => sql`${status}::text`),
+			sql`, `,
+		);
+		const rows = await this.executor.execute(sql`
+			select
+				page.id::text as id,
+				count(quiz.id)::int as quizzes,
+				count(quiz.id) filter (where quiz.status in (${published}))::int as published_quizzes,
+				(
+					select count(*)
+					from pages child
+					where child.owner_id = ${owner}::text and child.parent_id = page.id
+				)::int as child_pages
+			from pages page
+			left join quizzes quiz
+				on quiz.page_id = page.id and quiz.owner_id = ${owner}::text
+			where page.owner_id = ${owner}::text
+				${
+					wanted === undefined
+						? sql``
+						: sql`and ${isAnyUuidOf(sql`page.id`, wanted)}`
+				}
+			group by page.id
+		`);
+
+		return new Map(
+			[...rows].map((row) => [
+				toPageId(String(row.id)),
+				{
+					quizzes: Number(row.quizzes),
+					publishedQuizzes: Number(row.published_quizzes),
+					childPages: Number(row.child_pages),
+				},
+			]),
+		);
+	}
+
 	async attachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void> {
 		const owned = await this.ownedPair(id, quizId);
 
@@ -391,8 +442,8 @@ export class PostgresPagesRepository extends PagesRepository {
 					this.mine,
 					sql`(
 						to_tsvector('simple', ${pages.title} || ' ' || coalesce(${pages.contentMd}, ''))
-						@@ plainto_tsquery('simple', ${trimmed})
-						or ${pages.title} ilike ${`%${trimmed}%`}
+						@@ plainto_tsquery('simple', ${trimmed}::text)
+						or ${pages.title} ilike ${`%${escapeLike(trimmed)}%`}::text escape '\\'
 					)`,
 				),
 			)

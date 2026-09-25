@@ -1,4 +1,5 @@
 import type {
+	PageContentCounts,
 	PageMatch,
 	PageRepository,
 	PageRevision,
@@ -11,6 +12,7 @@ import {
 	type LinkedQuizSummary,
 	PageEntity,
 	type PageId,
+	PUBLISHED,
 	slugOf,
 } from "@/modules/pages";
 import { type QuizSetId, QuizSetStatus } from "@/modules/quizzes";
@@ -150,6 +152,34 @@ export function createMemoryPageRepository(store: MemoryStore): PageRepository {
 			return [...store.pages.values()].filter(
 				(page) => String(page.parentId ?? "") === String(id),
 			).length;
+		},
+
+		async contentCounts(
+			ids?: readonly PageId[],
+		): Promise<ReadonlyMap<PageId, PageContentCounts>> {
+			const wanted = ids === undefined ? undefined : new Set(ids.map(String));
+			const quizzes = [...store.quizzes.values()];
+			const pages = [...store.pages.values()];
+
+			return new Map(
+				pages
+					.filter((page) => wanted === undefined || wanted.has(String(page.id)))
+					.map((page) => [
+						page.id,
+						{
+							quizzes: quizzes.filter((quiz) => quiz.pageId === String(page.id))
+								.length,
+							publishedQuizzes: quizzes.filter(
+								(quiz) =>
+									quiz.pageId === String(page.id) &&
+									PUBLISHED.includes(quiz.status),
+							).length,
+							childPages: pages.filter(
+								(child) => String(child.parentId ?? "") === String(page.id),
+							).length,
+						},
+					]),
+			);
 		},
 
 		async attachQuiz(id: PageId, quizId: QuizSetId): Promise<void> {

@@ -47,20 +47,15 @@ export class ListDueRepetitionsUseCase extends UseCase<Options, Result> {
 		const setOfQuestion = new Map<QuestionId, QuizSetId>();
 		const titles = new Map<QuizSetId, string>();
 
-		for (const summary of await this.quizzes.list({
-			statuses: [QuizSetStatus.Published],
-		})) {
-			const quizSet = await this.quizzes.findById(summary.id);
-
-			if (quizSet === undefined) {
+		for (const found of await this.quizzes.locateQuestions(
+			due.map((schedule) => schedule.questionId),
+		)) {
+			if (found.quizSetStatus !== QuizSetStatus.Published) {
 				continue;
 			}
 
-			titles.set(quizSet.id, quizSet.title);
-
-			for (const question of quizSet.questions) {
-				setOfQuestion.set(question.id, quizSet.id);
-			}
+			titles.set(found.quizSetId, found.quizSetTitle);
+			setOfQuestion.set(found.questionId, found.quizSetId);
 		}
 
 		const buckets = new Map<QuizSetId, Bucket>();

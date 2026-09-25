@@ -119,7 +119,7 @@ export class PostgresSchedulesRepository extends SchedulesRepository {
 				and(
 					this.mine,
 					isNull(reviewStates.retiredAt),
-					sql`${reviewStates.lapses} >= ${threshold}`,
+					sql`${reviewStates.lapses} >= ${threshold}::int`,
 				),
 			)
 			.orderBy(sql`${reviewStates.lapses} desc`);

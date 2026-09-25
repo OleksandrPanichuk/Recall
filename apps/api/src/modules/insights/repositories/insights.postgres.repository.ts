@@ -43,7 +43,7 @@ export class PostgresAnalyticsRepository extends AnalyticsRepository {
 	}: AnalyticsWindow): Promise<readonly DailyActivity[]> {
 		const rows = await this.executor.execute(sql`
 			select
-				(responses.answered_at at time zone ${timezone})::date as day,
+				(responses.answered_at at time zone ${timezone}::text)::date as day,
 				count(distinct responses.attempt_id)::int as attempts,
 				count(*)::int as answered,
 				count(*) filter (where responses.is_correct)::int as correct
@@ -71,7 +71,7 @@ export class PostgresAnalyticsRepository extends AnalyticsRepository {
 	}: AnalyticsWindow): Promise<readonly DueForecastDay[]> {
 		const rows = await this.executor.execute(sql`
 			select
-				(review_states.due_at at time zone ${timezone})::date as day,
+				(review_states.due_at at time zone ${timezone}::text)::date as day,
 				count(*)::int as due
 			from review_states
 			where review_states.owner_id = ${String(this.owner)}::text
@@ -109,12 +109,12 @@ export class PostgresAnalyticsRepository extends AnalyticsRepository {
 			where attempts.owner_id = ${String(this.owner)}::text
 				and responses.skipped = false
 			group by questions.id, questions.quiz_id, quizzes.title, questions.prompt
-			having count(*) >= ${minimumAnswers}
+			having count(*) >= ${minimumAnswers}::int
 			order by
 				(count(*) filter (where responses.is_correct))::float / count(*) asc,
 				count(*) desc,
 				questions.id asc
-			limit ${limit}
+			limit ${limit}::int
 		`);
 
 		return [...rows].map((row) => ({

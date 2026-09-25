@@ -11,6 +11,7 @@ export * from "./page.quiz-link";
 export * from "./pages.errors";
 export { PagesModule } from "./pages.module";
 export {
+	type PageContentCounts,
 	type PageMatch,
 	type PageRevision,
 	type PageShare,
