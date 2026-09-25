@@ -8,6 +8,7 @@ import { PracticeView } from "@/features/practice/ui/views/PracticeView";
 
 export const Route = createFileRoute("/practice/$quizId")({
 	preload: false,
+	gcTime: 0,
 	validateSearch: parsePracticeSearch,
 	loaderDeps: ({ search }) => search,
 	remountDeps: ({ params, loaderDeps }) => ({
