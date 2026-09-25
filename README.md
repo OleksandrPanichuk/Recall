@@ -2,7 +2,7 @@
 
 Персональний Telegram-бот для активного навчання: Claude перетворює книгу, PDF, конспект або транскрипт на структурований набір запитань і передає його через MCP, а бот проводить тести, пояснює помилки та зберігає прогрес.
 
-> **Статус:** Stable Personal Release, у процесі rewrite-у на v2. Phases 1-6 виконані: domain models, persistence, application use cases, Telegram-бот, MCP server, adaptive practice і operations (graceful shutdown, privacy-safe logs, health command). Quiz data переїхала зі `bun:sqlite` на Postgres — див. [REWRITE_PLAN.md](REWRITE_PLAN.md).
+> **Статус:** Stable Personal Release, v2. API — NestJS із capability-модулями в `apps/api/src/modules`, дані в Postgres, Telegram-бот на Telegraf, веб-платформа на TanStack Start, MCP server для Claude. Rewrite завершено; `main` — trunk.
 
 ## Як має працювати продукт
 
@@ -28,44 +28,45 @@
 
 У першій версії Claude потрібен лише для створення навчальних наборів. Опубліковані тести перевіряються звичайним кодом, тому їх проходження не потребує Claude API та не створює додаткових AI-витрат.
 
-Заплановані можливості:
+Що вже є:
 
 - імпорт наборів із Claude через MCP;
-- `single_choice`, `multiple_choice` і `true_false` питання;
+- кілька типів питань (choice, true/false, typed, cloze, ordering, matching);
 - пояснення та посилання на розділ джерела;
 - збереження й продовження незавершеної спроби;
-- результати за наборами й темами;
-- персональний доступ через Telegram user allowlist.
+- результати за наборами й темами, повторення (ladder або FSRS);
+- вхід через Telegram-лінк або email і пароль у веб-платформі.
 
 ## Документація
 
 - [DESCRIPTION.md](DESCRIPTION.md) — повна продуктова концепція та майбутня архітектура.
-- [ARCHITECTURE.md](ARCHITECTURE.md) — binding patterns, dependency rules, folder ownership і target structure для нової реалізації.
-- [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) — покроковий roadmap, acceptance gates і release milestones.
-- [WORKFLOW.md](WORKFLOW.md) — agent workflow: implement, review, fix і scoped re-review.
-- [AGENTS.md](AGENTS.md) — repository instructions для Codex та інших coding agents.
+- [AGENTS.md](AGENTS.md) — repository instructions для coding agents, зокрема binding правила layout-у та import-ів `apps/api`.
 - [CLAUDE.md](CLAUDE.md) — runtime та repository instructions для Claude Code.
-- [skills/run-reviewed-development](skills/run-reviewed-development/SKILL.md) — reusable cross-platform orchestration skill.
+- [deploy/README.md](deploy/README.md) — розгортання на власному сервері, releases і backups.
 
 ## Технології
 
 - [Bun](https://bun.com) — runtime, package manager, build і test runner;
 - TypeScript;
-- [Telegraf](https://telegraf.js.org) — запланований Telegram Bot framework;
+- [NestJS](https://nestjs.com) на Node — `apps/api`;
+- [Telegraf](https://telegraf.js.org) — Telegram Bot framework (`apps/bot`);
+- [TanStack Start](https://tanstack.com/start) — веб-платформа (`apps/web`);
 - Postgres 17 + [Drizzle ORM](https://orm.drizzle.team) над driver-ом `postgres` —
   quiz data, schema, versioned migrations і всі repository-запити;
 - [Better Auth](https://better-auth.com) — сесії, вхід через Telegram-лінк,
   особисті токени; усе в Postgres;
 - `bun:sqlite` — лишився **тільки** в ETL, який читає v1-бекап; сервер його не
   імпортує;
-- Model Context Protocol — запланована інтеграція з Claude Desktop/Claude Code.
+- Model Context Protocol — інтеграція з Claude Desktop, Claude Code та іншими MCP-клієнтами.
 
 ## Поточна локальна foundation
 
 ### Передумови
 
 - Bun;
-- Docker — для локального Postgres (`bun run db:up`).
+- Docker — для локального Postgres, MinIO і Mailpit (`bun run db:up` або `make db-up`).
+
+Усі типові команди є і в `Makefile`: `make help` показує кожен target з описом.
 
 ### Налаштування
 
@@ -127,16 +128,15 @@ ETL читає старий `bun:sqlite` файл напряму і пише в 
 цілісність foreign keys:
 
 ```bash
-cd apps/api
-APPLY_SCHEMA=1 bun run ./scripts/migrate-to-postgres.ts \
-  ../../data/quiz.before-postgres-20260823-170412.sqlite \
+APPLY_SCHEMA=1 bun run ./apps/api/scripts/migrate-to-postgres.ts \
+  data/quiz.before-postgres-20260823-170412.sqlite \
   postgres://recall:recall@127.0.0.1:55432/recall
 ```
 
 `APPLY_SCHEMA=1` спершу накладає schema на порожню базу. Без нього ETL очікує,
 що migrations уже застосовані. Ids детерміновані (`uuidFor(kind, legacyId)`),
 тому повторний запуск нічого не дублює. Старий SQLite файл залишається
-read-only escape hatch — не видаляйте його.
+read-only escape hatch — не видаляйте його. `data/` ігнорується git-ом: дампи й SQLite-файли з реальними даними не комітяться.
 
 ### SQLite, що залишився
 
@@ -164,7 +164,7 @@ read-only escape hatch — не видаляйте його.
 | `bun run check` | Одночасно перевірити lint, formatting та imports |
 | `bun run check:fix` | Застосувати safe Biome fixes, formatting та import sorting |
 | `bun run typecheck` | Перевірити TypeScript без генерації output |
-| `bun run up` | Підняти все, що налаштоване: API (з MCP), бот, адмінка |
+| `bun run up` | Підняти все, що налаштоване: API (з MCP), бот, веб, адмінка |
 | `bun run api` | Підняти API з TypeScript (dev) — REST, Swagger, адмін-API, MCP |
 | `bun run api:node` | Підняти зібраний API під `node` (як у production) |
 | `bun run web` | Підняти веб-платформу (TanStack Start) на `http://127.0.0.1:3000` |
@@ -172,8 +172,9 @@ read-only escape hatch — не видаляйте його.
 | `bun run admin` | Підняти веб-адмінку на `http://127.0.0.1:8766` |
 | `bun run build` | Зібрати packages і всі застосунки (`apps/api/dist`, `dist/*`) |
 | `bun run start` | Запустити попередньо зібраний `apps/bot/dist/main.js` |
-| `bun test` | Запустити Bun unit і contract tests |
-| `bun run verify` | Запустити повний local gate: Biome, typecheck, tests і build |
+| `bun run test` | Root suite і окремо suite `apps/web` (plain `bun test` пропускає web) |
+| `bun run verify` | Повний local gate у такому порядку: Biome check, build, typecheck, tests |
+| `bun run backup` / `restore` | Дамп Postgres і MinIO в `backups/<UTC stamp>`; повернути найновіший (`restore` вимагає `--yes`) |
 
 Biome зафіксований як local dev dependency, тому локальна розробка та CI
 використовують однакову версію ruleset. VS Code/Cursor автоматично форматує
@@ -184,164 +185,36 @@ Legacy publish-bot code і його runtime dependencies видалені. Но�
 потрібно додавати лише разом із behavior, яке їх використовує: `zod` доданий для
 валідації конфігурації і буде повторно використаний для MCP schema validation.
 
-## Development roadmap
-
-Реалізація поділена на послідовні фази:
-
-1. **Repository foundation** — Git baseline, `.gitignore`, environment schema та verification scripts.
-2. **Domain and persistence** — domain models, schema, migrations та repositories (готово; persistence перенесена на Postgres).
-3. **Application services** — authoring, attempts, scoring і statistics (готово).
-4. **Telegram interface** — allowlist, меню, quiz flow і results (готово).
-5. **MCP authoring** — локальний server та tools для Claude (готово).
-6. **Adaptive practice** — повторення та spaced repetition (знято; буде перероблено з нуля).
-7. **Reliability** — lifecycle, privacy-safe logging, backup/restore і local deployment (готово).
-
-Детальні work packages та gates описані в [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
-
 ## Agent development workflow
 
-Для реалізації плану використовується незалежний review loop:
-
-```text
-implementer -> focused verification -> reviewer
-     ^                                   |
-     +--------- fix <- findings ----------+
-                       |
-                       v
-                 scoped re-review
-```
-
-Головна agent session працює як coordinator. Вона не схвалює власну реалізацію: кожен task перевіряє окремий read-only reviewer, а кожен fix проходить повторне незалежне review.
-
-Приклад запуску в Codex:
-
-```text
-Use $run-reviewed-development to execute <path-to-implementation-plan>.
-```
-
-У Claude Code:
-
-```text
-Use the run-reviewed-development skill to execute <path-to-implementation-plan>.
-```
-
-Перед execution конкретної фази спочатку потрібно створити точний implementation plan через `writing-plans`. Повний процес описаний у [WORKFLOW.md](WORKFLOW.md).
+Реалізація йде через незалежний review loop: implementer робить один task, окремий read-only reviewer його перевіряє, findings повертаються implementer-у, а кожен fix проходить scoped re-review. Для цього використовується глобально встановлений skill `run-reviewed-development`; правила — в [AGENTS.md](AGENTS.md).
 
 ## Поточна структура
 
 Репозиторій — це Bun workspace. Домен, use cases і доступ до бази живуть в
-`apps/api`; бот, MCP і адмінка — окремі застосунки, які ходять до API по HTTP і
-до бази не мають доступу взагалі. `apps/web` ще не існує — див.
-[REWRITE_PLAN.md](REWRITE_PLAN.md).
+`apps/api`; бот, MCP, адмінка й веб — окремі застосунки, які ходять до API по HTTP і
+до бази не мають доступу взагалі.
 
 ```text
-apps/api/           NestJS: REST, Swagger, /bot/*, /api/* (адмінка) і /mcp
+apps/api/           NestJS: REST, Swagger, /bot/*, /app/*, /api/auth/* і /mcp
+  src/modules/      по директорії на capability (pages, quizzes, attempts, …)
+  src/db/           schema, client, executor, migrations Postgres
   drizzle/          схема v1 (SQLite) — лише щоб тест ETL зібрав v1-файл
-  src/db/migrations/ міграції Postgres
-  scripts/          migrate-to-postgres.ts — ETL з v1 SQLite
+  scripts/          migrate-to-postgres.ts, etl.ts, status.ts
 apps/bot/           Telegraf-роутер; кожен use case — виклик /bot/* по HTTP
+apps/web/           TanStack Start; server functions ходять до /app/*
 apps/mcp/           stdio-мостик до /mcp того ж API
 apps/admin/         react-admin SPA на Bun.serve
 packages/
   contracts/        zod-схеми wire-формату + типізований клієнт API
   kit/              спільний runtime: logger, shutdown, daily timer, утиліти
   tooling/          спільний tsconfig base
-scripts/            up — supervisor локальних сервісів
+scripts/            up/down — supervisor локальних сервісів; backup/restore
+deploy/             Dockerfile, compose-стек, nginx, ngrok, release і backup
 ```
 
-Всередині `apps/api/src` структура не змінилася:
-
-```text
-apps/api/src/
-  shared/
-    utils/          layer-free date, text and duplicate primitives
-  domain/
-    quiz-set/       QuizSet, Question and validation model
-    quiz-attempt/   QuizAttempt, answer evaluation and scoring model
-    folder/         Folder aggregate, naming and placement rules
-    branded-id.ts
-  application/
-    use-case.ts    shared Command and UseCase contracts
-    ports/         Clock, IdGenerator and UnitOfWork contracts
-      repositories/ page, quiz, attempt, review and term pair contracts
-    use-cases/
-      quiz-sets/    create, update, add questions, publish, archive
-      attempts/     start, pause, resume, answer, finish
-      statistics/   per-attempt, per-set, per-topic and improvement figures
-      folders/      create, rename, move, delete, ensure path, browse
-  adapters/
-    persistence/
-      sqlite/     only the MCP OAuth store is left here
-        database.ts connection lifecycle and SQLite pragmas
-        migrator.ts guarded Drizzle migration runner
-        schema.ts   Drizzle SQLite schema
-        sqlite-transaction.ts Transaction port over bun:sqlite
-        repositories/ the OAuth client store
-  persistence/
-    postgres/
-      client.ts    connection pool over the postgres driver
-      schema.ts    Drizzle Postgres schema
-      unit-of-work.ts transactional scope over drizzle
-      etl.ts       the v1 SQLite to Postgres migration and its verification
-      repositories/ Drizzle query builders and row mappers
-    memory/        the same repositories in memory, behind the contract suites
-  infrastructure/
-    config/
-      env.ts       validated startup configuration
-    logging/
-      logger.ts       structured, privacy-safe JSON logs on stderr
-      logger.types.ts log level, record and logger contracts
-      utils/          field redaction, clipping and record formatting
-    lifecycle/
-      shutdown.ts  ordered teardown on SIGINT/SIGTERM
-      backup.ts    consistent backup and restore validation
-      status.ts    health report
-  adapters/
-    mcp/
-      server.ts    MCP server construction and tool registration
-      tools/       one registrar per MCP tool
-      schemas/     zod input schemas
-      presenters/  tool result and error text
-      utils/       per-call tool logging
-  composition/
-    create-application.ts  manual dependency injection root
-  entrypoints/
-    api.ts         starts NestJS: REST, Swagger, /bot/*, admin API and MCP
-    status.ts      prints the health report; --check validates and exits
-  modules/
-    bot/           the internal /bot/* surface the telegram app calls
-    content/       public REST over the quizzes
-    integration/   mounts the admin and MCP apps
-apps/bot/
-  src/telegram/    Telegraf wiring, handlers and presenters
-  src/config.ts    the bot's own environment; it never sees DATABASE_URL
-  src/main.ts      starts the bot; --check validates configuration and exits
-apps/mcp/
-  src/main.ts      stdio bridge: a local MCP client talks to the api over http
-packages/
-  contracts/       wire schemas and the typed api client
-  kit/             logger, shutdown, daily timer and pure helpers
-scripts/
-  up.ts            the supervisor: checks Postgres, migrates, starts services
-apps/api/tests/
-  fixtures/        aggregate builders shared by the integration tests
-  contracts/     repository contract suites, run against both engines
-  integration/
-    postgres/      schema constraints, transactions, the ETL and the status report
-skills/
-  run-reviewed-development/
-.env.example
-DESCRIPTION.md
-ARCHITECTURE.md
-REWRITE_PLAN.md
-WORKFLOW.md
-AGENTS.md
-CLAUDE.md
-```
-
-Target structure не створюється наперед порожніми directories. Application use
-cases і transport adapters додаватимуться поступово за правилами
-[ARCHITECTURE.md](ARCHITECTURE.md).
+Layout `apps/api/src` і правила import-ів описані в [AGENTS.md](AGENTS.md)
+(«api layout and import rules») і перевіряються `biome.json`.
 
 ## Створення наборів через Claude (MCP)
 
@@ -407,7 +280,7 @@ claude mcp add recall-quiz --scope user \
 Типовий сценарій: `quiz_create_set` → кілька `quiz_add_questions` → `quiz_get_set`
 для перевірки → `quiz_publish_set`. Після цього набір з'являється в Telegram-меню.
 
-> Назви tools використовують `_`, а не `.` як у `DEVELOPMENT_PLAN.md`: MCP-клієнти
+> Назви tools використовують `_`, а не `.`: MCP-клієнти
 > дозволяють у назві лише `[A-Za-z0-9_-]`.
 
 
@@ -554,7 +427,7 @@ port 8767 (api) is held by pid 24823 (bun) — stop it with: kill 24823
 
 ## Веб-адмінка
 
-`bun run up` піднімає адмінку разом із ботом і MCP. Окремо:
+`bun run up` піднімає адмінку разом з API, ботом і вебом. Окремо:
 
 ```bash
 bun run admin
@@ -976,17 +849,16 @@ quiz_move_set({ quizSetId: "..." })
 
 ### Backup
 
-Quiz data живе в Postgres, тому backup робить `pg_dump`, а не скрипт у репозиторії:
-
 ```bash
-docker exec recall-postgres pg_dump -U recall -d recall -Fc > quiz.dump
-docker exec -i recall-postgres pg_restore -U recall -d recall --clean < quiz.dump
+bun run backup              # backups/<UTC stamp>/{postgres.sql,minio/}; тримає 7 останніх
+bun run restore --yes       # повернути найновіший backup
 ```
 
-`pg_dump` тепер забирає все: quiz data, користувачів, сесії, MCP OAuth
-credentials і особисті токени — окремого SQLite-файла більше немає. Старий
-`data/quiz.before-postgres-*.sqlite` — read-only escape hatch на випадок, якщо в
-перенесених даних знайдеться проблема.
+Дамп забирає все: quiz data, користувачів, сесії, MCP OAuth credentials,
+особисті токени й завантажені зображення. `backups/` і `data/` ігноруються git-ом.
+Для production-стеку є `deploy/backup` і systemd timer — див.
+[deploy/README.md](deploy/README.md). Старий `data/quiz.before-postgres-*.sqlite` —
+read-only escape hatch на випадок, якщо в перенесених даних знайдеться проблема.
 
 ### Graceful shutdown
 

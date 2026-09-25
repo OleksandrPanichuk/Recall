@@ -9,7 +9,6 @@ tmp
 docs
 data
 backups
-skills
 
 **/node_modules
 **/dist
@@ -36,10 +35,8 @@ logs.txt
 docker-compose.yml
 docker-compose.deploy.yml
 
-ARCHITECTURE.md
+AGENTS.md
+CLAUDE.md
 DESCRIPTION.md
-GOOGLE_STITCH_DESIGN_PROMPT.md
-HANDOFF.md
 README.md
-REWRITE_PLAN.md
-WORKFLOW.md
+Makefile
