@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { OwnerContext } from "@/core/owner-context";
 import { Database } from "@/db/connection";
 import { DatabaseExecutor } from "@/db/executor";
@@ -60,5 +60,14 @@ export class PostgresAttachmentsRepository extends AttachmentsRepository {
 					size: row.size,
 					originalName: row.originalName ?? undefined,
 				};
+	}
+
+	async totalSize(): Promise<number> {
+		const [row] = await this.executor
+			.select({ total: sql<string>`coalesce(sum(${attachments.size}), 0)` })
+			.from(attachments)
+			.where(this.mine);
+
+		return Number(row?.total ?? 0);
 	}
 }

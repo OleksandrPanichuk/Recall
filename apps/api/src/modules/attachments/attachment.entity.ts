@@ -14,7 +14,6 @@ export class AttachmentEntity {
 		"image/jpeg",
 		"image/gif",
 		"image/webp",
-		"image/svg+xml",
 	];
 
 	static readonly MAX_BYTES = 5 * 1024 * 1024;

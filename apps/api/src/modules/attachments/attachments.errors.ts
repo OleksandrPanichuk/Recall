@@ -27,3 +27,12 @@ export class AttachmentNotFoundError extends ModuleError {
 		super(`Attachment ${id} does not exist`);
 	}
 }
+
+export class UploadQuotaExceededError extends ModuleError {
+	readonly status = HttpStatus.PAYLOAD_TOO_LARGE;
+	readonly code = "UPLOAD_QUOTA_EXCEEDED";
+
+	constructor(quotaBytes: number) {
+		super(`uploads are limited to ${quotaBytes} bytes per account`);
+	}
+}

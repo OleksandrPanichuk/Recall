@@ -1,7 +1,11 @@
 import { Controller, Get, NotFoundException, Param, Res } from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
 import type { Response } from "express";
-import { AttachmentsRepository, ObjectStore } from "@/modules/attachments";
+import {
+	AttachmentsRepository,
+	ObjectStore,
+	serveAttachment,
+} from "@/modules/attachments";
 import { runAs } from "@/shared/request-context";
 import { PageShareEntity } from "./page-share.entity";
 import { ShareTokens } from "./page-shares.repository";
@@ -86,9 +90,15 @@ export class PageSharesPublicController {
 			throw new NotFoundException();
 		}
 
-		response.setHeader("content-type", body.contentType);
-		response.setHeader("content-length", String(body.size));
-		response.setHeader("cache-control", "public, max-age=3600");
-		body.stream.pipe(response);
+		await serveAttachment(
+			response,
+			{
+				stream: body.stream,
+				contentType: attachment.contentType,
+				size: body.size,
+				originalName: attachment.originalName,
+			},
+			"public, max-age=3600",
+		);
 	}
 }

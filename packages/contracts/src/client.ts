@@ -252,6 +252,7 @@ export const ApiErrorName = {
 	NothingToPractice: "NothingToPracticeError",
 	NothingDue: "NothingDueError",
 	QuestionNotFound: "QuestionNotFoundError",
+	UploadQuotaExceeded: "UploadQuotaExceededError",
 } as const;
 export type ApiErrorName = (typeof ApiErrorName)[keyof typeof ApiErrorName];
 

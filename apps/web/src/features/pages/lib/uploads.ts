@@ -1,4 +1,8 @@
-import { API_ORIGIN, UPLOAD_PATH } from "./uploads.constants";
+import {
+	ACCEPTED_IMAGE_TYPES,
+	API_ORIGIN,
+	UPLOAD_PATH,
+} from "./uploads.constants";
 
 export const displayUrl = (url: string): string =>
 	url.startsWith(UPLOAD_PATH) ? `${API_ORIGIN}${url}` : url;
@@ -11,6 +15,12 @@ export const sharedUrl =
 			: url;
 
 export async function uploadImage(file: File): Promise<string> {
+	if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+		throw new Error(
+			`${file.type || "this file"} cannot be uploaded; use a PNG, JPEG, GIF or WebP image`,
+		);
+	}
+
 	const body = new FormData();
 
 	body.append("file", file);
