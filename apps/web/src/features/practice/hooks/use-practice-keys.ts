@@ -17,6 +17,28 @@ const typing = (target: EventTarget | null): boolean => {
 	);
 };
 
+const OWNS_ENTER =
+	"a[href], button:not(:disabled), select, textarea, [role='button'], [contenteditable]";
+
+const ADVANCES_ON_ENTER = "[data-enter-advances]";
+
+const ownsEnter = (target: EventTarget | null): boolean => {
+	const element = target as HTMLElement | null;
+
+	if (typing(element)) {
+		return true;
+	}
+
+	if (typeof element?.closest !== "function") {
+		return false;
+	}
+
+	return (
+		element.closest(ADVANCES_ON_ENTER) === null &&
+		element.closest(OWNS_ENTER) !== null
+	);
+};
+
 export function usePracticeKeys({
 	optionCount,
 	onPick,
@@ -31,7 +53,7 @@ export function usePracticeKeys({
 			if (
 				event.key === "Enter" &&
 				onAdvance !== null &&
-				!typing(event.target)
+				!ownsEnter(event.target)
 			) {
 				event.preventDefault();
 				onAdvance();

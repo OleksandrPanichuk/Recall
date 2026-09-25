@@ -15,7 +15,7 @@ import { loadPageTree } from "@/features/pages/lib/pages.api";
 import { PageTree } from "@/features/pages/ui/components/PageTree";
 import { SHARE_PATH } from "@/shared/constants/sharing";
 import { noFlashScript } from "@/shared/constants/theme";
-import { loadSession } from "@/shared/lib/viewer";
+import { sessionFor } from "@/shared/lib/viewer";
 import { AppShell } from "@/shared/ui/components/AppShell";
 import { ErrorPanel } from "@/shared/ui/components/ErrorPanel";
 import { NotFound } from "@/shared/ui/components/NotFound";
@@ -35,7 +35,8 @@ export const Route = createRootRouteWithContext<{
 			{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
 		],
 	}),
-	beforeLoad: async () => loadSession(),
+	beforeLoad: async ({ context, preload }) =>
+		sessionFor(context.queryClient, preload),
 	loader: async ({ context }) =>
 		context.viewer === null ? { nodes: [] } : loadPageTree(),
 	component: RootComponent,

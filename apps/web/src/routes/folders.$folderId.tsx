@@ -6,6 +6,7 @@ import { PageDetailView } from "@/features/pages/ui/views/PageDetailView";
 import { loadCurrentQuestion } from "@/features/practice/lib/practice.api";
 
 export const Route = createFileRoute("/folders/$folderId")({
+	remountDeps: ({ params }) => params.folderId,
 	loader: async ({ context, params }) => {
 		if (context.viewer === null) {
 			return null;

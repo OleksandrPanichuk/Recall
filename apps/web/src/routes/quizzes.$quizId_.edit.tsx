@@ -8,14 +8,19 @@ import { NotFound } from "@/shared/ui/components/NotFound";
 import { SignInPrompt } from "@/shared/ui/components/SignInPrompt";
 
 export const Route = createFileRoute("/quizzes/$quizId_/edit")({
-	loader: async ({ context, params }) =>
-		context.viewer === null
-			? { viewer: false as const }
-			: {
-					viewer: true as const,
-					quiz: await loadQuizSet({ data: params.quizId }),
-					vocabulary: (await loadVocabulary({ data: params.quizId })).items,
-				},
+	remountDeps: ({ params }) => params.quizId,
+	loader: async ({ context, params }) => {
+		if (context.viewer === null) {
+			return { viewer: false as const };
+		}
+
+		const [quiz, vocabulary] = await Promise.all([
+			loadQuizSet({ data: params.quizId }),
+			loadVocabulary({ data: params.quizId }),
+		]);
+
+		return { viewer: true as const, quiz, vocabulary: vocabulary.items };
+	},
 	head: ({ loaderData }) => ({
 		meta: [
 			{

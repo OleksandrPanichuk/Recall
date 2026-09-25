@@ -33,6 +33,7 @@ import { MoveQuizSet } from "@/features/authoring/ui/components/MoveQuizSet";
 import { QuestionDraftForm } from "@/features/authoring/ui/components/QuestionDraftForm";
 import { VocabularyList } from "@/features/authoring/ui/components/VocabularyList";
 import { questions } from "@/shared/lib/plural";
+import { ConfirmAction } from "@/shared/ui/components/ConfirmAction";
 import { PageHeading } from "@/shared/ui/components/PageHeading";
 
 interface Props {
@@ -176,21 +177,28 @@ export function QuizEditorView({ quiz, vocabulary, pages }: Props) {
 									>
 										<Pencil className="size-4" />
 									</button>
-									<button
-										type="button"
-										aria-label={`Delete question ${index + 1}`}
-										disabled={busy}
-										onClick={() =>
-											void run(async () => {
+									<ConfirmAction
+										title={`Delete question ${index + 1}?`}
+										description={`“${question.prompt}” will be deleted from this quiz. This cannot be undone.`}
+										confirmLabel="Delete question"
+										onConfirm={() =>
+											run(async () => {
 												await deleteQuestion({
 													data: { quizSetId: quiz.id, questionId: question.id },
 												});
 											})
 										}
-										className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
-									>
-										<Trash2 className="size-4" />
-									</button>
+										trigger={
+											<button
+												type="button"
+												aria-label={`Delete question ${index + 1}`}
+												disabled={busy}
+												className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+											>
+												<Trash2 className="size-4" />
+											</button>
+										}
+									/>
 								</CardContent>
 							</Card>
 						),

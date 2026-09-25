@@ -1,6 +1,6 @@
 import type { BrowseView } from "@recall/contracts";
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAutosave } from "@/features/pages/hooks/use-autosave";
 import {
 	attachQuiz,
@@ -12,13 +12,30 @@ import {
 	unsharePage,
 } from "@/features/pages/lib/pages.api";
 
-export function usePageEditing(folderId: string, loaded: BrowseView | null) {
+type WriteSummary = (input: {
+	data: { folderId: string; summary: string };
+}) => Promise<BrowseView>;
+
+export function usePageEditing(
+	folderId: string,
+	loaded: BrowseView | null,
+	writeSummary: WriteSummary = saveSummary,
+) {
 	const router = useRouter();
 	const [written, setWritten] = useState<BrowseView | null>(null);
 	const [restored, setRestored] = useState(0);
-	const { state, schedule, flush } = useAutosave(async (summary) => {
-		setWritten(await saveSummary({ data: { folderId, summary } }));
+	const { state, schedule, flush, discard } = useAutosave(async (summary) => {
+		setWritten(await writeSummary({ data: { folderId, summary } }));
 	});
+
+	const shown = useRef(folderId);
+
+	useEffect(() => {
+		if (shown.current !== folderId) {
+			shown.current = folderId;
+			void flush();
+		}
+	}, [folderId, flush]);
 
 	const refresh = async (next: BrowseView) => {
 		setWritten(next);
@@ -32,7 +49,8 @@ export function usePageEditing(folderId: string, loaded: BrowseView | null) {
 		flush,
 		restored,
 		restore: async (summary: string) => {
-			await refresh(await saveSummary({ data: { folderId, summary } }));
+			await discard();
+			await refresh(await writeSummary({ data: { folderId, summary } }));
 			setRestored((count) => count + 1);
 		},
 		invalidate: () => router.invalidate(),

@@ -19,6 +19,7 @@ export function RecallButtons({ chosen, busy, onRate }: Props) {
 					<Button
 						key={choice.grade}
 						variant={chosen === choice.grade ? "default" : "outline"}
+						aria-pressed={chosen === choice.grade}
 						disabled={busy}
 						className="h-auto flex-col gap-0.5 py-2"
 						onClick={() => onRate(choice.grade)}

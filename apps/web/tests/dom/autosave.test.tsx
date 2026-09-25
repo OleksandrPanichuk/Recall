@@ -109,4 +109,168 @@ describe("autosave", () => {
 		expect(written).toEqual([]);
 		expect(result.current.state).toBe("idle");
 	});
+
+	test("writes an edit made during a save once that save lands", async () => {
+		const written: string[] = [];
+		let release = () => {};
+		const { result } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+
+				if (written.length === 1) {
+					await new Promise<void>((resolve) => {
+						release = resolve;
+					});
+				}
+			}, 10),
+		);
+
+		act(() => result.current.schedule("first"));
+		await settle(30);
+
+		expect(written).toEqual(["first"]);
+
+		act(() => result.current.schedule("first and more"));
+		await settle(30);
+		await act(async () => release());
+		await settle(20);
+
+		expect(written).toEqual(["first", "first and more"]);
+		await waitFor(() => expect(result.current.state).toBe("saved"));
+	});
+
+	test("a flush during a save waits for it and then writes the rest", async () => {
+		const written: string[] = [];
+		let release = () => {};
+		const { result } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+
+				if (written.length === 1) {
+					await new Promise<void>((resolve) => {
+						release = resolve;
+					});
+				}
+			}, 10_000),
+		);
+
+		let first = Promise.resolve();
+		let second = Promise.resolve();
+
+		act(() => {
+			result.current.schedule("first");
+			first = result.current.flush();
+		});
+		act(() => {
+			result.current.schedule("second");
+			second = result.current.flush();
+		});
+		await act(async () => {
+			release();
+			await Promise.all([first, second]);
+		});
+
+		expect(written).toEqual(["first", "second"]);
+	});
+
+	test("a failed save does not overwrite an edit made while it ran", async () => {
+		const written: string[] = [];
+		let fail = (_: Error) => {};
+		const { result } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+
+				if (written.length === 1) {
+					await new Promise<void>((_, reject) => {
+						fail = reject;
+					});
+				}
+			}, 10_000),
+		);
+
+		let first = Promise.resolve();
+
+		act(() => {
+			result.current.schedule("old");
+			first = result.current.flush();
+		});
+		act(() => result.current.schedule("new"));
+		await act(async () => {
+			fail(new Error("offline"));
+			await first;
+		});
+		await act(() => result.current.flush());
+
+		expect(written).toEqual(["old", "new"]);
+	});
+
+	test("an edit is written with the save it was typed under", async () => {
+		const written: string[][] = [];
+		const { result, rerender } = renderHook(
+			({ target }: { target: string }) =>
+				useAutosave(async (value) => {
+					written.push([target, value]);
+				}, 20),
+			{ initialProps: { target: "A" } },
+		);
+
+		act(() => result.current.schedule("typed on A"));
+		rerender({ target: "B" });
+		await settle(60);
+
+		expect(written).toEqual([["A", "typed on A"]]);
+	});
+
+	test("a discarded edit is never written", async () => {
+		const written: string[] = [];
+		const { result, unmount } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+			}, 20),
+		);
+
+		act(() => result.current.schedule("about to be replaced"));
+		await act(() => result.current.discard());
+		await settle(60);
+		unmount();
+		await settle(20);
+
+		expect(written).toEqual([]);
+		expect(result.current.unsaved()).toBe(false);
+	});
+
+	test("a save that fails after being discarded does not come back", async () => {
+		const written: string[] = [];
+		let fail = (_: Error) => {};
+		const { result } = renderHook(() =>
+			useAutosave(async (value) => {
+				written.push(value);
+
+				if (written.length === 1) {
+					await new Promise<void>((_, reject) => {
+						fail = reject;
+					});
+				}
+			}, 10_000),
+		);
+
+		let first = Promise.resolve();
+		let discarding = Promise.resolve();
+
+		act(() => {
+			result.current.schedule("before the restore");
+			first = result.current.flush();
+		});
+		act(() => {
+			discarding = result.current.discard();
+		});
+		await act(async () => {
+			fail(new Error("offline"));
+			await Promise.all([first, discarding]);
+		});
+		await act(() => result.current.flush());
+
+		expect(written).toEqual(["before the restore"]);
+		expect(result.current.unsaved()).toBe(false);
+	});
 });
