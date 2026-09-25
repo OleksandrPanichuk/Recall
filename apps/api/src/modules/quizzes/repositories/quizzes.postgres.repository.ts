@@ -4,9 +4,9 @@ import {
 	asc,
 	count,
 	eq,
+	getTableColumns,
 	inArray,
 	isNull,
-	notInArray,
 	sql,
 } from "drizzle-orm";
 import { OwnerContext } from "@/core/owner-context";
@@ -19,14 +19,85 @@ import {
 	quizzes,
 	responses,
 } from "@/db/schema";
-import { isUuid } from "@/db/uuid";
-import type { QuestionId } from "../question.entity";
+import { isAnyUuidOf, isUuid } from "@/db/uuid";
+import {
+	type QuestionEntity,
+	type QuestionId,
+	toQuestionId,
+} from "../question.entity";
 import { questionFingerprint } from "../question-fingerprint";
+import { isQuizSetStatus } from "../quiz-set.constants";
 import { QuizSetEntity, type QuizSetId, toQuizSetId } from "../quiz-set.entity";
 import { QuizVersionConflictError } from "../quizzes.errors";
-import type { QuizListFilter, QuizSummary } from "../quizzes.repository";
+import type {
+	ListedQuestion,
+	QuestionListFilter,
+	QuestionLocation,
+	QuizListFilter,
+	QuizSummary,
+} from "../quizzes.repository";
 import { QuizzesRepository } from "../quizzes.repository";
-import { toQuiz } from "./quiz.mapper";
+import { CorruptedQuizRowError, toQuestion, toQuiz } from "./quiz.mapper";
+
+type StoredQuestion = typeof questions.$inferSelect;
+type StoredOption = typeof questionOptions.$inferSelect;
+
+type QuestionWrite = Pick<
+	StoredQuestion,
+	| "id"
+	| "ownerId"
+	| "quizId"
+	| "type"
+	| "prompt"
+	| "explanation"
+	| "sourceReference"
+	| "topic"
+	| "difficulty"
+	| "hint"
+	| "vocabularyItemId"
+	| "position"
+	| "fingerprint"
+>;
+
+const sameRow = (row: QuestionWrite, stored: StoredQuestion): boolean =>
+	(Object.keys(row) as (keyof QuestionWrite)[]).every(
+		(key) => row[key] === stored[key],
+	);
+
+const groupOptions = (
+	rows: readonly StoredOption[],
+): ReadonlyMap<string, readonly StoredOption[]> => {
+	const grouped = new Map<string, StoredOption[]>();
+
+	for (const row of rows) {
+		grouped.set(row.questionId, [...(grouped.get(row.questionId) ?? []), row]);
+	}
+
+	return grouped;
+};
+
+const sameOptions = (
+	options: QuestionEntity["options"],
+	stored: readonly StoredOption[],
+): boolean => {
+	if (options.length !== stored.length) {
+		return false;
+	}
+
+	const byId = new Map(stored.map((row) => [row.id, row]));
+
+	return options.every((option) => {
+		const row = byId.get(String(option.id));
+
+		return (
+			row !== undefined &&
+			row.text === option.text &&
+			row.isCorrect === option.isCorrect &&
+			row.matchKey === (option.matchKey ?? null) &&
+			row.position === option.position
+		);
+	});
+};
 
 @Injectable()
 export class PostgresQuizzesRepository extends QuizzesRepository {
@@ -107,67 +178,141 @@ export class PostgresQuizzesRepository extends QuizzesRepository {
 			.values(row)
 			.onConflictDoUpdate({ target: quizzes.id, set: row });
 
-		const keptIds = quiz.questions.map((question) => String(question.id));
-
-		await this.executor
-			.delete(questions)
-			.where(
-				and(
-					this.myQuestions,
-					eq(questions.quizId, id),
-					keptIds.length === 0 ? undefined : notInArray(questions.id, keptIds),
-				),
-			);
-
-		await this.executor
-			.update(questions)
-			.set({
-				position: sql`-1 - ${questions.position}`,
-				fingerprint: sql`'parked:' || ${questions.id}`,
-			})
-			.where(and(this.myQuestions, eq(questions.quizId, id)));
-
-		for (const question of quiz.questions) {
-			const questionRow = {
-				id: String(question.id),
-				ownerId: this.owner,
-				quizId: id,
-				type: question.type,
-				prompt: question.prompt,
-				explanation: question.explanation ?? null,
-				sourceReference: question.sourceReference ?? null,
-				topic: question.topic ?? null,
-				difficulty: question.difficulty,
-				hint: question.hint ?? null,
-				vocabularyItemId: question.vocabularyItemId ?? null,
-				position: question.position,
-				fingerprint: questionFingerprint(question),
-			};
-
-			await this.executor
-				.insert(questions)
-				.values(questionRow)
-				.onConflictDoUpdate({ target: questions.id, set: questionRow });
-
-			await this.executor
-				.delete(questionOptions)
-				.where(eq(questionOptions.questionId, String(question.id)));
-
-			if (question.options.length > 0) {
-				await this.executor.insert(questionOptions).values(
-					question.options.map((option) => ({
-						id: String(option.id),
-						questionId: String(question.id),
-						text: option.text,
-						isCorrect: option.isCorrect,
-						matchKey: option.matchKey ?? null,
-						position: option.position,
-					})),
-				);
-			}
-		}
+		await this.writeQuestions(id, quiz);
 
 		return nextVersion;
+	}
+
+	private async writeQuestions(id: string, quiz: QuizSetEntity): Promise<void> {
+		const storedRows = await this.executor
+			.select()
+			.from(questions)
+			.where(and(this.myQuestions, eq(questions.quizId, id)));
+		const storedOptions =
+			storedRows.length === 0
+				? []
+				: await this.executor
+						.select(getTableColumns(questionOptions))
+						.from(questionOptions)
+						.innerJoin(questions, eq(questions.id, questionOptions.questionId))
+						.where(and(this.myQuestions, eq(questions.quizId, id)));
+		const storedById = new Map(
+			storedRows.map((row) => [row.id.toLowerCase(), row]),
+		);
+		const optionsOf = groupOptions(storedOptions);
+		const keptIds = new Set(
+			quiz.questions.map((question) => String(question.id).toLowerCase()),
+		);
+		const removedIds = storedRows
+			.map((row) => row.id)
+			.filter((questionId) => !keptIds.has(questionId.toLowerCase()));
+
+		if (removedIds.length > 0) {
+			await this.executor
+				.delete(questions)
+				.where(
+					and(
+						this.myQuestions,
+						eq(questions.quizId, id),
+						inArray(questions.id, removedIds),
+					),
+				);
+		}
+
+		const rows = quiz.questions.map((question) => ({
+			question,
+			row: this.questionRowOf(id, question),
+			stored: storedById.get(String(question.id).toLowerCase()),
+		}));
+		const changedRows = rows.filter(
+			({ row, stored }) => stored === undefined || !sameRow(row, stored),
+		);
+		const parkedIds = changedRows.flatMap(({ stored }) =>
+			stored === undefined ? [] : [stored.id],
+		);
+
+		if (parkedIds.length > 0) {
+			await this.executor
+				.update(questions)
+				.set({
+					position: sql`-1 - ${questions.position}`,
+					fingerprint: sql`'parked:' || ${questions.id}`,
+				})
+				.where(and(this.myQuestions, inArray(questions.id, parkedIds)));
+		}
+
+		for (const { row } of changedRows) {
+			await this.executor
+				.insert(questions)
+				.values(row)
+				.onConflictDoUpdate({ target: questions.id, set: row });
+		}
+
+		const reoptioned = rows
+			.filter(
+				({ question, stored }) =>
+					stored === undefined ||
+					!sameOptions(question.options, optionsOf.get(stored.id) ?? []),
+			)
+			.map(({ question }) => question);
+
+		if (reoptioned.length === 0) {
+			return;
+		}
+
+		await this.executor.delete(questionOptions).where(
+			inArray(
+				questionOptions.questionId,
+				this.executor
+					.select({ id: questions.id })
+					.from(questions)
+					.where(
+						and(
+							this.myQuestions,
+							inArray(
+								questions.id,
+								reoptioned.map((question) => String(question.id)),
+							),
+						),
+					),
+			),
+		);
+
+		const optionRows = reoptioned.flatMap((question) =>
+			question.options.map((option) => ({
+				id: String(option.id),
+				questionId: String(question.id),
+				text: option.text,
+				isCorrect: option.isCorrect,
+				matchKey: option.matchKey ?? null,
+				position: option.position,
+			})),
+		);
+
+		if (optionRows.length > 0) {
+			await this.executor.insert(questionOptions).values(optionRows);
+		}
+	}
+
+	private questionRowOf(
+		quizId: string,
+		question: QuestionEntity,
+	): QuestionWrite {
+		return {
+			id: String(question.id),
+			ownerId: this.owner,
+			quizId,
+			type: question.type,
+			prompt: question.prompt,
+			explanation: question.explanation ?? null,
+			sourceReference: question.sourceReference ?? null,
+			topic: question.topic ?? null,
+			difficulty: question.difficulty,
+			hint: question.hint ?? null,
+			vocabularyItemId: question.vocabularyItemId ?? null,
+			position: question.position,
+			fingerprint: questionFingerprint(question),
+		};
 	}
 
 	async findById(id: QuizSetId): Promise<QuizSetEntity | undefined> {
@@ -275,5 +420,119 @@ export class PostgresQuizzesRepository extends QuizzesRepository {
 			);
 
 		return Number(row?.total ?? 0);
+	}
+
+	async answerCounts(
+		questionIds: readonly QuestionId[],
+	): Promise<ReadonlyMap<QuestionId, number>> {
+		const ids = questionIds.map(String).filter(isUuid);
+
+		if (ids.length === 0) {
+			return new Map();
+		}
+
+		const rows = await this.executor
+			.select({ questionId: responses.questionId, total: count() })
+			.from(responses)
+			.innerJoin(attempts, eq(attempts.id, responses.attemptId))
+			.where(
+				and(
+					eq(attempts.ownerId, this.owner),
+					isAnyUuidOf(responses.questionId, ids),
+				),
+			)
+			.groupBy(responses.questionId);
+
+		return new Map(
+			rows.map((row) => [toQuestionId(row.questionId), Number(row.total)]),
+		);
+	}
+
+	async locateQuestions(
+		questionIds: readonly QuestionId[],
+	): Promise<readonly QuestionLocation[]> {
+		const ids = questionIds.map(String).filter(isUuid);
+
+		if (ids.length === 0) {
+			return [];
+		}
+
+		const rows = await this.executor
+			.select({
+				questionId: questions.id,
+				quizSetId: quizzes.id,
+				quizSetTitle: quizzes.title,
+				quizSetStatus: quizzes.status,
+				prompt: questions.prompt,
+			})
+			.from(questions)
+			.innerJoin(quizzes, eq(quizzes.id, questions.quizId))
+			.where(and(this.myQuestions, this.mine, isAnyUuidOf(questions.id, ids)));
+
+		return rows.map((row) => {
+			if (!isQuizSetStatus(row.quizSetStatus)) {
+				throw new CorruptedQuizRowError(row.quizSetId, [
+					`status "${row.quizSetStatus}" is not supported`,
+				]);
+			}
+
+			return {
+				questionId: toQuestionId(row.questionId),
+				quizSetId: toQuizSetId(row.quizSetId),
+				quizSetTitle: row.quizSetTitle,
+				quizSetStatus: row.quizSetStatus,
+				prompt: row.prompt,
+			};
+		});
+	}
+
+	async listQuestions(
+		filter?: QuestionListFilter,
+	): Promise<readonly ListedQuestion[]> {
+		if (filter?.quizSetId !== undefined && !isUuid(String(filter.quizSetId))) {
+			return [];
+		}
+
+		const scope = and(
+			this.myQuestions,
+			this.mine,
+			filter?.quizSetId === undefined
+				? undefined
+				: eq(quizzes.id, String(filter.quizSetId)),
+		);
+		const rows = await this.executor
+			.select({ question: questions, quiz: quizzes })
+			.from(questions)
+			.innerJoin(quizzes, eq(quizzes.id, questions.quizId))
+			.where(scope)
+			.orderBy(asc(quizzes.title), asc(quizzes.id), asc(questions.position));
+
+		if (rows.length === 0) {
+			return [];
+		}
+
+		const optionRows = await this.executor
+			.select(getTableColumns(questionOptions))
+			.from(questionOptions)
+			.innerJoin(questions, eq(questions.id, questionOptions.questionId))
+			.innerJoin(quizzes, eq(quizzes.id, questions.quizId))
+			.where(scope)
+			.orderBy(asc(questionOptions.position));
+		const optionsOf = groupOptions(optionRows);
+
+		return rows.map(({ question, quiz }) => {
+			if (!isQuizSetStatus(quiz.status)) {
+				throw new CorruptedQuizRowError(quiz.id, [
+					`status "${quiz.status}" is not supported`,
+				]);
+			}
+
+			return {
+				question: toQuestion(question, optionsOf.get(question.id) ?? []),
+				quizSetId: toQuizSetId(quiz.id),
+				setTitle: quiz.title,
+				setStatus: quiz.status,
+			};
+		});
 	}
 }

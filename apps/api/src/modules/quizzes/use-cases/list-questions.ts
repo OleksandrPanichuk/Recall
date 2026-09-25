@@ -27,29 +27,16 @@ export class ListQuestionsUseCase extends UseCase<Options, Result> {
 	async execute(
 		options: ListQuestionsUseCaseOptions,
 	): Promise<readonly QuestionRow[]> {
-		const ids =
-			options.quizSetId === undefined
-				? (await this.quizzes.list()).map((summary) => summary.id)
-				: [options.quizSetId];
-		const rows: QuestionRow[] = [];
-
-		for (const id of ids) {
-			const quizSet = await this.quizzes.findById(id);
-
-			if (quizSet === undefined) {
-				continue;
-			}
-
-			for (const question of quizSet.questions) {
-				rows.push({
-					question,
-					quizSetId: quizSet.id,
-					setTitle: quizSet.title,
-					setStatus: quizSet.status,
-					answerCount: await this.quizzes.answerCount(question.id),
-				});
-			}
-		}
+		const listed = await this.quizzes.listQuestions({
+			quizSetId: options.quizSetId,
+		});
+		const answers = await this.quizzes.answerCounts(
+			listed.map((row) => row.question.id),
+		);
+		const rows = listed.map((row) => ({
+			...row,
+			answerCount: answers.get(row.question.id) ?? 0,
+		}));
 
 		return rows;
 	}

@@ -29,6 +29,12 @@ export interface PageMatch {
 	readonly excerpt?: string;
 }
 
+export interface PageContentCounts {
+	readonly quizzes: number;
+	readonly publishedQuizzes: number;
+	readonly childPages: number;
+}
+
 export abstract class PagesRepository {
 	abstract save(page: PageEntity): Promise<void>;
 	abstract findById(id: PageId): Promise<PageEntity | undefined>;
@@ -42,6 +48,9 @@ export abstract class PagesRepository {
 		statuses?: readonly LinkedQuizStatus[],
 	): Promise<number>;
 	abstract countChildPages(id: PageId): Promise<number>;
+	abstract contentCounts(
+		ids?: readonly PageId[],
+	): Promise<ReadonlyMap<PageId, PageContentCounts>>;
 	abstract attachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void>;
 	abstract detachQuiz(id: PageId, quizId: LinkedQuizId): Promise<void>;
 	abstract listAttachedQuizIds(id: PageId): Promise<readonly LinkedQuizId[]>;

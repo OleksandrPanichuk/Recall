@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { UseCase } from "@/core/use-case";
 import type { PageId } from "../page.entity";
-import { type LinkedQuizSummary, PUBLISHED } from "../page.quiz-link";
+import type { LinkedQuizSummary } from "../page.quiz-link";
 import { PagesRepository } from "../pages.repository";
 import { PagesService } from "../pages.service";
 
@@ -48,17 +48,17 @@ export class BrowseFolderUseCase extends UseCase<Options, BrowseView> {
 				? undefined
 				: await this.pagesService.require(options.folderId);
 
-		const children: BrowseChild[] = [];
-
-		for (const child of await this.pages.listChildren(options.folderId)) {
-			children.push({
-				id: child.id,
-				name: child.name,
-				itemCount:
-					(await this.pages.countQuizzesIn(child.id, PUBLISHED)) +
-					(await this.pages.countChildPages(child.id)),
-			});
-		}
+		const listed = await this.pages.listChildren(options.folderId);
+		const counts = await this.pages.contentCounts(
+			listed.map((child) => child.id),
+		);
+		const children: BrowseChild[] = listed.map((child) => ({
+			id: child.id,
+			name: child.name,
+			itemCount:
+				(counts.get(child.id)?.publishedQuizzes ?? 0) +
+				(counts.get(child.id)?.childPages ?? 0),
+		}));
 
 		const ancestors =
 			current === undefined ? [] : await this.pages.listAncestors(current.id);

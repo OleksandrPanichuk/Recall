@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { UseCase } from "@/core/use-case";
 import type { PageEntity, PageId } from "../page.entity";
-import { PUBLISHED } from "../page.quiz-link";
 import { PagesRepository } from "../pages.repository";
 
 export interface PageTreeNode {
@@ -25,6 +24,7 @@ export class ListPageTreeUseCase extends UseCase<Options, Result> {
 
 	async execute(): Promise<Result> {
 		const all = await this.pages.listAll();
+		const counts = await this.pages.contentCounts();
 		const childrenByParent = new Map<string, PageEntity[]>();
 
 		for (const page of all) {
@@ -34,13 +34,10 @@ export class ListPageTreeUseCase extends UseCase<Options, Result> {
 		}
 
 		const nodes: PageTreeNode[] = [];
-		const walk = async (
-			parentId: PageId | undefined,
-			depth: number,
-		): Promise<void> => {
+		const walk = (parentId: PageId | undefined, depth: number): void => {
 			for (const page of childrenByParent.get(parentId ?? "") ?? []) {
-				const setCount = await this.pages.countQuizzesIn(page.id, PUBLISHED);
-				const total = await this.pages.countQuizzesIn(page.id);
+				const setCount = counts.get(page.id)?.publishedQuizzes ?? 0;
+				const total = counts.get(page.id)?.quizzes ?? 0;
 
 				nodes.push({
 					id: page.id,
@@ -51,11 +48,11 @@ export class ListPageTreeUseCase extends UseCase<Options, Result> {
 					setCount,
 					unpublishedCount: total - setCount,
 				});
-				await walk(page.id, depth + 1);
+				walk(page.id, depth + 1);
 			}
 		};
 
-		await walk(undefined, 0);
+		walk(undefined, 0);
 
 		return nodes;
 	}
