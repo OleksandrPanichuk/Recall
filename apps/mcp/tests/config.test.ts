@@ -60,4 +60,19 @@ describe("the bridge configuration", () => {
 			),
 		).toContain("RECALL_MCP_TIMEOUT_MS");
 	});
+
+	test("refuses a timeout of zero, which would abort every call", () => {
+		expect(
+			failureOf({ MCP_HTTP_TOKEN: TOKEN, RECALL_MCP_TIMEOUT_MS: "0" }).join(
+				"\n",
+			),
+		).toContain("RECALL_MCP_TIMEOUT_MS");
+	});
+
+	test("takes a positive timeout from the environment", () => {
+		expect(
+			loadConfiguration({ MCP_HTTP_TOKEN: TOKEN, RECALL_MCP_TIMEOUT_MS: "250" })
+				.timeoutMs,
+		).toBe(250);
+	});
 });
