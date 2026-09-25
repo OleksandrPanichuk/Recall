@@ -29,6 +29,19 @@ export function usePracticeSession(started: CurrentQuestionView | null) {
 	const [failure, setFailure] = useState<string | null>(null);
 	const [paused, setPaused] = useState(started?.status === "paused");
 	const [rated, setRated] = useState<FeltGrade>();
+	const [attemptId, setAttemptId] = useState(started?.attemptId);
+
+	if (started?.attemptId !== attemptId) {
+		setAttemptId(started?.attemptId);
+		setCurrent(started);
+		setPending(null);
+		setVerdict(null);
+		setFinished(null);
+		setFailure(null);
+		setPaused(started?.status === "paused");
+		setRated(undefined);
+		setBusy(false);
+	}
 
 	const finish = async (): Promise<void> => {
 		setBusy(true);

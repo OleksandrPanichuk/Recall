@@ -10,6 +10,7 @@ import {
 	issueApiToken,
 	revokeApiToken,
 } from "@/features/tokens/lib/tokens.api";
+import { ConfirmAction } from "@/shared/ui/components/ConfirmAction";
 import { EXPIRY_CHOICES, SHOWN_ONCE } from "./ApiTokens.constants";
 import { expiryLabel, lastUsedLabel } from "./ApiTokens.lib";
 
@@ -70,19 +71,26 @@ export function ApiTokens({ tokens }: Props) {
 									{lastUsedLabel(token.lastUsedAt)}
 								</p>
 							</div>
-							<button
-								type="button"
-								aria-label={`Revoke ${token.name}`}
-								disabled={busy}
-								onClick={() =>
-									void run(async () => {
+							<ConfirmAction
+								title={`Revoke ${token.name}?`}
+								description="Anything using this token loses access to your library at once. This cannot be undone."
+								confirmLabel="Revoke token"
+								onConfirm={() =>
+									run(async () => {
 										await revokeApiToken({ data: { tokenId: token.id } });
 									})
 								}
-								className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
-							>
-								<Trash2 className="size-4" />
-							</button>
+								trigger={
+									<button
+										type="button"
+										aria-label={`Revoke ${token.name}`}
+										disabled={busy}
+										className="flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+									>
+										<Trash2 className="size-4" />
+									</button>
+								}
+							/>
 						</CardContent>
 					</Card>
 				))

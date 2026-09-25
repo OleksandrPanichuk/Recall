@@ -30,7 +30,14 @@ describe("the page title", () => {
 	const titled = (name: string) => {
 		const renamed: string[] = [];
 
-		render(<PageTitle name={name} onRename={(next) => renamed.push(next)} />);
+		render(
+			<PageTitle
+				name={name}
+				onRename={async (next) => {
+					renamed.push(next);
+				}}
+			/>,
+		);
 
 		return { renamed, field: screen.getByLabelText("Page title") };
 	};
@@ -65,11 +72,46 @@ describe("the page title", () => {
 	test("puts the old name back on escape", () => {
 		const { renamed, field } = titled("Chapter 1");
 
+		field.focus();
 		fireEvent.change(field, { target: { value: "typo" } });
 		fireEvent.keyDown(field, { key: "Escape" });
 
+		expect(document.activeElement).not.toBe(field);
 		expect((field as HTMLInputElement).value).toBe("Chapter 1");
 		expect(renamed).toEqual([]);
+	});
+
+	test("after an escape, the next edit still renames", () => {
+		const { renamed, field } = titled("Chapter 1");
+
+		field.focus();
+		fireEvent.change(field, { target: { value: "typo" } });
+		fireEvent.keyDown(field, { key: "Escape" });
+		field.focus();
+		fireEvent.change(field, { target: { value: "Chapter 2" } });
+		fireEvent.blur(field);
+
+		expect(renamed).toEqual(["Chapter 2"]);
+	});
+
+	test("says so when the rename does not go through", async () => {
+		render(
+			<PageTitle
+				name="Chapter 1"
+				onRename={async () => {
+					throw new Error("offline");
+				}}
+			/>,
+		);
+		const field = screen.getByLabelText("Page title");
+
+		fireEvent.change(field, { target: { value: "Chapter 2" } });
+		fireEvent.blur(field);
+
+		expect((await screen.findByRole("alert")).textContent).toContain(
+			"Could not rename",
+		);
+		expect((field as HTMLInputElement).value).toBe("Chapter 2");
 	});
 });
 

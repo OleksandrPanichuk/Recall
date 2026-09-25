@@ -10,6 +10,10 @@ export const Route = createFileRoute("/practice/$quizId")({
 	preload: false,
 	validateSearch: parsePracticeSearch,
 	loaderDeps: ({ search }) => search,
+	remountDeps: ({ params, loaderDeps }) => ({
+		quizId: params.quizId,
+		mode: loaderDeps.mode,
+	}),
 	loader: async ({ context, params, deps }) => {
 		if (context.viewer === null) {
 			return null;

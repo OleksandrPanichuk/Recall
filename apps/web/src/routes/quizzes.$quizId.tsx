@@ -5,6 +5,7 @@ import { loadStatistics } from "@/features/statistics/lib/statistics.api";
 import { QuizStatisticsView } from "@/features/statistics/ui/views/QuizStatisticsView";
 
 export const Route = createFileRoute("/quizzes/$quizId")({
+	remountDeps: ({ params }) => params.quizId,
 	loader: async ({ context, params }) => {
 		if (context.viewer === null) {
 			return null;

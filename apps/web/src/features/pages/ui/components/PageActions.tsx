@@ -8,6 +8,7 @@ import { AttachQuiz } from "@/features/pages/ui/components/AttachQuiz";
 import { MovePage } from "@/features/pages/ui/components/MovePage";
 import { NewPageButton } from "@/features/pages/ui/components/NewPageButton";
 import { SharePage } from "@/features/pages/ui/components/SharePage";
+import { ConfirmAction } from "@/shared/ui/components/ConfirmAction";
 
 interface Props {
 	readonly view: BrowseView;
@@ -35,7 +36,8 @@ export function PageActions({
 	const empty =
 		view.children.length === 0 &&
 		view.sets.length === 0 &&
-		view.attached.length === 0;
+		view.attached.length === 0 &&
+		(view.summary ?? "").trim().length === 0;
 
 	const remove = async () => {
 		setBusy(true);
@@ -79,15 +81,22 @@ export function PageActions({
 				</>
 			)}
 			{empty ? (
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={remove}
-					disabled={busy}
-					aria-label="Delete page"
-				>
-					<Trash2 />
-				</Button>
+				<ConfirmAction
+					title="Delete this page?"
+					description={`“${view.name ?? "Untitled"}” will be deleted. This cannot be undone.`}
+					confirmLabel="Delete page"
+					onConfirm={remove}
+					trigger={
+						<Button
+							variant="ghost"
+							size="sm"
+							disabled={busy}
+							aria-label="Delete page"
+						>
+							<Trash2 />
+						</Button>
+					}
+				/>
 			) : null}
 		</div>
 	);
